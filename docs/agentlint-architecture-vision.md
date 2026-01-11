@@ -10,7 +10,9 @@
 
 ## 1. Executive Summary
 
-agentlint is a local-first command-line tool that enables continuous improvement of AI-assisted development workflows. By establishing baselines, tracking signals over time, and providing actionable insights, it helps developers systematically optimise how they work with AI coding assistants.
+agentlint is a local-first command-line tool that enables continuous improvement of AI-assisted development workflows. By establishing baselines, tracing issues to their origins, and providing preventive recommendations, it helps developers systematically optimise how they work with AI coding assistants.
+
+**The Key Differentiator**: Traditional linters detect issues. agentlint goes further—it traces issues to their origin (which session? which prompt? which config gap?) and recommends preventive changes. Value compounds because each recommendation makes future AI sessions better.
 
 **The Core Insight**: AI coding assistants (Claude Code, Cursor, GitHub Copilot, Codex, Gemini Code Assist) are only as effective as the context they receive. Most developers don't optimise this context—they use default configurations, poorly structured documentation, and miss opportunities to leverage tooling that dramatically improves AI output quality. Worse, research shows developers consistently misjudge their own AI-assisted productivity, making systematic observation essential.
 
@@ -60,15 +62,17 @@ The tool provides:
 
 2. **Improvement-Oriented**: Every feature should support the continuous improvement cycle. Prefer capabilities that compound value over time to one-shot utilities. Baseline tracking and historical comparison are core, not afterthoughts.
 
-3. **Mixed-Methods**: Combine quantitative signals with qualitative assessment. Neither alone tells the full story. Value exploratory analysis alongside structured metrics. Embrace uncertainty—AI-assisted development is an evolving practice.
+3. **Causal-First**: Don't just detect issues—trace them to their origin and recommend prevention. Every detected issue should link back to a session, prompt, or config gap. Recommendations should be preventive (stop recurrence) not just symptomatic (fix immediate problem).
 
-4. **Language-Agnostic**: The tool must effectively analyse projects regardless of programming language—TypeScript, Python, Go, Rust, Java, and others.
+4. **Mixed-Methods**: Combine quantitative signals with qualitative assessment. Neither alone tells the full story. Value exploratory analysis alongside structured metrics. Embrace uncertainty—AI-assisted development is an evolving practice.
 
-5. **Tool-Agnostic**: While initially focused on Claude Code, the architecture supports analysis of any AI coding assistant through an adapter pattern.
+5. **Language-Agnostic**: The tool must effectively analyse projects regardless of programming language—TypeScript, Python, Go, Rust, Java, and others.
 
-6. **Static-First**: Prefer deterministic static analysis over LLM-based analysis where possible. Use LLMs only where semantic understanding is genuinely required.
+6. **Tool-Agnostic**: While initially focused on Claude Code, the architecture supports analysis of any AI coding assistant through an adapter pattern.
 
-7. **Progressive Value**: Provide useful insights even without LLM configuration. LLM integration enhances analysis but isn't required for basic functionality.
+7. **Static-First**: Prefer deterministic static analysis over LLM-based analysis where possible. Use LLMs only where semantic understanding is genuinely required.
+
+8. **Progressive Value**: Provide useful insights even without LLM configuration. LLM integration enhances analysis but isn't required for basic functionality.
 
 ---
 
@@ -346,6 +350,52 @@ Session logs present a particular challenge due to their potential size. The str
 3. **Hierarchical Summarisation**: If LLM analysis is needed, summarise each phase independently, then combine summaries into an overall assessment
 
 4. **Targeted Retrieval**: For specific questions, use keyword and semantic search to find relevant log segments rather than processing everything
+
+### Causal Analysis: From Detection to Prevention
+
+A key differentiator is the causal analysis model. Traditional linters stop at detection. agentlint traces issues to their origin and recommends preventive changes.
+
+```
+DETECT ──▶ TRACE ──▶ UNDERSTAND ──▶ PREVENT
+```
+
+**Implementation approach**:
+
+1. **Issue Detection**: Static analysis or validation identifies an issue (e.g., secret in config, high iteration session, deprecated pattern used)
+
+2. **Origin Tracing**:
+   - Search session logs for when/how the issue was introduced
+   - Correlate with git history (when was content added, by AI or human?)
+   - Identify the prompt or action that triggered the issue
+
+3. **Cause Understanding**:
+   - What guidance was missing from CLAUDE.md?
+   - What documentation gap led to the AI making this mistake?
+   - Is this a recurring pattern across sessions?
+
+4. **Preventive Recommendation**:
+   - Generate specific config changes to prevent recurrence
+   - Prioritise preventive recommendations over symptomatic fixes
+   - Link recommendation back to traced origin for user understanding
+
+**Example flow**:
+
+| Step | Example: Secret in Config |
+|------|--------------------------|
+| DETECT | "API key found on line 42 of CLAUDE.md" |
+| TRACE | "Added in session 2024-01-10 when user prompted 'add my database config'" |
+| UNDERSTAND | "CLAUDE.md has no guidance on credential handling" |
+| PREVENT | "Add to CLAUDE.md: 'Never hardcode secrets. Use environment variables for all credentials.'" |
+
+**Recommendation types**:
+
+| Type | Focus | Value |
+|------|-------|-------|
+| Symptomatic | Fix immediate issue | Low (fixes symptom only) |
+| Preventive | Stop recurrence | High (prevents future issues) |
+| Systemic | Address root patterns | Highest (catches all variants) |
+
+agentlint prioritises preventive and systemic recommendations because they compound value over time.
 
 ---
 
