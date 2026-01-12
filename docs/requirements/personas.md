@@ -2,6 +2,36 @@
 
 > Derived from Architecture Vision section 2: "Who It's For"
 > Validated against external research (January 2026)
+> Enhanced with Agent Experience (AX) framework from CCA research
+
+## The agentlint AI Agent
+
+### Persona 0: The agentlint Agent
+
+- **Role**: agentlint's own AI agent that performs analysis, generates recommendations, and traces issues
+- **Goal**: Receive distilled, structured context about target repositories that enables stable reasoning and accurate analysis
+- **Pain Points**:
+  - Large session logs that exceed context limits
+  - Unstructured project information requiring repeated exploration
+  - Ambiguous analysis goals leading to unfocused recommendations
+  - No memory of previous analyses of the same project
+  - Difficulty correlating signals across multiple analysis domains
+- **Context**: Every agentlint analysis session
+- **Key Insight**: agentlint's effectiveness depends on how well we serve our own agent's cognitive needs. A well-structured working memory enables accurate, consistent analysis.
+
+**What The agentlint Agent Needs**:
+1. **Clear task framing**: What are we analyzing and why?
+2. **Compressed project context**: Distilled configs, session stats, code samples—not raw data
+3. **Hierarchical memory**: Task goals, progress, findings organized for easy reference
+4. **Static pre-processing**: Metrics extracted deterministically before LLM reasoning
+5. **Baseline awareness**: Previous analysis results for trend comparison
+6. **Scoped focus**: One domain at a time, not everything at once
+
+**Why This Persona Matters**: We "eat our own dog food"—agentlint's agent should embody the AX principles we recommend to users. When we design our analysis pipeline, we're asking: "Does this serve our own Agent well?"
+
+**Self-Application**: The agentlint agent experiences the same challenges as the coding agents it analyzes. By optimizing for our own agent's cognitive experience, we validate the AX principles we measure in target repositories.
+
+---
 
 ## Primary Personas (MVP)
 

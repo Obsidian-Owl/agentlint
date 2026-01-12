@@ -100,6 +100,44 @@ We use mixed methods—quantitative signals provide objective anchors; qualitati
 6. **Tool-Agnostic** - Supports any AI assistant via adapters.
 7. **Static-First** - Prefer deterministic analysis. Use LLMs where genuinely required.
 8. **Progressive Value** - Useful without LLM config. LLM enhances but isn't required.
+9. **Agent-Aware** - The AI agent is a first-class stakeholder with its own cognitive needs.
+
+---
+
+## Stakeholder Experience Framework
+
+agentlint recognizes three distinct but interconnected experiences that must be optimized together:
+
+### Agent Experience (AX)
+
+How effectively does the configuration serve the AI agent's cognitive needs?
+
+- Is context distilled and structured for stable reasoning?
+- Is working memory organized hierarchically?
+- Are instructions compressed without losing intent?
+- Does the feedback loop support self-correction?
+
+**Key Insight**: Research shows "even a weaker model equipped with a strong agent scaffold can outperform a stronger model" with poor scaffolding. How context is organized matters as much as what's in it.
+
+### User Experience (UX)
+
+How well does the human understand what's happening?
+
+- Can the developer trace issues to their origin?
+- Is agent behavior interpretable and controllable?
+- Are recommendations actionable and well-explained?
+- Is improvement visible over time?
+
+### Developer Experience (DX)
+
+How observable and improvable is the system?
+
+- Can configurations be evaluated systematically?
+- Are analysis results reproducible?
+- Is the tool modular and extensible?
+- Can findings be shared and compared?
+
+**Design Implication**: What the agent needs differs from what humans need. agentlint analyzes both perspectives and may surface tensions between them.
 
 ---
 

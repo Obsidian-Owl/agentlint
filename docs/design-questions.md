@@ -905,7 +905,154 @@ Issue: Secret in CLAUDE.md
 
 ---
 
-## 11. Decision Log
+## 11. Hindsight Learning & Cross-Session Memory
+
+The CCA research paper introduces the concept of "hindsight notes" - a note-taking agent that distills trajectories into structured Markdown capturing failures, compilation errors, and runtime exceptions. This creates "a steadily growing, human-readable body of durable knowledge" enabling cross-session learning.
+
+### Core Questions
+
+#### 11.1 Should agentlint support hindsight capture?
+
+**Options**:
+1. **Passive analysis only**: Detect and analyze any hindsight documentation users have created
+2. **Recommendation mode**: Recommend that users implement hindsight capture in configs/docs
+3. **Active capture tooling**: Help users capture and organize learnings from traced issues
+4. **Automated extraction**: Parse session logs to automatically extract hindsight candidates
+
+**Considerations**:
+- Options 3-4 expand scope significantly beyond "linter"
+- Aligns strongly with causal analysis model (DETECT → TRACE → UNDERSTAND → CAPTURE → PREVENT)
+- Could become a key differentiator
+
+#### 11.2 What format should hindsight take?
+
+**Options**:
+1. Markdown notes in project docs
+2. Structured data in agentlint's local database
+3. Additions to AI configuration files (CLAUDE.md sections)
+4. Git-tracked knowledge base
+
+**Considerations**:
+- Must be usable by both humans AND agents
+- Should support the continuous improvement model
+- Local-first principle applies
+
+#### 11.3 How should hindsight be surfaced to agents?
+
+**Options**:
+1. Append to configuration files automatically
+2. Recommend manual updates to configuration
+3. Provide as separate context file the agent can reference
+4. Integration with MCP for dynamic hindsight retrieval
+
+#### 11.4 How do we measure hindsight effectiveness?
+
+**Signals**:
+- Repeated patterns get resolved faster over time
+- Token costs decrease for similar tasks
+- Error recurrence rate drops
+- Recommendation adoption leads to measurable improvement
+
+### Research Needed
+
+- Survey how developers currently capture learnings from AI sessions
+- Analyze session logs for extractable hindsight patterns
+- Evaluate CCA's hindsight note format for agentlint applicability
+- Prototype automated hindsight extraction from traced issues
+
+---
+
+## 12. agentlint Agent Architecture (Self-Application of AX/UX/DX)
+
+The CCA research provides a framework we should apply to agentlint's own agentic components. We "eat our own dog food"—our analysis agents should embody the same AX principles we recommend to users.
+
+### 12.1 Context Management for Analysis Agents
+
+**Question**: How do we structure context for our LLM-powered analysis?
+
+**Options**:
+1. **Load and send**: Send full context to LLM (simple, but expensive and may overflow)
+2. **Pre-summarization**: Summarize logs/configs before LLM analysis
+3. **Hierarchical**: Multiple passes - coarse summary first, then targeted deep dives
+4. **Hybrid**: Static pre-processing + LLM summarization for semantic content
+
+**CCA Insight**: CCA uses hierarchical working memory with adaptive compression triggered when context approaches thresholds.
+
+**Considerations**:
+- Session logs can be very large (mentioned in architecture vision)
+- Static-first principle applies - extract stats before LLM
+- Need to preserve critical information in compression
+
+### 12.2 Agent Working Memory Structure
+
+**Question**: What does agentlint's agent need in its "cognitive workspace"?
+
+**Components to consider**:
+1. Task goal (what are we analyzing and why)
+2. Project context (detected configs, language, structure)
+3. Analysis progress (what we've assessed, what remains)
+4. Findings so far (issues detected, traces in progress)
+5. Baseline comparison (if available)
+
+**CCA Insight**: Structured summaries preserving "task goals, decisions, TODOs, and error traces" while replacing historical messages.
+
+### 12.3 AX/UX Separation in agentlint
+
+**Question**: How do we separate what our agent sees vs. what users see?
+
+**Agent-facing (AX)**:
+- Compressed config summaries
+- Session statistics (not full logs)
+- Code samples (not full files)
+- Distilled prior findings
+
+**User-facing (UX)**:
+- Full analysis reports
+- Traced origins with evidence
+- Detailed recommendations with rationale
+- Historical trend visualizations
+
+**Design Principle**: The agent works with distilled context; the user receives rich, interpretable output.
+
+### 12.4 Hindsight for agentlint's Agent
+
+**Question**: Should agentlint's agent learn from previous analyses?
+
+**Options**:
+1. **Stateless**: Each analysis is independent (simpler, more reproducible)
+2. **Per-project memory**: Agent remembers previous analyses of this project
+3. **Cross-project learning**: Agent learns patterns that transfer
+4. **Meta-improvement**: Agent suggests improvements to its own prompts/configs
+
+**CCA Insight**: Note-taking agent creates "steadily growing, human-readable body of durable knowledge."
+
+**Considerations**:
+- Reproducibility concern (same input should produce same output)
+- Local-first principle (learning stays on machine)
+- Meta-agent concept - could agentlint improve itself?
+
+### 12.5 Extension/Modularity Pattern
+
+**Question**: Should agentlint adopt an "extensions" pattern for its components?
+
+**CCA Pattern**: Extensions with typed callbacks:
+- Perception (interpreting outputs)
+- Reasoning (rewriting prompts)
+- Action (executing tools)
+
+**agentlint Mapping**:
+- Perception: Parsing configs, logs, code
+- Reasoning: Assessing quality, generating recommendations
+- Action: Writing reports, updating baselines
+
+**Benefits**:
+- Cleaner abstraction boundaries
+- Easier testing and ablation
+- Plugin potential for future extensibility
+
+---
+
+## 13. Decision Log
 
 Resolved decisions are logged here with rationale.
 
@@ -915,7 +1062,7 @@ Resolved decisions are logged here with rationale.
 
 ---
 
-## 12. Next Steps
+## 14. Next Steps
 
 1. **Language Evaluation**: Prototype in TypeScript and evaluate Rust/Go for performance-critical paths
 2. **Causal Analysis Design**: Deep dive on 2.4 - this is the core differentiator

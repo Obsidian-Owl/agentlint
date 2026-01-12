@@ -41,6 +41,7 @@
 | VI. Tool-Agnostic | ✅/⚠️/❌ | Tool-specific code in adapters only; core is tool-independent |
 | VII. Static-First | ✅/⚠️/❌ | LLM usage justified; static analysis exhausted first |
 | VIII. Progressive Value | ✅/⚠️/❌ | Works without LLM config; static-only mode produces value |
+| IX. Agent-Aware | ✅/⚠️/❌ | Agent context hierarchically structured; AX/UX separation maintained; large inputs compressed |
 
 **Analysis Domain(s)**: [Which of the 8 domains does this feature address?]
 

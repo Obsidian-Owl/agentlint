@@ -1,25 +1,28 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version change: 1.0.0 → 1.1.0 (MINOR - new principle added)
+Version change: 1.1.0 → 1.2.0 (MINOR - new principle added)
 
-Modified principles:
+Previous changes (1.1.0):
+- Added III. Causal-First principle
 - Renumbered III-VII to IV-VIII
 
+Current changes (1.2.0):
+- Added IX. Agent-Aware principle (CCA research learnings)
+
 Added sections:
-- III. Causal-First principle (trace issues to origin, preventive recommendations)
+- IX. Agent-Aware principle (treat agentlint's own agent as first-class stakeholder, apply AX/UX/DX framework)
 
 Removed sections: N/A
 
 Templates requiring updates:
-- .specify/templates/plan-template.md: ✅ updated (Constitution Check now includes Causal-First)
-- .specify/templates/spec-template.md: ✅ no changes needed
-- .specify/templates/tasks-template.md: ✅ no changes needed
-- docs/north-star.md: ✅ updated (Causal Analysis Model added, Design Principles updated)
-- docs/agentlint-architecture-vision.md: ✅ updated (Causal-First principle, Causal Analysis section)
-- docs/requirements/use-cases.md: ✅ updated (UC-008 Trace Issue Origins, Causal Analysis Model)
+- .specify/templates/plan-template.md: ✅ updated (Constitution Check now includes IX. Agent-Aware)
+- docs/north-star.md: ✅ updated (Stakeholder Experience Framework added, Design Principle 9 added)
+- docs/agentlint-architecture-vision.md: ✅ updated (Section 7 agentlint Agent Design, Section 3.4 expanded)
+- docs/requirements/personas.md: ✅ updated (Persona 0: The agentlint Agent added)
+- docs/design-questions.md: ✅ updated (Sections 11-12 added for CCA learnings)
 
-Follow-up TODOs: None
+Follow-up TODOs: None - all dependent artifacts synchronized
 -->
 
 # agentlint Constitution
@@ -116,6 +119,19 @@ Provide useful insights even without LLM configuration. LLM integration enhances
 - Static-only mode produces actionable output
 - LLM features are clearly marked as enhancements
 
+### IX. Agent-Aware
+
+The agentlint agent is a first-class stakeholder with its own cognitive needs. We "eat our own dog food"—our analysis agents MUST embody the AX principles we recommend to users. Features should consider how they affect the agent's ability to reason effectively.
+
+**Rationale**: agentlint's effectiveness depends on how well we serve our own agent's cognitive experience. By optimizing for our agent, we validate the principles we measure in target repositories.
+
+**Compliance checks**:
+- Large inputs (session logs, codebases) are compressed before LLM analysis
+- Agent context is hierarchically structured (task goal, project context, findings)
+- AX/UX separation: agent sees compressed summaries; users see rich reports
+- Working memory preserves critical info (task goals, errors, decisions)
+- Design decisions reference impact on agent cognitive experience
+
 ## Analysis Domains
 
 agentlint analyses eight interconnected areas. All features MUST map to one or more of these domains:
@@ -174,4 +190,4 @@ Changes to this constitution MUST trigger review of:
 
 All PRs MUST verify compliance with applicable principles. The Constitution Check in plan-template.md gates implementation work.
 
-**Version**: 1.1.0 | **Ratified**: 2026-01-11 | **Last Amended**: 2026-01-11
+**Version**: 1.2.0 | **Ratified**: 2026-01-11 | **Last Amended**: 2026-01-12
