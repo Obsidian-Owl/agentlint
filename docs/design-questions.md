@@ -156,7 +156,7 @@ Questions are resolved through research, prototyping, and stakeholder input. Onc
 - Cost implications for users
 - Aligns with Progressive Value principle
 
-**Current Thinking**: TBD
+**Current Thinking**: ✅ **DECIDED** - See [ADR-0006](architecture/adr/0006-agentic-analysis-implementation.md): Hybrid Static Core + Vercel AI SDK. Static analysers run first (free, fast), Vercel AI SDK adds agentic analysis when LLM configured. Provider-agnostic (Anthropic, OpenAI), full tool use (read + selective write), native OpenTelemetry support for future observability.
 
 ### 2.2 LLM Provider Abstraction
 
@@ -233,7 +233,7 @@ Issue: Secret in CLAUDE.md
 - Session log correlation requires efficient search (see 2.7)
 - Should causal confidence be visible to users?
 
-**Current Thinking**: TBD - Core to product value, requires careful design
+**Current Thinking**: ✅ **DECIDED** - See [ADR-0007](architecture/adr/0007-causal-analysis-architecture.md): Evidence-First with LLM Synthesis + Multi-Pass Verification. Static extraction indexes 100MB+ logs via FTS5, LLM synthesizes causal narrative from evidence bundles, verification pass adds confidence. Evidence-based grading (HIGH/MEDIUM/LOW). User feedback improves rules + prompts.
 
 ### 2.5 Recommendation Prioritisation
 
@@ -511,6 +511,36 @@ Issue: Secret in CLAUDE.md
 - Watch mode (Phase 4) will require concurrent access
 - File locking mechanisms vary by OS
 - Storage engine (SQLite vs files) affects options
+
+**Current Thinking**: TBD
+
+### 4.4 Observability Strategy
+
+**Question**: How should agentlint support observability for debugging, monitoring, and product improvement?
+
+**Context**: ADR-0006 selected Vercel AI SDK which has native OpenTelemetry support. This enables opt-in telemetry collection that could help improve the product while respecting Local-First principles.
+
+**Options**:
+| Option | Pros | Cons |
+|--------|------|------|
+| No telemetry | Simplest, maximum privacy | No product learning, harder debugging |
+| Opt-in to agentlint cloud | Product improvement, community insights | Requires hosted infrastructure |
+| Opt-in to user's OTel collector | User controls data destination | Complex setup for users |
+| Hybrid (local logs + opt-in remote) | Best of both | Most implementation effort |
+
+**Sub-questions**:
+- What data should be collected? (traces, errors, usage patterns, findings)
+- How is consent managed? (explicit opt-in, per-session, persistent)
+- Where is data sent? (agentlint-hosted, user-configured OTel endpoint)
+- What privacy controls exist? (redact file paths, API keys, code snippets)
+- How does this align with Local-First principle?
+
+**Considerations**:
+- Local-First principle requires explicit user consent for any data leaving machine
+- Vercel AI SDK's `experimental_telemetry` supports `recordInputs: false` for privacy
+- OpenTelemetry is the industry standard, supported by Langfuse, Braintrust, Phoenix
+- Product improvement requires understanding real-world usage patterns
+- Enterprise users may have strict data governance requirements
 
 **Current Thinking**: TBD
 
@@ -1063,6 +1093,8 @@ Resolved decisions are logged here with rationale.
 | [ADR-0003](architecture/adr/0003-local-storage-strategy.md) | 2026-01-12 | SQLite Only | Bun built-in, FTS5 search, efficient trends/causal linking, XDG locations |
 | [ADR-0004](architecture/adr/0004-configuration-file-locations.md) | 2026-01-12 | XDG + TOML | Global defaults + per-project overrides, TOML for comments, auto-create on first run |
 | [ADR-0005](architecture/adr/0005-credential-storage-strategy.md) | 2026-01-12 | Env + Keychain | Env vars primary, Bun.secrets keychain fallback, helper command for setup |
+| [ADR-0006](architecture/adr/0006-agentic-analysis-implementation.md) | 2026-01-12 | Hybrid + Vercel AI SDK | Static-first + Vercel AI SDK agentic. Multi-provider, full tool use, OTel ready |
+| [ADR-0007](architecture/adr/0007-causal-analysis-architecture.md) | 2026-01-12 | Evidence-First + LLM Synthesis | Static evidence extraction, LLM synthesizes narrative, multi-pass verification, user feedback loop |
 
 ---
 
@@ -1073,9 +1105,11 @@ Resolved decisions are logged here with rationale.
 3. ~~**Local Storage Strategy**: Decide on SQLite vs hybrid approach (Section 1.3)~~ ✅ Decided: SQLite Only (ADR-0003)
 4. ~~**Configuration File Locations**: Decide on config file format and locations (Section 1.4)~~ ✅ Decided: XDG + TOML (ADR-0004)
 5. ~~**Credential Storage**: Decide on secure storage for LLM API keys (Section 1.5)~~ ✅ Decided: Env + Keychain (ADR-0005)
-6. **Causal Analysis Design**: Deep dive on Section 2.4 - this is the core differentiator
-7. ~~**Storage Schema**: Design data model that supports causal links and efficient queries~~ ✅ Included in ADR-0003
-8. **Testing Strategy**: Establish approach for LLM-dependent testing early
+6. ~~**Agentic Analysis Implementation**: Decide on LLM integration approach (Section 2.1)~~ ✅ Decided: Hybrid + Vercel AI SDK (ADR-0006)
+7. ~~**Causal Analysis Design**: Deep dive on Section 2.4 - this is the core differentiator~~ ✅ Decided: Evidence-First + LLM Synthesis (ADR-0007)
+8. ~~**Storage Schema**: Design data model that supports causal links and efficient queries~~ ✅ Included in ADR-0003
+9. **Observability Strategy**: Decide on opt-in telemetry approach (Section 4.4) - NEW
+10. **Testing Strategy**: Establish approach for LLM-dependent testing early
 
 ---
 
