@@ -50,7 +50,7 @@ Questions are resolved through research, prototyping, and stakeholder input. Onc
 - Statistical/correlation analysis may favour Python's data science ecosystem
 - Single binary distribution simplifies installation significantly
 
-**Current Thinking**: TBD - Requires prototyping to evaluate trade-offs
+**Current Thinking**: ✅ **DECIDED** - See [ADR-0001](architecture/adr/0001-language-and-runtime-selection.md): TypeScript + Bun selected for <100ms startup, built-in SQLite, Agent SDK access.
 
 ### 1.2 Distribution & Packaging
 
@@ -78,7 +78,7 @@ Questions are resolved through research, prototyping, and stakeholder input. Onc
 - Homebrew + npm covers most developer workflows
 - Binary signing adds trust but requires certificates and process
 
-**Current Thinking**: TBD - Depends on 1.1 resolution
+**Current Thinking**: ✅ **DECIDED** - See [ADR-0002](architecture/adr/0002-distribution-and-packaging-strategy.md): npm primary + Homebrew formula for macOS convenience.
 
 ### 1.3 Local Storage Strategy
 
@@ -97,7 +97,7 @@ Questions are resolved through research, prototyping, and stakeholder input. Onc
 - Storage location standards (XDG, etc.)
 - Baseline comparison requires efficient historical queries
 
-**Current Thinking**: TBD
+**Current Thinking**: ✅ **DECIDED** - See [ADR-0003](architecture/adr/0003-local-storage-strategy.md): SQLite only using Bun built-in, with FTS5 for full-text search, XDG-compliant locations.
 
 ### 1.4 Configuration File Locations
 
@@ -114,7 +114,7 @@ Questions are resolved through research, prototyping, and stakeholder input. Onc
 - User expectations from similar tools
 - Support for multiple projects with different settings
 
-**Current Thinking**: TBD
+**Current Thinking**: ✅ **DECIDED** - See [ADR-0004](architecture/adr/0004-configuration-file-locations.md): XDG-compliant global + per-project override with TOML format. Global at `~/.config/agentlint/config.toml`, per-project at `.agentlint/config.toml`. Auto-creates with commented defaults on first run.
 
 ### 1.5 Credential Storage
 
@@ -132,7 +132,7 @@ Questions are resolved through research, prototyping, and stakeholder input. Onc
 - Cross-platform support
 - User convenience vs security trade-off
 
-**Current Thinking**: TBD
+**Current Thinking**: ✅ **DECIDED** - See [ADR-0005](architecture/adr/0005-credential-storage-strategy.md): Env vars primary (`ANTHROPIC_API_KEY`), Bun.secrets keychain fallback. Helper command `agentlint config set-key` for keychain setup. Never stores credentials in config files.
 
 ---
 
@@ -1058,17 +1058,24 @@ Resolved decisions are logged here with rationale.
 
 | Decision | Date | Choice | Rationale |
 |----------|------|--------|-----------|
-| *None yet* | - | - | - |
+| [ADR-0001](architecture/adr/0001-language-and-runtime-selection.md) | 2026-01-12 | TypeScript + Bun | <100ms startup, built-in SQLite, Agent SDK access, same stack as Claude Code |
+| [ADR-0002](architecture/adr/0002-distribution-and-packaging-strategy.md) | 2026-01-12 | npm + Homebrew | npm primary for reach, Homebrew for macOS convenience, single source of truth |
+| [ADR-0003](architecture/adr/0003-local-storage-strategy.md) | 2026-01-12 | SQLite Only | Bun built-in, FTS5 search, efficient trends/causal linking, XDG locations |
+| [ADR-0004](architecture/adr/0004-configuration-file-locations.md) | 2026-01-12 | XDG + TOML | Global defaults + per-project overrides, TOML for comments, auto-create on first run |
+| [ADR-0005](architecture/adr/0005-credential-storage-strategy.md) | 2026-01-12 | Env + Keychain | Env vars primary, Bun.secrets keychain fallback, helper command for setup |
 
 ---
 
 ## 14. Next Steps
 
-1. **Language Evaluation**: Prototype in TypeScript and evaluate Rust/Go for performance-critical paths
-2. **Causal Analysis Design**: Deep dive on 2.4 - this is the core differentiator
-3. **Storage Schema**: Design data model that supports causal links and efficient queries
-4. **Testing Strategy**: Establish approach for LLM-dependent testing early
-5. **Distribution**: Make packaging decision once language is settled
+1. ~~**Language Evaluation**: Prototype in TypeScript and evaluate Rust/Go for performance-critical paths~~ ✅ Decided: TypeScript + Bun (ADR-0001)
+2. ~~**Distribution & Packaging**: Decide on installation method now that language is settled (Section 1.2)~~ ✅ Decided: npm + Homebrew (ADR-0002)
+3. ~~**Local Storage Strategy**: Decide on SQLite vs hybrid approach (Section 1.3)~~ ✅ Decided: SQLite Only (ADR-0003)
+4. ~~**Configuration File Locations**: Decide on config file format and locations (Section 1.4)~~ ✅ Decided: XDG + TOML (ADR-0004)
+5. ~~**Credential Storage**: Decide on secure storage for LLM API keys (Section 1.5)~~ ✅ Decided: Env + Keychain (ADR-0005)
+6. **Causal Analysis Design**: Deep dive on Section 2.4 - this is the core differentiator
+7. ~~**Storage Schema**: Design data model that supports causal links and efficient queries~~ ✅ Included in ADR-0003
+8. **Testing Strategy**: Establish approach for LLM-dependent testing early
 
 ---
 

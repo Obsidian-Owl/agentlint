@@ -160,10 +160,10 @@ The following are explicitly OUT OF SCOPE for MVP:
 
 ### Technical Boundaries
 
-- Primary runtime: Bun (TypeScript) - decision pending final confirmation
+- Primary runtime: Bun (TypeScript) - confirmed via [ADR-0001](../docs/architecture/adr/0001-language-and-runtime-selection.md)
 - MVP language support: TypeScript/JavaScript, Python, Go
 - MVP AI tool support: Claude Code only (adapter pattern enables future tools)
-- Storage: Local SQLite or flat files (decision pending)
+- Storage: SQLite (Bun built-in) with FTS5 - confirmed via [ADR-0003](../docs/architecture/adr/0003-local-storage-strategy.md)
 
 ## Governance
 
