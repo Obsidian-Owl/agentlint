@@ -113,8 +113,8 @@ Simplest approach: just publish to npm, no Homebrew.
 | IV. Mixed-Methods | N/A | Distribution doesn't affect analysis methods |
 | V. Language-Agnostic | Yes | npm is available regardless of project language |
 | VI. Tool-Agnostic | N/A | Distribution doesn't affect adapter pattern |
-| VII. Static-First | N/A | Distribution doesn't affect analysis approach |
-| VIII. Progressive Value | Yes | Works without LLM configuration |
+| VII. Intelligent Tooling | N/A | Distribution doesn't affect analysis approach |
+| VIII. Compounding Value | Yes | Baselines compound value over time |
 | IX. Agent-Aware | N/A | Distribution doesn't affect agent architecture |
 
 ## More Information

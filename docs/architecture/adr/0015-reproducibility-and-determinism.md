@@ -21,19 +21,18 @@ The key challenges are:
 
 ## Decision Drivers
 
-- **Static-First principle**: Static analysis provides deterministic baseline
+- **Reproducibility awareness**: Different analysis approaches have different guarantees; track appropriately
 - **Honesty with users**: Don't hide non-determinism—document it
 - **Baseline comparison validity**: Warn when comparisons may be misleading
 - **Research findings**: Industry consensus that perfect LLM determinism is impractical
-- **Progressive Value**: Static-only mode should always be reproducible
+- **Compounding Value**: Baseline tracking enables meaningful comparison over time
 - **Drift detection**: Model behavioral drift is measurable (23% GPT-4 variance documented)
 
 ## Considered Options
 
 1. Documented Non-Determinism with Version Tracking
-2. Static-Only Deterministic Mode
-3. Semantic Reproducibility (findings-level consistency)
-4. Best-Effort Determinism (temp=0, seed, hope)
+2. Semantic Reproducibility (findings-level consistency)
+3. Best-Effort Determinism (temp=0, seed, hope)
 
 ## Decision Outcome
 
@@ -87,8 +86,7 @@ Chosen option: **"Documented Non-Determinism with Version Tracking"** because it
 │      "max_tokens": 4096                                                    │
 │    },                                                                      │
 │    "static_hash": "sha256:abc123...",   // Hash of static results         │
-│    "agentic_hash": "sha256:def456...",  // Hash of agentic results        │
-│    "mode": "full"                       // "full" | "static-only"         │
+│    "agentic_hash": "sha256:def456..."   // Hash of agentic results        │
 │  }                                                                         │
 │                                                                             │
 ├─────────────────────────────────────────────────────────────────────────────┤
@@ -116,10 +114,14 @@ Chosen option: **"Documented Non-Determinism with Version Tracking"** because it
 
 | Component | Guarantee | Caveat |
 |-----------|-----------|--------|
-| **Static Analysis** | Fully deterministic | Same input = same output |
+| **Static Tools** | Fully deterministic | Config parsing, metrics extraction = same output |
 | **Agentic Analysis** | Best-effort consistent | Variance expected; tracked via metadata |
 | **Baseline Comparison** | Valid with warnings | Version mismatch triggers warning |
-| **Static-Only Mode** | Fully reproducible | No LLM calls, no variance |
+
+**Note**: Neither approach "anchors" the other—both are valid with appropriate comparison strategies:
+- Static metrics compared exactly (deterministic)
+- Agentic outputs compared semantically (within expected variance)
+- Both contribute equally to analysis conclusions
 
 ### Temperature Strategy (NOT temp=0)
 
@@ -176,10 +178,7 @@ interface ReproducibilityMetadata {
 
   // Result hashes for drift detection
   staticHash: string;                 // SHA-256 of static results
-  agenticHash?: string;               // SHA-256 of agentic results
-
-  // Analysis mode
-  mode: 'full' | 'static-only';
+  agenticHash: string;                // SHA-256 of agentic results
 
   // Input fingerprint (for cache validation)
   inputFingerprint: {
@@ -248,26 +247,6 @@ function compareWithVersionAwareness(
 }
 ```
 
-### Static-Only Mode
-
-For guaranteed determinism, users can run static-only analysis:
-
-```bash
-# Fully deterministic analysis (no LLM calls)
-agentlint analyse --static-only
-
-# Or via configuration
-# .agentlint/config.toml
-[analysis]
-mode = "static-only"  # Guarantees reproducibility
-```
-
-**Use cases for static-only mode:**
-- CI/CD pipelines requiring deterministic pass/fail
-- Baseline establishment for regression testing
-- Environments without LLM API access
-- Privacy-sensitive contexts
-
 ### Drift Detection
 
 agentlint can detect behavioral drift across runs:
@@ -301,9 +280,8 @@ interface DriftHistory {
 **Good:**
 - Honest acknowledgment of LLM limitations
 - Version tracking enables meaningful baseline comparisons
-- Static analysis provides deterministic anchor
+- Static tools provide deterministic data extraction
 - Drift detection surfaces model behavioral changes
-- Static-only mode guarantees reproducibility when needed
 - Full metadata enables debugging reproducibility issues
 
 **Bad:**
@@ -326,24 +304,12 @@ Accept and document LLM non-determinism, record full metadata, warn on version m
 - Good: Honest about limitations
 - Good: Version tracking enables valid comparisons
 - Good: Drift detection surfaces issues
-- Good: Static analysis remains deterministic anchor
+- Good: Static tools provide deterministic data extraction
 - Neutral: Requires user education
 - Bad: Agentic results may vary between runs
 - Bad: Version warnings may cause noise
 
-### Option 2: Static-Only Deterministic Mode
-
-Default to static-only analysis, opt-in for agentic analysis.
-
-- Good: Fully deterministic by default
-- Good: Simple mental model
-- Good: No version tracking complexity
-- Neutral: Aligns with Static-First principle
-- Bad: Loses value from agentic analysis
-- Bad: Contradicts Mixed-Methods principle
-- Bad: Users expect LLM-powered features
-
-### Option 3: Semantic Reproducibility
+### Option 2: Semantic Reproducibility
 
 Accept wording variation but require consistent findings/recommendations.
 
@@ -354,7 +320,7 @@ Accept wording variation but require consistent findings/recommendations.
 - Bad: Edge cases where different wording = different meaning
 - Bad: Complex implementation
 
-### Option 4: Best-Effort Determinism
+### Option 3: Best-Effort Determinism
 
 Use temp=0, seed, and accept occasional variation without tracking.
 
@@ -375,14 +341,14 @@ Use temp=0, seed, and accept occasional variation without tracking.
 | IV. Mixed-Methods | Yes | Static (quantitative) + agentic (qualitative) both tracked |
 | V. Language-Agnostic | Yes | Reproducibility strategy independent of target language |
 | VI. Tool-Agnostic | Yes | Model version tracking works across providers |
-| VII. Static-First | Yes | Static analysis provides deterministic baseline |
-| VIII. Progressive Value | Yes | Static-only mode always available |
+| VII. Intelligent Tooling | Yes | Different approaches tracked with appropriate comparison strategies |
+| VIII. Compounding Value | Yes | Baseline tracking enables compound improvement measurement over time |
 | IX. Agent-Aware | Yes | Documents agent behavior expectations |
 
 ## More Information
 
 ### Related Documents
-- [ADR-0006: Agentic Analysis Implementation](./0006-agentic-analysis-implementation.md) - Vercel AI SDK
+- [ADR-0006: Agentic Analysis Implementation](./0006-agent-orchestrated-analysis.md) - Vercel AI SDK
 - [ADR-0013: Testing Strategy](./0013-testing-strategy.md) - Golden dataset for eval reproducibility
 - [ADR-0014: Error Handling](./0014-error-handling-and-recovery.md) - Graceful degradation
 - Design Questions: [Section 4.3 - Reproducibility & Determinism](../../design-questions.md#43-reproducibility--determinism)
@@ -481,37 +447,6 @@ function displayVersionWarnings(warnings: VersionWarning[]): void {
 
   console.log(chalk.dim('  Static analysis comparison remains valid.'));
   console.log('');
-}
-```
-
-#### 3. Static-Only Mode
-
-```typescript
-// src/analysis/runner.ts
-async function runAnalysis(config: AnalysisConfig): Promise<AnalysisResult> {
-  // Static analysis always runs
-  const staticResults = await runStaticAnalysis(config);
-
-  // Skip agentic if static-only mode
-  if (config.mode === 'static-only') {
-    return {
-      static: staticResults,
-      agentic: null,
-      metadata: createReproducibilityMetadata({ static: staticResults }, config),
-    };
-  }
-
-  // Run agentic analysis with fallback (ADR-0014)
-  const agenticResults = await runAgenticAnalysisWithFallback(config);
-
-  return {
-    static: staticResults,
-    agentic: agenticResults,
-    metadata: createReproducibilityMetadata(
-      { static: staticResults, agentic: agenticResults },
-      config
-    ),
-  };
 }
 ```
 

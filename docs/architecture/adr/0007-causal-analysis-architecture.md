@@ -22,7 +22,7 @@ The challenge: Session logs from AI tools (Claude Code, Copilot CLI, etc.) can b
 ## Decision Drivers
 
 - **Causal-First principle**: Every issue should link back to origin and prevention
-- **Static-First principle**: Prefer static analysis; runs concurrently with LLM (not sequentially before)
+- **Agent flexibility**: Agent chooses between tool-based extraction and direct reasoning based on task needs
 - **Mixed-Methods principle**: Combine quantitative evidence with qualitative synthesis
 - **Improvement-Oriented**: User feedback should improve future traces
 - **Research findings**: LLM causal reasoning is often "post-hoc rationalization" - need evidence-based approach
@@ -48,7 +48,10 @@ Chosen option: **"Evidence-First with LLM Synthesis + Multi-Pass Verification"**
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
 │  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │ PHASE 1: STATIC EVIDENCE EXTRACTION (No LLM)                        │   │
+│  │ PHASE 1: EVIDENCE GATHERING (Agent chooses approach)               │   │
+│  │                                                                      │   │
+│  │ The agent can use extraction tools OR read logs directly based on  │   │
+│  │ what understanding is needed for the specific task.                │   │
 │  │                                                                      │   │
 │  │ Session Logs:                    Git History:                       │   │
 │  │ • Parse structure (JSON/JSONL)   • Extract commit metadata          │   │
@@ -197,12 +200,13 @@ Chosen option: **"Evidence-First with LLM Synthesis + Multi-Pass Verification"**
 │         │                                                                   │
 │         ▼                                                                   │
 │  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │ TARGETED DEEP DIVE (Only when needed)                               │   │
+│  │ AGENT ACCESS TO RAW LOGS                                            │   │
 │  │                                                                      │   │
-│  │ If evidence is ambiguous, agent can request full context:           │   │
+│  │ Agent has access to both extracted evidence bundles AND raw logs.   │   │
+│  │ The agent chooses based on what understanding the task requires:    │   │
 │  │ • Tool: read_session_excerpt(session_id, message_range)             │   │
 │  │ • Returns: 10-50 messages around the relevant prompt                │   │
-│  │ • Compressed: ~2-5KB per deep dive                                  │   │
+│  │ • Use case: When semantic understanding of context is needed        │   │
 │  └─────────────────────────────────────────────────────────────────────┘   │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -294,7 +298,7 @@ Static evidence gathering, LLM synthesis, verification pass for confidence.
 - Good: Evidence-based (reliable per research)
 - Good: Handles large logs via indexing
 - Good: Verification adds confidence
-- Good: Aligns with Static-First (evidence extraction is static)
+- Good: Agent has access to both extraction tools and raw logs
 - Neutral: Two LLM calls per trace
 - Bad: More implementation complexity
 
@@ -307,7 +311,7 @@ LLM reasons about causality from all available context.
 - Bad: Research shows this is often "post-hoc rationalization"
 - Bad: Cannot handle 100MB logs
 - Bad: Non-deterministic, hard to verify
-- Bad: Violates Static-First principle
+- Bad: Requires careful context management for large logs
 
 ### Option 3: Rule-Based with LLM Fallback
 
@@ -315,7 +319,7 @@ Deterministic rules establish causality, LLM only for edge cases.
 
 - Good: Fully reproducible for rule-matched cases
 - Good: Fast, cheap
-- Good: Strong Static-First alignment
+- Neutral: Simple but inflexible
 - Bad: Rules can't capture subtle causality
 - Bad: Limited to explicit patterns
 - Bad: May miss non-obvious causal chains
@@ -340,15 +344,15 @@ Multiple independent LLM passes, consensus determines confidence.
 | IV. Mixed-Methods | Yes | Static evidence + LLM synthesis + user feedback |
 | V. Language-Agnostic | Yes | Works regardless of target language |
 | VI. Tool-Agnostic | Yes | Adapter pattern for different AI tool log formats |
-| VII. Static-First | Yes | Evidence extraction is static; LLM only for synthesis |
-| VIII. Progressive Value | Partial | Basic tracing needs LLM; static evidence still valuable |
+| VII. Intelligent Tooling | Yes | Agent has both extraction tools and direct log access; chooses based on task |
+| VIII. Compounding Value | Yes | Causal traces compound value through cross-session learning |
 | IX. Agent-Aware | Yes | Evidence bundles are compressed for LLM; users see full traces |
 
 ## More Information
 
 ### Related Documents
 - [ADR-0003: Local Storage Strategy](./0003-local-storage-strategy.md) - SQLite + FTS5 for evidence indexing
-- [ADR-0006: Agentic Analysis Implementation](./0006-agentic-analysis-implementation.md) - Vercel AI SDK for LLM synthesis
+- [ADR-0006: Agentic Analysis Implementation](./0006-agent-orchestrated-analysis.md) - Vercel AI SDK for LLM synthesis
 - [ADR-0008: Session Quality Analysis Methodology](./0008-session-quality-analysis.md) - Holistic session analysis (complementary to causal tracing)
 - Architecture Vision: [Causal Analysis Model](../../agentlint-architecture-vision.md#causal-analysis-from-detection-to-prevention)
 - Design Questions: [Section 2.4 - Causal Analysis Implementation](../../design-questions.md#24-causal-analysis-implementation)

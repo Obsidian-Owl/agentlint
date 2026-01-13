@@ -1,28 +1,58 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version change: 1.2.0 → 1.2.1 (PATCH - clarification)
+Version change: 1.4.0 → 1.5.0 (MINOR - principle rename for clarity)
 
-Previous changes (1.2.0):
-- Added IX. Agent-Aware principle (CCA research learnings)
+Previous changes (1.3.0):
+- Established agentlint as an agentic application
+- Added Architectural Foundation section
+- Added LLM as technical requirement
 
-Current changes (1.2.1):
-- Clarified VII. Static-First principle: "first" means preference, not temporal ordering
-- Added clarification that static and agentic analysis run concurrently (per ADR-0019 deep research pattern)
-- Added compliance check: "Static and agentic tracks run concurrently, not sequentially"
+Current changes (1.5.0):
+- RENAMED "Progressive Value" (VIII) to "Compounding Value" - eliminates confusion with progressive enhancement/degradation patterns
+- The principle meaning is unchanged: value compounds TEMPORALLY through baselines
+
+Previous changes (1.4.0):
+- REMOVED "Static-First" principle (VII) - it biased design incorrectly
+- ADDED "Intelligent Tooling" principle (VII) - tools serve the agent's cognitive needs
+- Updated Architectural Foundation to emphasize agent flexibility
+- Agent has full autonomy to choose between tool use and direct reasoning
 
 Modified sections:
-- VII. Static-First: Added Clarification subsection explaining concurrent execution model
+- Architectural Foundation: Removed static tool preference, added flexibility emphasis
+- VII: Completely replaced Static-First with Intelligent Tooling
+- Compliance checks: New checks for tool/reasoning flexibility
 
 Templates requiring updates:
-- ADRs already updated: ADR-0006, ADR-0011, ADR-0019 aligned with this clarification
-
-Follow-up TODOs: None - clarification aligns existing ADR decisions
+- ADR-0006: Remove static-first bias, emphasize agent flexibility
+- ADR-0011: Remove static-first language
+- Architecture Vision: Update S4, S5, principles
+- North Star: Update principle 7, decision framework
 -->
 
 # agentlint Constitution
 
 > Governing principles for agentlint development. This constitution supersedes all other guidance when conflicts arise.
+
+## Architectural Foundation
+
+**agentlint IS an agentic application.** An LLM-powered agent orchestrates all analysis with full autonomy to choose its approach. This is not a traditional CLI with an optional "agentic enhancement"—the agent is the core of the system.
+
+```
+Developer → CLI → Analysis Agent (LLM) → [Tools | Direct Reasoning | File Analysis] → Report
+                        ↓
+              Agent decides freely:
+              • What approach to use (tool vs. reasoning vs. reading)
+              • When to gather data vs. when to reason deeply
+              • How to understand meaning, causality, and quality
+              • What recommendations to make
+```
+
+**Key architectural implications**:
+- **LLM is required**: agentlint requires an LLM to function. The agent cannot reason without it.
+- **Agent has full flexibility**: The agent chooses between tool invocation, direct file analysis, and semantic reasoning based on what the task requires—no approach is privileged.
+- **Tools serve the agent**: Tools exist to support the agent's cognitive needs (understanding config, structure, sessions), not to replace its reasoning.
+- **Deep understanding is first-class**: The agent can and should reason deeply about WHY things happened, not just extract WHAT happened.
 
 ## Core Principles
 
@@ -92,42 +122,54 @@ While initially focused on Claude Code, the architecture MUST support analysis o
 - Tool-specific code lives in adapters only
 - Adding a new AI tool requires only adapter implementation
 
-### VII. Static-First
+### VII. Intelligent Tooling
 
-Prefer deterministic static analysis over LLM-based analysis where possible. Use LLMs only where semantic understanding is genuinely required. Static analysis is fast, cheap, reproducible, and privacy-preserving.
+Tools exist to serve the agent's cognitive needs. The agent chooses freely between tool use and direct reasoning based on what the task requires—no approach is privileged.
 
-**Rationale**: LLM calls are expensive, slow, and non-deterministic. Static analysis provides reliable baseline.
+**Rationale**: Effective agents like Claude Code are hyper-flexible, choosing their approach based on the task. Tools support understanding; the agent provides understanding. Neither replaces the other.
 
-**Clarification**: "Static-First" means **preference**, not **temporal ordering**. Per the deep research pattern (ADR-0019), static and agentic analysis run **concurrently** for maximum throughput. Static-First ensures:
-1. Static analysis always runs (with or without LLM)
-2. Results are available even if LLM fails (graceful degradation)
-3. LLM is reserved for semantic tasks that require it
+**What tools provide**:
+- Fast, deterministic data gathering when appropriate
+- Structured extraction of configuration, metrics, history
+- Specialized analysis (e.g., Skills folder structure, config patterns)
+
+**What agent reasoning provides**:
+- Understanding WHY things happened (not just WHAT)
+- Quality judgments (was this a good agentic flow? error ≠ bad)
+- Causal analysis (what led to this outcome?)
+- Semantic understanding of intent and context
+
+**Example**: Session log analysis
+- Tools CAN: Parse logs, extract metadata, identify errors, tag positions
+- Tools CANNOT: Understand why errors occurred, evaluate flow quality, reason about whether better Skills would have helped
+- The agent uses BOTH tools AND reasoning to produce complete understanding
 
 **Compliance checks**:
-- Every analysis task must justify LLM usage if static alternatives exist
-- Static analysis results are cached aggressively
-- LLM-enhanced features work (with reduced capability) when LLM is unavailable
-- Static and agentic tracks run concurrently, not sequentially (see ADR-0011)
+- Tools are designed to support agent understanding, not replace it
+- The agent has full flexibility to choose its approach
+- No language biases toward "preferring" one approach over another
+- Deep semantic analysis is treated as first-class, not "reserved"
 
-### VIII. Progressive Value
+### VIII. Compounding Value
 
-Provide useful insights even without LLM configuration. LLM integration enhances analysis but MUST NOT be required for basic functionality.
+Value compounds over time through baselines and trend analysis. Each analysis builds on previous findings, making recommendations increasingly contextual and actionable. The continuous improvement cycle (BASELINE → CHANGE → OBSERVE → UNDERSTAND → REFINE) creates compounding value that point-in-time tools cannot match.
 
-**Rationale**: Lower barrier to entry. Users should see value immediately.
+**Rationale**: agentlint's differentiation is continuous improvement, not one-shot analysis. Historical context makes every recommendation more valuable.
 
 **Compliance checks**:
-- CLI works without any LLM configuration
-- Static-only mode produces actionable output
-- LLM features are clearly marked as enhancements
+- Analysis persists findings for future comparison
+- Recommendations reference historical patterns where available
+- Baseline tracking enables trend detection
+- First-run experience establishes initial baseline for future comparison
 
 ### IX. Agent-Aware
 
-The agentlint agent is a first-class stakeholder with its own cognitive needs. We "eat our own dog food"—our analysis agents MUST embody the AX principles we recommend to users. Features should consider how they affect the agent's ability to reason effectively.
+The agentlint agent IS the core of the system—not an enhancement. We "eat our own dog food": our analysis agent MUST embody the AX principles we recommend to users. The agent's cognitive experience directly determines agentlint's effectiveness.
 
-**Rationale**: agentlint's effectiveness depends on how well we serve our own agent's cognitive experience. By optimizing for our agent, we validate the principles we measure in target repositories.
+**Rationale**: agentlint is an agentic application. The agent orchestrates analysis, invokes tools, and synthesizes findings. By optimizing for our agent's needs, we validate the principles we measure in target repositories.
 
 **Compliance checks**:
-- Large inputs (session logs, codebases) are compressed before LLM analysis
+- Large inputs (session logs, codebases) are compressed before agent processing
 - Agent context is hierarchically structured (task goal, project context, findings)
 - AX/UX separation: agent sees compressed summaries; users see rich reports
 - Working memory preserves critical info (task goals, errors, decisions)
@@ -161,6 +203,7 @@ The following are explicitly OUT OF SCOPE for MVP:
 
 ### Technical Boundaries
 
+- **LLM Required**: agentlint requires an LLM to function (user provides API credentials)
 - Primary runtime: Bun (TypeScript) - confirmed via [ADR-0001](../docs/architecture/adr/0001-language-and-runtime-selection.md)
 - MVP language support: TypeScript/JavaScript, Python, Go
 - MVP AI tool support: Claude Code only (adapter pattern enables future tools)
@@ -191,4 +234,4 @@ Changes to this constitution MUST trigger review of:
 
 All PRs MUST verify compliance with applicable principles. The Constitution Check in plan-template.md gates implementation work.
 
-**Version**: 1.2.1 | **Ratified**: 2026-01-11 | **Last Amended**: 2026-01-13
+**Version**: 1.5.0 | **Ratified**: 2026-01-11 | **Last Amended**: 2026-01-13

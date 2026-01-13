@@ -96,7 +96,7 @@ Chosen option: **"Observability Triggers with Smart Throttling"** because it:
 │  │ │ (Not Recommended)│  │ (Counter Only)  │  │ (Recommended)       │   │   │
 │  │ │                 │  │                 │  │                     │   │   │
 │  │ │ • User opt-in   │  │ • Increment     │  │ • Smart scheduling  │   │   │
-│  │ │ • Static only   │  │   session count │  │ • Background analysis│   │   │
+│  │ │ • Fast checks   │  │   session count │  │ • Background analysis│   │   │
 │  │ │ • <2s timeout   │  │ • Never blocks  │  │ • Desktop notify    │   │   │
 │  │ │ • Exit 0 always │  │ • Lightweight   │  │ • Exit 0 always     │   │   │
 │  │ └─────────────────┘  └─────────────────┘  └─────────────────────┘   │   │
@@ -146,7 +146,7 @@ Chosen option: **"Observability Triggers with Smart Throttling"** because it:
 │  │ │   status            │  │ • Desktop notification when done    │    │   │
 │  │ │ • Must be fast      │  │ • Full analysis possible            │    │   │
 │  │ │   (<5s timeout)     │  │                                     │    │   │
-│  │ │ • Static only       │  │                                     │    │   │
+│  │ │ • Config syntax     │  │                                     │    │   │
 │  │ │                     │  │                                     │    │   │
 │  │ │ Use case:           │  │ Use case:                           │    │   │
 │  │ │ Quick status check  │  │ Full analysis without blocking      │    │   │
@@ -208,7 +208,7 @@ batch_window_minutes = 30  # Multiple triggers within window → single analysis
 # Pre-commit specific (only if enabled)
 enabled = false      # Must explicitly enable
 timeout_seconds = 2  # Hard timeout for pre-commit
-static_only = true   # Never run LLM in pre-commit
+quick_checks = true  # Run fast validation only in pre-commit
 ```
 
 **Global defaults** in `~/.config/agentlint/config.toml`:
@@ -548,8 +548,8 @@ Document manual setup only, focus on CI/CD.
 | IV. Mixed-Methods | Yes | Works with both static and agentic analysis |
 | V. Language-Agnostic | Yes | Hooks work regardless of project language |
 | VI. Tool-Agnostic | Yes | Analyzes all AI tool configs |
-| VII. Static-First | Yes | Pre-commit (if enabled) uses static only |
-| VIII. Progressive Value | Yes | Hooks work without LLM config |
+| VII. Intelligent Tooling | Yes | Pre-commit optimized for speed; post-push allows full agent analysis |
+| VIII. Compounding Value | Yes | Hooks enable continuous improvement through regular analysis |
 | IX. Agent-Aware | N/A | Hooks don't involve agentlint's agent |
 
 ## More Information

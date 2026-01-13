@@ -35,7 +35,7 @@ Key questions this ADR addresses:
 - **Improvement-Oriented principle**: Hindsight enables compound learning across sessions
 - **Causal-First principle**: Every hindsight note traces back to a specific issue origin
 - **Local-First principle**: All hindsight data stays on user's machine
-- **Progressive Value principle**: Must work without LLM (static extraction)
+- **Compounding Value principle**: Extraction tools provide baseline; agent reasoning enriches with context
 - **Agent-Aware principle**: Hindsight format must be usable by both humans AND agents
 - **CCA research findings**: Cumulative note-taking reduces iteration turns (64→61) and token cost (104k→93k)
 - **Claude Code best practices**: CLAUDE.md should be lean; external docs for detailed knowledge
@@ -188,7 +188,7 @@ type IssueType =
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
 │  ┌───────────────────────────────────────────────────────────────────────┐ │
-│  │ LAYER 1: STATIC EXTRACTION (No LLM)                                   │ │
+│  │ LAYER 1: PATTERN EXTRACTION (Tool-Based)                              │ │
 │  │                                                                       │ │
 │  │ From Causal Traces (ADR-0007):                                        │ │
 │  │ • Extract issue location, type, severity                             │ │
@@ -205,7 +205,7 @@ type IssueType =
 │                                    │                                        │
 │                                    ▼                                        │
 │  ┌───────────────────────────────────────────────────────────────────────┐ │
-│  │ LAYER 2: LLM SYNTHESIS (Optional, Agentic)                            │ │
+│  │ LAYER 2: DEEP ANALYSIS (Agent Reasoning)                              │ │
 │  │                                                                       │ │
 │  │ For each candidate with severity >= medium:                           │ │
 │  │ • Synthesize human-readable pattern description                      │ │
@@ -501,8 +501,8 @@ Research on [A-MEM (Agentic Memory)](https://arxiv.org/abs/2502.12110) suggests 
 | IV. Mixed-Methods | ✅ | Static extraction + LLM synthesis |
 | V. Language-Agnostic | ✅ | Pattern format is language-independent |
 | VI. Tool-Agnostic | ✅ | Export works for any AI tool's config |
-| VII. Static-First | ✅ | Layer 1 is pure static extraction |
-| VIII. Progressive Value | ✅ | Works without LLM (static patterns only) |
+| VII. Intelligent Tooling | ✅ | Both extraction tools and agent reasoning contribute to hindsight capture |
+| VIII. Compounding Value | ✅ | Extraction tools provide baseline; agent reasoning enriches |
 | IX. Agent-Aware | ✅ | Markdown export optimized for agent consumption |
 
 ---

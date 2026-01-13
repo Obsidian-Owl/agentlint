@@ -147,16 +147,16 @@ Questions are resolved through research, prototyping, and stakeholder input. Onc
 |--------|------|------|
 | Claude Code wrapper | Fast MVP, battle-tested agent, understands own formats | Dependency on Claude Code CLI, less control |
 | Custom agent (LLM SDK) | Full control, works with any LLM provider | More development effort, tool orchestration needed |
-| Static-only (no LLM) | Simplest, no API costs, fastest | Limited semantic understanding |
+| Static-only (no LLM) | ~~Not viable~~ | LLM required per Constitution IX—agent IS the orchestrator |
 | Hybrid (static core + optional LLM) | Progressive value, user choice | More complexity |
 
 **Considerations**:
 - Development speed vs control
 - User requirements (not all users have Claude Code)
 - Cost implications for users
-- Aligns with Progressive Value principle
+- Aligns with Compounding Value principle
 
-**Current Thinking**: ✅ **DECIDED** - See [ADR-0006](architecture/adr/0006-agentic-analysis-implementation.md): Hybrid Static Core + Vercel AI SDK. Static analysers run first (free, fast), Vercel AI SDK adds agentic analysis when LLM configured. Provider-agnostic (Anthropic, OpenAI), full tool use (read + selective write), native OpenTelemetry support for future observability.
+**Current Thinking**: ✅ **DECIDED** - See [ADR-0006](architecture/adr/0006-agent-orchestrated-analysis.md): Agent-orchestrated analysis with Vercel AI SDK. Static tools and LLM reasoning run in parallel—agent orchestrates which to invoke based on task requirements (Principle VII). Provider-agnostic (Anthropic, OpenAI), full tool use (read + selective write), native OpenTelemetry support for future observability.
 
 ### 2.2 LLM Provider Abstraction
 
@@ -176,7 +176,7 @@ Questions are resolved through research, prototyping, and stakeholder input. Onc
 - Tool use capabilities for agentic analysis
 - Token counting and cost tracking
 
-**Current Thinking**: ✅ **DECIDED** - Resolved by [ADR-0006](architecture/adr/0006-agentic-analysis-implementation.md): Vercel AI SDK selected for provider abstraction. Supports Anthropic, OpenAI, and future providers via adapters. Includes streaming, tool use, and token tracking via OpenTelemetry integration.
+**Current Thinking**: ✅ **DECIDED** - Resolved by [ADR-0006](architecture/adr/0006-agent-orchestrated-analysis.md): Vercel AI SDK selected for provider abstraction. Supports Anthropic, OpenAI, and future providers via adapters. Includes streaming, tool use, and token tracking via OpenTelemetry integration.
 
 ### 2.3 Session Log Analysis Strategy
 
@@ -196,7 +196,7 @@ Questions are resolved through research, prototyping, and stakeholder input. Onc
 - Need to correlate issues with specific session segments (causal tracing)
 - Implementation complexity
 
-**Current Thinking**: ✅ **DECIDED** - See [ADR-0008](architecture/adr/0008-session-quality-analysis.md): Layered Static + Optional LLM approach. Infrastructure from ADR-0007 (streaming parser, FTS5 indexing) enables processing 100MB+ logs. Analysis covers 6 dimensions: Outcome Metrics, Agent Cognitive Health, Configuration Effectiveness, Prompt Quality, Automation Health, and Cross-Session Learning. Static analysis runs first (Layers 1-3), LLM optional for pattern detection and recommendations (Layers 4-5).
+**Current Thinking**: ✅ **DECIDED** - See [ADR-0008](architecture/adr/0008-session-quality-analysis.md): Agent-orchestrated layered analysis. Infrastructure from ADR-0007 (streaming parser, FTS5 indexing) enables processing 100MB+ logs. Analysis covers 6 dimensions: Outcome Metrics, Agent Cognitive Health, Configuration Effectiveness, Prompt Quality, Automation Health, and Cross-Session Learning. Static tools and agent reasoning run in parallel (per ADR-0011)—agent orchestrates analysis depth based on discovered patterns. Both approaches are first-class per Principle VII.
 
 ### 2.4 Causal Analysis Implementation
 
@@ -347,7 +347,7 @@ Issue: Secret in CLAUDE.md
 - Historical queries are core (not an afterthought)
 - Export format should be human-readable
 
-**Current Thinking**: TBD
+**Current Thinking**: ✅ **DECIDED** - See [ADR-0003](../docs/architecture/adr/0003-local-storage-strategy.md) which defines the SQLite schema with tables for baselines, sessions, causal_traces, recommendations, and FTS5 indexes for full-text search.
 
 ### 3.2 Schema Migration Strategy
 
@@ -474,7 +474,7 @@ Issue: Secret in CLAUDE.md
 **Considerations**:
 - Users should never lose data due to tool bugs
 - Clear error messages are essential for debugging
-- Graceful degradation aligns with Progressive Value principle
+- Graceful degradation aligns with Compounding Value principle
 
 **Current Thinking**: ✅ **DECIDED** - See [ADR-0014](architecture/adr/0014-error-handling-and-recovery.md): Continue with Degraded + Exponential Backoff. Three error types: transient (retry with backoff + jitter), recoverable (degrade gracefully), fatal (abort with clear message). LLM unavailable → graceful degradation to static-only mode. Structured terminal output with color-coded errors, suggestions, and exit codes (0=success, 1=fatal, 2=partial, 3=issues found). Subagent isolation prevents cascade failures. Follows Claude Code checkpoint patterns and Vercel AI SDK error taxonomy.
 
@@ -1059,7 +1059,7 @@ agentlint init --global
 **Considerations**:
 - Surprise costs damage trust
 - Per-analysis cost visibility enables informed decisions
-- Static-first principle minimises costs by default
+- Static tools run in parallel with LLM reasoning, minimising costs when agent judges them sufficient
 - Power users may want full analysis regardless of cost
 
 **Current Thinking**: TBD
@@ -1237,7 +1237,7 @@ The CCA research provides a framework we should apply to agentlint's own agentic
 
 **Considerations**:
 - Session logs can be very large (mentioned in architecture vision)
-- Static-first principle applies - extract stats (concurrent with LLM per ADR-0019)
+- Static tools and LLM reasoning run concurrently (per ADR-0011); agent orchestrates approach
 - Need to preserve critical information in compression
 
 ### 12.2 Agent Working Memory Structure
@@ -1322,9 +1322,9 @@ Resolved decisions are logged here with rationale.
 | [ADR-0003](architecture/adr/0003-local-storage-strategy.md) | 2026-01-12 | SQLite Only | Bun built-in, FTS5 search, efficient trends/causal linking, XDG locations |
 | [ADR-0004](architecture/adr/0004-configuration-file-locations.md) | 2026-01-12 | XDG + TOML | Global defaults + per-project overrides, TOML for comments, auto-create on first run |
 | [ADR-0005](architecture/adr/0005-credential-storage-strategy.md) | 2026-01-12 | Env + Keychain | Env vars primary, Bun.secrets keychain fallback, helper command for setup |
-| [ADR-0006](architecture/adr/0006-agentic-analysis-implementation.md) | 2026-01-12 | Hybrid + Vercel AI SDK | Static-first + Vercel AI SDK agentic. Multi-provider, full tool use, OTel ready |
+| [ADR-0006](architecture/adr/0006-agent-orchestrated-analysis.md) | 2026-01-12 | Agent-Orchestrated + Vercel AI SDK | Agent orchestrates static tools + LLM reasoning in parallel. Multi-provider, full tool use, OTel ready |
 | [ADR-0007](architecture/adr/0007-causal-analysis-architecture.md) | 2026-01-12 | Evidence-First + LLM Synthesis | Static evidence extraction, LLM synthesizes narrative, multi-pass verification, user feedback loop |
-| [ADR-0008](architecture/adr/0008-session-quality-analysis.md) | 2026-01-12 | Layered Static + Optional LLM | 6 analysis dimensions (outcome, cognitive health, config effectiveness, prompt quality, automation, cross-session learning). Builds on ADR-0007 infrastructure |
+| [ADR-0008](architecture/adr/0008-session-quality-analysis.md) | 2026-01-12 | Agent-Orchestrated Layered Analysis | 6 analysis dimensions (outcome, cognitive health, config effectiveness, prompt quality, automation, cross-session learning). Builds on ADR-0007 infrastructure |
 | [ADR-0009](architecture/adr/0009-observability-strategy.md) | 2026-01-12 | Dual-Exporter OTel Pipeline | Local always-on + remote feature-flagged. Redaction for privacy. Consent via init + command. Leverages ADR-0006 |
 | [ADR-0010](architecture/adr/0010-recommendation-prioritisation-strategy.md) | 2026-01-12 | Layered Views | Quick Wins + Optimal Impact views. Strong type weighting (Systemic > Preventive > Symptomatic). Heuristic effort. Merge-first conflicts |
 | [ADR-0011](architecture/adr/0011-parallel-processing-architecture.md) | 2026-01-12 | Layered Parallelism + Subagent | Static worker pools + orchestrator-worker agentic pattern. 5 subagents max. Deterministic via post-execution normalization |

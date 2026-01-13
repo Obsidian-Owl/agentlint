@@ -1,115 +1,134 @@
 ---
 status: accepted
-date: 2026-01-12
+date: 2026-01-13
 decision-makers: [CTO, Architecture Lead]
 consulted: [Development Team]
 informed: [All Contributors]
 ---
 
-# ADR-0011: Parallel Processing Architecture
+# ADR-0011: Agent Tool Concurrency and Subagent Pattern
 
 ## Context and Problem Statement
 
-agentlint must analyze projects within acceptable time bounds (target: 30 seconds per North Star) while processing:
+agentlint's analysis agent must complete analysis within acceptable time bounds (target: 30 seconds per North Star) while processing:
 - Large codebases (thousands of files)
 - 100MB+ session logs (Claude Code JSONL)
 - Multiple analysis domains (config, sessions, docs, code patterns)
-- Optional LLM-powered semantic analysis
 
-Sequential processing is too slow for large projects. This ADR defines how agentlint leverages parallelism while maintaining deterministic, reproducible outputs.
+The agent can achieve this through two mechanisms:
+1. **Concurrent tool invocation**: Invoke multiple tools in parallel
+2. **Subagent delegation**: Delegate domain analysis to specialized subagents
 
-A key insight from studying Claude Code's architecture: the **subagent pattern** (orchestrator coordinates isolated workers) has proven highly effective for complex analysis tasks, achieving 90.2% improvement over single-agent systems on research tasks.
+This ADR defines how the agent leverages these mechanisms while maintaining deterministic, reproducible outputs.
 
 ## Decision Drivers
 
 - **Performance target**: 30-second analysis for typical projects
-- **Static-First principle**: Maximize static analysis; runs concurrently with LLM per ADR-0019
-- **Agent-Aware principle**: Apply proven agentic patterns (subagents) to our own design
-- **Reproducibility**: Same input must produce same output (deterministic)
+- **Agent orchestration**: The agent decides what to run (see ADR-0006)
+- **Agent flexibility**: Agent chooses between tools and direct reasoning as needed
+- **Reproducibility**: Same input must produce same output
 - **Memory constraints**: Developer machines vary; must be memory-conscious
-- **Bun runtime**: ADR-0001 selected Bun; leverage its concurrency primitives
-- **Cost control**: Parallel LLM calls increase token usage; need rate limiting
+- **Cost control**: Subagent delegation increases token usage; needs justification
 
 ## Considered Options
 
-1. Layered Parallelism with Subagent Pattern
-2. Single-Agent with Concurrent Tools
-3. Static-Only Parallelism (Sequential Agentic)
-4. Fully Sequential Processing
+1. Single Agent with Concurrent Tool Invocation
+2. Single Agent with Subagent Delegation for Domains
+3. Sequential Tool Invocation (Simplest)
+4. Full Subagent Parallelism (Maximum Delegation)
 
 ## Decision Outcome
 
-Chosen option: **"Layered Parallelism with Subagent Pattern"** because it:
-1. Maximizes throughput for the 30-second target
-2. Applies Claude Code's proven orchestrator-worker architecture
-3. Enables deterministic output through post-execution normalization
-4. Separates concerns cleanly (static parallelism vs. agentic parallelism)
+Chosen option: **"Single Agent with Subagent Delegation for Domains"** because it:
+1. Enables the orchestrating agent to delegate complex domain analysis
+2. Provides context isolation between analysis domains
+3. Applies Claude Code's proven orchestrator-worker architecture
+4. Allows the agent to decide when parallelism is appropriate
 
 ### Architecture Overview
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                    PARALLEL PROCESSING ARCHITECTURE                          │
+│                         agentlint Analysis Agent                            │
 │                                                                             │
-│  Deep Research Pattern: Static + Agentic run CONCURRENTLY (not sequential) │
-│  See ADR-0019 for research on OpenAI/Gemini/Claude deep research patterns  │
+│  The agent orchestrates analysis. It can:                                   │
+│  • Invoke multiple tools concurrently                                       │
+│  • Delegate domain analysis to subagents                                    │
+│  • Synthesize all findings into recommendations                             │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
-│  ┌────────────────────────────────┐    ┌────────────────────────────────┐  │
-│  │ TRACK A: STATIC ANALYSIS       │    │ TRACK B: AGENTIC ANALYSIS      │  │
-│  │ (CPU-bound, Worker Pools)      │    │ (LLM-bound, Subagent Pattern)  │  │
-│  │                                │    │                                │  │
-│  │ ┌──────────┐ ┌──────────┐     │    │     ┌─────────────────────┐    │  │
-│  │ │ File     │ │ AST      │     │    │     │ ORCHESTRATOR AGENT  │    │  │
-│  │ │ Scanner  │ │ Parser   │     │    │     │ • Plans subagent    │    │  │
-│  │ │ Pool     │ │ Pool     │     │    │     │   tasks             │    │  │
-│  │ └──────────┘ └──────────┘     │    │     │ • Delegates work    │    │  │
-│  │ ┌──────────┐ ┌──────────┐     │    │     └─────────┬───────────┘    │  │
-│  │ │ Session  │ │ Language │     │    │               │                │  │
-│  │ │ Parser   │ │ Metrics  │     │    │    ┌──────────┼──────────┐     │  │
-│  │ │ Pool     │ │ Pool     │     │    │    ▼          ▼          ▼     │  │
-│  │ └──────────┘ └──────────┘     │    │ ┌──────┐ ┌──────┐ ┌──────┐    │  │
-│  │         │                     │    │ │CONFIG│ │SESSION│ │DOCS  │    │  │
-│  │         ▼                     │    │ │SUB   │ │SUB    │ │SUB   │    │  │
-│  │ ┌─────────────────────┐       │    │ │AGENT │ │AGENT  │ │AGENT │    │  │
-│  │ │ STATIC AGGREGATOR   │       │    │ └──────┘ └──────┘ └──────┘    │  │
-│  │ │ • Collect results   │       │    │    │          │          │     │  │
-│  │ │ • Sort deterministic│       │    │    └──────────┼──────────┘     │  │
-│  │ │ • Build metrics     │       │    │               ▼                │  │
-│  │ └─────────────────────┘       │    │     ┌─────────────────────┐    │  │
-│  │         │                     │    │     │ AGENTIC SYNTHESIS   │    │  │
-│  │         │                     │    │     │ • Merge subagent    │    │  │
-│  │         │                     │    │     │   results           │    │  │
-│  │         │                     │    │     └─────────────────────┘    │  │
-│  └─────────┼─────────────────────┘    └────────────────┼───────────────┘  │
-│            │                                           │                   │
-│            │      CONCURRENT EXECUTION                 │                   │
-│            │      (Promise.allSettled)                 │                   │
-│            │                                           │                   │
-│            └─────────────────┬─────────────────────────┘                   │
-│                              ▼                                             │
-│  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │ FINAL SYNTHESIS (Runs after both tracks complete)                   │   │
-│  │                                                                      │   │
-│  │ • Merge static metrics + agentic findings                           │   │
-│  │ • Cross-reference for causal links                                  │   │
-│  │ • Graceful degradation: if one track fails, use other's results    │   │
-│  │ • Deterministic normalization (sort, dedupe, timestamp normalize)   │   │
-│  │                                                                      │   │
-│  │ Result: Same input → Same output (regardless of execution order)    │   │
-│  └─────────────────────────────────────────────────────────────────────┘   │
+│  AGENT DECISION: What to analyze?                                           │
+│            │                                                                │
+│            ├── Simple queries → Direct tool invocation                      │
+│            │   (e.g., "Read CLAUDE.md" → ConfigParserTool)                  │
+│            │                                                                │
+│            └── Complex analysis → Subagent delegation                       │
+│                (e.g., "Analyze all sessions" → SessionAnalyserSubagent)     │
+│                                                                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  CONCURRENT TOOL INVOCATION                                                 │
+│  ─────────────────────────────────────────                                  │
+│  Agent can invoke multiple tools in parallel:                               │
+│                                                                             │
+│  Agent thinks: "I need config, session stats, and git history"              │
+│    → ConfigParserTool.parse("CLAUDE.md")     ─┐                             │
+│    → SessionStatsTool.analyze()              ─┼─ Concurrent                 │
+│    → GitQueryTool.history(".")               ─┘                             │
+│                                                                             │
+│  Tools complete quickly (~100ms each)                                       │
+│  Agent waits for all, then reasons about combined results                   │
+│                                                                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  SUBAGENT DELEGATION                                                        │
+│  ───────────────────────────────                                            │
+│  For complex domain analysis, agent delegates to subagents:                 │
+│                                                                             │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │ ORCHESTRATING AGENT                                                 │    │
+│  │                                                                     │    │
+│  │ "This project has many sessions. I'll delegate session analysis"   │    │
+│  │                                                                     │    │
+│  │         ┌────────────────┬────────────────┬────────────────┐       │    │
+│  │         │                │                │                │       │    │
+│  │         ▼                ▼                ▼                ▼       │    │
+│  │   ┌──────────┐    ┌──────────┐    ┌──────────┐    ┌──────────┐    │    │
+│  │   │  CONFIG  │    │ SESSION  │    │   DOCS   │    │   CODE   │    │    │
+│  │   │ SUBAGENT │    │ SUBAGENT │    │ SUBAGENT │    │ SUBAGENT │    │    │
+│  │   │          │    │          │    │          │    │          │    │    │
+│  │   │ Analyzes │    │ Analyzes │    │ Analyzes │    │ Analyzes │    │    │
+│  │   │ AI       │    │ session  │    │ README,  │    │ AST      │    │    │
+│  │   │ configs  │    │ logs     │    │ docs/    │    │ patterns │    │    │
+│  │   └────┬─────┘    └────┬─────┘    └────┬─────┘    └────┬─────┘    │    │
+│  │        │               │               │               │          │    │
+│  │        └───────────────┴───────────────┴───────────────┘          │    │
+│  │                                │                                   │    │
+│  │                                ▼                                   │    │
+│  │                    ┌─────────────────────┐                        │    │
+│  │                    │   ORCHESTRATOR      │                        │    │
+│  │                    │   SYNTHESIS         │                        │    │
+│  │                    │                     │                        │    │
+│  │                    │ Merges subagent     │                        │    │
+│  │                    │ findings, generates │                        │    │
+│  │                    │ recommendations     │                        │    │
+│  │                    └─────────────────────┘                        │    │
+│  └─────────────────────────────────────────────────────────────────────┘    │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-**Key Insight from Deep Research Patterns** (ADR-0019):
+### When to Use Subagents
 
-Research into OpenAI, Gemini, and Claude's deep research implementations reveals that **static and LLM analysis should run concurrently**, not sequentially:
-- Results stream as they complete (static Layer 1 arrives first, being fastest)
-- Failures in one track don't block the other (graceful degradation)
-- Final synthesis merges insights from both tracks
+The orchestrating agent decides when subagent delegation is appropriate:
 
-This differs from a naive "static-first" interpretation where static must complete before agentic begins.
+| Scenario | Direct Tool | Subagent | Rationale |
+|----------|-------------|----------|-----------|
+| Parse single config file | Yes | No | Quick, deterministic |
+| Analyze 50 session logs | No | Yes | Context isolation, parallelism |
+| Check git history | Yes | No | Simple query |
+| Deep code pattern analysis | Maybe | Maybe | Depends on codebase size |
+| Cross-domain correlation | No | Yes | Each domain needs focus |
 
 ### Subagent Pattern Details
 
@@ -120,7 +139,7 @@ Inspired by [Claude Code's architecture](https://code.claude.com/docs/en/sub-age
 | Orchestrator | Claude Opus 4 | User-configured model |
 | Workers | Claude Sonnet 4 subagents | Specialized analysis subagents |
 | Max Parallel | 10 subagents | 5 subagents (MVP) |
-| Context Isolation | Each has own 200K window | Each has own compressed context |
+| Context Isolation | Each has own 200K window | Each has compressed domain context |
 | Nesting | Subagents cannot spawn subagents | Same constraint |
 | Batch Mode | Wait for all to complete | Same pattern |
 
@@ -132,60 +151,42 @@ Inspired by [Claude Code's architecture](https://code.claude.com/docs/en/sub-age
 | SessionAnalyser | Sessions | Session log excerpts | Causal traces, patterns |
 | DocsAnalyser | Documentation | README, docs/ | Docs quality findings |
 | CodePatternAnalyser | Code | AST summaries | Pattern violations |
-| CrossReferenceAnalyser | Cross-cutting | All subagent outputs | Unified recommendations |
 
-### Concurrency Limits and Rate Limiting
+### Concurrency Configuration
 
 ```typescript
 interface ConcurrencyConfig {
-  // Static analysis (CPU-bound)
-  static: {
-    maxWorkers: number;       // Default: CPU cores - 1
-    memoryLimitMB: number;    // Default: 512MB per worker
+  // Tool invocation
+  tools: {
+    maxConcurrent: number;     // Default: 5 (how many tools can run simultaneously)
   };
 
-  // Agentic analysis (LLM-bound)
-  agentic: {
-    maxSubagents: number;     // Default: 5 (MVP), max: 10
-    llmConcurrency: number;   // Default: 3 (respects rate limits)
+  // Subagent delegation
+  subagents: {
+    maxParallel: number;       // Default: 4 (MVP), max: 10
+    llmConcurrency: number;    // Default: 3 (respects rate limits)
     requestsPerMinute: number; // Default: 50 (Anthropic tier 1)
   };
 
   // Global
-  deterministic: boolean;     // Default: true (sort results)
+  deterministic: boolean;      // Default: true (sort results)
 }
 ```
 
-**Rate Limiting Strategy** (per [best practices](https://www.requesty.ai/blog/rate-limits-for-llm-providers-openai-anthropic-and-deepseek)):
+**Rate Limiting Strategy**:
 - Token bucket with sliding window
 - Exponential backoff on 429 errors
-- Pre-check estimated tokens before dispatch
 - Queue excess requests rather than fail
-
-### Memory Budget
-
-Per [Bun's worker documentation](https://bun.com/docs/runtime/workers), workers share I/O resources but have isolated heaps:
-
-```typescript
-interface MemoryBudget {
-  // Static analysis budget
-  perWorkerMB: 512;           // Max heap per worker
-  maxTotalWorkersMB: 2048;    // Cap total worker memory
-
-  // Subagent context budget
-  perSubagentTokens: 50_000;  // Compressed context per subagent
-  orchestratorTokens: 100_000; // Orchestrator context budget
-}
-```
+- Orchestrating agent monitors budget
 
 ### Determinism Implementation
 
-Parallel execution produces results in non-deterministic order. To guarantee reproducibility:
+Concurrent execution produces results in non-deterministic order. To guarantee reproducibility:
 
 ```typescript
 interface DeterminismStrategy {
   // 1. Collect all results without assuming order
-  collectResults(workers: Worker[]): Promise<Result[]>;
+  collectResults(sources: ResultSource[]): Promise<Result[]>;
 
   // 2. Normalize results
   normalizeTimestamps(results: Result[], analysisStartTime: Date): Result[];
@@ -205,33 +206,23 @@ interface DeterminismStrategy {
   }
 
   // 4. Deduplicate equivalent findings
-  deduplicate(results: Result[]): Result[] {
-    const seen = new Set<string>();
-    return results.filter(r => {
-      const hash = computeContentHash(r);
-      if (seen.has(hash)) return false;
-      seen.add(hash);
-      return true;
-    });
-  }
+  deduplicate(results: Result[]): Result[];
 }
 ```
 
 ### Consequences
 
 **Good:**
-- 30-second target achievable for large projects
+- 30-second target achievable through concurrent tool invocation
 - Subagent pattern proven effective (Claude Code's 90.2% improvement)
 - Context isolation prevents "pollution" between analysis domains
 - Deterministic output supports reproducible baselines
-- Rate limiting prevents API quota exhaustion
-- Memory budgets prevent OOM on constrained machines
+- Agent decides when parallelism is appropriate (not hardcoded)
 
 **Bad:**
-- 3-4x more tokens for agentic analysis (per Claude Code benchmarks)
-- More complex than sequential (orchestrator + subagents)
-- Worker threads in Bun are still experimental
-- Batch completion waiting may leave some workers idle
+- Subagent delegation increases token costs (3-4x per Claude benchmarks), though enables significantly faster comprehensive analysis
+- More complex than purely sequential analysis
+- Batch completion waiting may leave some subagents idle
 
 **Neutral:**
 - Subagent count configurable for cost/speed tradeoff
@@ -239,299 +230,180 @@ interface DeterminismStrategy {
 
 ## Pros and Cons of Options
 
-### Option 1: Layered Parallelism with Subagent Pattern
+### Option 1: Single Agent with Concurrent Tool Invocation
 
-Full parallelism at both static and agentic layers, using orchestrator-worker architecture.
+Agent invokes multiple tools concurrently but handles all reasoning itself.
 
-- Good: Maximum throughput, proven pattern from Claude Code
-- Good: Context isolation prevents cross-domain interference
-- Good: Deterministic with post-execution normalization
-- Good: Aligns with Agent-Aware principle
-- Neutral: 3-4x token cost for agentic layer
-- Bad: Most complex implementation
-- Bad: Bun workers experimental
+- Good: Simpler than subagents, lower token cost
+- Good: Agent maintains full context
+- Neutral: Some parallelism benefit from concurrent tools
+- Bad: May hit context limits on large projects
+- Bad: No domain isolation
 
-### Option 2: Single-Agent with Concurrent Tools
+### Option 2: Single Agent with Subagent Delegation (Chosen)
 
-One LLM agent with concurrent tool execution (parallel file reads, etc.).
+Agent delegates complex domain analysis to specialized subagents.
 
-- Good: Simpler than subagents
-- Good: Lower token cost
-- Neutral: Some parallelism benefit
-- Bad: Context pollution across domains
-- Bad: No isolation between analysis types
-- Bad: Doesn't leverage proven subagent patterns
+- Good: Context isolation per domain
+- Good: Proven pattern from Claude Code
+- Good: Agent decides when to delegate
+- Neutral: Higher token cost for subagents
+- Bad: More complex orchestration
 
-### Option 3: Static-Only Parallelism
+### Option 3: Sequential Tool Invocation
 
-Parallelize static analysis; LLM calls remain sequential.
-
-- Good: Simpler LLM integration
-- Good: Predictable LLM costs
-- Good: Static layer gains parallelism
-- Bad: Agentic analysis bottleneck
-- Bad: May not hit 30-second target for large projects
-- Bad: Underutilizes LLM API capacity
-
-### Option 4: Fully Sequential Processing
-
-All operations run sequentially.
+Agent invokes tools one at a time, reasons after each.
 
 - Good: Simplest implementation
+- Good: Agent can adapt based on each result
 - Good: Naturally deterministic
-- Good: Lowest memory usage
-- Bad: Unacceptable performance for large projects
-- Bad: Wastes parallel I/O capacity
-- Bad: Far exceeds 30-second target
+- Bad: Slowest performance
+- Bad: May not hit 30-second target
+
+### Option 4: Full Subagent Parallelism
+
+Always delegate everything to subagents.
+
+- Good: Maximum parallelism
+- Good: Complete domain isolation
+- Bad: Highest token cost
+- Bad: Orchestrator overhead even for simple queries
+- Bad: Agent loses ability to make direct queries
 
 ## Constitution Compliance
 
 | Principle | Compliance | Notes |
 |-----------|------------|-------|
-| I. Local-First | Yes | All parallelism runs locally |
+| I. Local-First | Yes | All analysis runs locally |
 | II. Improvement-Oriented | Yes | Faster analysis enables more frequent baselining |
 | III. Causal-First | Yes | Subagent isolation doesn't impede tracing |
-| IV. Mixed-Methods | Yes | Parallel static (quantitative) + subagents (qualitative) |
-| V. Language-Agnostic | Yes | Worker pools work regardless of target language |
-| VI. Tool-Agnostic | Yes | Adapter pattern unaffected by parallelism |
-| VII. Static-First | Yes | Static analysis preferred; runs concurrently with agentic (not sequentially before) per ADR-0019 deep research pattern |
-| VIII. Progressive Value | Yes | Static parallelism works without LLM config |
-| IX. Agent-Aware | Yes | Subagent pattern applies AX principles to our own agent |
+| IV. Mixed-Methods | Yes | Tools (quantitative) + agent reasoning (qualitative/semantic) |
+| V. Language-Agnostic | Yes | Works regardless of target language |
+| VI. Tool-Agnostic | Yes | Adapter pattern unaffected |
+| VII. Intelligent Tooling | Yes | Tools serve agent needs; subagents handle complex domain analysis |
+| VIII. Compounding Value | Yes | Value compounds through baseline tracking |
+| IX. Agent-Aware | Yes | Subagent pattern applies AX principles |
 
 ## More Information
 
 ### Related Documents
-- [ADR-0001: Language and Runtime Selection](./0001-language-and-runtime-selection.md) - Bun runtime with worker support
-- [ADR-0006: Agentic Analysis Implementation](./0006-agentic-analysis-implementation.md) - Vercel AI SDK for LLM integration
+- [ADR-0006: Agent-Orchestrated Analysis](./0006-agent-orchestrated-analysis.md) - Agent architecture
 - [ADR-0007: Causal Analysis Architecture](./0007-causal-analysis-architecture.md) - Session analysis pipeline
-- [ADR-0008: Session Quality Analysis](./0008-session-quality-analysis.md) - Analysis dimensions for subagents
-- [ADR-0019: Language Ecosystem Support](./0019-language-ecosystem-support.md) - Deep research pattern for concurrent static+agentic execution
+- [ADR-0008: Session Quality Analysis](./0008-session-quality-analysis.md) - Analysis dimensions
 - Architecture Vision: [Section 7 - agentlint Agent Design](../../agentlint-architecture-vision.md#7-agentlint-agent-design)
-- Design Questions: [Section 2.6 - Parallel Processing Architecture](../../design-questions.md#26-parallel-processing-architecture)
 
 ### Research Sources
 - [Claude Code Subagents Documentation](https://code.claude.com/docs/en/sub-agents) - Official subagent architecture
 - [Multi-Agent Parallel Coding with Claude Code Subagents](https://medium.com/@codecentrevibe/claude-code-multi-agent-parallel-coding-83271c4675fa) - Practical patterns
-- [Claude Subagent Deep Dive](https://cuong.io/blog/2025/06/24-claude-code-subagent-deep-dive) - Architecture analysis
 - [Building Agents with Claude Agent SDK](https://www.anthropic.com/engineering/building-agents-with-the-claude-agent-sdk) - Official SDK patterns
-- [Bun Workers API](https://bun.com/docs/runtime/workers) - Worker thread documentation
-- [LLM Concurrent Requests Best Practices](https://www.requesty.ai/blog/rate-limits-for-llm-providers-openai-anthropic-and-deepseek) - Rate limiting
-- [Concurrent vs Parallel LLM Execution](https://medium.com/@neeldevenshah/concurrent-vs-parallel-execution-in-llm-api-calls-from-an-ai-engineers-perspective-5842e50974d4) - Execution patterns
-- [AI Agent Orchestration Patterns - Microsoft](https://learn.microsoft.com/en-us/azure/architecture/ai-ml/guide/ai-agent-design-patterns) - Enterprise patterns
-- [Google ADK Multi-Agent Patterns](https://developers.googleblog.com/developers-guide-to-multi-agent-patterns-in-adk/) - ParallelAgent patterns
-- [Deterministic Parallelism Survey](https://dl.acm.org/doi/10.1145/3564529) - Academic foundations
+- [LLM Rate Limits Best Practices](https://www.requesty.ai/blog/rate-limits-for-llm-providers-openai-anthropic-and-deepseek) - Rate limiting
 
 ### Implementation Notes
 
-#### 1. Static Analysis Worker Pool
+#### 1. Concurrent Tool Invocation
 
 ```typescript
-import { Worker } from 'bun';
+import { generateText, tool } from 'ai';
 
-interface WorkerPool {
-  workers: Worker[];
-  taskQueue: Task[];
-  maxWorkers: number;
-}
+// Agent can request multiple tool calls in parallel
+// Vercel AI SDK handles concurrent execution
+const result = await generateText({
+  model,
+  system: agentSystemPrompt,
+  prompt: analysisPrompt,
+  tools: {
+    parseConfig: configParserTool,
+    getSessionStats: sessionStatsTool,
+    queryGit: gitQueryTool,
+    // ... other tools
+  },
+  maxSteps: 20,
+  // The agent decides which tools to call and whether to call them concurrently
+});
 
-async function createStaticWorkerPool(config: ConcurrencyConfig): Promise<WorkerPool> {
-  const maxWorkers = Math.min(
-    config.static.maxWorkers,
-    navigator.hardwareConcurrency - 1
-  );
-
-  const workers = Array.from({ length: maxWorkers }, () =>
-    new Worker(new URL('./static-worker.ts', import.meta.url))
-  );
-
-  return { workers, taskQueue: [], maxWorkers };
-}
-
-// Worker task distribution
-async function distributeStaticTasks(
-  pool: WorkerPool,
-  tasks: StaticTask[]
-): Promise<StaticResult[]> {
-  const results: StaticResult[] = [];
-  const pending = new Map<Worker, Promise<StaticResult>>();
-
-  for (const task of tasks) {
-    // Find idle worker or wait for one
-    const worker = await getIdleWorker(pool, pending);
-
-    const promise = new Promise<StaticResult>((resolve) => {
-      worker.onmessage = (event) => {
-        pending.delete(worker);
-        resolve(event.data);
-      };
-      worker.postMessage(task);
-    });
-
-    pending.set(worker, promise);
-  }
-
-  // Wait for all pending
-  results.push(...await Promise.all(pending.values()));
-  return results;
-}
+// Agent's tool calls might look like:
+// Step 1: [parseConfig("CLAUDE.md"), getSessionStats(), queryGit(".")] - concurrent
+// Step 2: Agent reasons about combined results
+// Step 3: [searchSessions("error")] - based on reasoning
 ```
 
-#### 2. Subagent Orchestration
+#### 2. Subagent Delegation
 
 ```typescript
-import { generateText } from 'ai';
-
-interface Subagent {
-  id: string;
-  domain: AnalysisDomain;
-  context: CompressedContext;
-  status: 'idle' | 'running' | 'complete';
-}
-
-async function runSubagentAnalysis(
+// The orchestrating agent decides to delegate
+async function delegateToSubagents(
   orchestratorContext: OrchestratorContext,
-  staticFindings: StaticFindings,
-  config: ConcurrencyConfig
-): Promise<AgenticFindings> {
-  // 1. Orchestrator plans subagent tasks
-  const subagentTasks = await planSubagentTasks(orchestratorContext, staticFindings);
+  domains: AnalysisDomain[]
+): Promise<SubagentResults> {
+  // Create subagent tasks
+  const subagentTasks = domains.map(domain => ({
+    domain,
+    context: compressContextForDomain(orchestratorContext, domain),
+    tools: DOMAIN_TOOLS[domain],
+  }));
 
-  // 2. Create subagent batch (respect max concurrency)
-  const batches = chunkArray(subagentTasks, config.agentic.maxSubagents);
+  // Run subagents in parallel (respecting concurrency limits)
+  const results = await Promise.all(
+    subagentTasks.map(task => runSubagent(task))
+  );
 
-  const allResults: SubagentResult[] = [];
-
-  for (const batch of batches) {
-    // 3. Run batch in parallel
-    const batchResults = await Promise.all(
-      batch.map(task => runSubagent(task, config))
-    );
-
-    allResults.push(...batchResults);
-  }
-
-  // 4. Synthesize (orchestrator merges subagent outputs)
-  return synthesizeResults(orchestratorContext, allResults);
+  return {
+    domains: results,
+    synthesisNeeded: true,
+  };
 }
 
-async function runSubagent(
-  task: SubagentTask,
-  config: ConcurrencyConfig
-): Promise<SubagentResult> {
-  const model = getModel(config);
-
-  // Each subagent has isolated context
+async function runSubagent(task: SubagentTask): Promise<SubagentResult> {
   const result = await generateText({
-    model,
+    model: getSubagentModel(),
     system: SUBAGENT_PROMPTS[task.domain],
-    prompt: task.compressedInput,
-    tools: SUBAGENT_TOOLS[task.domain],
-    maxSteps: 5, // Subagents are focused, limited steps
-    experimental_telemetry: {
-      isEnabled: config.telemetry?.enabled ?? false,
-      functionId: `agentlint.subagent.${task.domain}`,
-    },
+    prompt: task.context,
+    tools: task.tools,
+    maxSteps: 10, // Subagents are focused
   });
 
   return {
     domain: task.domain,
     findings: parseSubagentOutput(result),
-    tokensUsed: result.usage,
   };
 }
 ```
 
-#### 3. Rate Limiter
+#### 3. Determinism Normalization
 
 ```typescript
-interface RateLimiter {
-  requestsPerMinute: number;
-  tokensPerMinute: number;
-  currentRequests: number;
-  currentTokens: number;
-  lastReset: number;
-}
-
-class TokenBucketLimiter implements RateLimiter {
-  private bucket: number;
-  private lastRefill: number;
-
-  async waitForCapacity(estimatedTokens: number): Promise<void> {
-    while (this.bucket < estimatedTokens) {
-      const waitTime = this.calculateRefillWait(estimatedTokens);
-      await sleep(waitTime);
-      this.refill();
-    }
-    this.bucket -= estimatedTokens;
-  }
-
-  async handleRateLimit(error: Error): Promise<void> {
-    if (error.message.includes('429')) {
-      // Exponential backoff with jitter
-      const baseWait = 1000;
-      const maxWait = 60000;
-      const attempt = this.getRetryAttempt();
-      const wait = Math.min(baseWait * Math.pow(2, attempt) + Math.random() * 1000, maxWait);
-      await sleep(wait);
-    }
-  }
-}
-```
-
-#### 4. Determinism Normalization
-
-```typescript
-interface DeterministicNormalizer {
-  normalize(results: AnalysisResult[]): AnalysisResult[];
-}
-
 function normalizeResults(
   results: AnalysisResult[],
   analysisStartTime: Date
 ): AnalysisResult[] {
   return results
-    // 1. Normalize timestamps
-    .map(r => ({
-      ...r,
-      timestamp: analysisStartTime,
-      detectedAt: analysisStartTime,
-    }))
-    // 2. Sort deterministically
+    // Normalize timestamps
+    .map(r => ({ ...r, timestamp: analysisStartTime }))
+    // Sort deterministically
     .sort((a, b) => {
       const domainCmp = a.domain.localeCompare(b.domain);
       if (domainCmp !== 0) return domainCmp;
-
       const pathCmp = (a.filePath ?? '').localeCompare(b.filePath ?? '');
       if (pathCmp !== 0) return pathCmp;
-
-      const lineCmp = (a.line ?? 0) - (b.line ?? 0);
-      if (lineCmp !== 0) return lineCmp;
-
-      return a.type.localeCompare(b.type);
+      return (a.line ?? 0) - (b.line ?? 0);
     })
-    // 3. Deduplicate
-    .filter((r, i, arr) => {
-      if (i === 0) return true;
-      const prev = arr[i - 1];
-      return computeContentHash(r) !== computeContentHash(prev);
-    });
+    // Deduplicate
+    .filter((r, i, arr) => i === 0 || computeHash(r) !== computeHash(arr[i-1]));
 }
 ```
 
 ### Performance Expectations
 
-| Project Size | Sequential | Parallel Static | Full Parallel |
-|--------------|------------|-----------------|---------------|
-| Small (100 files) | ~15s | ~5s | ~5s |
-| Medium (1000 files) | ~90s | ~20s | ~25s |
-| Large (5000 files) | ~300s | ~60s | ~30s |
+| Project Size | Sequential Tools | Concurrent Tools | With Subagents |
+|--------------|------------------|------------------|----------------|
+| Small (100 files) | ~15s | ~8s | ~10s (overhead) |
+| Medium (1000 files) | ~45s | ~20s | ~25s |
+| Large (5000 files) | ~120s | ~45s | ~30s |
 
-*Note: LLM latency dominates for agentic analysis; parallel static provides most speedup for large projects.*
+*Note: Subagents add value for large projects where domain isolation and parallel LLM reasoning improve quality and speed.*
 
 ### Follow-Up Decisions
 
-This ADR surfaces the need for:
-
-1. **Worker Error Handling**: How should worker crashes be handled? (restart, abort, degrade)
-2. **Subagent Tool Sharing**: Should subagents share read-only tools? (memory efficiency vs isolation)
-3. **Adaptive Parallelism**: Should concurrency adjust based on detected system resources?
+1. **Subagent Tool Sharing**: Should subagents share read-only tools? (memory efficiency vs isolation)
+2. **Adaptive Delegation**: Should the agent learn when subagent delegation improves results?
+3. **Budget Allocation**: How should token budget be split between orchestrator and subagents?

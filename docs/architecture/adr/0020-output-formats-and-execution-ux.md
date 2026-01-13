@@ -23,9 +23,9 @@ The CTO specified: "Think about patterns for how the AI agent's internal respons
 
 ## Decision Drivers
 
-- **Progressive Value principle**: Static results must be visible immediately, even if LLM analysis is still running
+- **Compounding Value principle**: Results improve with historical context from previous analyses
 - **Agent-Aware principle**: AX/UX separation—agent sees compressed context, users see rich reports
-- **Static-First principle**: Static results always available; LLM failures degrade gracefully
+- **Graceful degradation**: Results stream as available; resilient to component failures
 - **Mixed-Methods principle**: Combine structured metrics with conversational insights
 - **Claude Code UX patterns**: Research shows Claude Code's streaming, progress indicators, and Ctrl+B backgrounding are well-received
 - **CI/CD integration**: SARIF and JUnit XML are industry standards for analysis tools
@@ -354,9 +354,9 @@ Per user requirement: Errors should be **conversational**, not raw codes.
 │ • Semantic config quality assessment                                        │
 │ • Recommendation generation                                                 │
 │                                                                             │
-│ 💡 Try again in a few minutes, or run with --static-only to skip LLM.      │
+│ 💡 Try again in a few minutes. The rate limit should reset shortly.         │
 │                                                                             │
-│ Static results saved. Run `agentlint analyse` again for full analysis.     │
+│ Partial results saved. Run `agentlint analyse` again to retry.              │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -372,7 +372,7 @@ Per user requirement: Errors should be **conversational**, not raw codes.
       "code": "LLM_RATE_LIMIT",
       "message": "LLM API rate limit exceeded",
       "recoverable": true,
-      "suggestion": "Retry in 60 seconds or use --static-only"
+      "suggestion": "Retry in 60 seconds"
     }]
   },
   "summary": { ... },  // Static results still included
@@ -434,7 +434,7 @@ export function createRenderer(mode: OutputMode): OutputRenderer {
 | `--quiet` / `-q` | - | false | Suppress progress, show only results |
 | `--verbose` / `-v` | - | false | Show detailed progress and debug info |
 | `--no-color` | - | false | Disable colors (also auto-disabled if !TTY) |
-| `--static-only` | - | false | Skip agentic analysis |
+| `--model` / `-m` | model name | default | Model selection for cost control |
 
 ---
 
@@ -471,8 +471,8 @@ export function createRenderer(mode: OutputMode): OutputRenderer {
 | IV. Mixed-Methods | Yes | Structured metrics + conversational insights |
 | V. Language-Agnostic | N/A | Output formatting is language-independent |
 | VI. Tool-Agnostic | Yes | MCP enables multi-tool integration |
-| VII. Static-First | Yes | Static results always shown, even on LLM failure |
-| VIII. Progressive Value | Yes | Static-only mode produces full reports |
+| VII. Intelligent Tooling | Yes | Output includes all analysis results; resilient to component failures |
+| VIII. Compounding Value | Yes | Baselines enable compound improvement tracking |
 | IX. Agent-Aware | Yes | MCP responses are agent-optimized; terminal is user-optimized |
 
 ---

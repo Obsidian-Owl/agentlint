@@ -20,7 +20,8 @@ The key challenges are:
 
 ## Decision Drivers
 
-- **Static-First principle**: Maximize deterministic testing; run deterministic tests before LLM-dependent tests in CI (test ordering, distinct from concurrent analysis execution per ADR-0019)
+- **Comprehensive coverage**: All test layers run to ensure quality across tool implementations and agentic components
+- **Fast feedback first**: Tests ordered by execution speed (fast → slow) for optimal CI feedback loops
 - **Real API testing preference**: User prefers real LLM calls in CI for accuracy
 - **TypeScript-native tooling**: Must integrate with Bun runtime (ADR-0001)
 - **Agent-specific metrics**: Need tool correctness, hallucination detection, task completion
@@ -341,15 +342,15 @@ Vitest for testing with LangSmith cloud platform for agent evals.
 | IV. Mixed-Methods | Yes | Quantitative metrics + qualitative LLM-as-judge |
 | V. Language-Agnostic | Yes | Test fixtures can represent any language project |
 | VI. Tool-Agnostic | Yes | Adapter pattern testable via mocked tool outputs |
-| VII. Static-First | Yes | Layers 1-3 are deterministic; Layer 4 is LLM-dependent |
-| VIII. Progressive Value | Yes | Layers 1-3 work without LLM; Layer 4 enhances |
+| VII. Intelligent Tooling | Yes | Tests cover both tool implementations and agent reasoning |
+| VIII. Compounding Value | Yes | Test coverage compounds quality over time |
 | IX. Agent-Aware | Yes | Metrics designed for agent behavior (tool correctness, coherence) |
 
 ## More Information
 
 ### Related Documents
 - [ADR-0001: Language and Runtime Selection](./0001-language-and-runtime-selection.md) - Bun runtime
-- [ADR-0006: Agentic Analysis Implementation](./0006-agentic-analysis-implementation.md) - Vercel AI SDK
+- [ADR-0006: Agentic Analysis Implementation](./0006-agent-orchestrated-analysis.md) - Vercel AI SDK
 - [ADR-0007: Causal Analysis Architecture](./0007-causal-analysis-architecture.md) - Evidence-first pattern
 - [ADR-0009: Observability Strategy](./0009-observability-strategy.md) - Cost tracking via OTel
 - [ADR-0011: Parallel Processing Architecture](./0011-parallel-processing-architecture.md) - Subagent pattern

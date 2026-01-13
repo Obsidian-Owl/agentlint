@@ -20,8 +20,8 @@ Key questions this ADR addresses:
 
 ## Decision Drivers
 
-- **Static-First principle**: Maximize static analysis; runs concurrently with LLM per ADR-0019
-- **Progressive Value principle**: Provide useful metrics without requiring LLM configuration
+- **Agent flexibility**: Both structured extraction and semantic reasoning are first-class approaches
+- **Compounding Value principle**: Session metrics compound into historical baselines over time
 - **Agent-Aware principle**: Measure agent cognitive health as a first-class concern
 - **Improvement-Oriented principle**: Enable cross-session learning and trend analysis
 - **Scalability**: Handle 100MB+ session logs efficiently (leverage ADR-0007 infrastructure)
@@ -34,7 +34,7 @@ Key questions this ADR addresses:
 
 ## Decision Outcome
 
-Chosen option: **"Layered Static + Optional LLM"** because it aligns with Static-First and Progressive Value principles while enabling deep semantic analysis when LLM is configured. The layered approach builds on ADR-0007's infrastructure (streaming parser, FTS5 indexing) and adds quality-focused analysis dimensions.
+Chosen option: **"Layered Analysis with Agent Flexibility"** because it aligns with Compounding Value principles while enabling deep semantic analysis when needed. The layered approach builds on ADR-0007's infrastructure (streaming parser, FTS5 indexing) and adds quality-focused analysis dimensions. The agent chooses which layers to engage based on task requirements.
 
 ### Architecture Overview
 
@@ -47,23 +47,23 @@ Chosen option: **"Layered Static + Optional LLM"** because it aligns with Static
 │  • Extract metadata: timestamps, roles, tool_calls, tokens      │
 │  • Index in SQLite with FTS5 for searchability                  │
 ├─────────────────────────────────────────────────────────────────┤
-│  LAYER 2: Statistical Analysis (Static, No LLM)                 │
+│  LAYER 2: Statistical Analysis (Metrics Tools)                  │
 │  • Compute outcome metrics (completion, efficiency)             │
 │  • Compute cognitive health signals (backtracking, confusion)   │
 │  • Compute automation health (hook triggers, test runs)         │
 │  • Store aggregates in SQLite for trend analysis                │
 ├─────────────────────────────────────────────────────────────────┤
-│  LAYER 3: Cross-Reference Analysis (Static)                     │
+│  LAYER 3: Cross-Reference Analysis (Rule Matching)              │
 │  • Load config rules → compare to session actions               │
 │  • Detect compliance, violations, unused guidance               │
 │  • Identify prompt patterns (effective vs. ineffective)         │
 ├─────────────────────────────────────────────────────────────────┤
-│  LAYER 4: Pattern Detection (Static + Optional LLM)             │
+│  LAYER 4: Pattern Detection (Tools + Agent Reasoning)           │
 │  • Detect failure mode patterns (hallucination, scope creep)    │
 │  • Identify cross-session trends                                │
-│  • LLM: Semantic analysis of unclear cases                      │
+│  • Agent reasoning for semantic analysis of complex cases       │
 ├─────────────────────────────────────────────────────────────────┤
-│  LAYER 5: Recommendations (LLM Synthesis)                       │
+│  LAYER 5: Recommendations (Agent Synthesis)                     │
 │  • Generate improvement suggestions for config                  │
 │  • Suggest prompt improvements for users                        │
 │  • Flag automation gaps                                         │
@@ -73,11 +73,11 @@ Chosen option: **"Layered Static + Optional LLM"** because it aligns with Static
 ### Consequences
 
 **Good:**
-- Progressive Value: Layers 1-3 work without LLM (immediate value)
+- Compounding Value: Session metrics compound into historical baselines
 - Leverages ADR-0007 infrastructure (no duplication)
 - Comprehensive coverage of quality dimensions
 - Cross-session learning enables improvement tracking
-- Static-First minimizes API costs
+- Agent chooses analysis depth based on task requirements
 
 **Bad:**
 - More complexity than statistical-only approach
@@ -85,7 +85,7 @@ Chosen option: **"Layered Static + Optional LLM"** because it aligns with Static
 - Pattern detection heuristics may have false positives
 
 **Neutral:**
-- LLM layers optional but recommended for deep insights
+- All analysis approaches are first-class; agent selects based on insight needed
 - Some metrics require session segmentation (heuristic-based)
 
 ## Analysis Dimensions
@@ -218,15 +218,17 @@ interface SessionMetrics {
 3. Identify which prompt structures correlate with success vs. failure
 4. Generate prompt improvement recommendations
 
-**Detection Signals**:
+**Detection Signals** (metrics for agent interpretation):
 
-| Signal | Pattern | Interpretation |
-|--------|---------|----------------|
-| High iteration count | >5 turns for simple task | Prompt was unclear |
-| Clarification requests | "Could you clarify...", "Do you mean..." | Ambiguity in prompt |
-| User corrections | "No, I meant...", "That's not what I wanted" | Misunderstanding |
-| Backtracking | Agent undoes previous work | Initial direction was wrong |
-| Scope creep | Files modified >> files mentioned | Prompt too broad |
+| Signal | Pattern | Possible Interpretations |
+|--------|---------|--------------------------|
+| High iteration count | >5 turns for task | Task complexity OR prompt ambiguity - agent determines which |
+| Clarification requests | "Could you clarify...", "Do you mean..." | May indicate prompt ambiguity |
+| User corrections | "No, I meant...", "That's not what I wanted" | Possible misunderstanding |
+| Backtracking | Agent undoes previous work | Initial direction may have been wrong |
+| Scope creep | Files modified >> files mentioned | Prompt may have been too broad |
+
+*Note: These are signals for the agent to interpret, not deterministic rules. High turn counts may indicate task complexity rather than poor prompts. The agent applies contextual reasoning.*
 
 ### Automation Health Detection
 
@@ -338,15 +340,15 @@ interface QualityTrend {
 | IV. Mixed-Methods | Yes | Quantitative metrics + qualitative pattern detection |
 | V. Language-Agnostic | Yes | Session analysis independent of code language |
 | VI. Tool-Agnostic | Yes | Adapter pattern supports multiple AI tools |
-| VII. Static-First | Yes | Layers 1-3 are fully static |
-| VIII. Progressive Value | Yes | Useful metrics without LLM configuration |
+| VII. Intelligent Tooling | Yes | Agent chooses analysis depth; tools serve agent needs |
+| VIII. Compounding Value | Yes | Session metrics compound into historical baselines |
 | IX. Agent-Aware | Yes | Cognitive health is a primary analysis dimension |
 
 ## More Information
 
 ### Related Documents
 - [ADR-0003: Local Storage Strategy](./0003-local-storage-strategy.md) - SQLite + FTS5 foundation
-- [ADR-0006: Agentic Analysis Implementation](./0006-agentic-analysis-implementation.md) - LLM integration patterns
+- [ADR-0006: Agentic Analysis Implementation](./0006-agent-orchestrated-analysis.md) - LLM integration patterns
 - [ADR-0007: Causal Analysis Architecture](./0007-causal-analysis-architecture.md) - Infrastructure reuse
 - [ADR-0019: Language Ecosystem Support](./0019-language-ecosystem-support.md) - Language metrics complement session quality analysis
 - Design Questions: [Section 2.3 - Session Log Analysis Strategy](../../design-questions.md#23-session-log-analysis-strategy)

@@ -18,10 +18,13 @@ agentlint is a local-first command-line tool that enables continuous improvement
 
 **The Opportunity**: By analysing how developers interact with AI assistants and correlating this with codebase characteristics over time, we can provide specific, actionable insights that progressively improve AI-assisted development workflows. The value compounds through recurring use—each analysis builds on previous baselines.
 
-**The Approach**: A mixed-methods analysis strategy that combines:
-- **Quantitative signals**: Static analysis for deterministic metrics (fast, cheap, reproducible)
-- **Qualitative assessment**: LLM-powered semantic analysis (nuanced understanding, contextual recommendations)
-- **Temporal tracking**: Historical comparison to observe improvement trends
+**The Approach**: An agent-orchestrated analysis strategy where:
+- **The agent** decides which approach to use based on what the task requires
+- **Static tools** provide deterministic data gathering (config state, session metrics, structure)
+- **Agent reasoning** provides deep understanding (causality, quality judgments, semantic context)
+- **Temporal tracking** enables trend detection and compounding value
+
+Neither static tools nor direct reasoning is privileged—the agent chooses freely (Principle VII).
 
 The tool runs entirely on the user's machine, with users configuring their own LLM API connections.
 
@@ -70,9 +73,11 @@ The tool provides:
 
 6. **Tool-Agnostic**: While initially focused on one AI assistant, the architecture supports analysis of any AI coding assistant through an adapter pattern.
 
-7. **Static-First**: Prefer deterministic static analysis over LLM-based analysis where possible. Use LLMs only where semantic understanding is genuinely required.
+7. **Intelligent Tooling**: Tools exist to serve the agent's cognitive needs. The agent chooses freely between tool use and direct reasoning based on what the task requires—no approach is privileged.
 
-8. **Progressive Value**: Provide useful insights even without LLM configuration. LLM integration enhances analysis but isn't required for basic functionality.
+8. **Compounding Value**: Value compounds over time through baselines and trend analysis. Each analysis builds on previous findings, making recommendations increasingly contextual.
+
+9. **Agent-Aware**: The agentlint agent IS the core of the system—not an enhancement. We embody the AX principles we recommend to users. The agent's cognitive experience directly determines agentlint's effectiveness.
 
 ---
 
@@ -244,6 +249,10 @@ How knowledge persists and compounds across sessions:
 
 ## 4. High-Level Architecture
 
+### Architectural Foundation
+
+**agentlint IS an agentic application.** An LLM-powered agent orchestrates all analysis, using static analysis capabilities as tools. The agent decides what to analyze, invokes tools to gather data, and synthesizes findings into recommendations.
+
 ### Component Overview
 
 The system consists of four main layers:
@@ -254,11 +263,16 @@ The system consists of four main layers:
 │  Commands: scan, analyse, recommend, compare, baseline      │
 │  Output: Terminal, JSON, Markdown                           │
 ├─────────────────────────────────────────────────────────────┤
-│                     Analysis Engine                         │
-│  ┌─────────────────────┐    ┌─────────────────────────────┐│
-│  │  Static Analysers   │    │    Agentic Analysers        ││
-│  │  (No LLM required)  │    │    (Requires LLM API)       ││
-│  └─────────────────────┘    └─────────────────────────────┘│
+│                    Analysis Agent (LLM)                     │
+│                                                             │
+│  The agent IS the orchestrator. It:                         │
+│  • Receives analysis task from CLI                          │
+│  • Reasons about what to analyze                            │
+│  • Uses tools OR direct reasoning as needed                 │
+│  • Synthesizes findings into insights                       │
+│  • Generates recommendations                                │
+│                                                             │
+│  Tools: ConfigParser, SessionStats, GitQuery, ReadFile...   │
 ├─────────────────────────────────────────────────────────────┤
 │                    AI Tool Adapters                         │
 │  Pluggable adapters for each AI coding assistant            │
@@ -273,58 +287,69 @@ The system consists of four main layers:
 
 **Discovery Flow**:
 1. User runs scan command in a project directory
-2. File system is scanned for known AI configuration patterns
+2. Agent invokes tools to scan for known AI configuration patterns
 3. Detected files are parsed and validated
 4. Results show what was found
 
 **Analysis Flow**:
 1. User runs analyse command
-2. Static analysers extract deterministic metrics         ┐ Run concurrently
-3. Agentic analysers perform semantic assessment (if LLM) ┘ (per ADR-0019)
-4. Results are combined into a unified report
+2. Agent receives task: "Analyze this project for AI coding effectiveness"
+3. Agent uses tools AND direct reasoning as needed
+4. Agent synthesizes findings into insights
+5. Agent generates recommendations with causal understanding
 
 **Recommendation Flow**:
-1. Based on analysis results, recommendations are generated
-2. Issues are traced to their origin (causal analysis)
-3. Preventive recommendations are prioritised
-4. Each recommendation has priority, rationale, and traced origin
+1. Agent traces issues to their origin (causal analysis)
+2. Agent generates preventive recommendations with rationale
+3. Each recommendation has priority, traced origin, and suggested action
 
 ---
 
 ## 5. Analysis Strategy
 
-### The Static-First Principle
+### Agent Flexibility: Tools and Reasoning
 
-Prefer static analysis over LLM-based analysis where possible:
+The agent has **full autonomy** to choose its approach based on what the task requires. No approach is privileged—the agent uses tools AND direct reasoning based on what will produce the best understanding.
 
-- **Reduces cost**: Static analysis is essentially free; LLM calls have token costs
-- **Improves speed**: Static analysis is deterministic and cacheable
-- **Ensures reliability**: Static analysis produces consistent results
-- **Maintains privacy**: No data needs to leave the user's machine for static analysis
+**Tools serve the agent's cognitive needs** by helping it understand:
+- What is configured (AI config files, CLAUDE.md, etc.)
+- How content is structured (docs, code, folders)
+- What happened in sessions (metrics, errors, patterns)
+- How things evolved (git history, baseline trends)
 
-**Execution Model**: "Static-First" refers to **preference**, not temporal ordering. Per the deep research pattern (ADR-0019), static and agentic analysis run concurrently for maximum throughput. Static results are always available even if LLM fails.
+**Agent reasoning provides deep understanding** that tools cannot:
+- **WHY** things happened (not just WHAT)
+- **Quality judgments** (was this a good agentic flow? error ≠ bad)
+- **Causal analysis** (what led to this outcome?)
+- **Semantic understanding** (intent, context, implications)
 
-### What Static Analysis Handles
+### Available Tools
 
-| Analysis Area | Static Approach |
-|--------------|-----------------|
-| Configuration detection | File existence and location checks |
-| Configuration parsing | Parsers for Markdown, YAML, TOML, JSON |
-| Type system coverage | Run existing type checkers, parse output |
-| Linter error counts | Run existing linters, count results |
-| Function/file metrics | Abstract Syntax Tree (AST) analysis |
-| Git integration | Read repository state, history, branches |
-| Session log statistics | Parse logs, extract token counts, tool usage |
+| Tool | What It Helps The Agent Understand |
+|------|-----------------------------------|
+| ConfigParserTool | What's configured, structure, potential issues |
+| SessionStatsTool | What happened in sessions (tokens, events, patterns) |
+| GitQueryTool | How things evolved, who changed what, when |
+| ReadFileTool | Content of files the agent wants to analyze directly |
+| LanguageAnalyzerTool | Type coverage, function metrics, language-specific info |
+| FTS5SearchTool | Find specific patterns across session logs |
+| BaselineQueryTool | How current state compares to past |
 
-### What Requires Agentic Analysis
+### When Agent Reasoning Is Essential
 
-| Analysis Area | Why LLM Needed |
-|--------------|----------------|
-| Architecture assessment | Understanding design patterns, judging quality |
-| Documentation quality | Evaluating clarity, completeness, coherence |
+| Analysis Area | Why Direct Reasoning Needed |
+|--------------|----------------------------|
+| Session analysis | Understanding WHY errors occurred, not just that they did |
+| Flow quality evaluation | Judging whether an agentic flow was good (error ≠ bad) |
+| Skills assessment | Reasoning about whether better Skills would have helped |
+| Configuration quality | Judging semantic clarity, not just structural validity |
+| Causal tracing | Understanding root causes, not just correlations |
 | Recommendation generation | Contextual, actionable suggestions |
-| Configuration quality | Judging whether instructions are clear and complete |
-| Log summarisation | Extracting meaning from lengthy session transcripts |
+
+**Example: Session Log Analysis**
+- Tools CAN: Parse logs, extract metadata, identify errors, tag positions
+- Tools CANNOT: Understand why errors occurred, evaluate flow quality, reason about whether better Skills would have helped
+- The agent uses BOTH to produce complete understanding
 
 ### Causal Analysis: From Detection to Prevention
 
@@ -429,12 +454,12 @@ This structure preserves task goals, decisions, and error traces while enabling 
 
 For large inputs (session logs, codebases), agentlint applies hierarchical compression:
 
-1. **Static extraction first**: Pull metrics, counts, patterns deterministically (fast, cheap, reproducible)
+1. **Structured extraction where appropriate**: Pull metrics, counts, patterns via tools when that's the right approach
 2. **Hierarchical summarization**: Coarse summary → targeted deep dives only where needed
 3. **Threshold triggers**: Compress when approaching context limits
 4. **Preserve critical info**: Task goals, errors, decisions, and traced origins always retained
 
-This aligns with the static-first principle—maximize deterministic analysis (which runs concurrently with LLM reasoning per ADR-0019).
+The agent decides how to handle large inputs based on what understanding is needed—sometimes tools are faster, sometimes direct reasoning is essential.
 
 ### 7.3 AX/UX Separation
 
@@ -473,7 +498,7 @@ agentlint addresses a genuine gap in the AI-assisted development ecosystem: the 
 
 3. **Mixed methods matter**: Quantitative signals provide objective anchors, but qualitative assessment tells us *why* things work. The best insights emerge from correlating both.
 
-4. **Static-first remains essential**: Extract maximum value from deterministic analysis (runs concurrently with LLM per ADR-0019). This keeps the tool fast, affordable, and reliable.
+4. **Agent flexibility**: The agent has full autonomy to use tools AND direct reasoning. Tools serve the agent's cognitive needs; no approach is privileged.
 
 5. **Embrace uncertainty**: AI-assisted development is an evolving practice. We're developing understanding alongside our users, not just measuring against fixed benchmarks.
 

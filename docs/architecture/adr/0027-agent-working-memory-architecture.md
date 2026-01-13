@@ -34,7 +34,7 @@ This ADR formalizes the working memory architecture for agentlint's analysis age
 ## Decision Drivers
 
 - **Agent-Aware principle**: Working memory must preserve goals, decisions, errors
-- **Static-First principle**: Memory structure enables static analysis without LLM
+- **Intelligent Tooling**: Memory structure serves agent's cognitive needs
 - **Performance target**: 30-second analysis (North Star) - memory overhead must be minimal
 - **Reproducibility**: Same analysis inputs should produce consistent outputs
 - **CCA research findings**: Hierarchical working memory with adaptive compression improves resolve rate by +6.6%
@@ -682,8 +682,8 @@ This ADR formalizes the separation between agent-facing and user-facing contexts
 | IV. Mixed-Methods | ✅ | Both metrics and qualitative findings |
 | V. Language-Agnostic | ✅ | Memory structure is language-independent |
 | VI. Tool-Agnostic | ✅ | Works with any AI tool via adapters |
-| VII. Static-First | ✅ | Static findings cached, LLM only for synthesis |
-| VIII. Progressive Value | ✅ | Memory works without LLM (static state) |
+| VII. Intelligent Tooling | ✅ | Memory preserves both tool findings and agent reasoning |
+| VIII. Compounding Value | ✅ | Working memory compounds agent effectiveness over session |
 | IX. Agent-Aware | ✅ | Core purpose - serves agent cognitive needs |
 
 ---
@@ -728,7 +728,7 @@ Aligned with ADR-0013:
 
 ### Related ADRs
 - [ADR-0003: Local Storage Strategy](./0003-local-storage-strategy.md)
-- [ADR-0006: Agentic Analysis Implementation](./0006-agentic-analysis-implementation.md)
+- [ADR-0006: Agentic Analysis Implementation](./0006-agent-orchestrated-analysis.md)
 - [ADR-0011: Parallel Processing Architecture](./0011-parallel-processing-architecture.md)
 - [ADR-0026: Hindsight Capture](./0026-hindsight-capture-and-knowledge-surfacing-strategy.md)
 

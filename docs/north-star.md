@@ -98,9 +98,9 @@ We use mixed methods—quantitative signals provide objective anchors; qualitati
 4. **Mixed-Methods** - Quantitative + qualitative. Embrace exploratory analysis.
 5. **Language-Agnostic** - Works across programming languages.
 6. **Tool-Agnostic** - Supports any AI assistant via adapters.
-7. **Static-First** - Prefer deterministic analysis. Use LLMs where genuinely required.
-8. **Progressive Value** - Useful without LLM config. LLM enhances but isn't required.
-9. **Agent-Aware** - The AI agent is a first-class stakeholder with its own cognitive needs.
+7. **Intelligent Tooling** - Tools exist to serve the agent's cognitive needs. The agent chooses freely between tool use and direct reasoning—no approach is privileged.
+8. **Compounding Value** - Value compounds over time through baselines and trend analysis.
+9. **Agent-Aware** - The agent IS the orchestrator. Design serves the agent's cognitive needs.
 
 ---
 
@@ -180,7 +180,7 @@ How observable and improvable is the system?
 2. **Does it trace to root cause?** Prevention over symptom treatment.
 3. **Does it embrace mixed methods?** Both quantitative and qualitative matter.
 4. **Does it improve understanding?** Insight over raw numbers.
-5. **Can it be done statically?** Prefer deterministic analysis.
+5. **Does it serve the agent's needs?** Tools support understanding; agent provides understanding.
 6. **Does it maintain local-first?** No data leaves without consent.
 7. **Is it language/tool-agnostic?** Broad applicability.
 

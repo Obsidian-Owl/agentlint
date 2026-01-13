@@ -63,8 +63,8 @@ For each option, verify against these 8 principles:
 | IV | **Mixed-Methods** | Does this support both quantitative and qualitative signals? |
 | V | **Language-Agnostic** | Does this work across programming languages? Does it degrade gracefully for unsupported languages? |
 | VI | **Tool-Agnostic** | Does this support multiple AI assistants via adapter pattern? |
-| VII | **Static-First** | Is LLM used only where semantic understanding is required? Is static analysis preferred where possible? |
-| VIII | **Progressive Value** | Is there value without LLM configuration? Does basic functionality work without API keys? |
+| VII | **Intelligent Tooling** | Are tools selected based on task needs? Does agent have flexibility to choose approach? |
+| VIII | **Compounding Value** | Does value compound over time? Do baselines and historical context enhance recommendations? |
 
 ### Compliance Rating
 

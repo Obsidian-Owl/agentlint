@@ -129,8 +129,8 @@ For each option, verify alignment with the 8 constitutional principles:
 4. **Mixed-Methods**: Does it support both quantitative and qualitative?
 5. **Language-Agnostic**: Does it work across programming languages?
 6. **Tool-Agnostic**: Does it support multiple AI assistants (via adapters)?
-7. **Static-First**: Does it prefer static analysis over LLM where possible?
-8. **Progressive Value**: Does it provide value without LLM configuration?
+7. **Intelligent Tooling**: Are tools selected based on task needs? Can agent choose freely?
+8. **Compounding Value**: Does value compound over time through baselines?
 
 Flag any violations or tensions explicitly.
 

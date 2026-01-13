@@ -23,7 +23,7 @@ The user specifically requested understanding of Temporal-style durability patte
 
 - **Crash Recovery**: Users shouldn't lose significant work on interruption
 - **Data Integrity**: SQLite database must never be corrupted
-- **Progressive Value**: Analysis should produce partial results even if interrupted
+- **Compounding Value**: Analysis should produce partial results even if interrupted
 - **Simplicity**: Avoid overengineering; CLI tool, not distributed system
 - **Local-First**: No external services (Temporal requires server infrastructure)
 - **Bun Runtime**: Leverage Bun's built-in SQLite (ADR-0001, ADR-0003)
@@ -416,8 +416,8 @@ The user asked about Temporal's durability model. Here's why we chose SQLite che
 | IV. Mixed-Methods | N/A | Concurrency is orthogonal to analysis methods |
 | V. Language-Agnostic | N/A | Concurrency is language-independent |
 | VI. Tool-Agnostic | N/A | Concurrency is tool-independent |
-| VII. Static-First | Yes | Checkpointing works for static analysis phases |
-| VIII. Progressive Value | Yes | Partial results available even on interruption |
+| VII. Intelligent Tooling | Yes | Checkpointing supports all analysis phases |
+| VIII. Compounding Value | Yes | Partial results available even on interruption |
 | IX. Agent-Aware | N/A | Concurrency model applies to all analysis |
 
 ## More Information

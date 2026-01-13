@@ -19,7 +19,7 @@ agentlint needs to store user configuration for settings like LLM provider prefe
 - **Human-editability**: Configuration will be manually edited by users
 - **Cascading needs**: Global defaults with per-project override capability
 - **Bun ecosystem alignment**: Consistency with runtime conventions (bunfig.toml)
-- **Progressive Value principle**: Tool should work with zero configuration
+- **Compounding Value principle**: Tool should work with zero configuration
 
 ## Considered Options
 
@@ -107,7 +107,7 @@ Configuration only in `.agentlint/config.toml` per project, no global defaults.
 - Good: Explicit per-project settings
 - Bad: No shared defaults across projects
 - Bad: Repetitive configuration
-- Bad: Hurts Progressive Value (requires setup per project)
+- Bad: Hurts Compounding Value (requires setup per project)
 
 ### Option 4: XDG-compliant Global + Per-Project (JSON)
 
@@ -129,8 +129,8 @@ Same as Option 1 but using JSON format.
 | IV. Mixed-Methods | N/A | Configuration doesn't affect analysis methods |
 | V. Language-Agnostic | Yes | Configuration is independent of target language |
 | VI. Tool-Agnostic | Yes | Supports configuring multiple AI tool adapters |
-| VII. Static-First | N/A | Configuration doesn't affect analysis approach |
-| VIII. Progressive Value | Yes | Works with zero config, auto-creates on first run |
+| VII. Intelligent Tooling | N/A | Configuration doesn't affect analysis approach |
+| VIII. Compounding Value | Yes | Works with zero config, auto-creates on first run |
 | IX. Agent-Aware | N/A | Configuration doesn't directly affect agent architecture |
 
 ## More Information
@@ -163,7 +163,6 @@ Same as Option 1 but using JSON format.
 # model = "claude-sonnet-4-20250514"
 
 # [analysis]
-# static_only = false     # Skip LLM analysis, use static checks only
 # verbosity = "normal"    # quiet, normal, verbose, debug
 
 # [output]

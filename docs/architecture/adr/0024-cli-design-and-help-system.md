@@ -250,8 +250,7 @@ agentlint analyse --output-format junit
 
 # Analysis scope
 agentlint analyse --domains config,sessions  # Specific domains
-agentlint analyse --static-only              # Skip LLM analysis
-agentlint analyse --level light              # CI/CD cost control (ADR-0022)
+agentlint analyse --model claude-haiku       # Cost control via model (ADR-0022)
 
 # Baseline comparison
 agentlint analyse --baseline ./baseline.json
@@ -339,14 +338,13 @@ agentlint completion --help
 │   -f, --output-format <format>  Output format (text, json, sarif, junit)  │
 │   -d, --domains <domains>       Comma-separated analysis domains          │
 │   -b, --baseline <path>         Compare against baseline file             │
-│   --static-only                 Skip LLM analysis                          │
-│   --level <level>               Analysis level (static, light, full)      │
+│   -m, --model <model>           Model for cost control (haiku, sonnet)    │
 │                                                                             │
 │ EXAMPLES                                                                    │
 │   agentlint analyse                          # Full analysis               │
 │   agentlint analyse --output-format json     # JSON output                 │
-│   agentlint analyse --static-only            # No LLM (free)               │
-│   agentlint analyse --level light            # Light LLM analysis          │
+│   agentlint analyse --model claude-haiku     # Fast/cheap model            │
+│   agentlint analyse --model claude-sonnet    # Balanced model              │
 │                                                                             │
 │ EXIT CODES (per ADR-0022)                                                  │
 │   0  Success (analysis completed)                                          │
@@ -405,9 +403,9 @@ Per ADR-0020, errors are **conversational**, not raw codes:
 │   ✗ Config quality assessment                                              │
 │   ✗ Recommendation generation                                              │
 │                                                                             │
-│ 💡 Try again in a few minutes, or run with --static-only to skip LLM.     │
+│ 💡 Try again in a few minutes. The rate limit should reset shortly.        │
 │                                                                             │
-│ Static results saved. Run 'agentlint analyse' later for full analysis.    │
+│ Partial results saved. Run 'agentlint analyse' later to retry.             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -449,8 +447,7 @@ export const analyseCommand = command('analyse')
   .describe('Run analysis on the current project')
   .option('--domains, -d <domains>', 'Comma-separated analysis domains')
   .option('--baseline, -b <path>', 'Compare against baseline file')
-  .option('--static-only', 'Skip LLM analysis')
-  .option('--level <level>', 'Analysis level (static, light, full)')
+  .option('--model, -m <model>', 'Model for cost control (claude-haiku, claude-sonnet)')
   .option('--trigger <trigger>', 'Trigger source (manual, post-push, ci)')
   .option('--background', 'Run in background mode')
   .option('--notify', 'Send desktop notification on completion')
@@ -612,8 +609,8 @@ Salesforce/Heroku enterprise-grade framework.
 | IV. Mixed-Methods | Yes | Output formats support both quantitative (JSON) and qualitative (text) |
 | V. Language-Agnostic | Yes | CLI design is independent of target language |
 | VI. Tool-Agnostic | Yes | Commands work with any AI tool adapter |
-| VII. Static-First | Yes | `--static-only` flag, `--level` for analysis depth control |
-| VIII. Progressive Value | Yes | Works without LLM; init wizard provides sensible defaults |
+| VII. Intelligent Tooling | Yes | CLI provides model selection for cost control |
+| VIII. Compounding Value | Yes | Init wizard sets up baselines for compound improvement |
 | IX. Agent-Aware | Yes | MCP mode (ADR-0020) optimizes for agent consumption |
 
 ## More Information

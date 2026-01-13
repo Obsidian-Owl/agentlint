@@ -38,9 +38,9 @@ Research shows [60% of organizations cite lack of clear metrics as their biggest
 ## Decision Drivers
 
 - **Improvement-Oriented principle**: CI must support continuous improvement, not gatekeeping
-- **Progressive Value principle**: Static analysis should run without LLM; agentic analysis is opt-in
+- **Compounding Value principle**: Baselines compound value over time through trend tracking
 - **Local-First principle**: CI runs in cloud—how does this square with local-first?
-- **Cost control**: LLM analysis on every PR could be expensive; must be configurable
+- **Cost control**: LLM analysis on every PR could be expensive; configurable via model selection
 - **Team visibility**: Organizations need aggregate metrics, not just individual insights
 - **Non-blocking philosophy**: Never block merges by default for improvement metrics
 - **DORA research**: Teams with solid CI practices succeed better with AI tooling
@@ -91,22 +91,22 @@ Chosen option: **"Observability-First Integration"** with configurable analysis 
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
 │  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │ ANALYSIS LEVELS (User Configurable)                                  │   │
+│  │ COST CONTROL VIA MODEL SELECTION (User Configurable)               │   │
 │  │                                                                      │   │
 │  │ ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────┐   │   │
-│  │ │ STATIC ONLY     │  │ STATIC + LIGHT  │  │ FULL ANALYSIS       │   │   │
-│  │ │                 │  │ LLM             │  │                     │   │   │
-│  │ │ • Config detect │  │ • Static +      │  │ • Static +          │   │   │
-│  │ │ • Structure     │  │ • Config quality│  │ • All agentic       │   │   │
-│  │ │   validation    │  │   assessment    │  │   analysis          │   │   │
-│  │ │ • Metrics       │  │ • Basic recos   │  │ • Deep recos        │   │   │
-│  │ │                 │  │                 │  │ • Session analysis  │   │   │
-│  │ │ Cost: $0        │  │ Cost: ~$0.05/PR │  │ Cost: ~$0.50/PR     │   │   │
-│  │ │ Speed: <10s     │  │ Speed: <30s     │  │ Speed: <2min        │   │   │
+│  │ │ FAST MODEL      │  │ BALANCED MODEL  │  │ PREMIUM MODEL       │   │   │
+│  │ │ (claude-haiku)  │  │ (claude-sonnet) │  │ (claude-opus)       │   │   │
+│  │ │                 │  │                 │  │                     │   │   │
+│  │ │ • Full analysis │  │ • Full analysis │  │ • Full analysis     │   │   │
+│  │ │ • Same depth    │  │ • Same depth    │  │ • Same depth        │   │   │
+│  │ │ • Faster        │  │ • Balanced      │  │ • Highest quality   │   │   │
+│  │ │                 │  │                 │  │                     │   │   │
+│  │ │ Cost: ~$0.02/PR │  │ Cost: ~$0.10/PR │  │ Cost: ~$0.50/PR     │   │   │
+│  │ │ Speed: <30s     │  │ Speed: <1min    │  │ Speed: <2min        │   │   │
 │  │ └─────────────────┘  └─────────────────┘  └─────────────────────┘   │   │
 │  │         ▲                   ▲                      ▲                │   │
 │  │         │                   │                      │                │   │
-│  │     Default            Recommended            Power Users           │   │
+│  │     CI Default         Recommended            Deep Analysis         │   │
 │  └─────────────────────────────────────────────────────────────────────┘   │
 │                                                                             │
 │  ┌─────────────────────────────────────────────────────────────────────┐   │
@@ -143,9 +143,9 @@ Chosen option: **"Observability-First Integration"** with configurable analysis 
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
-### Configurable Analysis Levels
+### Cost Control via Model Selection
 
-Users control the cost/depth tradeoff in their CI configuration:
+Users control the cost/speed tradeoff by choosing their model in CI configuration:
 
 ```yaml
 # .github/workflows/agentlint.yml
@@ -167,11 +167,12 @@ jobs:
 
       - name: Run Analysis
         env:
-          # Optional: Only needed for LLM analysis levels
+          # LLM credentials required for analysis
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          # Model selection for cost control (defaults to claude-haiku in CI)
+          AGENTLINT_MODEL: ${{ vars.AGENTLINT_MODEL || 'claude-haiku' }}
         run: |
           agentlint analyse \
-            --level ${{ vars.AGENTLINT_LEVEL || 'static' }} \
             --output ci \
             --report-artifact analysis-report.json
 
@@ -190,16 +191,18 @@ jobs:
             // Post non-blocking comment with insights
 ```
 
-**Analysis Level Configuration:**
+**Model Selection Configuration:**
 
 ```toml
 # .agentlint/config.toml
 
-[ci]
-# Analysis level: "static" | "light" | "full"
-# Default: "static" (no LLM, no cost)
-level = "light"
+[llm]
+# Model selection (cost/speed tradeoff)
+# Options: claude-haiku (fast/cheap), claude-sonnet (balanced), claude-opus (premium)
+model = "claude-haiku"
+provider = "anthropic"
 
+[ci]
 # Output behavior
 comment_on_pr = true       # Post PR comment with insights
 upload_artifact = true     # Save full report as artifact
@@ -213,17 +216,17 @@ update_baseline = "merge"  # "merge" | "always" | "never"
 **CLI Flags:**
 
 ```bash
-# Static-only analysis (no LLM, free)
-agentlint analyse --level static --output ci
+# Analysis with fast model (lower cost for CI)
+agentlint analyse --model claude-haiku --output ci
 
-# Light LLM analysis (config quality assessment)
-agentlint analyse --level light --output ci
+# Analysis with balanced model
+agentlint analyse --model claude-sonnet --output ci
 
-# Full analysis (all agentic capabilities)
-agentlint analyse --level full --output ci
+# Analysis with premium model (highest quality insights)
+agentlint analyse --model claude-opus --output ci
 
 # Strict mode (exit non-zero on findings) - DISCOURAGED
-agentlint analyse --level light --output ci --strict
+agentlint analyse --output ci --strict
 ```
 
 ### PR Comment Design
@@ -362,22 +365,21 @@ The key insight: **CI integration extends local-first to team-first**, where the
 │  Example: Team with 50 PRs/week                                            │
 │                                                                             │
 │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────┐         │
-│  │ STATIC ONLY     │  │ LIGHT LLM       │  │ FULL ANALYSIS       │         │
+│  │ HAIKU MODEL     │  │ SONNET MODEL    │  │ OPUS MODEL          │         │
 │  │                 │  │                 │  │                     │         │
 │  │ PRs: 50/week    │  │ PRs: 50/week    │  │ PRs: 50/week        │         │
-│  │ Cost: $0/PR     │  │ Cost: ~$0.05/PR │  │ Cost: ~$0.50/PR     │         │
+│  │ Cost: ~$0.02/PR │  │ Cost: ~$0.10/PR │  │ Cost: ~$0.50/PR     │         │
 │  │                 │  │                 │  │                     │         │
-│  │ Weekly: $0      │  │ Weekly: ~$2.50  │  │ Weekly: ~$25        │         │
-│  │ Monthly: $0     │  │ Monthly: ~$10   │  │ Monthly: ~$100      │         │
+│  │ Weekly: ~$1     │  │ Weekly: ~$5     │  │ Weekly: ~$25        │         │
+│  │ Monthly: ~$4    │  │ Monthly: ~$20   │  │ Monthly: ~$100      │         │
 │  └─────────────────┘  └─────────────────┘  └─────────────────────┘         │
 │                                                                             │
 │  Recommendation:                                                           │
-│  • Start with STATIC to prove value                                        │
-│  • Move to LIGHT when team sees ROI                                        │
-│  • FULL for critical repos or periodic deep analysis                       │
+│  • Use HAIKU for fast feedback on every PR (cost-effective)                │
+│  • Use SONNET for merge to main (balanced quality/cost)                    │
+│  • Use OPUS for periodic deep analysis (highest quality)                   │
 │                                                                             │
-│  Alternative: FULL analysis on merge only, STATIC on PR                    │
-│  (Captures detailed baseline without per-PR LLM cost)                      │
+│  Note: Analysis depth is always the same; only model quality varies        │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
@@ -416,7 +418,7 @@ This supports the "Future Personas" (Team Lead, Enterprise Architect) without be
 
 **Good:**
 - Provides team-level visibility without local-first compromise
-- Configurable analysis levels let users control cost
+- Model selection lets users control cost/quality tradeoff
 - Non-blocking philosophy preserves developer flow
 - Baseline tracking enables improvement measurement at scale
 - PR comments surface insights without friction
@@ -425,7 +427,7 @@ This supports the "Future Personas" (Team Lead, Enterprise Architect) without be
 - Additional complexity in CI configuration
 - Baseline storage requires management (artifact retention)
 - Users may misuse strict mode against our philosophy
-- LLM costs can accumulate if misconfigured
+- LLM costs require credential configuration in CI
 
 **Neutral:**
 - Requires official workflow templates for good DX
@@ -436,10 +438,10 @@ This supports the "Future Personas" (Team Lead, Enterprise Architect) without be
 
 ### Option 1: Observability-First Integration (Chosen)
 
-Non-blocking by default, informational PR comments, configurable analysis levels.
+Non-blocking by default, informational PR comments, cost control via model selection.
 
 - Good: Aligns with improvement-oriented philosophy
-- Good: Configurable cost (static is free)
+- Good: Configurable cost via model selection
 - Good: Team visibility without gatekeeping
 - Good: Preserves developer autonomy
 - Neutral: Requires discipline to avoid strict mode creep
@@ -489,8 +491,8 @@ Traditional quality gate model with blocking on thresholds.
 | IV. Mixed-Methods | Yes | Supports both static metrics and agentic insights |
 | V. Language-Agnostic | Yes | CI integration works regardless of project language |
 | VI. Tool-Agnostic | Yes | Analyzes all AI tool configs in CI context |
-| VII. Static-First | Yes | Default level is static-only (no LLM cost) |
-| VIII. Progressive Value | Yes | Static analysis provides value; LLM is opt-in enhancement |
+| VII. Intelligent Tooling | Yes | Agent uses tools as needed; model selection controls cost |
+| VIII. Compounding Value | Yes | Baseline tracking enables compound improvement measurement |
 | IX. Agent-Aware | N/A | CI doesn't involve agentlint's own agent |
 
 ## More Information
@@ -553,7 +555,7 @@ jobs:
       - name: agentlint Analysis
         uses: agentlint/action@v1  # Official action
         with:
-          level: ${{ vars.AGENTLINT_LEVEL || 'static' }}
+          model: ${{ vars.AGENTLINT_MODEL || 'claude-haiku' }}
           comment: true
           artifact: true
         env:

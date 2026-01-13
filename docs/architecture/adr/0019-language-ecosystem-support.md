@@ -37,8 +37,8 @@ MVP languages are: TypeScript/JavaScript, Python, and Go.
 ## Decision Drivers
 
 - **Language-Agnostic (V)**: Core analysis works without language-specific tooling
-- **Static-First (VII)**: Prefer deterministic analysis over LLM where possible
-- **Progressive Value (VIII)**: Provide value even without external tools installed
+- **Comprehensive analysis**: Multiple analysis approaches run in parallel based on available tools
+- **Compounding Value (VIII)**: Language patterns compound across sessions into richer recommendations
 - **Deep Research Philosophy**: Comprehensive analysis running in parallel with LLM phases
 - **Parallelization**: Language analysis should leverage ADR-0011's worker pool architecture
 - **Maintainability**: Language analyzers follow same adapter pattern as AI tools (ADR-0018)
@@ -68,9 +68,12 @@ Chosen because:
 - Progressive enhancement: each layer adds depth without blocking
 - Graceful degradation: works even if tree-sitter or external tools unavailable
 - Parallelization: layers can run concurrently
-- Aligns with Static-First: exhaust fast static analysis before expensive parsing
+- Fast analyses complete first; agent incorporates results as available
 
 **Layer Architecture**:
+
+> **Note**: Layers run in PARALLEL (not sequentially). The vertical layout is for readability only. See ADR-0011 for parallelization architecture.
+
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                    LAYERED ANALYSIS PIPELINE                     │
@@ -888,8 +891,8 @@ class DeepResearchCoordinator {
    * Run comprehensive analysis: language + LLM in parallel.
    *
    * Key insight from deep research patterns:
-   * - Static analysis (language layers) runs CONCURRENTLY with LLM analysis
-   * - Not sequentially (static first, then LLM)
+   * - Tools and agent reasoning run CONCURRENTLY as equal partners
+   * - Neither is privileged over the other (Principle VII)
    * - Results stream as they complete
    * - Failures in one track don't block the other
    */
@@ -973,8 +976,8 @@ class DeepResearchCoordinator {
 | IV. Mixed-Methods | Yes | Quantitative metrics + LLM qualitative analysis |
 | V. Language-Agnostic | Yes | Core design; Layer 1 works for any language |
 | VI. Tool-Agnostic | N/A | Language analysis is AI-tool-independent |
-| VII. Static-First | Yes | Three static layers run concurrently with LLM; preference not temporal |
-| VIII. Progressive Value | Yes | Layer 1 always works; deeper layers are enhancements |
+| VII. Intelligent Tooling | Yes | Multiple analysis approaches run in parallel; agent synthesizes all |
+| VIII. Compounding Value | Yes | Language analysis history compounds into richer recommendations |
 | IX. Agent-Aware | Yes | Language metrics compressed for agent context |
 
 ## More Information

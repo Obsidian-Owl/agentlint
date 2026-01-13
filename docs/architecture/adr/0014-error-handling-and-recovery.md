@@ -10,35 +10,35 @@ informed: [All Contributors]
 
 ## Context and Problem Statement
 
-agentlint combines static analysis with LLM-powered agentic analysis across multiple domains (config, session, docs, cross-reference). This creates several failure modes: partial analysis failures, LLM API unavailability, network issues, corrupt data, and file access errors. Claude Code's checkpoint-based recovery and the Vercel AI SDK's error taxonomy (ADR-0006) provide patterns to learn from. This ADR establishes how agentlint handles failures gracefully while maintaining the Progressive Value principle.
+agentlint is an agent-orchestrated application where an LLM agent orchestrates all analysis (ADR-0006). This creates several failure modes: LLM API unavailability, network issues, rate limits, tool execution failures, and corrupt data. This ADR establishes how agentlint handles failures while maintaining the best possible user experience.
 
 The key challenges are:
-1. Agentic analysis is inherently unreliable (network, rate limits, model errors)
+1. LLM availability is required—agentlint cannot function without it
 2. Subagent failures (ADR-0011) shouldn't bring down entire analysis
 3. Users expect clear, actionable error messages
-4. Static-only mode should always work (Progressive Value)
+4. Tool execution failures should be isolated when possible
 5. Scripting/CI integration requires predictable exit codes
 
 ## Decision Drivers
 
-- **Progressive Value principle**: Static analysis must work without LLM
+- **LLM is required**: The agent cannot reason without an LLM (see Constitution)
+- **Partial success**: Analysis should complete as much as possible even with failures
 - **User experience**: Clear errors with suggested fixes (CLI best practices)
-- **Reliability**: Compound reliability problem—3 agents at 95% = 86% overall
-- **Claude Code patterns**: Checkpoint recovery, graceful degradation
-- **Vercel AI SDK**: Typed errors (ToolExecutionError, NoSuchToolError)
+- **Reliability**: Compound reliability problem—4 subagents at 95% = 81% overall
+- **Subagent isolation**: One subagent failure shouldn't cascade
 - **Scripting integration**: Exit codes for CI/CD pipelines
 - **Cost awareness**: Failed LLM calls still consume tokens
 
 ## Considered Options
 
-1. Continue with Degraded + Exponential Backoff (Graceful Degradation)
-2. Fail Fast with Clear Errors (Abort on Failure)
-3. Interactive Recovery Mode (User-Prompted)
-4. Checkpoint and Resume (Claude Code Style)
+1. Partial Completion with Exponential Backoff
+2. Fail Fast with Clear Errors
+3. Interactive Recovery Mode
+4. Checkpoint and Resume
 
 ## Decision Outcome
 
-Chosen option: **"Continue with Degraded + Exponential Backoff"** because it aligns with Progressive Value (static always works), follows Claude Code's graceful degradation patterns, and provides the best user experience for both interactive and CI/CD use cases.
+Chosen option: **"Partial Completion with Exponential Backoff"** because it maximizes the value delivered to users even when some components fail, while providing clear feedback about what succeeded and what didn't.
 
 ### Architecture Overview
 
@@ -47,17 +47,18 @@ Chosen option: **"Continue with Degraded + Exponential Backoff"** because it ali
 │                    ERROR HANDLING ARCHITECTURE                               │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
-│  LAYER 1: ERROR CLASSIFICATION (Inspired by Vercel AI SDK)                 │
+│  LAYER 1: ERROR CLASSIFICATION                                              │
 │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ │
 │                                                                             │
 │  ┌─────────────────────┐  ┌─────────────────────┐  ┌─────────────────────┐ │
-│  │ RECOVERABLE         │  │ TRANSIENT           │  │ FATAL               │ │
+│  │ TRANSIENT           │  │ RECOVERABLE         │  │ FATAL               │ │
 │  │                     │  │                     │  │                     │ │
-│  │ • LLM API error     │  │ • Rate limit (429)  │  │ • Invalid config    │ │
-│  │ • Tool exec failed  │  │ • Network timeout   │  │ • No permissions    │ │
-│  │ • Session parse err │  │ • Service unavail   │  │ • Corrupt database  │ │
-│  │                     │  │   (503)             │  │                     │ │
-│  │ Strategy: Degrade   │  │ Strategy: Retry     │  │ Strategy: Abort     │ │
+│  │ • Rate limit (429)  │  │ • Tool exec failed  │  │ • No API key        │ │
+│  │ • Network timeout   │  │ • Session parse err │  │ • Invalid config    │ │
+│  │ • Service unavail   │  │ • Subagent timeout  │  │ • Corrupt database  │ │
+│  │   (503)             │  │ • Malformed resp    │  │ • No permissions    │ │
+│  │                     │  │                     │  │                     │ │
+│  │ Strategy: Retry     │  │ Strategy: Continue  │  │ Strategy: Abort     │ │
 │  └─────────────────────┘  └─────────────────────┘  └─────────────────────┘ │
 │                                                                             │
 ├─────────────────────────────────────────────────────────────────────────────┤
@@ -78,21 +79,22 @@ Chosen option: **"Continue with Degraded + Exponential Backoff"** because it ali
 │                                                                             │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
-│  LAYER 3: DEGRADATION STRATEGY                                             │
+│  LAYER 3: PARTIAL COMPLETION                                               │
 │  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ │
 │                                                                             │
 │  ┌─────────────────────────────────────────────────────────────────────┐   │
-│  │ FULL MODE             │ DEGRADED MODE          │ STATIC-ONLY MODE  │   │
-│  │ (All systems work)    │ (Partial LLM failure)  │ (No LLM available)│   │
-│  ├───────────────────────┼────────────────────────┼───────────────────┤   │
-│  │ ✓ Static analysis     │ ✓ Static analysis      │ ✓ Static analysis │   │
-│  │ ✓ Config quality      │ ⚠ Partial (some fail)  │ ✗ Not available   │   │
-│  │ ✓ Session quality     │ ⚠ Partial              │ ✗ Not available   │   │
-│  │ ✓ Recommendations     │ ⚠ Partial              │ ✗ Not available   │   │
-│  │ ✓ Causal traces       │ ⚠ Partial              │ ✗ Not available   │   │
-│  └───────────────────────┴────────────────────────┴───────────────────┘   │
+│  │ FULL SUCCESS         │ PARTIAL SUCCESS       │ FAILURE             │   │
+│  │ (All components)     │ (Some failed)         │ (Agent cannot run)  │   │
+│  ├──────────────────────┼───────────────────────┼─────────────────────┤   │
+│  │ ✓ Agent connected    │ ✓ Agent connected     │ ✗ No LLM available  │   │
+│  │ ✓ All tools work     │ ⚠ Some tools failed   │ ✗ Cannot proceed    │   │
+│  │ ✓ All subagents OK   │ ⚠ Some subagents fail │                     │   │
+│  │ ✓ Full report        │ ⚠ Partial report      │ ✗ No report         │   │
+│  │                      │   (clearly marked)    │                     │   │
+│  │ Exit code: 0         │ Exit code: 2          │ Exit code: 1        │   │
+│  └──────────────────────┴───────────────────────┴─────────────────────┘   │
 │                                                                             │
-│  User is ALWAYS informed of degradation with clear messaging               │
+│  User is ALWAYS informed of partial completion with clear messaging        │
 │                                                                             │
 ├─────────────────────────────────────────────────────────────────────────────┤
 │                                                                             │
@@ -102,18 +104,28 @@ Chosen option: **"Continue with Degraded + Exponential Backoff"** because it ali
 │  Terminal Output:                                                          │
 │  ┌─────────────────────────────────────────────────────────────────────┐   │
 │  │ ⚠ Warning: LLM API rate limited, retrying (2/5)...                 │   │
-│  │ ✗ Error: Session analyser failed after retries                     │   │
-│  │   → Continuing with static-only session metrics                    │   │
+│  │ ✗ Error: Session subagent failed after retries                     │   │
+│  │   → Continuing analysis without session findings                   │   │
 │  │   → Run with --verbose for detailed error trace                    │   │
 │  │                                                                     │   │
 │  │ Analysis completed with partial results:                            │   │
-│  │   ✓ Static analysis: 12 issues found                               │   │
 │  │   ✓ Config analysis: 3 recommendations                             │   │
-│  │   ⚠ Session analysis: DEGRADED (API unavailable)                   │   │
-│  │   ⚠ Causal traces: SKIPPED (depends on session analysis)           │   │
+│  │   ✓ Docs analysis: 2 findings                                      │   │
+│  │   ⚠ Session analysis: FAILED (API timeout after retries)          │   │
+│  │   ⚠ Code analysis: SKIPPED (depends on session context)           │   │
 │  │                                                                     │   │
 │  │ Suggestion: Check your API key or try again later                  │   │
 │  │ Exit code: 2 (partial success)                                     │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                             │
+│  FATAL Error (no LLM):                                                     │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │ ✗ Error: Cannot connect to LLM provider                            │   │
+│  │   agentlint requires an LLM to function.                           │   │
+│  │                                                                     │   │
+│  │   Suggestion: Set ANTHROPIC_API_KEY environment variable           │   │
+│  │   Documentation: https://agentlint.dev/docs/getting-started        │   │
+│  │ Exit code: 1 (fatal error)                                         │   │
 │  └─────────────────────────────────────────────────────────────────────┘   │
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
@@ -121,13 +133,11 @@ Chosen option: **"Continue with Degraded + Exponential Backoff"** because it ali
 
 ### Error Classification
 
-Based on research into Claude Code patterns and Vercel AI SDK error types:
-
 | Error Type | Examples | Strategy | Retry? |
 |------------|----------|----------|--------|
 | **Transient** | Rate limit (429), timeout, 503 | Exponential backoff | Yes, up to 5x |
-| **Recoverable** | Tool execution failed, parse error | Degrade gracefully | No |
-| **Fatal** | Invalid config, no permissions, corrupt DB | Abort with clear message | No |
+| **Recoverable** | Tool execution failed, subagent timeout | Continue without component | No |
+| **Fatal** | No API key, invalid config, corrupt DB | Abort with clear message | No |
 
 ```typescript
 // Error type definitions
@@ -144,7 +154,7 @@ class TransientError extends AgentlintError {
 
 class RecoverableError extends AgentlintError {
   readonly type = 'recoverable';
-  readonly degradedMode: DegradationLevel;
+  readonly failedComponent: string;
 }
 
 class FatalError extends AgentlintError {
@@ -159,10 +169,42 @@ Consistent exit codes for scripting and CI/CD integration:
 | Exit Code | Meaning | When |
 |-----------|---------|------|
 | 0 | Success | Analysis completed fully |
-| 1 | Fatal error | Unrecoverable failure (invalid config, permissions) |
-| 2 | Partial success | Analysis completed with degradation |
-| 3 | Issues found | Analysis completed, issues require attention |
+| 1 | Fatal error | LLM unavailable, invalid config, permissions |
+| 2 | Partial success | Analysis completed but some components failed |
+| 3 | Issues found | Analysis completed, findings require attention |
 | 130 | User interrupt | Ctrl+C |
+
+### LLM Availability Check
+
+The agent requires an LLM to function. A pre-flight check validates availability:
+
+```typescript
+async function validateLLMAvailability(config: Config): Promise<void> {
+  if (!config.llm?.apiKey && !process.env.ANTHROPIC_API_KEY) {
+    throw new FatalError({
+      code: ErrorCode.MISSING_API_KEY,
+      message: 'agentlint requires an LLM to function',
+      suggestion: 'Set ANTHROPIC_API_KEY environment variable or configure in ~/.config/agentlint/config.toml',
+    });
+  }
+
+  // Test connection with a minimal request
+  try {
+    await testLLMConnection(config);
+  } catch (error) {
+    if (isTransientError(error)) {
+      // Will retry during analysis
+      logger.warn('LLM connection slow, will retry during analysis');
+    } else {
+      throw new FatalError({
+        code: ErrorCode.LLM_CONNECTION_FAILED,
+        message: `Cannot connect to LLM provider: ${error.message}`,
+        suggestion: 'Check your API key and network connection',
+      });
+    }
+  }
+}
+```
 
 ### Subagent Error Isolation
 
@@ -171,10 +213,9 @@ Per ADR-0011, subagents run in parallel. Error isolation ensures one failure doe
 ```typescript
 interface SubagentResult {
   domain: AnalysisDomain;
-  status: 'success' | 'failed' | 'degraded';
+  status: 'success' | 'failed';
   findings?: Finding[];
   error?: RecoverableError;
-  degradationReason?: string;
 }
 
 async function runSubagentsWithIsolation(
@@ -185,59 +226,49 @@ async function runSubagentsWithIsolation(
       try {
         return await runWithRetry(agent.execute());
       } catch (error) {
-        if (error instanceof TransientError) {
-          // Already exhausted retries
-          return {
-            domain: agent.domain,
-            status: 'degraded',
-            degradationReason: `API unavailable: ${error.message}`,
-          };
-        }
-        throw error; // Propagate fatal errors
+        // Log the error, return failure result
+        logger.error(`Subagent ${agent.domain} failed: ${error.message}`);
+        return {
+          domain: agent.domain,
+          status: 'failed',
+          error: new RecoverableError({
+            message: error.message,
+            failedComponent: agent.domain,
+          }),
+        };
       }
     })
   );
 
-  // Convert settled results to SubagentResult[]
   return results.map(handleSettledResult);
 }
 ```
 
-### LLM Fallback Strategy
+### Tool Execution Error Handling
 
-When LLM is unavailable, gracefully degrade to static-only mode:
+When a tool fails, the agent receives an error response and can decide how to proceed:
 
 ```typescript
-async function analyseWithFallback(
-  project: Project,
-  config: AnalysisConfig
-): Promise<AnalysisResult> {
-  // Static analysis always runs first (Static-First principle)
-  const staticResults = await runStaticAnalysis(project);
-
-  // Attempt agentic analysis with fallback
-  let agenticResults: AgenticResult | null = null;
-  let degradationMessage: string | null = null;
-
+async function executeToolWithErrorHandling(
+  tool: Tool,
+  args: ToolArgs
+): Promise<ToolResult | ToolError> {
   try {
-    agenticResults = await runAgenticAnalysisWithRetry(project, config);
+    return await tool.execute(args);
   } catch (error) {
-    if (error instanceof TransientError) {
-      degradationMessage = formatDegradationMessage(error);
-      // Continue without agentic results
-    } else {
-      throw error; // Fatal errors propagate
-    }
+    // Return error to agent instead of throwing
+    return {
+      type: 'error',
+      tool: tool.name,
+      error: error.message,
+      suggestion: 'The agent may try an alternative approach',
+    };
   }
-
-  return {
-    mode: agenticResults ? 'full' : 'static-only',
-    static: staticResults,
-    agentic: agenticResults,
-    degradation: degradationMessage,
-    exitCode: agenticResults ? 0 : 2,
-  };
 }
+
+// Agent receives tool error and can reason about it:
+// Agent: "The ConfigParserTool failed to parse CLAUDE.md. Let me try
+//         reading it with ReadFileTool to understand the format issue."
 ```
 
 ### Retry Implementation
@@ -250,7 +281,7 @@ interface RetryConfig {
   initialDelay: number;     // Default: 1000ms
   maxDelay: number;         // Default: 8000ms
   exponentialBase: number;  // Default: 2
-  jitterFactor: number;     // Default: 0.5 (0-50% jitter)
+  jitterFactor: number;     // Default: 0.5
   totalTimeout: number;     // Default: 30000ms
 }
 
@@ -271,14 +302,12 @@ async function retryWithBackoff<T>(
 
       lastError = error;
 
-      // Check total timeout
       if (Date.now() - startTime > config.totalTimeout) {
         throw new TransientError(`Timeout after ${config.totalTimeout}ms`, {
           cause: lastError,
         });
       }
 
-      // Honor Retry-After header if present
       const delay = error.retryAfter
         ? error.retryAfter * 1000
         : calculateBackoff(attempt, config);
@@ -290,114 +319,36 @@ async function retryWithBackoff<T>(
 
   throw lastError!;
 }
-
-function calculateBackoff(attempt: number, config: RetryConfig): number {
-  const baseDelay = Math.min(
-    config.initialDelay * Math.pow(config.exponentialBase, attempt - 1),
-    config.maxDelay
-  );
-  const jitter = baseDelay * config.jitterFactor * Math.random();
-  return Math.floor(baseDelay + jitter);
-}
-```
-
-### Error UX Output
-
-Terminal output following CLI UX best practices:
-
-```typescript
-import chalk from 'chalk';
-
-function formatError(error: AgentlintError): string {
-  const lines: string[] = [];
-
-  // Error indicator with color
-  if (error.type === 'fatal') {
-    lines.push(chalk.red('✗ Error: ') + error.message);
-  } else if (error.type === 'recoverable') {
-    lines.push(chalk.yellow('⚠ Warning: ') + error.message);
-  }
-
-  // Suggestion (indented)
-  if (error.suggestion) {
-    lines.push(chalk.dim('  → ') + error.suggestion);
-  }
-
-  // Verbose mode hint
-  if (!process.env.VERBOSE) {
-    lines.push(chalk.dim('  → Run with --verbose for detailed trace'));
-  }
-
-  return lines.join('\n');
-}
-
-function formatSummary(result: AnalysisResult): string {
-  const lines: string[] = [];
-
-  lines.push('');
-  lines.push(chalk.bold('Analysis Summary:'));
-
-  // Static analysis (always present)
-  lines.push(chalk.green('  ✓ Static analysis: ') +
-    `${result.static.issueCount} issues found`);
-
-  // Agentic components
-  for (const [domain, status] of Object.entries(result.domainStatus)) {
-    if (status === 'success') {
-      lines.push(chalk.green(`  ✓ ${domain}: `) + 'completed');
-    } else if (status === 'degraded') {
-      lines.push(chalk.yellow(`  ⚠ ${domain}: `) +
-        `DEGRADED (${result.degradationReasons[domain]})`);
-    } else if (status === 'skipped') {
-      lines.push(chalk.dim(`  ○ ${domain}: `) +
-        `SKIPPED (${result.skipReasons[domain]})`);
-    }
-  }
-
-  // Overall status
-  lines.push('');
-  if (result.exitCode === 0) {
-    lines.push(chalk.green('Analysis completed successfully'));
-  } else if (result.exitCode === 2) {
-    lines.push(chalk.yellow('Analysis completed with partial results'));
-  }
-
-  return lines.join('\n');
-}
 ```
 
 ### Consequences
 
 **Good:**
-- Static analysis always works (Progressive Value principle)
-- Users see available results even when LLM fails
+- Users get partial results even when some components fail
 - Clear, actionable error messages with suggestions
 - Exit codes enable CI/CD integration
-- Follows Claude Code's graceful degradation patterns
+- Subagent isolation prevents cascade failures
 - Exponential backoff prevents thundering herd
 
 **Bad:**
 - Partial results may confuse users expecting full analysis
-- Degraded mode still incurs some LLM costs (failed calls count)
+- Need to clearly communicate what succeeded vs failed
 - Complexity in tracking which components succeeded/failed
-- Need to maintain degradation state throughout analysis
 
 **Neutral:**
 - Requires consistent error classification across codebase
 - May need user education on exit codes
-- Verbose mode adds implementation complexity
 
 ## Pros and Cons of Options
 
-### Option 1: Continue with Degraded + Exponential Backoff
+### Option 1: Partial Completion with Exponential Backoff (Chosen)
 
-Graceful degradation with retry for transient errors, continue with available results.
+Continue with available results when some components fail, retry transient errors.
 
-- Good: Aligns with Progressive Value principle
-- Good: Users always get some results
-- Good: Follows Claude Code's patterns
+- Good: Users always get maximum available value
+- Good: Subagent isolation is natural
 - Good: Good CI/CD experience (exit codes)
-- Neutral: Requires clear degradation messaging
+- Neutral: Requires clear status communication
 - Bad: Partial results may be misleading without context
 - Bad: Implementation complexity
 
@@ -407,33 +358,23 @@ Abort entire analysis if any critical component fails.
 
 - Good: Simple implementation
 - Good: No ambiguity about result completeness
-- Good: Users know to fix issues before re-running
-- Neutral: Consistent behavior
-- Bad: Violates Progressive Value principle
 - Bad: User loses all results on partial failure
-- Bad: Poor experience for large analyses
+- Bad: Poor experience for analyses that partially succeed
 
 ### Option 3: Interactive Recovery Mode
 
-Prompt user for action on each error (retry, skip, abort).
+Prompt user for action on each error.
 
 - Good: Maximum user control
-- Good: Users can make informed decisions
-- Neutral: Educational for users
 - Bad: Terrible for CI/CD (non-interactive)
 - Bad: Interrupts user flow
-- Bad: Doesn't work in scripted environments
 
 ### Option 4: Checkpoint and Resume
 
-Save progress, allow resume from last successful point (Claude Code style).
+Save progress, allow resume from last successful point.
 
-- Good: No lost progress
-- Good: Handles long-running analyses well
-- Good: Natural for agentic patterns
-- Neutral: Claude Code uses this effectively
-- Bad: Implementation complexity (state management)
-- Bad: Checkpoint storage overhead
+- Good: No lost progress on long analyses
+- Bad: Implementation complexity
 - Bad: May be overkill for typical agentlint runs (< 2 min)
 
 ## Constitution Compliance
@@ -442,155 +383,90 @@ Save progress, allow resume from last successful point (Claude Code style).
 |-----------|------------|-------|
 | I. Local-First | Yes | All error handling runs locally |
 | II. Improvement-Oriented | Yes | Partial results still contribute to baseline |
-| III. Causal-First | Partial | Degraded causal traces may miss some origins |
-| IV. Mixed-Methods | Yes | Static (quantitative) always available; agentic (qualitative) may degrade |
+| III. Causal-First | Partial | Failed subagents may miss some causal traces |
+| IV. Mixed-Methods | Yes | Agent decides what's available based on component status |
 | V. Language-Agnostic | Yes | Error handling independent of target language |
 | VI. Tool-Agnostic | Yes | Adapter errors handled uniformly |
-| VII. Static-First | Yes | Static analysis completes before agentic, always available |
-| VIII. Progressive Value | Yes | Core principle—static works without LLM |
-| IX. Agent-Aware | Yes | Subagent isolation prevents cascade failures |
+| VII. Intelligent Tooling | Yes | Tools serve agent needs; tool failures are isolated |
+| VIII. Compounding Value | Yes | Value compounds through baseline tracking |
+| IX. Agent-Aware | Yes | Agent receives error info and can reason about alternatives |
 
 ## More Information
 
 ### Related Documents
-- [ADR-0006: Agentic Analysis Implementation](./0006-agentic-analysis-implementation.md) - Vercel AI SDK integration
+- [ADR-0006: Agent-Orchestrated Analysis](./0006-agent-orchestrated-analysis.md) - Agent architecture
 - [ADR-0009: Observability Strategy](./0009-observability-strategy.md) - Error logging via OTel
-- [ADR-0011: Parallel Processing Architecture](./0011-parallel-processing-architecture.md) - Subagent isolation
-- [ADR-0013: Testing Strategy](./0013-testing-strategy.md) - Testing error scenarios
-- Architecture Vision: [Section 2 - Design Principles](../../agentlint-architecture-vision.md#design-principles)
-- Design Questions: [Section 4.2 - Error Handling](../../design-questions.md#42-error-handling--recovery)
+- [ADR-0011: Agent Tool Concurrency](./0011-parallel-processing-architecture.md) - Subagent isolation
+- [Constitution](../../../.specify/memory/constitution.md) - LLM requirement
 
 ### Research Sources
 
-**Claude Code Patterns:**
-- [Anthropic: Claude Code Best Practices](https://www.anthropic.com/engineering/claude-code-best-practices) - Checkpoint recovery, graceful degradation
-- [Claude Skills: Error Recovery Patterns](https://claude-plugins.dev/skills/@applied-artificial-intelligence/claude-code-toolkit/error-recovery-patterns) - 13-category error taxonomy
-- [Claude Agent SDK Best Practices](https://skywork.ai/blog/claude-agent-sdk-best-practices-ai-agents-2025/) - Error handling in agent SDK
-
-**Agentic Error Handling:**
-- [DEV: Error Recovery in AI Agents](https://dev.to/gantz/error-recovery-in-ai-agents-graceful-degradation-and-retry-strategies-40ca) - Graceful degradation patterns
-- [Galileo: Multi-Agent Failure Recovery](https://galileo.ai/blog/multi-agent-ai-system-failure-recovery) - Compound reliability problem
-- [SparkCo: LangGraph Error Handling](https://sparkco.ai/blog/advanced-error-handling-strategies-in-langgraph-applications) - Multi-level error handling
-- [Gocodeo: Error Recovery Strategies](https://www.gocodeo.com/post/error-recovery-and-fallback-strategies-in-ai-agent-development) - Circuit breaker patterns
-- [PraisonAI: Graceful Degradation](https://docs.praison.ai/docs/best-practices/graceful-degradation) - Degradation patterns
-
 **LLM API Retry Strategies:**
-- [OpenAI Cookbook: Rate Limits](https://cookbook.openai.com/examples/how_to_handle_rate_limits) - Exponential backoff with jitter
-- [Requesty: Rate Limits for LLM Providers](https://www.requesty.ai/blog/rate-limits-for-llm-providers-openai-anthropic-and-deepseek) - Provider-specific limits
-- [MarkAICode: LLM API Retry Logic](https://markaicode.com/llm-api-retry-logic-implementation/) - Implementation guide
-- [Vellum: LLM Request Failure Routing](https://www.vellum.ai/blog/what-to-do-when-an-llm-request-fails) - Fallback strategies
+- [OpenAI Cookbook: Rate Limits](https://cookbook.openai.com/examples/how_to_handle_rate_limits) - Exponential backoff
+- [Requesty: Rate Limits for LLM Providers](https://www.requesty.ai/blog/rate-limits-for-llm-providers-openai-anthropic-and-deepseek) - Provider limits
 
 **CLI UX:**
 - [clig.dev: Command Line Interface Guidelines](https://clig.dev/) - Exit codes, error messages
-- [Lucas Costa: UX Patterns for CLI Tools](https://lucasfcosta.com/2022/06/01/ux-patterns-cli-tools.html) - Colors, suggestions
-- [Medium: Error Handling in CLI Tools](https://medium.com/@czhoudev/error-handling-in-cli-tools-a-practical-pattern-thats-worked-for-me-6c658a9141a9) - Practical patterns
-
-**Vercel AI SDK:**
-- [AI SDK: Error Handling](https://ai-sdk.dev/docs/ai-sdk-core/error-handling) - Error types
-- [AI SDK: ToolCallRepairError](https://ai-sdk.dev/docs/reference/ai-sdk-errors/ai-tool-call-repair-error) - Tool execution errors
-
-**Distributed Systems:**
-- [Microsoft: Handling Partial Failure](https://learn.microsoft.com/en-us/dotnet/architecture/microservices/implement-resilient-applications/handle-partial-failure) - Continue vs abort patterns
-- [Temporal: Error Handling in Distributed Systems](https://temporal.io/blog/error-handling-in-distributed-systems) - Resilience patterns
 
 ### Implementation Notes
 
 #### 1. Error Type Registration
 
 ```typescript
-// src/errors/types.ts
 export enum ErrorCode {
   // Transient (retryable)
   RATE_LIMIT = 'E001',
   NETWORK_TIMEOUT = 'E002',
   SERVICE_UNAVAILABLE = 'E003',
 
-  // Recoverable (degrade gracefully)
-  LLM_API_ERROR = 'E101',
-  TOOL_EXECUTION_FAILED = 'E102',
+  // Recoverable (continue without component)
+  TOOL_EXECUTION_FAILED = 'E101',
+  SUBAGENT_TIMEOUT = 'E102',
   SESSION_PARSE_ERROR = 'E103',
-  MALFORMED_RESPONSE = 'E104',
 
   // Fatal (abort)
-  INVALID_CONFIG = 'E201',
-  PERMISSION_DENIED = 'E202',
+  MISSING_API_KEY = 'E201',
+  INVALID_CONFIG = 'E202',
   CORRUPT_DATABASE = 'E203',
-  MISSING_API_KEY = 'E204',
+  LLM_CONNECTION_FAILED = 'E204',
 }
 
 export const ERROR_SUGGESTIONS: Record<ErrorCode, string> = {
   [ErrorCode.RATE_LIMIT]: 'Wait a moment and retry, or reduce analysis scope',
-  [ErrorCode.NETWORK_TIMEOUT]: 'Check your network connection',
   [ErrorCode.MISSING_API_KEY]: 'Set ANTHROPIC_API_KEY environment variable',
+  [ErrorCode.LLM_CONNECTION_FAILED]: 'Check your API key and network connection',
   // ...
 };
 ```
 
-#### 2. Retry Configuration
+#### 2. Analysis Result with Partial Status
 
 ```typescript
-// src/config/retry.ts
-export const DEFAULT_RETRY_CONFIG: RetryConfig = {
-  maxAttempts: 5,
-  initialDelay: 1000,
-  maxDelay: 8000,
-  exponentialBase: 2,
-  jitterFactor: 0.5,
-  totalTimeout: 30000,
-};
+interface AnalysisResult {
+  status: 'success' | 'partial' | 'failed';
+  exitCode: 0 | 1 | 2 | 3;
 
-// Provider-specific overrides
-export const ANTHROPIC_RETRY_CONFIG: RetryConfig = {
-  ...DEFAULT_RETRY_CONFIG,
-  // Anthropic has generous rate limits, fewer retries needed
-  maxAttempts: 3,
-};
-```
-
-#### 3. Degradation State
-
-```typescript
-// src/analysis/degradation.ts
-interface DegradationState {
-  mode: 'full' | 'degraded' | 'static-only';
-  failedDomains: AnalysisDomain[];
-  reasons: Map<AnalysisDomain, string>;
-  exitCode: 0 | 2;
-}
-
-function computeDegradationState(results: SubagentResult[]): DegradationState {
-  const failedDomains = results
-    .filter(r => r.status === 'failed' || r.status === 'degraded')
-    .map(r => r.domain);
-
-  if (failedDomains.length === 0) {
-    return { mode: 'full', failedDomains: [], reasons: new Map(), exitCode: 0 };
-  }
-
-  if (failedDomains.length === results.length) {
-    return {
-      mode: 'static-only',
-      failedDomains,
-      reasons: new Map(results.map(r => [r.domain, r.degradationReason!])),
-      exitCode: 2,
-    };
-  }
-
-  return {
-    mode: 'degraded',
-    failedDomains,
-    reasons: new Map(results
-      .filter(r => r.degradationReason)
-      .map(r => [r.domain, r.degradationReason!])),
-    exitCode: 2,
+  // Component status
+  components: {
+    config: ComponentStatus;
+    sessions: ComponentStatus;
+    docs: ComponentStatus;
+    code: ComponentStatus;
   };
+
+  // Available findings
+  findings: Finding[];
+  recommendations: Recommendation[];
+
+  // Error details for failed components
+  errors: ComponentError[];
+}
+
+type ComponentStatus = 'success' | 'failed' | 'skipped';
+
+interface ComponentError {
+  component: string;
+  error: AgentlintError;
+  impact: string;  // "Session analysis unavailable for this run"
 }
 ```
-
-### Follow-Up Decisions
-
-This ADR surfaces the need for:
-
-1. **Safe Mode Command**: `agentlint analyse --static-only` for guaranteed deterministic results
-2. **Verbose Error Output**: `--verbose` flag implementation for debugging
-3. **Error Telemetry**: Track error rates for product improvement (via ADR-0009 OTel)

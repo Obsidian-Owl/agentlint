@@ -113,8 +113,8 @@ Node.js is the most mature JavaScript runtime with the widest ecosystem and best
 | IV. Mixed-Methods | Yes | Can implement both quantitative and qualitative analysis |
 | V. Language-Agnostic | Yes | Can analyze any codebase regardless of its language |
 | VI. Tool-Agnostic | Yes | Adapter pattern implementable in TypeScript |
-| VII. Static-First | Yes | Static analysis easily implemented |
-| VIII. Progressive Value | Yes | Works without LLM configuration |
+| VII. Intelligent Tooling | Yes | Runtime supports both tool execution and agent reasoning |
+| VIII. Compounding Value | Yes | Baselines compound value over time |
 | IX. Agent-Aware | Yes | Agent SDK enables proper AX scaffolding |
 
 ## More Information

@@ -23,8 +23,8 @@ Additionally, many developers use **multiple AI tools** (e.g., Claude Code for c
 ## Decision Drivers
 
 - **Tool-Agnostic (VI)**: Core analysis logic must be tool-independent; tool-specific code lives in adapters only
-- **Static-First (VII)**: Prefer deterministic static parsing over LLM-based extraction
-- **Progressive Value (VIII)**: Basic functionality without LLM; LLM enhances but isn't required
+- **Reliable parsing**: Adapters provide deterministic parsing; agent analysis is flexible
+- **Compounding Value (VIII)**: Baseline tracking compounds value over time across tool changes
 - **Agent-Aware (IX)**: Tool-specific agent configurations impact analysis effectiveness
 - **Maintainability**: Core team maintains all adapters; no third-party plugins
 - **Extensibility**: Adding new AI tools should require only adapter implementation
@@ -919,14 +919,14 @@ session_path = "~/.claude/projects"
 | IV. Mixed-Methods | Yes | Adapters support both quantitative (metrics) and qualitative (content) |
 | V. Language-Agnostic | Yes | Adapter pattern is language-independent |
 | VI. Tool-Agnostic | Yes | Core design; this ADR implements the constitutional requirement |
-| VII. Static-First | Yes | Parsing is deterministic; LLM only for analysis |
-| VIII. Progressive Value | Yes | Generic adapter provides value without tool detection |
+| VII. Intelligent Tooling | Yes | Adapters provide structured data; agent freely analyzes |
+| VIII. Compounding Value | Yes | Baselines persist across tool changes for compound value |
 | IX. Agent-Aware | Yes | AgentProfile customizes agent behavior per tool |
 
 ## More Information
 
 ### Related Documents
-- [ADR-0006: Agentic Analysis Implementation](./0006-agentic-analysis-implementation.md) - Vercel AI SDK for LLM integration
+- [ADR-0006: Agentic Analysis Implementation](./0006-agent-orchestrated-analysis.md) - Vercel AI SDK for LLM integration
 - [ADR-0007: Causal Analysis Architecture](./0007-causal-analysis-architecture.md) - Session parsing requirements
 - [ADR-0011: Parallel Processing Architecture](./0011-parallel-processing-architecture.md) - Subagent pattern
 - Design Questions: [Section 5.1 - Plugin Architecture for AI Tools](../../design-questions.md#51-plugin-architecture-for-ai-tools)

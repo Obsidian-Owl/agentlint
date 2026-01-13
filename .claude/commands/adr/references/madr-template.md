@@ -92,8 +92,8 @@ Chosen option: "{Option N}" because {main justification in 1-2 sentences}.
 | IV. Mixed-Methods | {Yes/Partial/No} | {Brief explanation} |
 | V. Language-Agnostic | {Yes/Partial/No} | {Brief explanation} |
 | VI. Tool-Agnostic | {Yes/Partial/No} | {Brief explanation} |
-| VII. Static-First | {Yes/Partial/No} | {Brief explanation} |
-| VIII. Progressive Value | {Yes/Partial/No} | {Brief explanation} |
+| VII. Intelligent Tooling | {Yes/Partial/No} | {Brief explanation} |
+| VIII. Compounding Value | {Yes/Partial/No} | {Brief explanation} |
 
 ## More Information
 

@@ -101,8 +101,8 @@ All data stored as JSON files in structured directories.
 | IV. Mixed-Methods | Yes | Can store both quantitative metrics and qualitative text |
 | V. Language-Agnostic | N/A | Storage doesn't affect language support |
 | VI. Tool-Agnostic | Yes | Schema supports multiple AI tool adapters |
-| VII. Static-First | Yes | No LLM needed for queries |
-| VIII. Progressive Value | Yes | Works without LLM configuration |
+| VII. Intelligent Tooling | Yes | Storage supports all analysis approaches |
+| VIII. Compounding Value | Yes | SQLite stores baselines for compound value |
 | IX. Agent-Aware | N/A | Storage doesn't affect agent architecture |
 
 ## More Information

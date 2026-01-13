@@ -19,7 +19,7 @@ agentlint requires LLM API credentials (e.g., Anthropic API key) for agentic ana
 - **User convenience**: Common patterns should be easy (env vars), advanced patterns supported (keychain)
 - **Cross-platform**: macOS (MVP primary), with Linux/Windows support via Bun.secrets
 - **Anthropic alignment**: Follow Anthropic's official best practices for API key handling
-- **Progressive Value**: Tool should work without LLM if credentials not configured
+- **LLM Required**: agentlint requires LLM credentials for core analysis functionality
 
 ## Considered Options
 
@@ -36,7 +36,7 @@ Chosen option: **"Environment Variables + Bun.secrets Keychain Fallback"** becau
 
 1. **Environment variable** (highest priority): `ANTHROPIC_API_KEY`
 2. **OS Keychain via Bun.secrets**: `Bun.secrets.get({ service: "agentlint", name: "anthropic_api_key" })`
-3. **Not configured**: Graceful degradation to static-only analysis
+3. **Not configured**: Interactive prompt to configure credentials (LLM is required for analysis)
 
 ### Helper Command
 
@@ -63,7 +63,7 @@ This writes via `Bun.secrets.set()` to the OS keychain (macOS Keychain, Windows 
 - No plain text credential storage in config files
 - Cross-platform via Bun.secrets (macOS, Linux, Windows)
 - Convenience command reduces friction for keychain setup
-- Progressive Value maintained (works without credentials)
+- Interactive setup prompt guides users when credentials missing
 
 **Bad:**
 - Bun.secrets API is experimental (acceptable risk per scope decision)
@@ -134,8 +134,8 @@ Check all sources in order: env vars → config reference → keychain → inter
 | IV. Mixed-Methods | N/A | Credential storage doesn't affect analysis methods |
 | V. Language-Agnostic | Yes | Credential handling is independent of target language |
 | VI. Tool-Agnostic | Yes | Supports credentials for any future LLM provider |
-| VII. Static-First | N/A | Credential storage doesn't affect analysis approach |
-| VIII. Progressive Value | Yes | Works without credentials (static-only mode) |
+| VII. Intelligent Tooling | N/A | Credential storage doesn't affect analysis approach |
+| VIII. Compounding Value | Yes | Credential persistence enables baseline tracking across sessions |
 | IX. Agent-Aware | N/A | Credential storage doesn't affect agent architecture |
 
 ## More Information
@@ -211,4 +211,4 @@ await Bun.secrets.set({
 5. **Testing**:
    - Mock Bun.secrets in tests
    - Test fallback behavior when keychain unavailable
-   - Test graceful degradation to static-only mode
+   - Test interactive credential prompt when not configured

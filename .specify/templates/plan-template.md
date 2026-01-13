@@ -39,8 +39,8 @@
 | IV. Mixed-Methods | ✅/⚠️/❌ | Includes quantitative and qualitative signals where applicable |
 | V. Language-Agnostic | ✅/⚠️/❌ | Core works across languages; graceful degradation for unsupported |
 | VI. Tool-Agnostic | ✅/⚠️/❌ | Tool-specific code in adapters only; core is tool-independent |
-| VII. Static-First | ✅/⚠️/❌ | LLM usage justified; static analysis preferred (concurrent, not sequential) |
-| VIII. Progressive Value | ✅/⚠️/❌ | Works without LLM config; static-only mode produces value |
+| VII. Intelligent Tooling | ✅/⚠️/❌ | Tool selections serve agent needs; approach justified by task |
+| VIII. Compounding Value | ✅/⚠️/❌ | Value compounds over time through baselines and trend analysis |
 | IX. Agent-Aware | ✅/⚠️/❌ | Agent context hierarchically structured; AX/UX separation maintained; large inputs compressed |
 
 **Analysis Domain(s)**: [Which of the 8 domains does this feature address?]

@@ -10,7 +10,7 @@ informed: [All Contributors]
 
 ## Context and Problem Statement
 
-agentlint performs both deterministic static analysis and non-deterministic LLM-powered agentic analysis. Repeated analysis of the same codebase can be expensive (LLM tokens), slow (network latency), and redundant (unchanged files). This ADR establishes a comprehensive caching strategy that:
+agentlint performs both deterministic tool-based analysis and non-deterministic LLM-powered agentic analysis. Repeated analysis of the same codebase benefits from intelligent caching to optimize both tool execution and agent reasoning. This ADR establishes a comprehensive caching strategy that:
 
 1. Reduces LLM costs through Anthropic prompt caching (up to 90% savings)
 2. Avoids reprocessing unchanged static analysis inputs
@@ -21,8 +21,8 @@ agentlint performs both deterministic static analysis and non-deterministic LLM-
 
 ## Decision Drivers
 
-- **Static-First principle**: Static analysis caching is fully deterministic and reliable
-- **Progressive Value principle**: Tool must work without LLM; caching enhances, not gates
+- **Comprehensive caching**: Different caching technologies serve different agent needs—local content-addressed caching for deterministic tool results, provider-managed prefix caching for LLM prompts
+- **Compounding Value principle**: Caching compounds value over time by reducing repeat analysis costs
 - **Cost control**: LLM calls are expensive; prompt caching saves up to 90%
 - **Performance target**: 30-second analysis (ADR-0011) requires intelligent caching
 - **Correctness over speed**: Stale cache is unacceptable; invalidation must be precise
@@ -153,6 +153,28 @@ Chosen option: **"Multi-Layer Content-Addressed Caching with LLM Prompt Caching"
 │                                                                             │
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
+
+### Technical Rationale: Why Layers Differ
+
+The different caching approaches for Layers 2 and 3 reflect **technical constraints of different caching technologies**, not architectural preferences:
+
+| Layer | Technology | Control | Capabilities |
+|-------|------------|---------|--------------|
+| Layer 2: Static Analysis | Local file storage | **We design it** | Content-addressed, per-file granularity, precise invalidation |
+| Layer 3: LLM Prompts | Anthropic's API | **Provider controls it** | Prefix-based matching, TTL-only (5min/1hr), exact-match required |
+
+**Why we can't use content-addressed caching for LLM prompts:**
+- Anthropic's prompt caching is prefix-based—it matches from the beginning of the prompt
+- Cache keys are computed by Anthropic, not by us
+- TTL is the only invalidation mechanism (5 minutes or 1 hour)
+- Tool results in prompts are session-specific and don't benefit from caching across requests
+
+**Why we can't use TTL-based caching for static analysis:**
+- File content changes are unpredictable—TTL would serve stale results
+- Content-addressing guarantees correctness: same input → same cached output
+- Per-file granularity avoids over-invalidation (one file change doesn't invalidate all)
+
+This is **technical reality, not philosophy**. The agent benefits from both approaches equally—Layer 2 makes tool execution fast, Layer 3 makes LLM reasoning cheap.
 
 ### Layer Details
 
@@ -382,88 +404,18 @@ async function runAgenticAnalysisWithCaching(
 
 #### Layer 4: Response Cache (Development Only)
 
-For development and testing reproducibility:
+For development and testing reproducibility. See [Caching Implementation Guide](/docs/implementation/caching-implementation.md#response-cache-class) for full implementation.
 
-```typescript
-type ResponseCacheMode = 'off' | 'record' | 'replay' | 'record_replay';
+**Modes:**
+- `off` (default): No local response caching
+- `record`: Save responses for future replay
+- `replay`: Use cached responses if available
+- `record_replay`: Record new, replay existing
 
-interface ResponseCacheConfig {
-  mode: ResponseCacheMode;
-  cacheDir: string;           // ~/.cache/agentlint/responses/
-  maxAgeMs?: number;          // Optional staleness check
-}
-
-class ResponseCache {
-  constructor(private config: ResponseCacheConfig) {}
-
-  async getOrFetch<T>(
-    key: ResponseCacheKey,
-    fetcher: () => Promise<T>
-  ): Promise<T> {
-    if (this.config.mode === 'off') {
-      return fetcher();
-    }
-
-    const cacheKey = this.computeKey(key);
-    const cachePath = path.join(this.config.cacheDir, `${cacheKey}.json`);
-
-    // Try replay
-    if (this.config.mode === 'replay' || this.config.mode === 'record_replay') {
-      if (await exists(cachePath)) {
-        const cached = await readJSON<CachedResponse<T>>(cachePath);
-
-        // Check staleness if configured
-        if (this.config.maxAgeMs) {
-          const age = Date.now() - cached.timestamp;
-          if (age > this.config.maxAgeMs) {
-            console.warn(`Cache stale (${age}ms > ${this.config.maxAgeMs}ms)`);
-            // Continue to fetch if record_replay, else return stale
-            if (this.config.mode === 'replay') {
-              return cached.response;
-            }
-          } else {
-            return cached.response;
-          }
-        } else {
-          return cached.response;
-        }
-      }
-    }
-
-    // Fetch fresh
-    if (this.config.mode === 'replay') {
-      throw new Error(`Cache miss in replay mode: ${cacheKey}`);
-    }
-
-    const response = await fetcher();
-
-    // Record if configured
-    if (this.config.mode === 'record' || this.config.mode === 'record_replay') {
-      await writeJSON(cachePath, {
-        key,
-        response,
-        timestamp: Date.now(),
-      });
-    }
-
-    return response;
-  }
-
-  private computeKey(key: ResponseCacheKey): string {
-    return hash([
-      key.prompt,
-      key.modelId,
-      key.temperature?.toString() ?? '0',
-    ]);
-  }
-}
-
-interface ResponseCacheKey {
-  prompt: string;
-  modelId: string;
-  temperature?: number;
-}
-```
+**Use Cases:**
+- Development: Iterate on output formatting without API costs
+- Testing: Deterministic test fixtures
+- Offline: Analysis review without network
 
 **Configuration**:
 
@@ -656,8 +608,8 @@ Always process fresh.
 | IV. Mixed-Methods | Yes | Both static (deterministic) and agentic (prompt) caching |
 | V. Language-Agnostic | Yes | Caching works regardless of target language |
 | VI. Tool-Agnostic | Yes | Prompt caching works with any LLM provider supporting it |
-| VII. Static-First | Yes | Static analysis caching is core; prompt caching enhances agentic |
-| VIII. Progressive Value | Yes | Static caching works without LLM; prompt caching optional |
+| VII. Intelligent Tooling | Yes | Different caching technologies serve different agent needs; layer designs reflect technical constraints, not preferences |
+| VIII. Compounding Value | Yes | Caching compounds value by reducing analysis costs over time |
 | IX. Agent-Aware | Yes | Compressed context in prompts aids agent efficiency |
 
 ## More Information
@@ -677,6 +629,10 @@ Always process fresh.
 - [ngrok: Prompt Caching Guide](https://ngrok.com/blog/prompt-caching/) - Implementation patterns
 - [Spring AI Anthropic Caching](https://spring.io/blog/2025/10/27/spring-ai-anthropic-prompt-caching-blog/) - Framework integration
 - [PromptHub: Multi-Provider Caching](https://www.prompthub.us/blog/prompt-caching-with-openai-anthropic-and-google-models) - Cross-provider patterns
+
+**Agentic Caching Research:**
+- [arXiv: Don't Break the Cache](https://arxiv.org/html/2601.06007) - Prompt caching challenges for long-horizon agentic tasks
+- [arXiv: Agentic Plan Caching (NeurIPS 2025)](https://arxiv.org/abs/2506.14852) - Task-level caching for LLM agents
 
 **Semantic Caching:**
 - [GPTCache GitHub](https://github.com/zilliztech/GPTCache) - Semantic cache framework
@@ -702,107 +658,16 @@ Always process fresh.
 
 ### Implementation Notes
 
-#### 1. Cache Metrics Dashboard
+Full implementation details are documented in:
+- [Caching Implementation Guide](/docs/implementation/caching-implementation.md) - ResponseCache class, cache warming, ADR-0012 integration
 
-```typescript
-interface CacheMetrics {
-  static: {
-    hits: number;
-    misses: number;
-    hitRate: number;
-    sizeBytes: number;
-    entryCount: number;
-  };
-  prompt: {
-    cacheCreationTokens: number;
-    cacheReadTokens: number;
-    totalTokens: number;
-    costSavings: number;       // Estimated $ saved
-  };
-  response: {
-    hits: number;
-    misses: number;
-    mode: ResponseCacheMode;
-  };
-}
+#### Cache CLI Commands
 
-// CLI: agentlint cache stats
-async function displayCacheStats(): Promise<void> {
-  const metrics = await collectCacheMetrics();
-
-  console.log(chalk.bold('Cache Statistics'));
-  console.log('');
-  console.log(chalk.cyan('Static Analysis Cache:'));
-  console.log(`  Hit rate: ${(metrics.static.hitRate * 100).toFixed(1)}%`);
-  console.log(`  Entries: ${metrics.static.entryCount}`);
-  console.log(`  Size: ${formatBytes(metrics.static.sizeBytes)}`);
-  console.log('');
-  console.log(chalk.cyan('LLM Prompt Cache (this session):'));
-  console.log(`  Tokens read from cache: ${metrics.prompt.cacheReadTokens}`);
-  console.log(`  Tokens written to cache: ${metrics.prompt.cacheCreationTokens}`);
-  console.log(`  Estimated savings: $${metrics.prompt.costSavings.toFixed(4)}`);
-}
-```
-
-#### 2. Cache Warming
-
-For CI/CD or first-run optimization:
-
-```typescript
-// Pre-warm static cache for all files
-async function warmStaticCache(projectPath: string): Promise<void> {
-  const files = await glob('**/*', {
-    cwd: projectPath,
-    ignore: ['node_modules/**', '.git/**'],
-  });
-
-  const cache = new StaticAnalysisCache();
-
-  for (const file of files) {
-    const content = await fs.readFile(path.join(projectPath, file), 'utf-8');
-    for (const analyser of getStaticAnalysers()) {
-      if (analyser.canAnalyse(file)) {
-        const result = await analyser.analyse(file, content);
-        await cache.set(file, content, analyser.name, result);
-      }
-    }
-  }
-}
-```
-
-#### 3. Integration with ADR-0012 Change Detection
-
-```typescript
-// ADR-0012 detects what changed; ADR-0021 caches analysis
-async function runIncrementalAnalysis(
-  changeManifest: ChangeManifest
-): Promise<AnalysisResult> {
-  const cache = new StaticAnalysisCache();
-  const results: StaticResult[] = [];
-
-  // Only analyse changed files; use cache for unchanged
-  for (const file of changeManifest.filesChanged) {
-    const content = await fs.readFile(file, 'utf-8');
-    const cached = await cache.get(file, content, 'all');
-
-    if (cached) {
-      results.push(cached);  // Cache hit
-    } else {
-      const fresh = await runStaticAnalysis(file, content);
-      await cache.set(file, content, 'all', fresh);
-      results.push(fresh);
-    }
-  }
-
-  // For unchanged files, use cached results
-  for (const file of changeManifest.filesUnchanged) {
-    const content = await fs.readFile(file, 'utf-8');
-    const cached = await cache.get(file, content, 'all');
-    if (cached) results.push(cached);
-  }
-
-  return { static: results };
-}
+```bash
+agentlint cache stats    # Show cache statistics
+agentlint cache clear    # Clear all caches
+agentlint analyse --cache-responses=record   # Development: record responses
+agentlint analyse --cache-responses=replay   # Testing: replay responses
 ```
 
 ### Follow-Up Decisions
@@ -812,3 +677,5 @@ This ADR surfaces the need for:
 1. **Cache Warming Strategy**: Should CI/CD pre-warm caches? How to share caches across CI runs?
 2. **Semantic Caching Evaluation**: For future, consider GPTCache-style similarity caching for near-miss queries
 3. **Cache Sharding for Large Teams**: If multiple developers share cache, how to shard/isolate?
+
+For future architectural considerations including Agentic Plan Caching, see [Future Considerations](/docs/architecture/future-considerations.md).

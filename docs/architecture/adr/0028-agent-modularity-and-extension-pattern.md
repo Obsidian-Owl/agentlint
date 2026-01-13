@@ -370,8 +370,9 @@ If community demand for extensibility grows, the recommended path is:
 | IV. Mixed-Methods | ✅ | Both static (unit) and eval (LLM) testing |
 | V. Language-Agnostic | ✅ | LanguageAnalyzer pattern unchanged |
 | VI. Tool-Agnostic | ✅ | AIToolAdapter pattern unchanged |
-| VII. Static-First | ✅ | Most testing is static (no LLM) |
-| VIII. Progressive Value | ✅ | Works without any extensions |
+| VII. Intelligent Tooling | ✅ | Tools selected based on task needs; agent flexibility preserved |
+| VIII. Compounding Value | ✅ | Compiled-in components build consistent baseline over time |
+| IX. Agent-Aware | ✅ | Modular architecture enables agent introspection and optimization |
 
 ---
 

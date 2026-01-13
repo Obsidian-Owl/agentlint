@@ -17,9 +17,9 @@ ADR-0003 mentions "simple version table + migration scripts" but doesn't elabora
 ## Decision Drivers
 
 - **Improvement-Oriented**: Historical data is core to value proposition; loss is catastrophic
-- **Progressive Value**: Migrations should be seamless; users shouldn't need to run manual commands
+- **Compounding Value**: Migrations should be seamless; users shouldn't need to run manual commands
 - **Local-First**: All migration operations run locally with no external dependencies
-- **Static-First**: No LLM needed for migrations; deterministic process
+- **Deterministic migrations**: No LLM needed for migrations; predictable process
 - **User Experience**: "Automatic + Safe" - backup, migrate, rollback on failure
 
 ## Considered Options
@@ -52,7 +52,7 @@ Chosen because:
 - Zero external dependencies (uses Bun's built-in SQLite)
 - Battle-tested pattern used by many CLI tools
 - Full control over migration logic
-- Aligns with Static-First principle (deterministic, no ORM magic)
+- Deterministic (no ORM magic)
 
 ### Backup Strategy: File Copy
 
@@ -528,8 +528,8 @@ agentlint db set-version 5 --force
 | IV. Mixed-Methods | N/A | Versioning is orthogonal to analysis methods |
 | V. Language-Agnostic | N/A | Versioning is language-independent |
 | VI. Tool-Agnostic | Yes | Schema supports multiple AI tool adapters |
-| VII. Static-First | Yes | All versioning/migration is deterministic |
-| VIII. Progressive Value | Yes | Works without LLM; migrations are static |
+| VII. Intelligent Tooling | Yes | Migration is tool-based; no agent involvement needed |
+| VIII. Compounding Value | Yes | Migrations preserve baseline history for compound value |
 | IX. Agent-Aware | N/A | Versioning doesn't affect agent cognition |
 
 ## More Information

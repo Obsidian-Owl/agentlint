@@ -31,8 +31,8 @@ The Architecture Vision states: "agentlint prioritises preventive and systemic r
 - **Causal confidence**: Should be visible but advisory, not forced into priority
 - **Effort estimation**: Heuristic-based without requiring user input
 - **Conflict resolution**: Merge compatible recommendations, flag only true conflicts
-- **Static-First principle**: Prioritisation logic should be deterministic (no LLM)
-- **Progressive Value principle**: Prioritisation works without LLM configuration
+- **Intelligent Tooling**: Agent can apply contextual reasoning to prioritization when needed
+- **Compounding Value principle**: Prioritisation improves with historical context
 
 ## Considered Options
 
@@ -135,6 +135,22 @@ Chosen option: **"Layered Views"** because it provides both immediate actionabil
 └─────────────────────────────────────────────────────────────────────────────┘
 ```
 
+### Agent Prioritization Flexibility
+
+The prioritization pipeline produces default orderings that work well for most cases. However, the agent can apply contextual reasoning to adjust priorities when appropriate:
+
+| Default Behavior | Agent Override Scenario |
+|-----------------|-------------------------|
+| Type weight determines order | User explicitly states urgency for a symptomatic fix |
+| Frequency influences ranking | Learning opportunity outweighs frequency |
+| Effort estimation is heuristic | Agent recognizes specific recommendation is easier in this codebase |
+| Dependencies create ordering | User wants parallel implementation path |
+
+The agent receives all prioritization data (type, frequency, effort, confidence, dependencies) and can:
+- Use default views when they fit the task
+- Apply contextual reasoning to reorder based on user goals
+- Consider factors the algorithm cannot (urgency, learning value, risk tolerance)
+
 ### Type Weighting Model
 
 Per Architecture Vision, systemic recommendations compound value most:
@@ -226,7 +242,7 @@ function estimateEffort(rec: Recommendation): Effort {
 - Confidence is visible but not prescriptive (user maintains control)
 - Automatic effort estimation reduces user burden
 - Merge-first conflict resolution minimises decision fatigue
-- Static analysis for all phases (no LLM required)
+- Agent can leverage both algorithmic defaults and contextual reasoning
 - Dependency detection surfaces "unlocking" recommendations
 
 **Bad:**
@@ -292,8 +308,8 @@ Strict hierarchy: all systemic → all preventive → all symptomatic.
 | IV. Mixed-Methods | Yes | Quantitative (frequency, effort) + qualitative (type) |
 | V. Language-Agnostic | Yes | Prioritisation independent of target language |
 | VI. Tool-Agnostic | Yes | Works across AI tool adapters |
-| VII. Static-First | Yes | All prioritisation is deterministic, no LLM |
-| VIII. Progressive Value | Yes | Works without LLM configuration |
+| VII. Intelligent Tooling | Yes | Agent can apply contextual reasoning to prioritization |
+| VIII. Compounding Value | Yes | Recommendations improve with historical context |
 | IX. Agent-Aware | Yes | Prioritised lists are compressed for agent context |
 
 ## More Information

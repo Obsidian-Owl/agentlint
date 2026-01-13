@@ -440,13 +440,15 @@ Log files would use:
 
 | Principle | Compliance | Notes |
 |-----------|------------|-------|
-| I. User Control | ✅ | Configurable verbosity, user controls what's logged |
-| II. Graceful Degradation | ✅ | Logging failures don't crash analysis |
-| III. Actionable Output | ✅ | Doctor provides specific fix suggestions |
-| IV. Transparency | ✅ | Debug mode reveals internal operations |
-| V. Privacy & Security | ✅ | Secrets always redacted from logs |
-| VII. Static-First | ✅ | Logging doesn't invoke LLM |
-| VIII. Minimal Footprint | ✅ | Consola has zero external dependencies |
+| I. Local-First | Yes | All logs stored locally; secrets never leave user's machine |
+| II. Improvement-Oriented | Yes | Debug logs support iterative diagnosis and improvement |
+| III. Causal-First | Yes | Structured logging enables tracing issues to origin |
+| IV. Mixed-Methods | Yes | Combines machine-readable JSON with human-readable terminal output |
+| V. Language-Agnostic | N/A | Logging infrastructure is language-independent |
+| VI. Tool-Agnostic | N/A | Logging applies uniformly across all AI tool adapters |
+| VII. Intelligent Tooling | Yes | Logging infrastructure serves all analysis approaches |
+| VIII. Compounding Value | Yes | Persistent logs enable historical debugging and pattern detection |
+| IX. Agent-Aware | Yes | Log verbosity configurable to avoid overwhelming agent context |
 
 ---
 

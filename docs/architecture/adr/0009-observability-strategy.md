@@ -22,7 +22,7 @@ The architecture must support easy enablement of remote telemetry via feature fl
 ## Decision Drivers
 
 - **Local-First principle**: Local observability must work without network connectivity
-- **Progressive Value principle**: Debugging should work without any configuration
+- **Compounding Value principle**: Telemetry compounds into operational insights over time
 - **ADR-0006 alignment**: Leverage Vercel AI SDK's native OpenTelemetry support
 - **Future readiness**: Architecture should support agentlint-owned telemetry endpoint
 - **Privacy by design**: Sensitive data must be redacted before remote transmission
@@ -237,14 +237,14 @@ Thin abstraction layer with config-driven behavior.
 | IV. Mixed-Methods | ✅ Yes | Captures both quantitative (metrics) and qualitative (traces) |
 | V. Language-Agnostic | ✅ Yes | Telemetry independent of target language |
 | VI. Tool-Agnostic | ✅ Yes | OTel standard works with any observability backend |
-| VII. Static-First | ✅ Yes | Telemetry collection is lightweight, no LLM required |
-| VIII. Progressive Value | ✅ Yes | Local debugging works without any remote configuration |
+| VII. Intelligent Tooling | ✅ Yes | Observability supports both tool execution and agent reasoning |
+| VIII. Compounding Value | ✅ Yes | Telemetry data compounds into operational insights over time |
 | IX. Agent-Aware | ✅ Yes | Vercel AI SDK telemetry captures agent LLM interactions |
 
 ## More Information
 
 ### Related Documents
-- [ADR-0006: Agentic Analysis Implementation](./0006-agentic-analysis-implementation.md) - Vercel AI SDK with native OTel
+- [ADR-0006: Agentic Analysis Implementation](./0006-agent-orchestrated-analysis.md) - Vercel AI SDK with native OTel
 - [ADR-0004: Configuration File Locations](./0004-configuration-file-locations.md) - Config storage for consent
 - [ADR-0003: Local Storage Strategy](./0003-local-storage-strategy.md) - XDG locations for telemetry files
 - Design Questions: [Section 4.4 - Observability Strategy](../../design-questions.md#44-observability-strategy)
