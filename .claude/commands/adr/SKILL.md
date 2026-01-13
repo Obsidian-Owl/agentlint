@@ -128,7 +128,7 @@ For each option, verify alignment with the 8 constitutional principles:
 3. **Causal-First**: Does it enable tracing issues to origin?
 4. **Mixed-Methods**: Does it support both quantitative and qualitative?
 5. **Language-Agnostic**: Does it work across programming languages?
-6. **Tool-Agnostic**: Does it support multiple AI assistants (via adapters)?
+6. **Agent-Agnostic**: Does it support multiple AI coding agents (via adapters)?
 7. **Intelligent Tooling**: Are tools selected based on task needs? Can agent choose freely?
 8. **Compounding Value**: Does value compound over time through baselines?
 

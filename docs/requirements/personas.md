@@ -99,6 +99,6 @@
 
 ### Platform Engineer
 
-- Integrating AI tooling into CI/CD pipelines
+- Integrating AI coding agents into CI/CD pipelines
 - Automating configuration validation
 - Building internal developer platforms with AI assistance
