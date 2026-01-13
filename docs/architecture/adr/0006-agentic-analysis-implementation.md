@@ -15,7 +15,7 @@ agentlint requires LLM-powered analysis capabilities to provide semantic underst
 ## Decision Drivers
 
 - **Multi-provider requirement**: Must support Anthropic, OpenAI, and potentially local models
-- **Static-First principle**: Maximize deterministic analysis before invoking LLM
+- **Static-First principle**: Maximize deterministic analysis; runs concurrently with LLM per ADR-0019
 - **Progressive Value principle**: Tool must work without LLM configuration
 - **Full tool use**: Agent needs to read files, explore codebase, query git during analysis
 - **Agent-Aware principle**: Apply AX/UX/DX framework to our own agent design
@@ -38,33 +38,37 @@ Chosen option: **"Hybrid Static Core + Vercel AI SDK Agentic"** because it best 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │                    Analysis Pipeline                         │
+│                                                             │
+│  Deep Research Pattern: Static + Agentic run CONCURRENTLY  │
+│  (See ADR-0011, ADR-0019 for execution model details)      │
 ├─────────────────────────────────────────────────────────────┤
-│  1. STATIC ANALYSERS (Always run, no LLM required)          │
-│     • Config parsing and validation                          │
-│     • Session log statistics extraction                      │
-│     • Git history queries                                    │
-│     • Code pattern detection                                 │
+│                                                             │
+│  ┌─────────────────────────┐  ┌─────────────────────────┐  │
+│  │ STATIC TRACK            │  │ AGENTIC TRACK           │  │
+│  │ (Always runs, no LLM)   │  │ (Optional, needs LLM)   │  │
+│  │                         │  │                         │  │
+│  │ • Config parsing        │  │ ┌─────────────────────┐ │  │
+│  │ • Session log stats     │  │ │ Vercel AI SDK       │ │  │
+│  │ • Git history queries   │  │ │ • Provider abstrac. │ │  │
+│  │ • Code pattern detect.  │  │ │ • Tool definitions  │ │  │
+│  │ • Context preparation   │  │ │ • Agent loop        │ │  │
+│  │                         │  │ │ • OTel telemetry    │ │  │
+│  └───────────┬─────────────┘  │ └─────────────────────┘ │  │
+│              │                └───────────┬─────────────┘  │
+│              │   CONCURRENT               │                │
+│              │   (Promise.allSettled)     │                │
+│              └─────────────┬──────────────┘                │
+│                            ▼                               │
 ├─────────────────────────────────────────────────────────────┤
-│  2. CONTEXT PREPARATION (Static pre-processing)             │
-│     • Compress large inputs (session logs, codebases)        │
-│     • Structure hierarchical working memory                  │
-│     • Extract relevant samples for LLM                       │
-├─────────────────────────────────────────────────────────────┤
-│  3. AGENTIC ANALYSERS (Optional, requires LLM config)       │
-│     ┌─────────────────────────────────────────────────────┐ │
-│     │ Vercel AI SDK                                        │ │
-│     │ • Provider abstraction (Anthropic, OpenAI, etc.)    │ │
-│     │ • Tool definitions (Zod schemas)                    │ │
-│     │ • Agent loop with tool execution                    │ │
-│     │ • OpenTelemetry telemetry (opt-in)                  │ │
-│     └─────────────────────────────────────────────────────┘ │
-├─────────────────────────────────────────────────────────────┤
-│  4. RESULT SYNTHESIS                                        │
-│     • Merge static + agentic findings                       │
-│     • Causal link construction                              │
-│     • Report generation (AX/UX separation)                  │
+│  RESULT SYNTHESIS (After both tracks complete)             │
+│  • Merge static + agentic findings                         │
+│  • Causal link construction                                │
+│  • Graceful degradation if one track fails                 │
+│  • Report generation (AX/UX separation)                    │
 └─────────────────────────────────────────────────────────────┘
 ```
+
+**Execution Model**: Static and agentic analysis run **concurrently** per the deep research pattern (ADR-0019). Static-First means "prefer deterministic analysis" not "static must complete before agentic starts". This maximizes throughput while ensuring static results are always available (even if LLM fails).
 
 ### Agent Tool Capabilities
 
@@ -116,7 +120,7 @@ Future expansion via Vercel AI SDK adapters:
 
 ### Option 1: Hybrid Static Core + Vercel AI SDK Agentic
 
-Static analysers run first; Vercel AI SDK adds semantic analysis when LLM configured.
+Static analysers always run (no LLM dependency); Vercel AI SDK adds semantic analysis when LLM configured. Both tracks run concurrently per deep research pattern.
 
 - Good: Strongest alignment with Static-First principle
 - Good: Provider-agnostic via adapters (swap Claude for GPT without code changes)
@@ -171,7 +175,7 @@ Start with Anthropic SDK, build thin provider abstraction layer ourselves.
 | IV. Mixed-Methods | Yes | Static (quantitative) + agentic (qualitative) analysis |
 | V. Language-Agnostic | Yes | Analysis works regardless of target language |
 | VI. Tool-Agnostic | Yes | Vercel AI SDK enables multi-provider support |
-| VII. Static-First | Yes | Static analysers run before any LLM invocation |
+| VII. Static-First | Yes | Static analysis preferred and always runs; concurrent with agentic (not sequential) |
 | VIII. Progressive Value | Yes | Full static analysis without LLM configuration |
 | IX. Agent-Aware | Yes | Compressed context for agent, rich output for users |
 
@@ -180,6 +184,8 @@ Start with Anthropic SDK, build thin provider abstraction layer ourselves.
 ### Related Documents
 - [ADR-0001: Language and Runtime Selection](./0001-language-and-runtime-selection.md) - TypeScript + Bun foundation
 - [ADR-0005: Credential Storage Strategy](./0005-credential-storage-strategy.md) - How LLM credentials are accessed
+- [ADR-0011: Parallel Processing Architecture](./0011-parallel-processing-architecture.md) - Concurrent execution model
+- [ADR-0019: Language Ecosystem Support](./0019-language-ecosystem-support.md) - Deep research pattern (concurrent static+agentic)
 - Architecture Vision: [Section 7 - agentlint Agent Design](../../agentlint-architecture-vision.md#7-agentlint-agent-design)
 - Design Questions: [Section 2.1 - Agentic Analysis Implementation](../../design-questions.md#21-agentic-analysis-implementation)
 

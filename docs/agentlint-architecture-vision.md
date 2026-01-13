@@ -279,8 +279,8 @@ The system consists of four main layers:
 
 **Analysis Flow**:
 1. User runs analyse command
-2. Static analysers extract deterministic metrics
-3. If LLM is configured, agentic analysers perform semantic assessment
+2. Static analysers extract deterministic metrics         ┐ Run concurrently
+3. Agentic analysers perform semantic assessment (if LLM) ┘ (per ADR-0019)
 4. Results are combined into a unified report
 
 **Recommendation Flow**:
@@ -295,12 +295,14 @@ The system consists of four main layers:
 
 ### The Static-First Principle
 
-Maximise the use of static analysis before invoking LLM-based analysis:
+Prefer static analysis over LLM-based analysis where possible:
 
 - **Reduces cost**: Static analysis is essentially free; LLM calls have token costs
 - **Improves speed**: Static analysis is deterministic and cacheable
 - **Ensures reliability**: Static analysis produces consistent results
 - **Maintains privacy**: No data needs to leave the user's machine for static analysis
+
+**Execution Model**: "Static-First" refers to **preference**, not temporal ordering. Per the deep research pattern (ADR-0019), static and agentic analysis run concurrently for maximum throughput. Static results are always available even if LLM fails.
 
 ### What Static Analysis Handles
 
@@ -432,7 +434,7 @@ For large inputs (session logs, codebases), agentlint applies hierarchical compr
 3. **Threshold triggers**: Compress when approaching context limits
 4. **Preserve critical info**: Task goals, errors, decisions, and traced origins always retained
 
-This aligns with the static-first principle—maximize deterministic analysis before invoking LLM reasoning.
+This aligns with the static-first principle—maximize deterministic analysis (which runs concurrently with LLM reasoning per ADR-0019).
 
 ### 7.3 AX/UX Separation
 
@@ -471,7 +473,7 @@ agentlint addresses a genuine gap in the AI-assisted development ecosystem: the 
 
 3. **Mixed methods matter**: Quantitative signals provide objective anchors, but qualitative assessment tells us *why* things work. The best insights emerge from correlating both.
 
-4. **Static-first remains essential**: Extract maximum value from deterministic analysis before invoking costly LLM reasoning. This keeps the tool fast, affordable, and reliable.
+4. **Static-first remains essential**: Extract maximum value from deterministic analysis (runs concurrently with LLM per ADR-0019). This keeps the tool fast, affordable, and reliable.
 
 5. **Embrace uncertainty**: AI-assisted development is an evolving practice. We're developing understanding alongside our users, not just measuring against fixed benchmarks.
 

@@ -23,7 +23,7 @@
 1. **Clear task framing**: What are we analyzing and why?
 2. **Compressed project context**: Distilled configs, session stats, code samples—not raw data
 3. **Hierarchical memory**: Task goals, progress, findings organized for easy reference
-4. **Static pre-processing**: Metrics extracted deterministically before LLM reasoning
+4. **Static pre-processing**: Metrics extracted deterministically (runs concurrently with LLM per ADR-0019)
 5. **Baseline awareness**: Previous analysis results for trend comparison
 6. **Scoped focus**: One domain at a time, not everything at once
 

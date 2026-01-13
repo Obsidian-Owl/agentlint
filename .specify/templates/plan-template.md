@@ -39,7 +39,7 @@
 | IV. Mixed-Methods | ✅/⚠️/❌ | Includes quantitative and qualitative signals where applicable |
 | V. Language-Agnostic | ✅/⚠️/❌ | Core works across languages; graceful degradation for unsupported |
 | VI. Tool-Agnostic | ✅/⚠️/❌ | Tool-specific code in adapters only; core is tool-independent |
-| VII. Static-First | ✅/⚠️/❌ | LLM usage justified; static analysis exhausted first |
+| VII. Static-First | ✅/⚠️/❌ | LLM usage justified; static analysis preferred (concurrent, not sequential) |
 | VIII. Progressive Value | ✅/⚠️/❌ | Works without LLM config; static-only mode produces value |
 | IX. Agent-Aware | ✅/⚠️/❌ | Agent context hierarchically structured; AX/UX separation maintained; large inputs compressed |
 

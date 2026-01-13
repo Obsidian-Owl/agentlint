@@ -1,28 +1,23 @@
 <!--
 SYNC IMPACT REPORT
 ==================
-Version change: 1.1.0 → 1.2.0 (MINOR - new principle added)
+Version change: 1.2.0 → 1.2.1 (PATCH - clarification)
 
-Previous changes (1.1.0):
-- Added III. Causal-First principle
-- Renumbered III-VII to IV-VIII
-
-Current changes (1.2.0):
+Previous changes (1.2.0):
 - Added IX. Agent-Aware principle (CCA research learnings)
 
-Added sections:
-- IX. Agent-Aware principle (treat agentlint's own agent as first-class stakeholder, apply AX/UX/DX framework)
+Current changes (1.2.1):
+- Clarified VII. Static-First principle: "first" means preference, not temporal ordering
+- Added clarification that static and agentic analysis run concurrently (per ADR-0019 deep research pattern)
+- Added compliance check: "Static and agentic tracks run concurrently, not sequentially"
 
-Removed sections: N/A
+Modified sections:
+- VII. Static-First: Added Clarification subsection explaining concurrent execution model
 
 Templates requiring updates:
-- .specify/templates/plan-template.md: ✅ updated (Constitution Check now includes IX. Agent-Aware)
-- docs/north-star.md: ✅ updated (Stakeholder Experience Framework added, Design Principle 9 added)
-- docs/agentlint-architecture-vision.md: ✅ updated (Section 7 agentlint Agent Design, Section 3.4 expanded)
-- docs/requirements/personas.md: ✅ updated (Persona 0: The agentlint Agent added)
-- docs/design-questions.md: ✅ updated (Sections 11-12 added for CCA learnings)
+- ADRs already updated: ADR-0006, ADR-0011, ADR-0019 aligned with this clarification
 
-Follow-up TODOs: None - all dependent artifacts synchronized
+Follow-up TODOs: None - clarification aligns existing ADR decisions
 -->
 
 # agentlint Constitution
@@ -101,12 +96,18 @@ While initially focused on Claude Code, the architecture MUST support analysis o
 
 Prefer deterministic static analysis over LLM-based analysis where possible. Use LLMs only where semantic understanding is genuinely required. Static analysis is fast, cheap, reproducible, and privacy-preserving.
 
-**Rationale**: LLM calls are expensive, slow, and non-deterministic. Exhaust static analysis first.
+**Rationale**: LLM calls are expensive, slow, and non-deterministic. Static analysis provides reliable baseline.
+
+**Clarification**: "Static-First" means **preference**, not **temporal ordering**. Per the deep research pattern (ADR-0019), static and agentic analysis run **concurrently** for maximum throughput. Static-First ensures:
+1. Static analysis always runs (with or without LLM)
+2. Results are available even if LLM fails (graceful degradation)
+3. LLM is reserved for semantic tasks that require it
 
 **Compliance checks**:
 - Every analysis task must justify LLM usage if static alternatives exist
 - Static analysis results are cached aggressively
 - LLM-enhanced features work (with reduced capability) when LLM is unavailable
+- Static and agentic tracks run concurrently, not sequentially (see ADR-0011)
 
 ### VIII. Progressive Value
 
@@ -190,4 +191,4 @@ Changes to this constitution MUST trigger review of:
 
 All PRs MUST verify compliance with applicable principles. The Constitution Check in plan-template.md gates implementation work.
 
-**Version**: 1.2.0 | **Ratified**: 2026-01-11 | **Last Amended**: 2026-01-12
+**Version**: 1.2.1 | **Ratified**: 2026-01-11 | **Last Amended**: 2026-01-13

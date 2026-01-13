@@ -176,7 +176,7 @@ Questions are resolved through research, prototyping, and stakeholder input. Onc
 - Tool use capabilities for agentic analysis
 - Token counting and cost tracking
 
-**Current Thinking**: TBD
+**Current Thinking**: ✅ **DECIDED** - Resolved by [ADR-0006](architecture/adr/0006-agentic-analysis-implementation.md): Vercel AI SDK selected for provider abstraction. Supports Anthropic, OpenAI, and future providers via adapters. Includes streaming, tool use, and token tracking via OpenTelemetry integration.
 
 ### 2.3 Session Log Analysis Strategy
 
@@ -196,7 +196,7 @@ Questions are resolved through research, prototyping, and stakeholder input. Onc
 - Need to correlate issues with specific session segments (causal tracing)
 - Implementation complexity
 
-**Current Thinking**: TBD
+**Current Thinking**: ✅ **DECIDED** - See [ADR-0008](architecture/adr/0008-session-quality-analysis.md): Layered Static + Optional LLM approach. Infrastructure from ADR-0007 (streaming parser, FTS5 indexing) enables processing 100MB+ logs. Analysis covers 6 dimensions: Outcome Metrics, Agent Cognitive Health, Configuration Effectiveness, Prompt Quality, Automation Health, and Cross-Session Learning. Static analysis runs first (Layers 1-3), LLM optional for pattern detection and recommendations (Layers 4-5).
 
 ### 2.4 Causal Analysis Implementation
 
@@ -260,7 +260,7 @@ Issue: Secret in CLAUDE.md
 - Preventive recommendations should rank higher than symptomatic
 - User context affects priority (solo dev vs team)
 
-**Current Thinking**: TBD
+**Current Thinking**: ✅ **DECIDED** - See [ADR-0010](architecture/adr/0010-recommendation-prioritisation-strategy.md): Layered Views approach with Quick Wins view (low effort, high impact) and Optimal Impact view (type-first with dependencies). Strong type weighting (Systemic=3 > Preventive=2 > Symptomatic=1). Confidence displayed but advisory (user decides). Effort estimated via heuristics. Conflicts merged when compatible, flagged when contradictory.
 
 ### 2.6 Parallel Processing Architecture
 
@@ -287,7 +287,7 @@ Issue: Secret in CLAUDE.md
 - Memory constraints on developer machines
 - Language choice (1.1) affects available concurrency primitives
 
-**Current Thinking**: TBD
+**Current Thinking**: ✅ **DECIDED** - See [ADR-0011](architecture/adr/0011-parallel-processing-architecture.md): Layered Parallelism with Subagent Pattern. Static analysis uses Bun worker pools (CPU-bound tasks). Agentic analysis adopts Claude Code's orchestrator-worker pattern with up to 5 subagents (config, sessions, docs, code patterns, cross-reference). Deterministic output guaranteed via post-execution normalization (sort by domain/path/line). Rate limiting with token bucket for LLM calls.
 
 ### 2.7 Incremental Analysis
 
@@ -311,7 +311,7 @@ Issue: Secret in CLAUDE.md
 - Watch mode (future) requires efficient incremental updates
 - Baseline comparison is different from caching (historical vs current)
 
-**Current Thinking**: TBD
+**Current Thinking**: ✅ **DECIDED** - See [ADR-0012](architecture/adr/0012-incremental-analysis-strategy.md): Hybrid change detection (Git + Session timestamps). **Key insight: Notification fatigue is real** - research shows fewer notifications → better engagement. Three frequency modes (configured during `agentlint init`): 🌙 Calm (~$1-5/mo), ⚖️ Regular (~$10-20/mo, recommended), ⚡ Active (~$30-50/mo). Passive triggers: Claude Code SessionEnd hook (threshold-based), Git pre-push hook, weekly digest. Shell prompt indicator opt-in only (causes fatigue). Active triggers: manual CLI, CI/CD. Recommendation lifecycle: proposed → adopted → measured → closed. See Section 7.1.1 for init workflow with cost transparency.
 
 ---
 
@@ -373,7 +373,14 @@ Issue: Secret in CLAUDE.md
 - Users may not run tool for weeks; schema may skip versions
 - Testing migrations requires sample data from each version
 
-**Current Thinking**: TBD - Critical for data reliability
+**Current Thinking**: ✅ **DECIDED** - See [ADR-0017](architecture/adr/0017-versioning-and-migration-strategy.md)
+
+**Decisions**:
+- **Schema versioning**: PRAGMA user_version (zero dependencies, built into SQLite)
+- **Migration trigger**: Automatic on startup with pre-flight backup
+- **Backup strategy**: File copy to ~/.cache/agentlint/backups/ before migration
+- **Rollback**: Restore from backup on migration failure
+- **Version skipping**: Supported (can migrate v1 → v5 directly)
 
 ### 3.3 Baseline Versioning
 
@@ -398,7 +405,13 @@ Issue: Secret in CLAUDE.md
 - Retention affects storage requirements
 - Baseline comparison needs efficient lookup by time range
 
-**Current Thinking**: TBD
+**Current Thinking**: ✅ **DECIDED** - See [ADR-0017](architecture/adr/0017-versioning-and-migration-strategy.md)
+
+**Decisions**:
+- **Primary identifier**: ISO 8601 timestamp (human-readable, sortable)
+- **Metadata stored**: Git commit + branch + dirty flag, agentlint version, schema version, LLM model + temperatures, analysis domains, optional user notes
+- **Display format**: `agentlint history` shows table with timestamp, git short hash, version, and summary
+- **Retention**: Configurable (follow-up decision needed)
 
 ---
 
@@ -436,7 +449,7 @@ Issue: Secret in CLAUDE.md
 - Real API tests have cost implications
 - Test data (sample projects) needed for integration tests
 
-**Current Thinking**: TBD
+**Current Thinking**: ✅ **DECIDED** - See [ADR-0013](architecture/adr/0013-testing-strategy.md): Layered testing pyramid with Bun Test + EvalKit. Four layers: (1) Unit tests - pure functions, 80%+ coverage, (2) Component tests - static analysers, no LLM, (3) Integration tests - golden dataset 100+ scenarios, mocked LLM via Vercel AI SDK, (4) Agent evaluation - real LLM every CI run, EvalKit metrics (tool correctness, hallucination, faithfulness, coherence). Cost tracking via OTel (ADR-0009). ~$5-10 per CI run budget.
 
 ### 4.2 Error Handling & Recovery
 
@@ -463,7 +476,7 @@ Issue: Secret in CLAUDE.md
 - Clear error messages are essential for debugging
 - Graceful degradation aligns with Progressive Value principle
 
-**Current Thinking**: TBD
+**Current Thinking**: ✅ **DECIDED** - See [ADR-0014](architecture/adr/0014-error-handling-and-recovery.md): Continue with Degraded + Exponential Backoff. Three error types: transient (retry with backoff + jitter), recoverable (degrade gracefully), fatal (abort with clear message). LLM unavailable → graceful degradation to static-only mode. Structured terminal output with color-coded errors, suggestions, and exit codes (0=success, 1=fatal, 2=partial, 3=issues found). Subagent isolation prevents cascade failures. Follows Claude Code checkpoint patterns and Vercel AI SDK error taxonomy.
 
 ### 4.3 Reproducibility & Determinism
 
@@ -488,7 +501,7 @@ Issue: Secret in CLAUDE.md
 - Recording model version enables "reproducibility warnings"
 - Static-only mode is always reproducible
 
-**Current Thinking**: TBD
+**Current Thinking**: ✅ **DECIDED** - See [ADR-0015](architecture/adr/0015-reproducibility-and-determinism.md): Documented Non-Determinism with Version Tracking. Accept that LLM outputs are non-deterministic (even temp=0 doesn't guarantee it). **NOT using temp=0** - use task-appropriate temperatures (extraction: 0.1, reasoning: 0.3, synthesis: 0.4) for quality. Record full metadata: model ID, version, temperatures, timestamp, result hashes. Warn on version mismatch in baseline comparison. Static analysis fully deterministic. Static-only mode (`--static-only`) for guaranteed reproducibility.
 
 ### 4.4 Concurrency Model
 
@@ -512,7 +525,19 @@ Issue: Secret in CLAUDE.md
 - File locking mechanisms vary by OS
 - Storage engine (SQLite vs files) affects options
 
-**Current Thinking**: TBD
+**Current Thinking**: ✅ **DECIDED** - See [ADR-0016](architecture/adr/0016-concurrency-model.md)
+
+**Decisions**:
+- **Database Concurrency**: SQLite WAL mode (concurrent reads during writes, 10-30% faster writes)
+- **Checkpointing**: SQLite-based checkpoints (NOT Temporal-style event sourcing - too complex for CLI)
+- **Durability**: Crash-Resume (resume from last checkpoint, loses minimal work)
+- **CLI Concurrency**: Lock + Queue (acquire project lock, wait if busy, user-friendly message)
+
+**Key Design Insights**:
+- Temporal's "durable execution" requires server infrastructure - violates Local-First
+- SQLite WAL provides excellent concurrency for single-machine CLI tool
+- Checkpoint after each major step: 50 files (static), each session (indexing), each subagent (agentic)
+- Lock files use SHA256 of project path: `~/.local/share/agentlint/locks/<hash>.lock`
 
 ### 4.4 Observability Strategy
 
@@ -542,7 +567,7 @@ Issue: Secret in CLAUDE.md
 - Product improvement requires understanding real-world usage patterns
 - Enterprise users may have strict data governance requirements
 
-**Current Thinking**: TBD
+**Current Thinking**: ✅ **DECIDED** - See [ADR-0009](architecture/adr/0009-observability-strategy.md): Dual-Exporter OpenTelemetry Pipeline. Local file exporter always enabled for debugging. Remote exporter to agentlint.io feature-flagged (disabled MVP, enabled post-MVP). Redaction processor hashes file paths/project names before remote export. Consent via `agentlint init` opt-in step + `agentlint telemetry enable/disable` command. Leverages Vercel AI SDK native OTel (ADR-0006).
 
 ---
 
@@ -565,7 +590,15 @@ Issue: Secret in CLAUDE.md
 - Security implications of loading external code
 - Versioning and compatibility
 
-**Current Thinking**: TBD
+**Current Thinking**: ✅ **DECIDED** - See [ADR-0018](architecture/adr/0018-ai-tool-adapter-architecture.md)
+
+**Decisions**:
+- **Architecture**: Strategy + Factory pattern (compiled adapters, no runtime plugins)
+- **Agent Configuration**: AgentProfile system - each adapter provides tool-specific prompts, skills, tools, workflow hints
+- **Multi-Tool Handling**: Auto-detect all tools, merge findings, user configures primary tool
+- **Adapter Interface**: Full adapter (detect, parseConfig, parseSessions, generateConfig, getAgentProfile)
+- **MVP Scope**: Claude Code only; adapter pattern validated but others deferred
+- **Maintenance**: Core team only; no third-party plugins
 
 ### 5.2 Language Ecosystem Support
 
@@ -586,7 +619,16 @@ Issue: Secret in CLAUDE.md
 - Graceful degradation for unsupported languages
 - Maintenance burden of language-specific code
 
-**Current Thinking**: TBD
+**Current Thinking**: ✅ **DECIDED** - See [ADR-0019](architecture/adr/0019-language-ecosystem-support.md)
+
+**Decisions**:
+- **Parsing Strategy**: Layered approach (Surface regex → AST tree-sitter → External tools)
+- **Analysis Structure**: LanguageAnalyzer interface (per-language implementations)
+- **Metrics Scope**: Full static analysis (all layers) - agentlint as "deep research" capability
+- **Deep Research Integration**: Static layers run in PARALLEL with LLM analysis (not sequentially)
+- **Pattern Adopted**: Orchestrator-Worker from Claude's lead agent + parallel sub-agents model
+- **Error Handling**: Graceful degradation (Gemini async task manager pattern)
+- **MVP Languages**: TypeScript/JavaScript, Python, Go
 
 ---
 
@@ -607,74 +649,99 @@ Issue: Secret in CLAUDE.md
 - Integration with other tools
 - Complexity of implementation
 
-**Current Thinking**: TBD
+**Current Thinking**: ✅ **DECIDED** - See [ADR-0020](architecture/adr/0020-output-formats-and-execution-ux.md)
+
+**Decisions**:
+- **Architecture**: Context-Aware Multi-Mode (Interactive, Scriptable, CI/CD, MCP)
+- **Interactive Mode**: Terminal Dashboard with structured progress + conversational narration + final report
+- **Scriptable Mode**: JSON, NDJSON (stream-json), plain text
+- **CI/CD Mode**: SARIF (GitHub code scanning), JUnit XML, Markdown, exit codes
+- **MCP Mode**: agentlint as MCP server with tools (analyse, recommend, trace)
+- **Error UX**: Conversational (AI explains what happened), not raw error codes
+- **Streaming**: Static results stream immediately; agentic narrates findings as discovered
 
 ### 6.2 Caching Strategy
 
 **Question**: How should repeated analysis be optimised?
 
-**Options**:
-| Option | Pros | Cons |
-|--------|------|------|
-| Content-addressed cache | Precise invalidation by file hash | Storage overhead |
-| Git-aware cache | Natural invalidation by commits | Only works in git repos |
-| Time-based expiry | Simple TTL | May serve stale results |
-| No caching | Always fresh | Slower, more expensive |
+**Decision**: Multi-Layer Content-Addressed Caching with LLM Prompt Caching
 
-**Considerations**:
-- Performance for large codebases
-- Correctness (stale cache is worse than slow)
-- Storage requirements
-- Baseline comparison needs historical data (different from cache)
+See [ADR-0021: Caching Strategy](./architecture/adr/0021-caching-strategy.md) for full details.
 
-**Current Thinking**: TBD
+**Summary**:
+- **Layer 1**: Input fingerprinting (SHA-256 of config + sessions + code)
+- **Layer 2**: Static analysis cache (content-addressed, per-file granularity)
+- **Layer 3**: LLM prompt caching (Anthropic native, 90% cost reduction)
+- **Layer 4**: Response cache (development/testing only, optional)
+
+**Key Insights**:
+- Content-addressed caching ensures precise invalidation (no stale results)
+- Anthropic prompt caching saves up to 90% on LLM costs (cache reads at 0.1x price)
+- Static analysis is fully deterministic; caching is safe and reliable
+- Response caching is explicitly development-only for reproducibility
+- This ADR addresses **performance caching**; ADR-0012 addresses **learning/tracking**
 
 ### 6.3 CI/CD Integration Patterns
 
-**Question**: How should agentlint integrate with CI/CD pipelines?
+**Question**: Why would anyone add agentlint to their CI? (Reframed from "how" to "why")
 
-**Use Cases**:
-- Run analysis on every PR
-- Block merge if critical issues found
-- Generate reports as build artifacts
-- Comment on PRs with recommendations
+**Decision**: Observability-First Integration (Non-Blocking Default)
 
-**Sub-questions**:
-- What exit codes for different outcomes?
-- Output format for CI parsing (JSON, JUnit XML)?
-- How to store baselines in CI (artifacts, external storage)?
-- GitHub Actions, GitLab CI, Jenkins - official support?
+See [ADR-0022: CI/CD Integration Patterns](./architecture/adr/0022-cicd-integration-patterns.md) for full details.
 
-**Considerations**:
-- CI environments may have limited permissions
-- Baselines need persistence across CI runs
-- Cost implications of LLM analysis on every PR
+**Key Reframe**: agentlint is NOT a quality gate. It's an improvement-oriented tool for tracking AI workflow effectiveness. CI integration provides **visibility** and **trend tracking**, not gatekeeping.
 
-**Current Thinking**: TBD (Phase 4)
+**Summary**:
+- **Non-blocking by default**: Exit code 0 always (unless internal error). PR comments are informational, never blocking.
+- **Configurable analysis levels**: Static (free), Light LLM (~$0.05/PR), Full (~$0.50/PR)
+- **Baseline auto-capture**: On merge, capture baseline for trend tracking
+- **Team visibility**: PR comments with insights, artifact reports, trend data
+
+**Exit Codes**:
+| Code | Meaning | CI Effect |
+|------|---------|-----------|
+| 0 | Analysis completed (even with findings) | Pass always |
+| 1 | Internal error (tool bug) | Fail |
+| 2 | Invalid configuration | Fail |
+
+**Why CI Integration Matters for Personas**:
+- **The Optimizer**: Auto-capture baselines, track improvement trends
+- **Multi-Tool User**: Detect config drift across team PRs
+- **Vibe Coder**: Surface cost trends, alert on degradation
+- **Context Engineer**: Validate compliance with best practices
 
 ### 6.4 Git Hooks Integration
 
 **Question**: How should agentlint integrate with git hooks?
 
+**Decision**: Observability Triggers with Smart Throttling
+
+See [ADR-0023: Git Hooks Integration](./architecture/adr/0023-git-hooks-integration.md) for full details.
+
+**Key Philosophy**: Hooks are **observability triggers**, not quality gates. They trigger background analysis and surface status, never block git operations by default.
+
+**Recommended Hook: post-push** (not pre-commit)
+- Rationale: We track improvement OVER TIME, not per-operation
+- post-push is a natural "I'm ready to share" checkpoint
+- Background analysis runs without blocking the push
+
+**Smart Throttling**:
+| Check | Default | Purpose |
+|-------|---------|---------|
+| Cooldown | 4 hours | Don't run if last analysis was recent |
+| Min sessions | 3 | Don't run if no significant changes |
+| Batch window | 30 min | Combine rapid triggers into single analysis |
+
 **Hook Types**:
-| Hook | Use Case | Considerations |
-|------|----------|----------------|
-| pre-commit | Block commit if issues found | Must be fast |
-| post-commit | Log analysis after commit | Non-blocking |
-| pre-push | Check before pushing | Can be slower |
+| Hook | Recommended | Behavior |
+|------|-------------|----------|
+| pre-commit | No (opt-in) | Static only, <2s, exit 0 always |
+| post-commit | Neutral | Counter increment only |
+| post-push | **Yes** | Background analysis with throttling |
 
-**Sub-questions**:
-- Should agentlint install hooks automatically (`agentlint init`)?
-- Configuration for which violations block vs warn?
-- Integration with existing hook systems (husky, pre-commit)?
-- How to make hook analysis fast enough?
+**Framework Integration**: Works with husky, lefthook, pre-commit (examples provided)
 
-**Considerations**:
-- Hooks live in .git/hooks (not version-controlled by default)
-- Full analysis too slow for pre-commit; need fast subset
-- User control over blocking behaviour
-
-**Current Thinking**: TBD (Phase 4)
+**Exit Codes**: Always 0 (observability-first). Findings are observations, not failures.
 
 ---
 
@@ -684,27 +751,192 @@ Issue: Secret in CLAUDE.md
 
 **Question**: How should the CLI be designed for optimal UX?
 
-**Sub-questions**:
-- Command structure: subcommands (`agentlint analyse`) or flags?
-- Interactive mode for guided analysis?
-- Progress indicators for long operations?
-- Colour and formatting conventions?
-- Shell completion scripts (bash, zsh, fish)?
+**Decision**: Subcommand-based CLI using Clerc framework
 
-**Common CLI Patterns**:
-- `agentlint scan` - Discover AI tools
-- `agentlint baseline` - Create baseline
-- `agentlint analyse` - Run analysis
-- `agentlint compare` - Compare baselines
-- `agentlint recommend` - Show recommendations
-- `agentlint trace <issue>` - Trace issue origin
+See [ADR-0024: CLI Design and Help System](./architecture/adr/0024-cli-design-and-help-system.md) for full details.
 
-**Considerations**:
-- Consistent with user expectations from similar tools
-- Progressive disclosure (simple default, advanced options available)
-- Accessibility (screen readers, low-vision)
+**Command Structure** (git/npm style):
+```
+agentlint
+├── init          # First-run wizard
+├── analyse       # Run analysis (primary command)
+├── baseline      # Create/manage baselines
+├── compare       # Compare baselines
+├── recommend     # Show recommendations
+├── trace         # Trace issue to origin
+├── scan          # Discover AI tools
+├── hooks         # Manage git hooks
+├── cache         # Manage analysis cache
+├── config        # View/edit configuration
+└── completion    # Generate shell completions
+```
 
-**Current Thinking**: TBD
+**CLI Framework**: [Clerc](https://github.com/mrozio13pl/clerc)
+- Explicitly Bun-native (Node, Deno, Bun)
+- Strongly-typed (TypeScript-first)
+- Zero dependencies
+- Built-in shell completion generation
+
+**Global Flags** (per [clig.dev](https://clig.dev/)):
+- `-h, --help` - Show help
+- `-V, --version` - Show version
+- `-q, --quiet` - Suppress non-essential output
+- `-v, --verbose` - Show detailed output
+- `--no-color` - Disable colored output
+- `-f, --output-format` - Output format (from ADR-0020)
+
+**Help Design**: Tiered help (root → command → contextual error suggestions)
+
+### 7.1.1 `agentlint init` Command Design
+
+**Question**: How should the first-run experience guide users through setup?
+
+**Context**:
+- ADR-0009 surfaces need for telemetry opt-in during init
+- ADR-0012 surfaces need for frequency mode selection during init
+- Research shows first-run wizards with safe defaults reduce time-to-value ([Medium CLI UX](https://medium.com/@kaushalsinh73/top-8-cli-ux-patterns-users-will-brag-about-4427adb548b7))
+
+**Design Goals**:
+1. **Minimal friction** - Get value quickly with sensible defaults
+2. **Cost transparency** - Users understand LLM cost implications of choices
+3. **Escapable** - Power users can skip with flags (`agentlint init --defaults`)
+4. **Project-scoped** - Per-project config, with global defaults
+
+**Proposed Init Flow**:
+
+```
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                         agentlint init WORKFLOW                              │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  STEP 1: PROJECT DETECTION                                                 │
+│  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ │
+│                                                                             │
+│  $ agentlint init                                                          │
+│                                                                             │
+│  🔍 Detected AI coding tools:                                              │
+│     ✓ Claude Code (claude-code, ~/.claude/)                                │
+│     ✓ CLAUDE.md found                                                      │
+│     ○ Cursor (not detected)                                                │
+│     ○ Aider (not detected)                                                 │
+│                                                                             │
+│  📁 Project: myproject (/Users/me/myproject)                               │
+│                                                                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  STEP 2: FREQUENCY MODE SELECTION                                          │
+│  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ │
+│                                                                             │
+│  How often should agentlint analyse your AI sessions?                      │
+│                                                                             │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │ ○ 🌙 Calm      - Weekly digest, manual trigger only                │   │
+│  │                  Estimated: ~$1-5/month in LLM costs               │   │
+│  │                  Best for: cost-conscious, infrequent users        │   │
+│  │                                                                     │   │
+│  │ ● ⚖️  Regular   - After every 5 AI sessions (Recommended)          │   │
+│  │                  Estimated: ~$10-20/month in LLM costs             │   │
+│  │                  Best for: most users                              │   │
+│  │                                                                     │   │
+│  │ ○ ⚡ Active    - After every AI session                            │   │
+│  │                  Estimated: ~$30-50/month in LLM costs             │   │
+│  │                  Best for: power users, active improvement         │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                             │
+│  [↑↓ to select, Enter to confirm, ? for help]                              │
+│                                                                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  STEP 3: HOOK INSTALLATION (based on frequency mode)                       │
+│  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ │
+│                                                                             │
+│  Based on your choice (Regular), these hooks will be installed:            │
+│                                                                             │
+│  ┌─────────────────────────────────────────────────────────────────────┐   │
+│  │ ☑ Claude Code SessionEnd hook (analyses after 5 AI sessions)       │   │
+│  │ ☑ Git pre-push hook (analyses before pushing to remote)            │   │
+│  │ ☐ Git post-commit hook (skipped - too frequent for Regular mode)   │   │
+│  │ ☐ Shell prompt indicator (opt-in only - causes notification fatigue) │   │
+│  └─────────────────────────────────────────────────────────────────────┘   │
+│                                                                             │
+│  Install hooks? [Y/n]                                                      │
+│                                                                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  STEP 4: TELEMETRY OPT-IN (from ADR-0009)                                  │
+│  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ │
+│                                                                             │
+│  📊 Anonymous Telemetry (Optional)                                         │
+│                                                                             │
+│  Help improve agentlint by sharing anonymous usage data.                   │
+│                                                                             │
+│  We collect: command usage, timing, finding counts, LLM model used         │
+│  We NEVER collect: file paths, code, prompts, API keys                    │
+│                                                                             │
+│  Enable anonymous telemetry? [y/N]                                         │
+│                                                                             │
+├─────────────────────────────────────────────────────────────────────────────┤
+│                                                                             │
+│  STEP 5: SUMMARY & FIRST RUN                                               │
+│  ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ │
+│                                                                             │
+│  ✅ Configuration saved to .agentlint/config.toml                          │
+│                                                                             │
+│  Summary:                                                                   │
+│    Frequency: Regular (analyse every 5 sessions)                           │
+│    Hooks: Claude Code SessionEnd, Git pre-push                             │
+│    Telemetry: Disabled                                                     │
+│    Estimated cost: ~$10-20/month                                           │
+│                                                                             │
+│  Run initial baseline now? [Y/n]                                           │
+│                                                                             │
+│  (This will take 1-2 minutes and cost ~$0.10-0.50)                         │
+│                                                                             │
+└─────────────────────────────────────────────────────────────────────────────┘
+```
+
+**CLI Options**:
+```bash
+# Interactive init (default)
+agentlint init
+
+# Skip wizard, use defaults (Regular mode, no telemetry)
+agentlint init --defaults
+
+# Non-interactive with specific options
+agentlint init --frequency calm --no-telemetry --no-hooks
+
+# Init for global defaults (not project-specific)
+agentlint init --global
+```
+
+**Files Created**:
+```
+.agentlint/
+├── config.toml        # Project configuration
+├── state.json         # Staleness tracking (gitignored)
+└── .gitignore         # Ignores state.json
+
+~/.config/agentlint/
+└── config.toml        # Global defaults (created on first init)
+
+~/.claude/hooks/
+└── session-end.sh     # Claude Code hook (if Claude Code detected)
+
+.git/hooks/
+└── pre-push           # Git hook (if requested)
+```
+
+**Cost Transparency**:
+| Mode | Sessions/Week | Analyses/Month | Est. Monthly Cost |
+|------|---------------|----------------|-------------------|
+| 🌙 Calm | Any | 4 (weekly) | $1-5 |
+| ⚖️ Regular | ~20 | 16 (every 5) | $10-20 |
+| ⚡ Active | ~20 | 80 (every 1) | $30-50 |
+
+*Costs based on Claude Sonnet at ~$3/1M input, ~$15/1M output tokens, typical session size*
+
+**Decision**: ✅ **DECIDED** - See [ADR-0024: CLI Design and Help System](./architecture/adr/0024-cli-design-and-help-system.md) for implementation details. First-run wizard with frequency mode selection (ADR-0012), telemetry opt-in (ADR-0009), and hook installation (ADR-0023). Cost transparency upfront. Sensible defaults (Regular mode). Escapable with `--defaults` flag.
 
 ### 7.2 Logging & Debugging
 
@@ -728,7 +960,7 @@ Issue: Secret in CLAUDE.md
 - Debug mode for troubleshooting
 - Performance logging for optimisation
 
-**Current Thinking**: TBD
+**Decision**: ✅ **DECIDED** - See [ADR-0025: Logging and Debugging Strategy](./architecture/adr/0025-logging-and-debugging-strategy.md). Using **Consola** (TypeScript-first, UnJS ecosystem, Bun-compatible). Tiered log levels: `--silent` → `--quiet` → (default info) → `--verbose` → `--debug`. stdout for results, stderr for diagnostics. Secrets always redacted. `agentlint doctor` command for environment validation with `--fix` option.
 
 ### 7.3 Documentation Strategy
 
@@ -983,12 +1215,7 @@ The CCA research paper introduces the concept of "hindsight notes" - a note-taki
 - Error recurrence rate drops
 - Recommendation adoption leads to measurable improvement
 
-### Research Needed
-
-- Survey how developers currently capture learnings from AI sessions
-- Analyze session logs for extractable hindsight patterns
-- Evaluate CCA's hindsight note format for agentlint applicability
-- Prototype automated hindsight extraction from traced issues
+**Decision**: ✅ **DECIDED** - See [ADR-0026: Hindsight Capture and Knowledge Surfacing Strategy](./architecture/adr/0026-hindsight-capture-and-knowledge-surfacing-strategy.md). Active Capture + Auto-Extract scope. Extends causal model to `DETECT → TRACE → UNDERSTAND → CAPTURE → PREVENT`. SQLite storage with Markdown export. Export + Recommend surfacing (user controls what agents see). Integrates with ADR-0012 recommendation lifecycle.
 
 ---
 
@@ -1010,7 +1237,7 @@ The CCA research provides a framework we should apply to agentlint's own agentic
 
 **Considerations**:
 - Session logs can be very large (mentioned in architecture vision)
-- Static-first principle applies - extract stats before LLM
+- Static-first principle applies - extract stats (concurrent with LLM per ADR-0019)
 - Need to preserve critical information in compression
 
 ### 12.2 Agent Working Memory Structure
@@ -1080,6 +1307,8 @@ The CCA research provides a framework we should apply to agentlint's own agentic
 - Easier testing and ablation
 - Plugin potential for future extensibility
 
+**Decision**: ✅ **DECIDED** - See [ADR-0028: Agent Modularity and Extension Pattern](./architecture/adr/0028-agent-modularity-and-extension-pattern.md). Keep current adapter pattern (AIToolAdapter, LanguageAnalyzer) - no P/R/A formalization needed. Compiled-in only (no plugins). Interface contracts + mocks for testing.
+
 ---
 
 ## 13. Decision Log
@@ -1095,6 +1324,27 @@ Resolved decisions are logged here with rationale.
 | [ADR-0005](architecture/adr/0005-credential-storage-strategy.md) | 2026-01-12 | Env + Keychain | Env vars primary, Bun.secrets keychain fallback, helper command for setup |
 | [ADR-0006](architecture/adr/0006-agentic-analysis-implementation.md) | 2026-01-12 | Hybrid + Vercel AI SDK | Static-first + Vercel AI SDK agentic. Multi-provider, full tool use, OTel ready |
 | [ADR-0007](architecture/adr/0007-causal-analysis-architecture.md) | 2026-01-12 | Evidence-First + LLM Synthesis | Static evidence extraction, LLM synthesizes narrative, multi-pass verification, user feedback loop |
+| [ADR-0008](architecture/adr/0008-session-quality-analysis.md) | 2026-01-12 | Layered Static + Optional LLM | 6 analysis dimensions (outcome, cognitive health, config effectiveness, prompt quality, automation, cross-session learning). Builds on ADR-0007 infrastructure |
+| [ADR-0009](architecture/adr/0009-observability-strategy.md) | 2026-01-12 | Dual-Exporter OTel Pipeline | Local always-on + remote feature-flagged. Redaction for privacy. Consent via init + command. Leverages ADR-0006 |
+| [ADR-0010](architecture/adr/0010-recommendation-prioritisation-strategy.md) | 2026-01-12 | Layered Views | Quick Wins + Optimal Impact views. Strong type weighting (Systemic > Preventive > Symptomatic). Heuristic effort. Merge-first conflicts |
+| [ADR-0011](architecture/adr/0011-parallel-processing-architecture.md) | 2026-01-12 | Layered Parallelism + Subagent | Static worker pools + orchestrator-worker agentic pattern. 5 subagents max. Deterministic via post-execution normalization |
+| [ADR-0012](architecture/adr/0012-incremental-analysis-strategy.md) | 2026-01-12 | Hybrid + Frequency Modes | Hybrid change detection (Git + Session). Three frequency modes: 🌙 Calm, ⚖️ Regular, ⚡ Active (cost transparency). Shell prompt opt-in only (notification fatigue). Recommendation lifecycle: proposed → adopted → measured → closed |
+| [ADR-0013](architecture/adr/0013-testing-strategy.md) | 2026-01-13 | Bun Test + EvalKit | 4-layer pyramid: unit, component, integration (golden dataset), agent eval (real LLM). EvalKit for tool correctness, hallucination, faithfulness. Real API every CI run. ~$5-10/run budget via OTel tracking |
+| [ADR-0014](architecture/adr/0014-error-handling-and-recovery.md) | 2026-01-13 | Degraded + Backoff | Three error types (transient/recoverable/fatal). Exponential backoff + jitter for retries. Graceful degradation to static-only. Exit codes for CI/CD. Claude Code patterns |
+| [ADR-0015](architecture/adr/0015-reproducibility-and-determinism.md) | 2026-01-13 | Documented Non-Determinism | Accept LLM non-determinism, task-appropriate temps (NOT temp=0), record full metadata, warn on version mismatch. Static analysis deterministic. Static-only mode for guaranteed reproducibility |
+| [ADR-0016](architecture/adr/0016-concurrency-model.md) | 2026-01-13 | SQLite WAL + Crash-Resume | WAL mode for concurrent reads. SQLite-based checkpoints (not Temporal). Crash-resume from last checkpoint. Lock + Queue for CLI concurrency |
+| [ADR-0017](architecture/adr/0017-versioning-and-migration-strategy.md) | 2026-01-13 | user_version + File Backup | PRAGMA user_version for schema versioning. Auto-migrate on startup with file backup. Config version field. Baseline: timestamp + git hash metadata |
+| [ADR-0018](architecture/adr/0018-ai-tool-adapter-architecture.md) | 2026-01-13 | Strategy + Factory + AgentProfile | Compiled adapters (no plugins). Each adapter provides AgentProfile for tool-specific agent config. Auto-detect + merge for multi-tool. MVP: Claude Code only |
+| [ADR-0019](architecture/adr/0019-language-ecosystem-support.md) | 2026-01-13 | Layered Analysis + Deep Research Pattern | Layered parsing (Surface → AST → External tools). LanguageAnalyzer interface. Full static analysis as "deep research". Parallel with LLM (not sequential). Orchestrator-Worker pattern from Claude. MVP: TS/JS, Python, Go |
+| [ADR-0020](architecture/adr/0020-output-formats-and-execution-ux.md) | 2026-01-13 | Context-Aware Multi-Mode | Terminal Dashboard (structured progress + conversational narration + final report). Scriptable (JSON/NDJSON). CI/CD (SARIF/JUnit XML/exit codes). MCP server mode. Conversational error UX |
+| [ADR-0021](architecture/adr/0021-caching-strategy.md) | 2026-01-13 | Multi-Layer + Prompt Caching | File hash-based invalidation. Static results cached locally. Prompt caching for LLM context. Cache warming for CI/CD |
+| [ADR-0022](architecture/adr/0022-cicd-integration-patterns.md) | 2026-01-13 | GitHub Actions + SARIF | Official reusable workflow. SARIF for code scanning integration. Caching via actions/cache. PR comments via GitHub API |
+| [ADR-0023](architecture/adr/0023-git-hooks-integration.md) | 2026-01-13 | Native + Husky Compat | Direct .git/hooks installation. Husky/lint-staged detection. Configurable hooks (pre-commit, pre-push). Quick mode for hooks |
+| [ADR-0024](architecture/adr/0024-cli-design-and-help-system.md) | 2026-01-13 | Clerc + Init Wizard | Clerc framework (Bun-native). Subcommand structure. First-run init wizard. Shell completions |
+| [ADR-0025](architecture/adr/0025-logging-and-debugging-strategy.md) | 2026-01-13 | Consola + Doctor Command | Consola logger (UnJS). Tiered verbosity (--quiet/--verbose/--debug). agentlint doctor for diagnostics. Secret redaction |
+| [ADR-0026](architecture/adr/0026-hindsight-capture-and-knowledge-surfacing-strategy.md) | 2026-01-13 | Active Capture + Export | Extends causal model: DETECT→TRACE→UNDERSTAND→CAPTURE→PREVENT. SQLite + Markdown export. Export + Recommend surfacing. Integrates with ADR-0012 recommendation lifecycle |
+| [ADR-0027](architecture/adr/0027-agent-working-memory-architecture.md) | 2026-01-13 | Hierarchical + Scratchpad | CCA-style memory tree. Threshold-based compression (80%). Per-project memory. Preserves goals/decisions/errors/TODOs. Integrates with ADR-0011 subagents |
+| [ADR-0028](architecture/adr/0028-agent-modularity-and-extension-pattern.md) | 2026-01-13 | Keep Current Patterns | No P/R/A formalization - existing adapters sufficient. Compiled-in only (no plugins). Interface contracts + mocks for testing |
 
 ---
 
@@ -1108,8 +1358,20 @@ Resolved decisions are logged here with rationale.
 6. ~~**Agentic Analysis Implementation**: Decide on LLM integration approach (Section 2.1)~~ ✅ Decided: Hybrid + Vercel AI SDK (ADR-0006)
 7. ~~**Causal Analysis Design**: Deep dive on Section 2.4 - this is the core differentiator~~ ✅ Decided: Evidence-First + LLM Synthesis (ADR-0007)
 8. ~~**Storage Schema**: Design data model that supports causal links and efficient queries~~ ✅ Included in ADR-0003
-9. **Observability Strategy**: Decide on opt-in telemetry approach (Section 4.4) - NEW
-10. **Testing Strategy**: Establish approach for LLM-dependent testing early
+9. ~~**Session Log Analysis Strategy**: How to analyze 100MB+ logs for quality, effectiveness, and patterns (Section 2.3)~~ ✅ Decided: Layered Static + Optional LLM (ADR-0008)
+10. ~~**Observability Strategy**: Decide on opt-in telemetry approach (Section 4.4)~~ ✅ Decided: Dual-Exporter OTel Pipeline (ADR-0009)
+11. ~~**Recommendation Prioritisation**: Define how recommendations are ranked and conflicts resolved (Section 2.5)~~ ✅ Decided: Layered Views (ADR-0010)
+12. ~~**Parallel Processing Architecture**: Define static and agentic parallelism strategy (Section 2.6)~~ ✅ Decided: Layered Parallelism + Subagent Pattern (ADR-0011)
+13. ~~**Incremental Analysis Strategy**: Define change detection, triggers, and recommendation lifecycle (Section 2.7)~~ ✅ Decided: Hybrid + Frequency Modes (ADR-0012)
+14. ~~**Testing Strategy**: Establish approach for LLM-dependent testing early (Section 4.1)~~ ✅ Decided: Bun Test + EvalKit (ADR-0013)
+15. ~~**`agentlint init` Command Design**: Define full init workflow including telemetry opt-in (surfaced by ADR-0009)~~ ✅ Decided: First-run wizard with frequency modes (Section 7.1.1)
+16. ~~**Error Handling & Recovery**: Define error classification, retry strategy, and graceful degradation (Section 4.2)~~ ✅ Decided: Degraded + Backoff (ADR-0014)
+17. ~~**Reproducibility & Determinism**: Define how to handle LLM non-determinism and baseline comparison (Section 4.3)~~ ✅ Decided: Documented Non-Determinism (ADR-0015)
+18. ~~**Concurrency Model**: Define database concurrency, checkpointing, durability, and CLI concurrency (Section 4.4)~~ ✅ Decided: SQLite WAL + Crash-Resume (ADR-0016)
+19. ~~**Versioning & Migration Strategy**: Define schema migration, config versioning, baseline identification (Sections 3.2, 3.3)~~ ✅ Decided: user_version + File Backup (ADR-0017)
+20. ~~**Plugin Architecture for AI Tools**: Define adapter architecture, agent configuration, multi-tool handling (Section 5.1)~~ ✅ Decided: Strategy + Factory + AgentProfile (ADR-0018)
+21. ~~**Language Ecosystem Support**: Define language analysis approach, parsing strategy, deep research integration (Section 5.2)~~ ✅ Decided: Layered Analysis + Deep Research Pattern (ADR-0019)
+22. ~~**Output Formats & Execution UX**: Define output formats, execution contexts, streaming UX, MCP integration (Section 6.1)~~ ✅ Decided: Context-Aware Multi-Mode (ADR-0020)
 
 ---
 

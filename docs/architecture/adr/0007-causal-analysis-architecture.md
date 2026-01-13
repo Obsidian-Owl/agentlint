@@ -22,7 +22,7 @@ The challenge: Session logs from AI tools (Claude Code, Copilot CLI, etc.) can b
 ## Decision Drivers
 
 - **Causal-First principle**: Every issue should link back to origin and prevention
-- **Static-First principle**: Exhaust static analysis before LLM invocation
+- **Static-First principle**: Prefer static analysis; runs concurrently with LLM (not sequentially before)
 - **Mixed-Methods principle**: Combine quantitative evidence with qualitative synthesis
 - **Improvement-Oriented**: User feedback should improve future traces
 - **Research findings**: LLM causal reasoning is often "post-hoc rationalization" - need evidence-based approach
@@ -349,9 +349,14 @@ Multiple independent LLM passes, consensus determines confidence.
 ### Related Documents
 - [ADR-0003: Local Storage Strategy](./0003-local-storage-strategy.md) - SQLite + FTS5 for evidence indexing
 - [ADR-0006: Agentic Analysis Implementation](./0006-agentic-analysis-implementation.md) - Vercel AI SDK for LLM synthesis
+- [ADR-0008: Session Quality Analysis Methodology](./0008-session-quality-analysis.md) - Holistic session analysis (complementary to causal tracing)
 - Architecture Vision: [Causal Analysis Model](../../agentlint-architecture-vision.md#causal-analysis-from-detection-to-prevention)
 - Design Questions: [Section 2.4 - Causal Analysis Implementation](../../design-questions.md#24-causal-analysis-implementation)
 - Use Cases: [UC-008: Trace Issue Origins](../../requirements/use-cases.md#uc-008-trace-issue-origins)
+
+**Note on ADR-0008**: This ADR (0007) focuses on **causal tracing** - tracing specific issues back to their origin sessions/commits. ADR-0008 complements this with **holistic session quality analysis** - measuring overall session effectiveness, configuration compliance, prompt quality, and automation health. Both ADRs share the same infrastructure (streaming parser, FTS5 indexing) but serve distinct purposes:
+- ADR-0007: "Why did this issue occur?" (retrospective, issue-focused)
+- ADR-0008: "How effective are my sessions?" (holistic, improvement-focused)
 
 ### Research Sources
 - [Chain-of-Thought Is Not Explainability](https://aigi.ox.ac.uk/wp-content/uploads/2025/07/Cot_Is_Not_Explainability.pdf) - CoT as post-hoc rationalization
