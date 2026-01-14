@@ -528,35 +528,23 @@ These decisions establish the fundamental platform and must be resolved first.
 
 ### DD-015: Credential Management
 
-**Status**: OPEN
+**Status**: DECIDED (ADR-0014)
 
 **Question**: How should user LLM API credentials be stored and accessed?
 
-**Context**:
-- Local-first requires user-provided credentials
-- Must never transmit credentials inappropriately
-- Need secure local storage
-- Support multiple providers potentially
+**Decision**: Use **environment variables with fallback chain**. Resolution order: (1) `ANTHROPIC_API_KEY` env var, (2) `~/.agentlint/credentials` TOML file, (3) interactive prompt if TTY, (4) error with setup instructions.
 
-**Options to Consider**:
-| Option | Strengths | Considerations |
-|--------|-----------|----------------|
-| Environment variables | Simple, standard | User must manage |
-| System keychain | Secure, OS-integrated | Platform-specific APIs |
-| Encrypted config file | Portable | Key management complexity |
-| Credential helper pattern | Flexible, git-like | Implementation complexity |
+**Key Design Points**:
+- Matches Anthropic ecosystem conventions (`ANTHROPIC_API_KEY`)
+- Works in all CI/CD platforms without special configuration
+- No native dependencies (no node-keytar)
+- Credentials file with 600 permissions for local convenience
+- `agentlint auth` command for interactive setup
 
-**Key Questions**:
-- What's the expected user flow for credential setup?
-- How do we handle credential rotation?
-- What validation should occur at startup?
-- How do we support CI/scripted usage?
-
-**Evaluation Criteria**:
-- Security of storage
-- User experience for setup
-- Cross-platform consistency
-- CI/automation support
+**Credential Resolution Chain**:
+```
+ANTHROPIC_API_KEY env var → ~/.agentlint/credentials → interactive prompt → error
+```
 
 **Related Principles**: I (Local-First), NFR-2.3 (User provides own credentials)
 
@@ -568,35 +556,30 @@ These decisions establish the fundamental platform and must be resolved first.
 
 ### DD-016: Git Integration Depth
 
-**Status**: OPEN
+**Status**: DECIDED (ADR-0015)
 
 **Question**: How deeply should agentlint integrate with Git for temporal analysis?
 
-**Context**:
-- Git history needed for causal tracing
-- Blame, log, diff, pickaxe search capabilities
-- Must work with or without git (NFR-6.5)
-- Performance considerations for large repos
+**Decision**: Use **simple-git (Git CLI wrapper)**. This provides full access to all git operations (blame, log, diff, pickaxe) via the native git binary, with TypeScript support and zero native dependencies.
 
-**Options to Consider**:
-| Option | Strengths | Considerations |
-|--------|-----------|----------------|
-| Git CLI wrapper | Simple, universal | Process overhead |
-| libgit2 bindings | Native performance | Binding complexity |
-| isomorphic-git | Pure JS, portable | Feature completeness |
-| Minimal integration | Graceful degradation | Limited tracing capability |
+**Key Design Points**:
+- Full git CLI functionality via simple-git npm package
+- Blame, log, diff, and pickaxe search for causal tracing
+- Graceful degradation: warn and continue when git unavailable
+- TypeScript types included in package
+- No native compilation required (unlike nodegit)
 
-**Key Questions**:
-- What git operations are critical for causal tracing?
-- How do we handle large repositories efficiently?
-- What's the degradation path without git?
-- How do we handle shallow clones or worktrees?
+**Why not isomorphic-git?**
+- Missing diff command (explicitly not implemented)
+- Missing blame command
+- No pickaxe search capability
+- These are critical for causal tracing (Constitution Principle III)
 
-**Evaluation Criteria**:
-- Performance for common operations
-- Feature completeness
-- Cross-platform reliability
-- Graceful degradation
+**Git Operations Exposed**:
+- `git_blame` - Line-by-line authorship for tracing changes
+- `git_pickaxe` - Search history for when strings were added/removed
+- `git_log` - Commit history with filtering
+- `git_diff` - Compare versions
 
 **Related Principles**: III (Causal-First), NFR-6.5 (Works with or without git)
 
@@ -606,35 +589,27 @@ These decisions establish the fundamental platform and must be resolved first.
 
 ### DD-017: MCP Integration Strategy
 
-**Status**: OPEN
+**Status**: DECIDED (ADR-0016)
 
 **Question**: Should agentlint adopt MCP (Model Context Protocol) and if so, to what extent?
 
-**Context**:
-- MCP is becoming standard for AI-tool integration
-- Donated to Linux Foundation by Anthropic, OpenAI, Block
-- Could enable ecosystem extensibility
-- May add protocol overhead
+**Decision**: **Defer full MCP integration** - ADR-0002 and ADR-0005 already provide MCP compatibility at the tool definition level. The Claude Agent SDK creates MCP-compatible definitions via `tool()`, and supports MCP connectors if needed later. No additional work required for future-proofing.
 
-**Options to Consider**:
-| Option | Strengths | Considerations |
-|--------|-----------|----------------|
-| Full MCP adoption | Ecosystem compatibility | Protocol complexity |
-| MCP bridge for extensions | Core simplicity, optional extensibility | Two systems |
-| MCP-compatible tool definitions | Future-proof, no runtime overhead | Definition maintenance |
-| No MCP | Simplicity | Potential isolation |
+**Key Points**:
+- Current `tool()` definitions are already MCP-compatible (format level)
+- SDK natively supports MCP server consumption via `.mcp.json` when needed
+- Explicit defer decision, not neglect—documented upgrade path exists
+- MCP ecosystem context: 97M monthly downloads, 10K+ servers, major adopters
 
-**Key Questions**:
-- What's the adoption trajectory of MCP?
-- What extensibility do we actually need?
-- What's the protocol overhead cost?
-- Can we start simple and add MCP later?
+**MCP Ecosystem (Dec 2025)**:
+- Donated to Linux Foundation Agentic AI Foundation
+- Founding members: OpenAI, Google, Microsoft, Amazon, Anthropic, Block
+- Adopted by: ChatGPT, Cursor, Gemini, VS Code, Microsoft Copilot
 
-**Evaluation Criteria**:
-- Ecosystem benefit vs. complexity cost
-- Implementation timeline impact
-- Future extensibility
-- Maintenance burden
+**Upgrade Path** (when needed):
+1. Consume MCP servers: Add `.mcp.json`, use SDK's native connector
+2. Expose as MCP server: Create server using TypeScript MCP SDK
+3. Both: Combine above approaches
 
 **Related Principles**: NFR-3 (Extensibility)
 
@@ -644,35 +619,27 @@ These decisions establish the fundamental platform and must be resolved first.
 
 ### DD-018: Agent Skills Integration
 
-**Status**: OPEN
+**Status**: DECIDED (ADR-0017)
 
 **Question**: How should agentlint integrate with the Agent Skills standard, and should agentlint itself be packageable as an Agent Skill?
 
-**Context**:
-- Agent Skills is an open standard (agentskills.io) for portable procedural knowledge
-- Originally developed by Anthropic, now adopted by Claude Code, Cursor, VS Code, OpenAI Codex, etc.
-- SKILL.md format provides structured metadata + instructions + supporting files
-- Skills enable cross-platform interoperability
+**Decision**: **Extend Config Parser with SKILL.md adapter**. Add SKILL.md support to ADR-0007's mdast + adapter pattern, enabling quality analysis based on the official Agent Skills specification criteria. Distribution targets Claude Code plugin marketplace first; packaging as Agent Skill deferred to post-MVP.
 
-**Options to Consider**:
-| Option | Strengths | Considerations |
-|--------|-----------|----------------|
-| Analysis only | Detect and assess SKILL.md quality | Limited integration |
-| Analysis + recommendations | Generate skill improvement suggestions | Medium complexity |
-| agentlint as a Skill | Enable other agents to invoke agentlint | Packaging constraints |
-| Full ecosystem integration | Consume and produce skills | Higher complexity |
+**Key Design Points**:
+- SKILL.md adapter integrates with existing config parser architecture
+- Quality checks based on official spec: naming conventions, description quality, size limits
+- Reuses mdast, remark-frontmatter from existing dependencies
+- Skills appear in baselines alongside other ACT configurations
 
-**Key Questions**:
-- Should agentlint analyze SKILL.md files as part of ACT configuration?
-- What quality criteria apply to skills (description clarity, size limits, structure)?
-- Could agentlint recommendations be packaged as Agent Skills?
-- Should agentlint be invocable as an Agent Skill by other agents?
+**Quality Criteria** (from agentskills.io/specification):
+- Name: lowercase, hyphens, max 64 chars, must match parent directory
+- Description: max 1024 chars, include trigger keywords ("use when/for")
+- SKILL.md body: < 500 lines, < 5000 tokens recommended
+- Valid YAML frontmatter required
 
-**Evaluation Criteria**:
-- Value to users who use Agent Skills
-- Alignment with agent-agnostic principle
-- Implementation complexity
-- Cross-platform benefit
+**Distribution Strategy**:
+- Phase 1 (MVP): Claude Code plugin marketplace
+- Phase 2 (Post-MVP): Agent Skill packaging for cross-platform invocation
 
 **Related Principles**: VI (Agent-Agnostic), NFR-3 (Extensibility)
 
