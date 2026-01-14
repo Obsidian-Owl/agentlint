@@ -1,17 +1,12 @@
 <!--
 Sync Impact Report:
-- Version change: 1.1.0 → 1.2.0 (MINOR - collaborative model clarification)
-- Modified principles:
-  - III. Causal-First: Changed PREVENT → RECOMMEND in causal model
-    Added "The agent recommends; the developer decides"
-    Replaced "Recommendation Hierarchy" with "Recommendation Types" table
-    Clarified preventive = "enables prevention" not automatic prevention
-  - IV. Mixed-Methods (Agent-Orchestrated): No changes this version
-- Added sections:
-  - "Collaborative Model" subsection in Stakeholder Experience Framework
-    Defines 5-step interaction: Analyse → Discuss → Recommend → Decide → Implement
-- Decision Framework: Added test #8 "Does it preserve user agency?"
-- Templates requiring updates: N/A (no existing templates in .specify/templates/)
+- Version change: 1.2.0 → 1.2.1 (PATCH - ADR implementation guidance)
+- Modified sections:
+  - Governance: Added "ADR Implementation Notes" paragraph
+    Clarifies ADRs describe tool capabilities, not orchestration
+    Lists good patterns (tool schemas, data structures) and anti-patterns
+    (orchestration functions, agent.chat() calls)
+- Templates requiring updates: N/A
 - Follow-up TODOs: None
 -->
 
@@ -215,6 +210,11 @@ This constitution supersedes all other practices. All architectural decisions MU
 
 **Compliance**: ADRs MUST demonstrate principle alignment. Code reviews SHOULD verify principle compliance for significant changes.
 
+**ADR Implementation Notes**: ADRs describe tool capabilities and data structures, not agent orchestration. Implementation examples should show what tools can do, not prescribe when or how the agent should use them. The agent decides orchestration; ADRs provide capabilities.
+
+- **Good**: Tool schemas, data structures, SQL queries, API surfaces
+- **Anti-pattern**: `loadRelevantLearnings()` functions that dictate session workflows, `resumeAnalysis()` flows that prescribe conversation patterns, or any code that calls `agent.chat()` or orchestrates agent behavior
+
 **Principle Overrides**: Require written justification, maintainer approval, documented scope/duration, and return-to-compliance plan.
 
-**Version**: 1.2.0 | **Ratified**: 2026-01-14 | **Last Amended**: 2026-01-14
+**Version**: 1.2.1 | **Ratified**: 2026-01-14 | **Last Amended**: 2026-01-14
