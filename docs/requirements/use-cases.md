@@ -15,9 +15,9 @@ Use cases are organised around the continuous improvement cycle:
 
 | Phase | Use Cases |
 |-------|-----------|
-| BASELINE | UC-000 |
-| OBSERVE | UC-001, UC-002, UC-003 |
-| UNDERSTAND | UC-006, UC-008 |
+| BASELINE | UC-000, UC-011 |
+| OBSERVE | UC-001, UC-002, UC-003, UC-010 |
+| UNDERSTAND | UC-006, UC-008, UC-009 |
 | REFINE | UC-004, UC-005, UC-007 |
 
 ---
@@ -56,12 +56,13 @@ This transforms agentlint from a **linter** (point-in-time detection) into a **l
 - **Precondition**: First time running agentlint on a project (or explicit baseline reset)
 - **Main Flow**:
   1. Developer runs `agentlint baseline`
-  2. System scans for AI configurations
-  3. System analyses session logs (if available)
-  4. System captures repository structure signals
-  5. System stores baseline snapshot with timestamp
-  6. System reports baseline summary with key metrics
-- **Postcondition**: Baseline established for future comparison
+  2. **System loads global learnings** (if `~/.agentlint/learnings/` exists)
+  3. System scans for AI configurations
+  4. System analyses session logs (if available)
+  5. System captures repository structure signals
+  6. System stores baseline snapshot with timestamp
+  7. System reports baseline summary with key metrics
+- **Postcondition**: Baseline established for future comparison; global learnings inform analysis
 - **MVP Scope**: Claude Code config + session log baseline
 - **Signals Captured**:
   - Config: presence, length, structure score
@@ -266,6 +267,72 @@ This transforms agentlint from a **linter** (point-in-time detection) into a **l
 
 ---
 
+## UC-009: Validate Recommendation Effectiveness
+
+**Priority**: P1 (Critical for learning system)
+
+- **Actor**: Developer
+- **Precondition**: Previous recommendations exist; changes have been made
+- **Main Flow**:
+  1. Developer runs `agentlint compare` after implementing recommendations
+  2. System identifies which recommendations were implemented (via git diff or config change detection)
+  3. System correlates implementation with outcome changes
+  4. System reports effectiveness:
+     - Recommendations that led to improvement
+     - Recommendations with no measurable effect
+     - Unexpected regressions
+  5. System updates recommendation confidence scores based on outcomes
+- **Postcondition**: Developer understands which recommendations actually worked; learning system updated
+- **MVP Scope**: Basic implementation detection via config diffs; outcome correlation
+- **Key Insight**: Closes the feedback loop—we don't just recommend, we learn what works
+
+---
+
+## UC-010: Trend Analysis Across Baselines
+
+**Priority**: P1
+
+- **Actor**: Developer
+- **Precondition**: Multiple baselines exist (3+)
+- **Main Flow**:
+  1. Developer runs `agentlint trends`
+  2. System loads all stored baselines
+  3. System calculates trends across time:
+     - Improving metrics (consistent positive direction)
+     - Degrading metrics (consistent negative direction)
+     - Volatile metrics (inconsistent changes)
+     - Stable metrics (no significant change)
+  4. System identifies inflection points (when did improvement start?)
+  5. System correlates inflection points with changes (what caused improvement?)
+  6. System reports trend summary with visualisation
+- **Postcondition**: Developer sees long-term trajectory, not just point-in-time comparison
+- **MVP Scope**: Quantitative trend analysis with git correlation
+- **Key Insight**: Reveals the continuous improvement trajectory over time
+
+---
+
+## UC-011: Persist Global Learnings
+
+**Priority**: P1 (Critical for cross-project value)
+
+- **Actor**: Developer
+- **Precondition**: Analysis complete with generalisable insights
+- **Main Flow**:
+  1. Developer runs `agentlint learn --global "insight description"`
+  2. System validates insight is generalisable (not project-specific)
+  3. System stores learning in `~/.agentlint/learnings/`
+  4. System tags learning with source project and date
+  5. Learning is loaded in future analysis sessions (see UC-000)
+- **Alternative Flow**: System suggests potential global learnings at end of analysis
+- **Postcondition**: Generalisable insight persisted for cross-project transfer
+- **MVP Scope**: Manual learning promotion with structured storage
+- **Examples**:
+  - "Projects without pre-commit hooks have 2x more secret exposure issues"
+  - "CLAUDE.md files over 500 lines correlate with higher iteration counts"
+  - "Missing llms.txt leads to repeated file read patterns"
+
+---
+
 ## Use Case Dependencies
 
 ```
@@ -299,6 +366,9 @@ UC-000 (Baseline)
 | UC-006: Compare to Baseline | ✅ | 1 | P0 |
 | UC-007: Validate Config | ✅ | 1 | P1 |
 | UC-008: Trace Issue Origins | ✅ | 1 | P1 |
+| UC-009: Validate Rec. Effectiveness | ✅ | 1 | P1 |
+| UC-010: Trend Analysis | ✅ | 1 | P1 |
+| UC-011: Persist Global Learnings | ✅ | 1 | P1 |
 
 ---
 

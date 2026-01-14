@@ -8,24 +8,31 @@
 
 ### Persona 0: The agentlint Agent
 
-- **Role**: agentlint's own AI agent that performs analysis, generates recommendations, and traces issues
-- **Goal**: Receive distilled, structured context about target repositories that enables stable reasoning and accurate analysis
+- **Role**: agentlint's own AI agent that performs deep analysis and generates recommendations
+- **Goal**: Receive distilled, structured context that enables stable reasoning and accurate causal analysis
+- **Cognitive Needs**:
+  - **At session start**: Load global learnings + project baseline summary
+  - **During analysis**: Receive compressed metrics from static tools, not raw files
+  - **For tracing**: Access to indexed session logs with position markers
+  - **For recommendations**: Understanding of what worked before (recommendation history)
 - **Pain Points**:
   - Large session logs that exceed context limits
   - Unstructured project information requiring repeated exploration
-  - Ambiguous analysis goals leading to unfocused recommendations
-  - No memory of previous analyses of the same project
-  - Difficulty correlating signals across multiple analysis domains
+  - No memory of previous analyses (without learning system)
+  - Difficulty correlating signals across domains
 - **Context**: Every agentlint analysis session
-- **Key Insight**: agentlint's effectiveness depends on how well we serve our own agent's cognitive needs. A well-structured working memory enables accurate, consistent analysis.
+- **Key Insight**: The agentlint agent IS the product. Optimizing for its cognitive experience directly improves the quality of analysis and recommendations.
 
-**What The agentlint Agent Needs**:
-1. **Clear task framing**: What are we analyzing and why?
-2. **Compressed project context**: Distilled configs, session stats, code samples—not raw data
-3. **Hierarchical memory**: Task goals, progress, findings organized for easy reference
-4. **Static pre-processing**: Metrics extracted deterministically (runs concurrently with LLM per ADR-0019)
-5. **Baseline awareness**: Previous analysis results for trend comparison
-6. **Scoped focus**: One domain at a time, not everything at once
+**Practical Implementation**:
+1. **Static tools pre-process all data** before agent receives it
+2. **Context is structured as hierarchical working memory**:
+   - Task goal (what are we analyzing and why?)
+   - Project context (distilled configs, session stats, code samples)
+   - Analysis progress (completed phases, current findings)
+   - Baseline awareness (previous results for comparison)
+3. **Global learnings are loaded at session start** for transfer learning
+4. **Agent has tools to persist generalisable insights** (`agentlint learn --global`)
+5. **Session logs are indexed with position markers**, not loaded raw
 
 **Why This Persona Matters**: We "eat our own dog food"—agentlint's agent should embody the AX principles we recommend to users. When we design our analysis pipeline, we're asking: "Does this serve our own Agent well?"
 
@@ -82,6 +89,24 @@
   - No tool to check if config follows Anthropic's recommendations
 - **Context**: Has read Anthropic's context engineering guide, wants to optimise systematically
 - **Key Insight**: Even Anthropic's team "runs CLAUDE.md files through the prompt improver"—this persona wants similar capabilities locally.
+
+### Persona 5: The Security-Conscious Developer
+
+- **Role**: Developer concerned about security implications of AI-assisted coding
+- **Goal**: Ensure AI tools don't introduce vulnerabilities or leak sensitive information
+- **Pain Points**:
+  - AI tools generating code with hardcoded credentials
+  - No visibility into whether AI respects security boundaries
+  - Worried about secrets appearing in AI configurations or logs
+  - Uncertain if quality guardrails catch AI-generated vulnerabilities
+- **Context**: Works on projects with compliance requirements or sensitive data
+- **Key Insight**: Research shows package hallucination rates of 5-21% create real supply chain risks. Security must be built into AI workflows, not bolted on.
+
+**What This Persona Needs**:
+1. Secret detection in all analyzed files
+2. Validation that security guardrails (pre-commit hooks, SAST) are in place
+3. Assessment of whether ACT configuration includes security guidance
+4. Audit trail of AI-assisted changes for compliance
 
 ## Future Personas (Post-MVP)
 

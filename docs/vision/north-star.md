@@ -24,6 +24,10 @@ A command-line tool that answers: **"How effective is my AI coding workflow, why
 
 This is not a linter that detects issues. It's a **learning system** that traces issues to their origins and recommends preventive changes. Value compounds because each recommendation makes future AI sessions better.
 
+### The Tagline
+
+> From AI session chaos to systematic excellence. Trace issues, prevent recurrence, master your workflow.
+
 ### Who We Serve (MVP)
 
 - **Solo developers** who want to systematically improve their AI-assisted workflows
@@ -99,7 +103,10 @@ We use mixed methods—quantitative signals provide objective anchors; qualitati
 5. **Language-Agnostic** - Works across programming languages.
 6. **Agent-Agnostic** - Supports any AI coding agent via adapters.
 7. **Intelligent Tooling** - Tools exist to serve the agent's cognitive needs. The agent chooses freely between tool use and direct reasoning—no approach is privileged.
-8. **Compounding Value** - Value compounds over time through baselines and trend analysis.
+8. **Compounding Value** - Value compounds over time through:
+   - Project-level baselines and trend analysis
+   - Global learnings that transfer across projects
+   - Recommendation effectiveness tracking
 9. **Agent-Aware** - The agent IS the orchestrator. Design serves the agent's cognitive needs.
 
 ---
@@ -154,6 +161,8 @@ How observable and improvable is the system?
 - >50% preventive recommendation adoption
 - Users maintain baselines across 10+ runs
 - Traced issues lead to config changes
+- >30% of recommendations promoted to global learnings
+- Returning users show faster time-to-first-insight
 
 ### Technical Indicators
 - Full scan < 30 seconds

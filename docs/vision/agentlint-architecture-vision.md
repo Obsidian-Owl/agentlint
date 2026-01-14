@@ -10,13 +10,13 @@
 
 ## 1. Executive Summary
 
-agentlint is a local-first command-line tool that enables continuous improvement of AI-assisted development workflows. By establishing baselines, tracing issues to their origins, and providing preventive recommendations, it helps developers systematically optimise how they work with AI coding assistants.
+agentlint is a local-first command-line tool that enables continuous improvement of Agentic Software Development (AI SDLC) workflows. By establishing baselines, tracing issues to their origins, and providing preventive recommendations, it helps developers systematically optimise how they work with AI coding assistants.
 
-**The Key Differentiator**: Traditional linters detect issues. agentlint goes further—it traces issues to their origin (which session? which prompt? which config gap?) and recommends preventive changes. Value compounds because each recommendation makes future AI sessions better.
+**The Key Differentiator**: Traditional linters detect issues in code. agentlint focuses on the Agentic system generating the code. It does this by deeply understanding best practices in AI SDLC configuration, prompting and development practices. It uses this knowledge to traces issues within AI SDLC Session logs to their origin (which session? which prompt? which tool call? which config gap?) and recommends preventive changes. The system has an active long term memory system to retain knowledge of project level practices and learnings, ensuring value compounds because each recommendation makes future AI sessions better.
 
-**The Core Insight**: AI coding assistants are only as effective as the context they receive. Most developers don't optimise this context—they use default configurations, poorly structured documentation, and miss opportunities to leverage tooling that dramatically improves AI output quality. Worse, research shows developers consistently misjudge their own AI-assisted productivity, making systematic observation essential.
+**The Core Insight**: AI SDLC workflows are only as effective as the context they receive. Most developers don't optimise this context—they use default configurations, poorly structured documentation, and miss opportunities to leverage tooling that dramatically improves AI output quality. Worse, research shows developers consistently misjudge their own AI-assisted productivity, making systematic observation essential.
 
-**The Opportunity**: By analysing how developers interact with AI assistants and correlating this with codebase characteristics over time, we can provide specific, actionable insights that progressively improve AI-assisted development workflows. The value compounds through recurring use—each analysis builds on previous baselines.
+**The Opportunity**: By analysing how developers interact with AI SDLC workflows and correlating this with codebase characteristics over time, we can provide specific, actionable insights that progressively improve AI SDLC workflows. The value compounds through recurring use—each analysis builds on previous baselines.
 
 **The Approach**: An agent-orchestrated analysis strategy where:
 - **The agent** decides which approach to use based on what the task requires
@@ -27,6 +27,8 @@ agentlint is a local-first command-line tool that enables continuous improvement
 Neither static tools nor direct reasoning is privileged—the agent chooses freely (Principle VII).
 
 The tool runs entirely on the user's machine, with users configuring their own LLM API connections.
+
+**Tagline**: From AI session chaos to systematic excellence. Trace issues, prevent recurrence, master your workflow.
 
 ---
 
@@ -59,6 +61,22 @@ The tool provides:
 - Tech leads evaluating AI coding agent effectiveness across projects
 - Enterprises requiring governance and audit trails for AI-assisted development
 
+### MVP ACT Support
+
+agentlint analyses Agentic Coding Tools (ACTs). For MVP:
+
+- **Primary (full support)**: Claude Code
+- **Secondary (configuration detection, basic analysis)**: GitHub Copilot CLI, OpenAI Codex
+- **Future**: Cursor, Aider, Windsurf, others via adapter pattern
+
+| ACT | Config Format | Session Logs | MVP Priority |
+|-----|---------------|--------------|--------------|
+| Claude Code | CLAUDE.md, .claude/, JSONL logs | Rich (tokens, tool calls, cache) | Primary |
+| Copilot CLI | copilot-instructions.md | Limited | Secondary |
+| Codex | AGENTS.md | Developer-managed | Secondary |
+| Cursor | .cursor/rules/, .cursorrules | Debug logs only | Future |
+| Aider | .aiderrules, markdown | Human-readable | Future |
+
 ### Design Principles
 
 1. **Local-First**: All analysis runs on the user's machine. No data leaves unless explicitly configured. Users provide their own LLM API credentials.
@@ -83,167 +101,163 @@ The tool provides:
 
 ## 3. What We're Analysing
 
-The tool examines eight interconnected areas that influence AI coding assistant effectiveness:
+The tool examines five clear analysis domains that influence ACT effectiveness:
 
-### 3.1 AI Assistant Configuration
+| Domain | What We Analyze | Key Questions |
+|--------|-----------------|---------------|
+| **ACT Configuration** | CLAUDE.md, AGENTS.md, .cursor/, .aiderrules, Agent Skills, global/project/local hierarchy | Is the ACT well-configured? Conflicts? Gaps? |
+| **Documentation Quality** | README, architecture docs, .md files, in-code docs | Does documentation support AI comprehension? Progressive disclosure? |
+| **Quality Guardrails** | Static analysis, CI/CD, LSP integration, pre-commit hooks, type systems | Are there automated checks that guide ACTs toward quality? |
+| **Session Effectiveness** | Session logs, token usage, iterations, outcomes, failure patterns | Was the session effective? What issues occurred? Why? |
+| **Temporal Patterns** | Git history, baselines, config evolution, recommendation tracking | How is effectiveness changing? What's working? |
 
-**What**: The configuration files that control AI assistant behaviour.
+Each domain is analysed through both static tools (fast, deterministic) and agentic reasoning (deep understanding):
 
-**Analysis Questions**:
-- Do configuration files exist? Are they in the expected locations?
-- Are configurations well-structured (not too long, not too short)?
-- Is there conflicting or redundant guidance?
-- Are path-specific rules used appropriately?
+### 3.1 ACT Configuration
+
+**What**: The configuration files, settings, and instructions that control AI coding agent behaviour.
+
+**Configuration Types**:
+- **CLAUDE.md files**: Project root, nested directories, global (~/.claude/)
+- **AGENTS.md files**: Cross-tool agent instructions (emerging standard)
+- **Settings hierarchy**: .claude/settings.json, .cursorrules, .aiderrules
+- **Agent Skills**: SKILL.md files (portable procedural knowledge)
+- **Custom commands**: .claude/commands/, slash command definitions
+
+**Static Analysis**:
+- Do configuration files exist in expected locations?
+- What is the configuration hierarchy (global → project → local)?
+- Are there secrets or credentials in config files?
+- What is the token length of each config file?
+- Are MUST/IMPORTANT keywords used appropriately?
+
+**Agentic Analysis**:
+- Is the configuration well-structured (not too long, not too short)?
+- Is there conflicting or redundant guidance across files?
 - Do configurations follow progressive disclosure patterns?
+- Are instructions semantically clear and unambiguous?
+- Does the configuration cover known failure modes?
 
-### 3.2 AI Session Effectiveness
+**Configuration Gaps That Enable Issues**:
 
-**What**: The logs generated by AI coding assistants during use.
+| Gap | Resulting Issue | Detection Signal |
+|-----|-----------------|------------------|
+| No CLAUDE.md | Agent uses generic behavior | Missing file in expected locations |
+| CLAUDE.md too long | Context bloat, key instructions lost | Token count > threshold |
+| No credential guidance | Secrets in code/config | Session shows secret handling without instruction |
+| No domain glossary | High iteration "not what I meant" | Repeated clarification patterns |
+| Conflicting instructions | Inconsistent agent behavior | Different outcomes for similar tasks |
 
-**Outcome Metrics**:
-- What is the completion rate for tasks? (Did the AI achieve what was asked?)
-- How many turns/iterations are typically needed?
-- What is the token efficiency? (Useful output relative to input)
+### 3.2 Documentation Quality
 
-**Agent Cognitive Health**:
-- Is the agent hitting context window limits (compression triggers)?
-- What's the ratio of successful tool uses to error recovery?
-- Are there signs of cognitive overload (repeated attempts, backtracking)?
-- Is working memory being utilized effectively?
+**What**: How well project documentation supports AI agent comprehension.
 
-**Learning Signals**:
-- Are sessions capturing hindsight learnings?
-- Do repeated task types improve over time?
-- What error patterns recur vs. get resolved?
+**Documentation Types**:
+- **README.md**: Project overview and entry point
+- **Architecture docs**: System design, component relationships
+- **llms.txt / AI indexes**: Machine-readable project summaries
+- **In-code docs**: Docstrings, JSDoc, inline comments
 
-**Behavioral Patterns**:
-- Which tools does the AI use most frequently?
-- Where does the AI struggle? What error patterns emerge?
-- Are there signs of confusion—terminology mismatches, repeated attempts?
+**Static Analysis**:
+- Does documentation exist at appropriate levels?
+- What is the documentation size relative to context windows?
+- Are there index files for navigation?
+- Is there an llms.txt or similar AI-focused summary?
 
-**Challenge**: Session logs can be very large. Analysis must handle this through summarisation, sampling, or incremental processing rather than loading entire logs into context.
-
-### 3.3 Repository Structure
-
-**What**: How the codebase is organised and whether that organisation helps or hinders AI comprehension.
-
-**Analysis Questions**:
-- Is the folder structure logical and consistent?
-- Are files appropriately sized? (Very large files are harder for AI to reason about)
-- Is there clear separation of concerns?
-- Are naming conventions consistent and descriptive?
-- Is there unnecessary complexity or deeply nested structures?
-- How discoverable are key files (entry points, configuration, tests)?
-
-### 3.4 Agent Cognitive Environment
-
-**What**: The factors that shape the AI agent's ability to reason effectively about your codebase. This is not just tooling—it's the complete cognitive landscape the agent operates within.
-
-**Analysis Subdomains**:
-
-#### 3.4.1 Tooling Feedback Loop
-
-Type systems, linters, LSP that provide AI with better context and error signals:
-
-- **Type Systems**: Are type errors surfaced to the agent? What strictness level?
-- **Linters and Formatters**: Can the agent see and respond to lint warnings?
-- **Language Servers (LSP)**: Can the agent navigate code via LSP features?
-- **Rapid feedback**: Is there a fast loop for self-correction?
-
-**Why This Matters**: AI assistants that receive type errors, lint warnings, and can navigate code via LSP features produce dramatically better output. Strict type checking constrains AI outputs and enables self-correction through error messages.
-
-#### 3.4.2 Context Organization
-
-How configuration, documentation, and instructions are structured:
-
-- Is context hierarchical (overview → details → reference)?
-- Is information compressed appropriately (distilled vs. verbose)?
-- Are critical instructions salient and unambiguous?
-- Is there progressive disclosure (minimal context initially, more on demand)?
-
-**Analysis Questions**:
-- Does the CLAUDE.md follow hierarchical structure?
-- Are there redundant or conflicting instructions?
-- Is the configuration appropriately sized (not too long, not too short)?
-
-#### 3.4.3 Working Memory Pressure
-
-Factors that affect the agent's context window utilization:
-
-- Configuration file sizes and structure
-- Session log verbosity and compression
-- Documentation density and relevance
-- Trigger points for adaptive compression
-
-**Analysis Questions**:
-- Is the total context likely to exceed model limits?
-- Are there verbose sections that could be compressed?
-- Is documentation indexed for selective loading?
-
-#### 3.4.4 Cross-Session Learning
-
-How knowledge persists and compounds across sessions:
-
-- Are failure modes documented for prevention?
-- Is there hindsight capture (what was learned from previous sessions)?
-- Do repeated patterns get resolved faster over time?
-- Is knowledge reusable across projects?
-
-**Analysis Questions**:
-- Does the configuration include learnings from past issues?
-- Are there documented error patterns and resolutions?
-- Is there evidence of iterative improvement?
-
-**Key Insight**: The agent is a first-class stakeholder in the development workflow. Optimizing for its cognitive experience directly improves outcomes for human users.
-
-### 3.5 DevSecOps and Quality Controls
-
-**What**: The automated checks and balances that ensure AI-generated code meets quality standards.
-
-**Analysis Questions**:
-- Are pre-commit hooks configured? What do they check?
-- Is there CI/CD pipeline? What quality gates exist?
-- Are there branch protection rules requiring reviews?
-- Is test coverage measured and enforced?
-- Is security scanning in place?
-- Can AI-generated code bypass any of these controls?
-
-**Why This Matters**: AI assistants can generate code that passes initial review but contains subtle issues. Robust DevSecOps practices catch these issues regardless of whether code was written by a human or AI.
-
-### 3.6 Documentation Quality
-
-**What**: How well documentation supports AI agent comprehension through progressive disclosure.
-
-**Analysis Questions**:
-- Does documentation exist? Is it current?
-- Is there a clear hierarchy (overview → details → reference)?
-- Are pages self-contained or do they assume context from other pages?
+**Agentic Analysis**:
+- Does documentation follow hierarchical structure (overview → details → reference)?
 - Is terminology consistent throughout?
 - Can an AI agent understand the project from README alone?
-- Is there an index for efficient documentation discovery?
-- Are code examples complete and runnable?
+- Are pages self-contained or do they assume external context?
+- Is there progressive disclosure (minimal context initially, more on demand)?
+- Are cross-document references consistent and correct?
 
-### 3.7 Code Patterns
+### 3.3 Quality Guardrails
 
-**What**: Code-level characteristics that affect AI comprehension and generation quality.
+**What**: Automated checks and tooling that guide AI-generated code toward quality.
 
-**Analysis Questions**:
-- What is the type annotation coverage?
-- Are functions appropriately sized? (Very long functions are harder to reason about)
-- Is there documentation on public interfaces?
-- Are imports organised logically?
-- Is the code consistent in style?
-- Are there complex patterns that might confuse AI assistants?
+**Guardrail Types**:
+- **Static analysis**: Linters (ESLint, Pylint, Clippy), formatters (Prettier, Black)
+- **Type systems**: TypeScript strict mode, mypy, type annotations
+- **CI/CD**: GitHub Actions, GitLab CI, quality gates
+- **Pre-commit hooks**: Automated checks before commits
+- **Security scanning**: SAST, secrets detection, dependency auditing
+- **LSP integration**: Language server configuration and capabilities
 
-### 3.8 Cross-Cutting Concerns
+**Static Analysis**:
+- Which guardrails are configured?
+- What strictness level is each guardrail set to?
+- Are pre-commit hooks installed and active?
+- What quality gates exist in CI/CD?
 
-**What**: Additional factors that influence overall AI effectiveness.
+**Agentic Analysis**:
+- Do guardrails provide fast feedback loops for agent self-correction?
+- Can AI-generated code bypass any quality controls?
+- Are type errors surfaced to the agent in a useful way?
+- Is there appropriate strictness for the project context?
+- Do guardrails catch security issues in AI-generated code?
 
-**Analysis Questions**:
-- Are there multiple AI coding agents configured? Do their configurations conflict?
-- Is there evidence of "configuration drift" over time?
-- Are there deprecated patterns being used?
-- What's the overall "AI-readiness score" of the project?
+**Why This Matters**: AI assistants that receive type errors, lint warnings, and can navigate code via LSP features produce dramatically better output. Strict type checking constrains AI outputs and enables self-correction.
+
+### 3.4 Session Effectiveness
+
+**What**: The quality and efficiency of interactions between users and AI coding agents.
+
+**Critical Distinction**: AI session logs are conversation transcripts (user prompts, AI responses, tool calls, outcomes)—NOT system/application logs. Analysis requires semantic reasoning about conversation quality, not just pattern matching.
+
+**Static Metrics Extraction**:
+- Token usage (input, output, cache creation, cache read)
+- Iteration/turn counts per task
+- Tool usage distribution (read/write/bash/search)
+- Tool errors and retry patterns
+- Compression triggers (context limit approaches)
+- Session duration and timing patterns
+
+**Agentic Quality Assessment** (requires LLM reasoning):
+- Did the AI understand user intent correctly?
+- Where/why did misunderstandings occur?
+- Were there hallucination instances? What caused them?
+- Was the quality of generated code/output acceptable?
+- Was task completion quality good (not just completion status)?
+- Was the agentic flow sound (good approach, not just good outcome)?
+
+**Session Health Indicators**:
+- Is the agent hitting context window limits?
+- What's the ratio of successful tool uses to error recovery?
+- Are there signs of cognitive overload (repeated attempts, backtracking)?
+- Are sessions capturing hindsight learnings?
+
+**Challenge**: Session logs can be very large. Analysis handles this through indexing, summarisation, and incremental processing rather than loading entire logs into context.
+
+### 3.5 Temporal Patterns
+
+**What**: How effectiveness changes over time and what drives improvement or regression.
+
+**Temporal Data Sources**:
+- Baseline snapshots (captured analysis state)
+- Git history (commits, blame, change patterns)
+- Configuration evolution (diffs over time)
+- Recommendation tracking (applied vs. pending)
+- Session log trends (aggregated metrics over time)
+
+**Static Analysis**:
+- Calculate deltas between current state and baseline
+- Correlate configuration changes with git commits
+- Track which recommendations were implemented
+- Identify when issues first appeared
+
+**Agentic Analysis**:
+- Are there improvement or regression patterns?
+- What changes correlate with better/worse outcomes?
+- Are implemented recommendations having the expected effect?
+- What's the trajectory of key effectiveness indicators?
+- Are there systemic issues vs. one-off problems?
+
+**Key Questions**:
+- How is effectiveness changing over time?
+- What's working? What interventions had impact?
+- Are there inflection points where things improved/degraded?
+- Is the project on an improving trajectory?
 
 ---
 
@@ -252,6 +266,33 @@ How knowledge persists and compounds across sessions:
 ### Architectural Foundation
 
 **agentlint IS an agentic application.** An LLM-powered agent orchestrates all analysis, using static analysis capabilities as tools. The agent decides what to analyze, invokes tools to gather data, and synthesizes findings into recommendations.
+
+### Two-Layer Architecture
+
+The system has a clear separation between the agentic reasoning layer and the static analysis layer:
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    AGENTIC REASONING LAYER                      │
+│  The agentlint agent orchestrates analysis, synthesizes         │
+│  findings, traces causality, and generates recommendations.     │
+│  This IS the product - an LLM-powered continuous improvement    │
+│  system that learns what works for YOUR workflow.               │
+├─────────────────────────────────────────────────────────────────┤
+│                    STATIC ANALYSIS LAYER                        │
+│  Fast, deterministic CLI tools that gather context:             │
+│  • ACT config parsing (CLAUDE.md, AGENTS.md, .cursor/, etc.)    │
+│  • Session log metrics extraction                               │
+│  • Git analytics and change detection                           │
+│  • Documentation structure analysis                             │
+│  • Language-specific tooling integration                        │
+│  This layer SERVES the agent - it is not the core value.        │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+**Static layer** provides fast, deterministic data gathering. It extracts metrics (token counts, iteration counts, tool patterns), parses configurations, and indexes session logs. This layer can run as a standalone CLI.
+
+**Agentic layer** provides deep understanding that static analysis cannot. It reasons about quality, traces causality, understands semantic intent, and generates contextual recommendations. This is where the core value is created.
 
 ### Component Overview
 
@@ -484,6 +525,35 @@ This separation prevents agent cognitive overload while maintaining user interpr
 
 These align with the continuous improvement model but require careful design to maintain reproducibility.
 
+### 7.5 Learning System Architecture
+
+agentlint implements a hybrid learning approach:
+
+**Project-Level Working Memory** (per analysis session):
+- Stores project-specific context, findings, and recommendations
+- Enables trend tracking within a single project
+- Maintains baseline history for comparison
+- Stored in `.agentlint/` within the project
+
+**Global Learnings** (cross-project, generalisable):
+- Stored in `~/.agentlint/learnings/`
+- Loaded at session start to inform analysis
+- Captures patterns that transfer across projects
+- Examples: "Projects without type checking have 3x more iteration loops"
+
+**Learning Flow**:
+```
+1. At session start: Load global learnings as context
+2. During analysis: Use project working memory
+3. At session end: Optionally promote learnings to global store
+4. Tools provided: `agentlint learn --global` to persist generalisable insights
+```
+
+**What Makes a Learning Generalisable**:
+- Applies to multiple projects, not just this one
+- Based on observed correlation (e.g., config gap → outcome pattern)
+- Validated through recurrence across contexts
+
 ---
 
 ## 8. Conclusion
@@ -508,11 +578,15 @@ agentlint addresses a genuine gap in the AI-assisted development ecosystem: the 
 
 | Term | Definition |
 |------|------------|
-| **AI Coding Assistant** | Tools like Claude Code, Cursor, GitHub Copilot that help developers write code |
+| **ACT (Agentic Coding Tool)** | Tools like Claude Code, Cursor, Copilot CLI, Aider, Codex that provide AI-assisted coding |
+| **ACT Configuration** | Rules, memory files, and settings that shape ACT behavior (CLAUDE.md, AGENTS.md, .cursorrules, etc.) |
 | **Agent** | An LLM-powered system that can take actions (read files, run commands, etc.) |
+| **Agent Skills** | Portable procedural knowledge packages that work across ACTs (per agentskills.io) |
 | **Agentic Analysis** | Analysis that uses LLM reasoning to assess quality and generate recommendations |
 | **Baseline** | A snapshot of signals at a point in time, used for comparison in continuous improvement |
 | **Causal Analysis** | Tracing issues to their origin to enable preventive recommendations |
+| **Development Context** | The combined state of config, docs, tooling, and codebase that shapes ACT effectiveness |
+| **Global Learnings** | Generalisable insights that transfer across projects, stored in ~/.agentlint/learnings/ |
 | **Lagging Indicator** | A signal that reflects past outcomes (e.g., task completion rate) |
 | **Leading Indicator** | A signal that predicts future outcomes (e.g., type coverage) |
 | **Meta-Inference** | Insight that emerges from correlating multiple signals across types |
@@ -520,8 +594,10 @@ agentlint addresses a genuine gap in the AI-assisted development ecosystem: the 
 | **Progressive Disclosure** | Pattern of providing minimal context initially, loading more on demand |
 | **Qualitative Signal** | Non-numeric assessment of quality or effectiveness |
 | **Quantitative Signal** | Numeric measurement that can be tracked and compared over time |
-| **Session Log** | Record of interactions between a user and an AI coding assistant |
+| **Session** | A single interaction period with an ACT, captured in logs |
+| **Session Log** | JSONL record of interactions between a user and an AI coding assistant |
 | **Static Analysis** | Code analysis without execution, using parsing and pattern matching |
+| **Working Memory** | Project-specific context and learnings maintained during analysis |
 
 ## Appendix B: Related Documents
 
