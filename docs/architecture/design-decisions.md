@@ -651,35 +651,28 @@ ANTHROPIC_API_KEY env var → ~/.agentlint/credentials → interactive prompt �
 
 ### DD-019: Distribution and Installation Strategy
 
-**Status**: OPEN
+**Status**: DECIDED (ADR-0018)
 
 **Question**: How should agentlint be distributed and installed?
 
-**Context**:
-- Target: developers with CLI experience
-- Must support macOS, Linux, Windows
-- Balance between ease of install and dependency management
-- Updates and versioning
+**Decision**: **Native binary primary (Claude Code pattern)**. Distribute via curl install script with Bun-compiled binaries hosted on GitHub Releases. Include `agentlint update` command for self-updates. npm package maintained as secondary option.
 
-**Options to Consider**:
-| Option | Strengths | Considerations |
-|--------|-----------|----------------|
-| npm package | Standard for Node.js tools | Requires Node.js |
-| Single binary (pkg, deno compile) | No runtime dependency | Larger file size |
-| Homebrew/Chocolatey/apt | Native package managers | Multiple systems to maintain |
-| Container image | Consistent environment | Docker dependency |
+**Key Design Points**:
+- Primary: `curl -fsSL https://agentlint.dev/install.sh | bash`
+- Secondary: `npm install -g @agentlint/cli`
+- Self-update via `agentlint update` command
+- Bun compile for cross-platform binaries (macOS arm64/x64, Linux x64/arm64)
+- Windows deferred to post-MVP
 
-**Key Questions**:
-- What's the acceptable install friction?
-- How do we handle updates?
-- What's the first-run experience?
-- How do we support enterprise proxies/firewalls?
+**Installation Locations**:
+```
+~/.agentlint/bin/agentlint    # Primary binary
+```
 
-**Evaluation Criteria**:
-- Installation simplicity
-- Cross-platform consistency
-- Update mechanism
-- Offline/air-gapped support
+**Platform Support (MVP)**:
+- macOS: arm64 (Apple Silicon), x64 (Intel)
+- Linux: x64, arm64
+- Windows: Deferred
 
 **Related Principles**: NFR-6 (Compatibility), NFR-5 (Usability)
 
