@@ -83,9 +83,9 @@ agentlint analyses Agentic Coding Tools (ACTs). For MVP:
 
 2. **Improvement-Oriented**: Every feature should support the continuous improvement cycle. Prefer capabilities that compound value over time to one-shot utilities. Baseline tracking and historical comparison are core, not afterthoughts.
 
-3. **Causal-First**: Don't just detect issues—trace them to their origin and recommend prevention. Every detected issue should link back to a session, prompt, or config gap. Recommendations should be preventive (stop recurrence) not just symptomatic (fix immediate problem).
+3. **Causal-First**: Don't just detect issues—trace them to their origin and recommend prevention. Every detected issue should link back to a session, prompt, or config gap. Recommendations should be preventive (enable prevention of recurrence) not just symptomatic (fix immediate problem).
 
-4. **Mixed-Methods**: Combine quantitative signals with qualitative assessment. Neither alone tells the full story. Value exploratory analysis alongside structured metrics. Embrace uncertainty—AI-assisted development is an evolving practice.
+4. **Mixed-Methods (Agent-Orchestrated)**: Combine quantitative signals with qualitative assessment. The agent reasons about which methods to apply based on task context—guidance informs but does not constrain.
 
 5. **Language-Agnostic**: The tool must effectively analyse projects regardless of programming language. Language-specific features should degrade gracefully for unsupported languages.
 
@@ -397,7 +397,7 @@ The agent has **full autonomy** to choose its approach based on what the task re
 A key differentiator is the causal analysis model:
 
 ```
-DETECT ──▶ TRACE ──▶ UNDERSTAND ──▶ PREVENT
+DETECT ──▶ TRACE ──▶ UNDERSTAND ──▶ RECOMMEND
 ```
 
 1. **Issue Detection**: Static analysis or validation identifies an issue
@@ -407,13 +407,13 @@ DETECT ──▶ TRACE ──▶ UNDERSTAND ──▶ PREVENT
 
 **Recommendation types**:
 
-| Type | Focus | Value |
-|------|-------|-------|
-| Symptomatic | Fix immediate issue | Low (fixes symptom only) |
-| Preventive | Stop recurrence | High (prevents future issues) |
-| Systemic | Address root patterns | Highest (catches all variants) |
+| Type | Focus | Example |
+|------|-------|---------|
+| Symptomatic | Address immediate issue | "Remove the API key from line 42" |
+| Preventive | Enable prevention of recurrence | "Add credential guidance to CLAUDE.md" |
+| Systemic | Address root patterns | "Add pre-commit hook for secret scanning" |
 
-agentlint prioritises preventive and systemic recommendations because they compound value over time.
+Preventive and systemic recommendations have higher value because they enable compounding improvement—but the developer chooses what to implement.
 
 ---
 

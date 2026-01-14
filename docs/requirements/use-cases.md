@@ -27,9 +27,9 @@ Use cases are organised around the continuous improvement cycle:
 Traditional linters detect issues. agentlint goes further—it traces issues to their origin and recommends preventive changes.
 
 ```
-DETECT ──▶ TRACE ──▶ UNDERSTAND ──▶ PREVENT
+DETECT ──▶ TRACE ──▶ UNDERSTAND ──▶ RECOMMEND
   │          │           │            │
-  │          │           │            └── Config changes to stop recurrence
+  │          │           │            └── Config changes to enable prevention
   │          │           └── Why did this happen?
   │          └── Which session/commit introduced this?
   └── What is the issue?
@@ -42,7 +42,7 @@ DETECT ──▶ TRACE ──▶ UNDERSTAND ──▶ PREVENT
 | DETECT | "API key found on line 42" |
 | TRACE | "Added in session 2024-01-10 when you prompted 'add my database config'" |
 | UNDERSTAND | "No credential handling guidance exists in CLAUDE.md" |
-| PREVENT | "Add to CLAUDE.md: 'Never hardcode secrets. Always use environment variables.'" |
+| RECOMMEND | "Add to CLAUDE.md: 'Never hardcode secrets. Always use environment variables.'" |
 
 This transforms agentlint from a **linter** (point-in-time detection) into a **learning system** (causal analysis + prevention).
 
@@ -144,8 +144,8 @@ This transforms agentlint from a **linter** (point-in-time detection) into a **l
   1. Developer runs `agentlint recommend`
   2. System loads analysis results and traced issues
   3. System generates three types of recommendations:
-     - **Symptomatic**: Fix immediate issues ("remove the secret")
-     - **Preventive**: Stop recurrence ("add credential guidance to CLAUDE.md")
+     - **Symptomatic**: Address immediate issue ("remove the secret")
+     - **Preventive**: Enable prevention of recurrence ("add credential guidance to CLAUDE.md")
      - **Systemic**: Address root patterns ("add pre-commit hook for secret scanning")
   4. System categorises recommendations:
      - Config improvements: length, structure, modularity
@@ -376,10 +376,10 @@ UC-000 (Baseline)
 
 Understanding the three levels of recommendations:
 
-| Type | Focus | Example | Value |
-|------|-------|---------|-------|
-| **Symptomatic** | Fix immediate issue | "Remove API key from line 42" | Low (fixes symptom) |
-| **Preventive** | Stop recurrence | "Add to CLAUDE.md: 'Use env vars for credentials'" | High (prevents future issues) |
-| **Systemic** | Address root patterns | "Add pre-commit hook for secret scanning" | Highest (catches all variants) |
+| Type | Focus | Example |
+|------|-------|---------|
+| **Symptomatic** | Address immediate issue | "Remove API key from line 42" |
+| **Preventive** | Enable prevention of recurrence | "Add to CLAUDE.md: 'Use env vars for credentials'" |
+| **Systemic** | Address root patterns | "Add pre-commit hook for secret scanning" |
 
-agentlint prioritises **preventive** recommendations because they compound value over time—each one makes future AI sessions better.
+Preventive and systemic recommendations have higher value because they enable compounding improvement—but the developer chooses what to implement.

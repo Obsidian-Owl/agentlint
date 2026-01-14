@@ -40,7 +40,7 @@ This is not a linter that detects issues. It's a **learning system** that traces
 2. **Discovery** - What AI configurations and practices exist?
 3. **Assessment** - How effective is the current setup?
 4. **Tracing** - Why did issues occur? What session/config gap caused them?
-5. **Prevention** - Specific config changes to stop recurrence
+5. **Recommendation** - Specific config changes to enable prevention
 6. **Tracking** - Observe changes over time, correlate with improvements
 
 ---
@@ -65,7 +65,7 @@ Value compounds through recurring use. Each cycle builds understanding of what w
 Traditional linters detect issues. agentlint goes further:
 
 ```
-DETECT ──▶ TRACE ──▶ UNDERSTAND ──▶ PREVENT
+DETECT ──▶ TRACE ──▶ UNDERSTAND ──▶ RECOMMEND
 ```
 
 | Step | Question | Example |
@@ -73,7 +73,7 @@ DETECT ──▶ TRACE ──▶ UNDERSTAND ──▶ PREVENT
 | **DETECT** | What is wrong? | Secret in CLAUDE.md |
 | **TRACE** | When/where did it originate? | Session where user asked "add API config" |
 | **UNDERSTAND** | Why did it happen? | No credential handling guidance exists |
-| **PREVENT** | How do we stop recurrence? | Add: "Use environment variables for credentials" |
+| **RECOMMEND** | How do we enable prevention? | Add: "Use environment variables for credentials" |
 
 **Key insight**: Preventive recommendations compound value. Each one makes future AI sessions better.
 
@@ -99,7 +99,7 @@ We use mixed methods—quantitative signals provide objective anchors; qualitati
 1. **Local-First** - All analysis on user's machine. No data leaves without consent.
 2. **Improvement-Oriented** - Features compound value over time. Tracking is core, not afterthought.
 3. **Causal-First** - Don't just detect issues; trace them to origin and recommend prevention.
-4. **Mixed-Methods** - Quantitative + qualitative. Embrace exploratory analysis.
+4. **Mixed-Methods (Agent-Orchestrated)** - Quantitative + qualitative. The agent reasons about which methods to apply.
 5. **Language-Agnostic** - Works across programming languages.
 6. **Agent-Agnostic** - Supports any AI coding agent via adapters.
 7. **Intelligent Tooling** - Tools exist to serve the agent's cognitive needs. The agent chooses freely between tool use and direct reasoning—no approach is privileged.
@@ -146,6 +146,18 @@ How observable and improvable is the system?
 
 **Design Implication**: What the agent needs differs from what humans need. agentlint analyzes both perspectives and may surface tensions between them.
 
+### Collaborative Model
+
+agentlint is a **recommendation system**, not an automation system. The interaction model:
+
+1. **Analyse**: Agent gathers context and identifies issues
+2. **Discuss**: Agent presents findings and asks clarifying questions
+3. **Recommend**: Agent proposes options with traced rationale
+4. **Decide**: Developer chooses which recommendations to implement
+5. **Implement**: Changes made collaboratively with developer approval
+
+The agent may ask questions to clarify intent, validate assumptions, or present options. The developer remains in control of all decisions and changes.
+
 ---
 
 ## Success Indicators
@@ -186,12 +198,13 @@ How observable and improvable is the system?
 ## Decision Framework
 
 1. **Does it support continuous improvement?** Value compounds over time.
-2. **Does it trace to root cause?** Prevention over symptom treatment.
-3. **Does it embrace mixed methods?** Both quantitative and qualitative matter.
+2. **Does it trace to root cause?** Understanding enables prevention.
+3. **Does it embrace mixed methods?** Quantitative + qualitative.
 4. **Does it improve understanding?** Insight over raw numbers.
-5. **Does it serve the agent's needs?** Tools support understanding; agent provides understanding.
+5. **Does it serve the agent's needs?** Tools support; agent provides understanding.
 6. **Does it maintain local-first?** No data leaves without consent.
 7. **Is it language/agent-agnostic?** Broad applicability.
+8. **Does it preserve user agency?** Recommend, don't automate; developer decides.
 
 ---
 

@@ -161,7 +161,7 @@ The system must handle traces like:
 
 ### FR-7.1: Recommendation Generation
 - FR-7.1.1: Generate symptomatic recommendations (fix immediate issue)
-- FR-7.1.2: Generate preventive recommendations (stop recurrence)
+- FR-7.1.2: Generate preventive recommendations (enable prevention of recurrence)
 - FR-7.1.3: Generate systemic recommendations (address root patterns)
 - FR-7.1.4: Provide specific, actionable configuration changes
 - FR-7.1.5: Include rationale and traced origin for each recommendation
