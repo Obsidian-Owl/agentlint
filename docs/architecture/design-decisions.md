@@ -501,35 +501,24 @@ These decisions establish the fundamental platform and must be resolved first.
 
 ### DD-014: Secret Detection Strategy
 
-**Status**: OPEN
+**Status**: DECIDED (ADR-0013)
 
 **Question**: How should agentlint detect secrets and sensitive information in analyzed files?
 
-**Context**:
-- Critical for security-conscious persona
-- Must detect: API keys, tokens, passwords, private keys
-- Cannot transmit or log detected secrets
-- Detection in configs, session logs, and code
+**Decision**: Use **Hybrid: Gitleaks patterns + LLM validation**. Parse Gitleaks' TOML pattern definitions (140+ community-maintained detectors) in TypeScript, then use LLM to validate candidates with redacted context. This provides battle-tested patterns without binary dependencies, while LLM reasoning reduces false positives.
 
-**Options to Consider**:
-| Option | Strengths | Considerations |
-|--------|-----------|----------------|
-| Regex patterns | Simple, fast | High false positive rate |
-| Entropy analysis | Catches novel patterns | Tuning complexity |
-| Existing tools (gitleaks, detect-secrets) | Proven, maintained | External dependency |
-| ML-based detection | Adaptive | Complexity, potential data concerns |
+**Key Design Points**:
+- Pattern source: Gitleaks TOML rules (synced periodically from upstream)
+- Execution: Native TypeScript regex matching (no Go binary required)
+- Privacy: Secret values redacted before LLM sees context
+- Validation: Agent reasons about context to classify true/false positives
+- Output: Classification with confidence score and reasoning
 
-**Key Questions**:
-- What false positive rate is acceptable?
-- How do we handle detection without exposure?
-- Should we integrate existing tools or build custom?
-- How do we handle secrets in session logs?
-
-**Evaluation Criteria**:
-- Detection accuracy
-- False positive rate
-- Privacy preservation
-- Maintenance burden
+**Research Findings**:
+- Entropy-only detection produces high false positives (210K candidates → first 50 all false positives in one study)
+- LLMs achieve F1 = 94.49% vs 80% for pure regex (IEEE research)
+- detect-secrets has lowest false positive rate but requires Python runtime
+- Gitleaks patterns are recall-focused; LLM filter adds precision
 
 **Related Principles**: I (Local-First), NFR-2 (Privacy and Security)
 
