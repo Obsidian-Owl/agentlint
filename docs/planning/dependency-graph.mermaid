@@ -1,0 +1,73 @@
+graph LR
+    subgraph Foundation["Phase 1: Foundation"]
+        EP01[EP01: Project Foundation<br/>& CI/CD]
+        EP02[EP02: Orchestration Core]
+        EP03[EP03: Persistence Layer]
+    end
+
+    subgraph CoreTools["Phase 2: Core Tools"]
+        EP04[EP04: CLI Interface<br/>& Commands]
+        EP05[EP05: Config Analysis<br/>Tools]
+        EP06[EP06: Session Analysis<br/>Tools]
+        EP08[EP08: ACT Adapters]
+    end
+
+    subgraph Advanced["Phase 3: Advanced Features"]
+        EP07[EP07: Causal Tracing<br/>Engine]
+        EP09[EP09: Temporal Analysis]
+        EP10[EP10: Recommendation<br/>Engine]
+    end
+
+    subgraph Polish["Phase 4: Polish"]
+        EP11[EP11: Quality &<br/>Security]
+        EP12[EP12: Global Learnings]
+    end
+
+    %% Hard dependencies (solid lines)
+    EP01 --> EP02
+    EP01 --> EP03
+    EP02 --> EP04
+    EP01 --> EP04
+    EP02 --> EP05
+    EP01 --> EP05
+    EP02 --> EP06
+    EP03 --> EP06
+    EP01 --> EP06
+    EP01 --> EP08
+    EP06 --> EP07
+    EP02 --> EP07
+    EP03 --> EP07
+    EP03 --> EP09
+    EP07 --> EP10
+    EP02 --> EP10
+    EP03 --> EP10
+    EP01 --> EP11
+    EP02 --> EP11
+    EP03 --> EP12
+    EP01 --> EP12
+
+    %% Soft dependencies (dashed lines)
+    EP03 -.-> EP05
+    EP02 -.-> EP08
+    EP02 -.-> EP09
+    EP05 -.-> EP07
+    EP05 -.-> EP10
+    EP06 -.-> EP10
+    EP09 -.-> EP10
+    EP05 -.-> EP11
+    EP06 -.-> EP11
+    EP09 -.-> EP12
+
+    %% Styling
+    style EP01 fill:#e1f5fe,stroke:#01579b
+    style EP02 fill:#e1f5fe,stroke:#01579b
+    style EP03 fill:#e1f5fe,stroke:#01579b
+    style EP04 fill:#c8e6c9,stroke:#2e7d32
+    style EP05 fill:#c8e6c9,stroke:#2e7d32
+    style EP06 fill:#c8e6c9,stroke:#2e7d32
+    style EP07 fill:#fff3e0,stroke:#ef6c00
+    style EP08 fill:#c8e6c9,stroke:#2e7d32
+    style EP09 fill:#fff3e0,stroke:#ef6c00
+    style EP10 fill:#fff3e0,stroke:#ef6c00
+    style EP11 fill:#f3e5f5,stroke:#7b1fa2
+    style EP12 fill:#f3e5f5,stroke:#7b1fa2
