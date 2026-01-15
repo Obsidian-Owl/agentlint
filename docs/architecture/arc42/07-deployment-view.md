@@ -16,9 +16,9 @@ curl -fsSL https://agentlint.dev/install.sh | bash
 ```
 
 - Downloads pre-compiled Bun binary
-- Installs to `~/.agentlint/bin/`
-- Adds to PATH via shell profile
-- Platforms: macOS (arm64, x64), Linux (x64)
+- Installs to `~/.agentlint/bin/` (or `/usr/local/bin/`)
+- Prints PATH instructions (user adds manually)
+- Platforms: macOS (arm64, x64), Linux (arm64, x64)
 
 ### Secondary: npm
 
@@ -71,6 +71,29 @@ bun test
 
 ### Project Structure
 
+The project structure evolves as epics are implemented:
+
+**EP01 (Foundation)** - Flat CLI structure:
+```
+agentlint/
+├── src/
+│   ├── cli.ts            # CLI entry point
+│   ├── commands/         # Command implementations
+│   │   └── update.ts     # Self-update command
+│   ├── errors/           # Error types and utilities
+│   ├── types/            # Shared type definitions
+│   └── version.ts        # Version information
+├── tests/
+│   ├── cli.test.ts
+│   ├── errors.test.ts
+│   ├── version.test.ts
+│   └── commands/
+├── scripts/
+│   └── install.sh        # curl | bash installer
+└── .github/workflows/    # CI/CD pipelines
+```
+
+**Full Architecture** (EP02+) - 6-layer structure:
 ```
 agentlint/
 ├── src/
@@ -100,8 +123,7 @@ agentlint/
 ### On Release
 
 1. All checks above
-2. Build binaries (macOS arm64, macOS x64, Linux x64)
-3. Build npm package
-4. Publish to npm
-5. Upload to GitHub releases
-6. Update install script
+2. Build binaries (macOS arm64, macOS x64, Linux arm64, Linux x64)
+3. Generate SHA-256 checksums
+4. Create GitHub Release with auto-generated notes
+5. Publish npm package

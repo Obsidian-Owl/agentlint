@@ -55,6 +55,38 @@
 
 ---
 
+## Level 2: CLI Interface Layer
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    CLI INTERFACE LAYER                          │
+│                                                                 │
+│  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐              │
+│  │   cli.ts    │  │  version.ts │  │  commands/  │              │
+│  │  Entry point│  │ Version info│  │  update.ts  │              │
+│  │  Arg parsing│  │ Runtime info│  │  (future)   │              │
+│  └─────────────┘  └─────────────┘  └─────────────┘              │
+│                                                                 │
+│  ┌──────────────────────────────────────────────────┐           │
+│  │              SHARED MODULES                       │           │
+│  │  errors/         │  types/                        │           │
+│  │  • ExitCodes     │  • Platform, Architecture     │           │
+│  │  • Error classes │  • Binary, Release            │           │
+│  │  • formatError() │  • InstallPaths               │           │
+│  └──────────────────────────────────────────────────┘           │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+| Component | Purpose |
+|-----------|---------|
+| `cli.ts` | Entry point, argument parsing, command routing |
+| `version.ts` | Version info, runtime detection (Bun/Node) |
+| `commands/` | Command implementations (update, future commands) |
+| `errors/` | Typed error classes, exit codes, error formatting |
+| `types/` | Shared type definitions (Platform, Binary, Release) |
+
+---
+
 ## Level 2: Orchestration Layer
 
 ```

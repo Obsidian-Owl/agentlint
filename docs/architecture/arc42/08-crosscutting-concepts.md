@@ -40,6 +40,33 @@
 
 ## 8.3 Error Handling
 
+### CLI Error Classes
+
+Located in `src/errors/index.ts`:
+
+```typescript
+// Base error with exit code mapping
+class AgentlintError extends Error {
+  constructor(message: string, public readonly code: ExitCode) {}
+}
+
+// Specialized error types
+class InvalidArgumentError extends AgentlintError { code = ExitCode.InvalidArgument }
+class NetworkError extends AgentlintError { code = ExitCode.NetworkError }
+class ChecksumMismatchError extends AgentlintError { code = ExitCode.ChecksumMismatch }
+
+// Exit code constants
+const ExitCode = {
+  Success: 0,
+  GeneralError: 1,
+  InvalidArgument: 2,
+  NetworkError: 3,
+  ChecksumMismatch: 4,
+} as const;
+```
+
+### Tool Error Format
+
 ```typescript
 interface ToolError {
   error: true;
@@ -55,6 +82,8 @@ interface ToolError {
 | Parse error | Return partial, flag issue |
 | API error | Retry with backoff, checkpoint |
 | Not indexed | Suggest `agentlint scan` |
+| Network error | Graceful message, preserve state |
+| Checksum mismatch | Abort operation, clear error |
 
 ---
 
@@ -93,3 +122,19 @@ Following Claude Code patterns:
 | Debug Logging | `DEBUG=agentlint:*` environment control |
 | Agent Transparency | Tool invocations visible in verbose mode |
 | Session Recording | Analysis logged to `.agentlint/session-state/` |
+
+---
+
+## 8.7 Shared Type Definitions
+
+Located in `src/types/index.ts`:
+
+| Type | Purpose |
+|------|---------|
+| `Platform` | Operating system (`'darwin' \| 'linux'`) |
+| `Architecture` | CPU architecture (`'arm64' \| 'x64'`) |
+| `Binary` | Compiled executable metadata (platform, arch, checksum, size) |
+| `Release` | Versioned distribution (tag, binaries, changelog) |
+| `InstallPaths` | Standard installation locations |
+
+These types are shared across CLI, commands, and distribution tooling. See [§5 Building Blocks](05-building-blocks.md) for location in architecture.
