@@ -201,10 +201,7 @@ export async function calculateChecksum(data: ArrayBuffer): Promise<string> {
 /**
  * Verify binary checksum
  */
-export async function verifyChecksum(
-  data: ArrayBuffer,
-  expectedChecksum: string
-): Promise<void> {
+export async function verifyChecksum(data: ArrayBuffer, expectedChecksum: string): Promise<void> {
   const actualChecksum = await calculateChecksum(data);
 
   if (actualChecksum !== expectedChecksum) {
@@ -231,10 +228,7 @@ export function getExecutablePath(): string {
 /**
  * Replace current binary with new one
  */
-export async function replaceBinary(
-  newBinaryData: ArrayBuffer,
-  targetPath: string
-): Promise<void> {
+export async function replaceBinary(newBinaryData: ArrayBuffer, targetPath: string): Promise<void> {
   const tempPath = `${targetPath}.new`;
   const backupPath = `${targetPath}.bak`;
 

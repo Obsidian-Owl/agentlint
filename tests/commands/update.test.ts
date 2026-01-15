@@ -164,7 +164,9 @@ describe('update command network operations', () => {
   });
 
   test('fetchLatestRelease handles network errors', async () => {
-    globalThis.fetch = mock(() => Promise.reject(new Error('Network error'))) as unknown as typeof fetch;
+    globalThis.fetch = mock(() =>
+      Promise.reject(new Error('Network error'))
+    ) as unknown as typeof fetch;
 
     const { fetchLatestRelease } = await import('../../src/commands/update');
 
@@ -286,7 +288,9 @@ ${checksum2}  agentlint-linux-x64
   });
 
   test('throws NetworkError on network failure', async () => {
-    globalThis.fetch = mock(() => Promise.reject(new Error('Network unreachable'))) as unknown as typeof fetch;
+    globalThis.fetch = mock(() =>
+      Promise.reject(new Error('Network unreachable'))
+    ) as unknown as typeof fetch;
 
     try {
       await fetchChecksums('v1.0.0');
@@ -325,7 +329,9 @@ describe('update function', () => {
   test('returns already up to date when on latest version', async () => {
     const mockRelease = {
       tag_name: 'v0.1.0', // Same as current version
-      assets: [{ name: 'agentlint-darwin-arm64', browser_download_url: 'https://example.com/binary' }],
+      assets: [
+        { name: 'agentlint-darwin-arm64', browser_download_url: 'https://example.com/binary' },
+      ],
     };
 
     globalThis.fetch = mock(() =>
