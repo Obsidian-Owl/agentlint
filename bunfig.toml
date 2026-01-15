@@ -1,0 +1,19 @@
+# Bun configuration for agentlint
+# https://bun.sh/docs/runtime/bunfig
+
+[install]
+# Use exact versions in lockfile
+exact = true
+
+[install.lockfile]
+# Save lockfile in text format for better git diffs
+print = "yarn"
+
+[test]
+# Test configuration
+coverage = true
+coverageDir = "coverage"
+
+[run]
+# Silence the bun logo on startup
+silent = true
