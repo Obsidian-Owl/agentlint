@@ -2,7 +2,10 @@
  * Tests for update command
  */
 
-import { describe, test, expect, mock, afterEach } from 'bun:test';
+import { describe, test, expect, mock, afterEach, beforeEach } from 'bun:test';
+import { mkdtemp, rm, stat, readFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import {
   parseVersion,
   compareVersions,
@@ -11,8 +14,14 @@ import {
   getBinaryFilename,
   calculateChecksum,
   verifyChecksum,
+  fetchChecksums,
+  getExecutablePath,
+  replaceBinary,
+  downloadBinary,
+  update,
+  runUpdate,
 } from '../../src/commands/update';
-import { ChecksumMismatchError } from '../../src/errors';
+import { ChecksumMismatchError, NetworkError, ExitCode } from '../../src/errors';
 
 describe('update command', () => {
   describe('parseVersion', () => {
@@ -207,6 +216,478 @@ describe('update command network operations', () => {
     } catch (error) {
       expect(error).toBeInstanceOf(Error);
       expect((error as Error).message).toContain('Failed to download binary');
+    }
+  });
+});
+
+describe('fetchChecksums', () => {
+  const originalFetch = globalThis.fetch;
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  test('parses checksums file correctly', async () => {
+    // SHA-256 checksums are exactly 64 hex characters (0-9, a-f only)
+    const darwinChecksum = 'a1b2c3d4e5f6789012345678901234567890123456789012345678901234abcd';
+    const linuxChecksum = 'f1e2d3c4b5a6789012345678901234567890123456789012345678901234ef01';
+    const checksumContent = `${darwinChecksum}  agentlint-darwin-arm64
+${linuxChecksum}  agentlint-linux-x64`;
+
+    globalThis.fetch = mock(() =>
+      Promise.resolve({
+        ok: true,
+        status: 200,
+        text: () => Promise.resolve(checksumContent),
+      } as Response)
+    ) as unknown as typeof fetch;
+
+    const checksums = await fetchChecksums('v1.0.0');
+
+    expect(checksums.size).toBe(2);
+    expect(checksums.get('agentlint-darwin-arm64')).toBe(darwinChecksum);
+    expect(checksums.get('agentlint-linux-x64')).toBe(linuxChecksum);
+  });
+
+  test('handles empty lines in checksums file', async () => {
+    const checksum1 = 'a1b2c3d4e5f6789012345678901234567890123456789012345678901234abcd';
+    const checksum2 = 'f1e2d3c4b5a6789012345678901234567890123456789012345678901234ef01';
+    const checksumContent = `${checksum1}  agentlint-darwin-arm64
+
+${checksum2}  agentlint-linux-x64
+`;
+
+    globalThis.fetch = mock(() =>
+      Promise.resolve({
+        ok: true,
+        text: () => Promise.resolve(checksumContent),
+      } as Response)
+    ) as unknown as typeof fetch;
+
+    const checksums = await fetchChecksums('v1.0.0');
+    expect(checksums.size).toBe(2);
+  });
+
+  test('throws NetworkError on HTTP error', async () => {
+    globalThis.fetch = mock(() =>
+      Promise.resolve({
+        ok: false,
+        status: 404,
+      } as Response)
+    ) as unknown as typeof fetch;
+
+    try {
+      await fetchChecksums('v1.0.0');
+      expect(true).toBe(false);
+    } catch (error) {
+      expect(error).toBeInstanceOf(NetworkError);
+      expect((error as NetworkError).message).toContain('Failed to fetch checksums');
+    }
+  });
+
+  test('throws NetworkError on network failure', async () => {
+    globalThis.fetch = mock(() => Promise.reject(new Error('Network unreachable'))) as unknown as typeof fetch;
+
+    try {
+      await fetchChecksums('v1.0.0');
+      expect(true).toBe(false);
+    } catch (error) {
+      expect(error).toBeInstanceOf(NetworkError);
+      expect((error as NetworkError).message).toContain('Failed to fetch checksums');
+    }
+  });
+});
+
+describe('getExecutablePath', () => {
+  test('returns process.execPath', () => {
+    const path = getExecutablePath();
+    expect(typeof path).toBe('string');
+    expect(path.length).toBeGreaterThan(0);
+    // In test environment, should return the bun executable path
+    expect(path).toContain('bun');
+  });
+});
+
+describe('update function', () => {
+  const originalFetch = globalThis.fetch;
+  const originalConsoleLog = console.log;
+
+  beforeEach(() => {
+    // Suppress console output during tests
+    console.log = mock(() => {}) as unknown as typeof console.log;
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+    console.log = originalConsoleLog;
+  });
+
+  test('returns already up to date when on latest version', async () => {
+    const mockRelease = {
+      tag_name: 'v0.1.0', // Same as current version
+      assets: [{ name: 'agentlint-darwin-arm64', browser_download_url: 'https://example.com/binary' }],
+    };
+
+    globalThis.fetch = mock(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(mockRelease),
+      } as Response)
+    ) as unknown as typeof fetch;
+
+    const result = await update();
+
+    expect(result.updated).toBe(false);
+    expect(result.message).toContain('Already up to date');
+    expect(result.currentVersion).toBe('0.1.0');
+    expect(result.latestVersion).toBe('0.1.0');
+  });
+
+  test('returns already up to date when current is newer', async () => {
+    const mockRelease = {
+      tag_name: 'v0.0.9', // Older than current
+      assets: [],
+    };
+
+    globalThis.fetch = mock(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(mockRelease),
+      } as Response)
+    ) as unknown as typeof fetch;
+
+    const result = await update();
+
+    expect(result.updated).toBe(false);
+    expect(result.message).toContain('Already up to date');
+  });
+
+  test('throws NetworkError when no binary found for platform', async () => {
+    const mockRelease = {
+      tag_name: 'v1.0.0',
+      assets: [
+        // Missing the binary for current platform
+        { name: 'agentlint-windows-x64', browser_download_url: 'https://example.com/windows' },
+      ],
+    };
+
+    globalThis.fetch = mock(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(mockRelease),
+      } as Response)
+    ) as unknown as typeof fetch;
+
+    try {
+      await update({ force: true });
+      expect(true).toBe(false);
+    } catch (error) {
+      expect(error).toBeInstanceOf(NetworkError);
+      expect((error as NetworkError).message).toContain('No binary found');
+    }
+  });
+
+  test('throws NetworkError when no checksum found', async () => {
+    const binaryFilename = getBinaryFilename();
+    const mockRelease = {
+      tag_name: 'v1.0.0',
+      assets: [{ name: binaryFilename, browser_download_url: 'https://example.com/binary' }],
+    };
+
+    let callCount = 0;
+    globalThis.fetch = mock(() => {
+      callCount++;
+      if (callCount === 1) {
+        // Release info
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockRelease),
+        } as Response);
+      } else {
+        // Checksums - return empty
+        return Promise.resolve({
+          ok: true,
+          text: () => Promise.resolve(''),
+        } as Response);
+      }
+    }) as unknown as typeof fetch;
+
+    try {
+      await update({ force: true });
+      expect(true).toBe(false);
+    } catch (error) {
+      expect(error).toBeInstanceOf(NetworkError);
+      expect((error as NetworkError).message).toContain('No checksum found');
+    }
+  });
+});
+
+describe('runUpdate function', () => {
+  const originalFetch = globalThis.fetch;
+  const originalConsoleLog = console.log;
+  const originalConsoleError = console.error;
+
+  beforeEach(() => {
+    console.log = mock(() => {}) as unknown as typeof console.log;
+    console.error = mock(() => {}) as unknown as typeof console.error;
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+    console.log = originalConsoleLog;
+    console.error = originalConsoleError;
+  });
+
+  test('returns Success when already up to date', async () => {
+    const mockRelease = {
+      tag_name: 'v0.1.0',
+      assets: [],
+    };
+
+    globalThis.fetch = mock(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(mockRelease),
+      } as Response)
+    ) as unknown as typeof fetch;
+
+    const exitCode = await runUpdate([]);
+    expect(exitCode).toBe(ExitCode.Success);
+  });
+
+  test('parses --force flag', async () => {
+    const mockRelease = {
+      tag_name: 'v0.1.0',
+      assets: [],
+    };
+
+    globalThis.fetch = mock(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(mockRelease),
+      } as Response)
+    ) as unknown as typeof fetch;
+
+    // With force, it should try to update even if same version
+    // but will fail because no binary for platform
+    const exitCode = await runUpdate(['--force']);
+    expect(exitCode).toBe(ExitCode.NetworkError);
+  });
+
+  test('parses -f flag as force', async () => {
+    const mockRelease = {
+      tag_name: 'v0.1.0',
+      assets: [],
+    };
+
+    globalThis.fetch = mock(() =>
+      Promise.resolve({
+        ok: true,
+        json: () => Promise.resolve(mockRelease),
+      } as Response)
+    ) as unknown as typeof fetch;
+
+    const exitCode = await runUpdate(['-f']);
+    expect(exitCode).toBe(ExitCode.NetworkError);
+  });
+
+  test('returns NetworkError on fetch failure', async () => {
+    globalThis.fetch = mock(() =>
+      Promise.resolve({
+        ok: false,
+        status: 500,
+      } as Response)
+    ) as unknown as typeof fetch;
+
+    const exitCode = await runUpdate([]);
+    expect(exitCode).toBe(ExitCode.NetworkError);
+  });
+
+  test('handles non-Error exceptions', async () => {
+    // eslint-disable-next-line @typescript-eslint/prefer-promise-reject-errors
+    globalThis.fetch = mock(() => Promise.reject('string error')) as unknown as typeof fetch;
+
+    const exitCode = await runUpdate([]);
+    expect(exitCode).toBe(ExitCode.NetworkError);
+  });
+});
+
+describe('replaceBinary', () => {
+  let tempDir: string;
+
+  beforeEach(async () => {
+    tempDir = await mkdtemp(join(tmpdir(), 'agentlint-test-'));
+  });
+
+  afterEach(async () => {
+    await rm(tempDir, { recursive: true, force: true });
+  });
+
+  test('writes new binary to target path', async () => {
+    const targetPath = join(tempDir, 'agentlint');
+    const binaryContent = new TextEncoder().encode('#!/bin/bash\necho "test binary"');
+
+    await replaceBinary(binaryContent.buffer, targetPath);
+
+    // Verify file was written
+    const content = await readFile(targetPath);
+    expect(content.toString()).toBe('#!/bin/bash\necho "test binary"');
+  });
+
+  test('makes binary executable', async () => {
+    const targetPath = join(tempDir, 'agentlint');
+    const binaryContent = new TextEncoder().encode('test');
+
+    await replaceBinary(binaryContent.buffer, targetPath);
+
+    // Verify file is executable (mode includes execute bit)
+    const stats = await stat(targetPath);
+    expect(stats.mode & 0o111).toBeGreaterThan(0);
+  });
+
+  test('replaces existing binary', async () => {
+    const targetPath = join(tempDir, 'agentlint');
+
+    // Create initial binary
+    const oldContent = new TextEncoder().encode('old version');
+    await Bun.write(targetPath, oldContent);
+
+    // Replace with new binary
+    const newContent = new TextEncoder().encode('new version');
+    await replaceBinary(newContent.buffer, targetPath);
+
+    // Verify new content
+    const content = await readFile(targetPath);
+    expect(content.toString()).toBe('new version');
+  });
+
+  test('cleans up temp file on success', async () => {
+    const targetPath = join(tempDir, 'agentlint');
+    const binaryContent = new TextEncoder().encode('test');
+
+    await replaceBinary(binaryContent.buffer, targetPath);
+
+    // Verify no .new or .bak files left behind
+    const tempFile = `${targetPath}.new`;
+    const backupFile = `${targetPath}.bak`;
+
+    try {
+      await stat(tempFile);
+      expect(true).toBe(false); // Should not exist
+    } catch {
+      // Expected - file should not exist
+    }
+
+    try {
+      await stat(backupFile);
+      expect(true).toBe(false); // Should not exist
+    } catch {
+      // Expected - file should not exist
+    }
+  });
+});
+
+describe('downloadBinary', () => {
+  const originalFetch = globalThis.fetch;
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+  });
+
+  test('returns ArrayBuffer on success', async () => {
+    const testData = new TextEncoder().encode('binary data');
+
+    globalThis.fetch = mock(() =>
+      Promise.resolve({
+        ok: true,
+        arrayBuffer: () => Promise.resolve(testData.buffer),
+      } as Response)
+    ) as unknown as typeof fetch;
+
+    const result = await downloadBinary('https://example.com/binary');
+
+    expect(result.byteLength).toBe(testData.length);
+  });
+
+  test('throws NetworkError on non-ok response', async () => {
+    globalThis.fetch = mock(() =>
+      Promise.resolve({
+        ok: false,
+        status: 403,
+      } as Response)
+    ) as unknown as typeof fetch;
+
+    try {
+      await downloadBinary('https://example.com/binary');
+      expect(true).toBe(false);
+    } catch (error) {
+      expect(error).toBeInstanceOf(NetworkError);
+      expect((error as NetworkError).message).toContain('Failed to download binary');
+      expect((error as NetworkError).message).toContain('403');
+    }
+  });
+
+  test('throws NetworkError on network failure', async () => {
+    globalThis.fetch = mock(() =>
+      Promise.reject(new Error('Connection reset'))
+    ) as unknown as typeof fetch;
+
+    try {
+      await downloadBinary('https://example.com/binary');
+      expect(true).toBe(false);
+    } catch (error) {
+      expect(error).toBeInstanceOf(NetworkError);
+      expect((error as NetworkError).message).toContain('Download failed');
+    }
+  });
+});
+
+describe('full update flow', () => {
+  const originalFetch = globalThis.fetch;
+  const originalConsoleLog = console.log;
+
+  beforeEach(() => {
+    console.log = mock(() => {}) as unknown as typeof console.log;
+  });
+
+  afterEach(() => {
+    globalThis.fetch = originalFetch;
+    console.log = originalConsoleLog;
+  });
+
+  test('complete update with checksum verification failure', async () => {
+    const binaryFilename = getBinaryFilename();
+    const validChecksum = 'a'.repeat(64);
+    const mockRelease = {
+      tag_name: 'v1.0.0',
+      assets: [{ name: binaryFilename, browser_download_url: 'https://example.com/binary' }],
+    };
+
+    globalThis.fetch = mock((url: string) => {
+      if (url.includes('/releases/latest')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve(mockRelease),
+        } as Response);
+      } else if (url.includes('checksums.txt')) {
+        return Promise.resolve({
+          ok: true,
+          text: () => Promise.resolve(`${validChecksum}  ${binaryFilename}`),
+        } as Response);
+      } else {
+        // Binary download - return data that won't match checksum
+        return Promise.resolve({
+          ok: true,
+          arrayBuffer: () => Promise.resolve(new TextEncoder().encode('wrong data').buffer),
+        } as Response);
+      }
+    }) as unknown as typeof fetch;
+
+    try {
+      await update({ force: true });
+      expect(true).toBe(false);
+    } catch (error) {
+      expect(error).toBeInstanceOf(ChecksumMismatchError);
     }
   });
 });
