@@ -1,0 +1,117 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build (${{ matrix.target }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: darwin-arm64
+            os: macos-latest
+            arch: arm64
+          - target: darwin-x64
+            os: macos-13
+            arch: x64
+          - target: linux-arm64
+            os: ubuntu-latest
+            arch: arm64
+          - target: linux-x64
+            os: ubuntu-latest
+            arch: x64
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build binary
+        run: |
+          if [[ "${{ matrix.arch }}" == "arm64" && "${{ runner.arch }}" != "ARM64" ]]; then
+            # Cross-compile for arm64 on x64 runner
+            bun build src/cli.ts --compile --minify --target=bun-${{ matrix.os == 'macos-latest' && 'darwin' || 'linux' }}-arm64 --outfile dist/agentlint-${{ matrix.target }}
+          else
+            bun build src/cli.ts --compile --minify --outfile dist/agentlint-${{ matrix.target }}
+          fi
+
+      - name: Verify binary
+        if: matrix.arch == runner.arch || (matrix.arch == 'x64' && runner.arch == 'X64')
+        run: ./dist/agentlint-${{ matrix.target }} --version
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: agentlint-${{ matrix.target }}
+          path: dist/agentlint-${{ matrix.target }}
+          if-no-files-found: error
+
+  release:
+    name: Create Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: List artifacts
+        run: ls -la dist/
+
+      - name: Generate checksums
+        run: |
+          cd dist
+          sha256sum agentlint-* > checksums.txt
+          cat checksums.txt
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          generate_release_notes: true
+          files: |
+            dist/agentlint-*
+            dist/checksums.txt
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  publish-npm:
+    name: Publish to npm
+    needs: release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build for npm
+        run: bun run build
+
+      - name: Setup npm auth
+        run: echo "//registry.npmjs.org/:_authToken=${{ secrets.NPM_TOKEN }}" > ~/.npmrc
+
+      - name: Publish to npm
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

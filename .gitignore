@@ -1,5 +1,29 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+
+# Coverage
+coverage/
+
 # macOS
 .DS_Store
+
+# Editor
+*.swp
+*.swo
+.idea/
+.vscode/
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+npm-debug.log*
 
 # Claude Code local settings (user-specific permissions)
 .claude/settings.local.json

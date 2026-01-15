@@ -1,0 +1,60 @@
+{
+  "epic": "EP01",
+  "project": {
+    "id": "af1317e8-3aa9-4043-9f9a-b2ef22152bc0",
+    "name": "EP01 - Project Setup"
+  },
+  "team": {
+    "id": "026f9bb0-5934-4186-b047-155812ae914d",
+    "key": "AGE"
+  },
+  "label": {
+    "id": "1c021dfc-b9bc-4f9c-adc7-9d494d59082e",
+    "name": "epic:EP01"
+  },
+  "createdAt": "2026-01-15T00:00:00.000Z",
+  "tasks": {
+    "T001": { "id": "AGE-1", "title": "Create directory structure: src/, src/commands/, tests/, scripts/" },
+    "T002": { "id": "AGE-2", "title": "Initialize package.json with name @agentlint/cli, version 0.1.0" },
+    "T003": { "id": "AGE-3", "title": "Create tsconfig.json with strict mode, ESNext target" },
+    "T004": { "id": "AGE-4", "title": "Create bunfig.toml for Bun configuration" },
+    "T005": { "id": "AGE-5", "title": "Create .gitignore with node_modules, dist, coverage patterns" },
+    "T006": { "id": "AGE-6", "title": "Create .eslintrc.cjs with TypeScript strict rules" },
+    "T007": { "id": "AGE-7", "title": "Create .prettierrc with project formatting rules" },
+    "T008": { "id": "AGE-8", "title": "Run bun install to generate lockfile", "blockedBy": ["AGE-2", "AGE-3", "AGE-4"] },
+    "T009": { "id": "AGE-9", "title": "Create src/types/index.ts with Platform, Architecture, Binary, Release types" },
+    "T010": { "id": "AGE-10", "title": "Create src/version.ts with VersionInfo interface and getVersion() function" },
+    "T011": { "id": "AGE-11", "title": "Create src/errors/index.ts with ExitCode constants and error types" },
+    "T012": { "id": "AGE-12", "title": "Create src/cli.ts with minimal CLI entry point (--version, --help)", "blockedBy": ["AGE-9", "AGE-10", "AGE-11"] },
+    "T013": { "id": "AGE-13", "title": "Add bin field to package.json pointing to src/cli.ts" },
+    "T014": { "id": "AGE-14", "title": "Create README.md with project overview and badges" },
+    "T015": { "id": "AGE-15", "title": "Create tests/cli.test.ts with basic CLI smoke tests" },
+    "T016": { "id": "AGE-16", "title": "Create tests/version.test.ts to verify version output" },
+    "T017": { "id": "AGE-17", "title": "Add build script to package.json: build: bun build src/cli.ts --outdir dist" },
+    "T018": { "id": "AGE-18", "title": "Add lint script: lint: eslint src tests --ext .ts" },
+    "T019": { "id": "AGE-19", "title": "Add format script: format: prettier --write src tests" },
+    "T020": { "id": "AGE-20", "title": "Create CONTRIBUTING.md with setup instructions" },
+    "T021": { "id": "AGE-21", "title": "Verify CI workflow syntax with actionlint (manual or CI)" },
+    "T022": { "id": "AGE-22", "title": "Create .github/workflows/ci.yml with lint, typecheck, test jobs", "blockedBy": ["AGE-17", "AGE-18", "AGE-19"] },
+    "T023": { "id": "AGE-23", "title": "Add typecheck script: typecheck: tsc --noEmit" },
+    "T024": { "id": "AGE-24", "title": "Configure branch protection rules documentation in CONTRIBUTING.md" },
+    "T025": { "id": "AGE-25", "title": "Test install.sh locally on current platform" },
+    "T026": { "id": "AGE-26", "title": "Add build:binary script: build:binary: bun build src/cli.ts --compile --outfile dist/agentlint" },
+    "T027": { "id": "AGE-27", "title": "Create scripts/install.sh with platform detection and download logic", "blockedBy": ["AGE-26"] },
+    "T028": { "id": "AGE-28", "title": "Update CLI to show platform/arch in --version output" },
+    "T029": { "id": "AGE-29", "title": "Test npm pack and local install" },
+    "T030": { "id": "AGE-30", "title": "Add engines field to package.json: node: >=22.0.0" },
+    "T031": { "id": "AGE-31", "title": "Configure package.json for npm publishing (files, main, types)" },
+    "T032": { "id": "AGE-32", "title": "Test release workflow with act (local GitHub Actions runner)" },
+    "T033": { "id": "AGE-33", "title": "Create .github/workflows/release.yml with build matrix (4 platforms)" },
+    "T034": { "id": "AGE-34", "title": "Add checksum generation to release workflow" },
+    "T035": { "id": "AGE-35", "title": "Configure GitHub Release creation with auto-generated notes" },
+    "T036": { "id": "AGE-36", "title": "Add npm publish step to release workflow" },
+    "T037": { "id": "AGE-37", "title": "Create tests/commands/update.test.ts with mock network calls" },
+    "T038": { "id": "AGE-38", "title": "Test checksum verification logic" },
+    "T039": { "id": "AGE-39", "title": "Create src/commands/update.ts with update logic" },
+    "T040": { "id": "AGE-40", "title": "Wire update command into CLI entry point" },
+    "T041": { "id": "AGE-41", "title": "Validate all quickstart.md commands work end-to-end" },
+    "T042": { "id": "AGE-42", "title": "Review and update README.md with final badges and instructions" }
+  }
+}
