@@ -230,10 +230,7 @@ async function fetchWithBackoff(url: string, maxRetries = 3) {
     });
 
     it('should handle missing global directory gracefully', async () => {
-      await saveAndIndex(
-        createRealisticInput({ scope: 'project' }),
-        testProjectDir
-      );
+      await saveAndIndex(createRealisticInput({ scope: 'project' }), testProjectDir);
 
       const results = await listAllLearnings(
         { projectDir: testProjectDir, globalDir: '/non/existent/global' },
@@ -251,9 +248,7 @@ async function fetchWithBackoff(url: string, maxRetries = 3) {
       );
 
       // Save all concurrently
-      const results = await Promise.all(
-        inputs.map((input) => saveAndIndex(input, testProjectDir))
-      );
+      const results = await Promise.all(inputs.map((input) => saveAndIndex(input, testProjectDir)));
 
       // All should succeed
       expect(results.every((r) => r.id && r.filePath)).toBe(true);
@@ -290,7 +285,14 @@ async function fetchWithBackoff(url: string, maxRetries = 3) {
       const inputs = Array.from({ length: 50 }, (_, i) =>
         createRealisticInput({
           title: `Learning ${i}`,
-          category: i % 4 === 0 ? 'patterns' : i % 4 === 1 ? 'anti-patterns' : i % 4 === 2 ? 'tools' : 'workflows',
+          category:
+            i % 4 === 0
+              ? 'patterns'
+              : i % 4 === 1
+                ? 'anti-patterns'
+                : i % 4 === 2
+                  ? 'tools'
+                  : 'workflows',
           tags: [`tag-${i % 5}`, `group-${i % 10}`],
         })
       );

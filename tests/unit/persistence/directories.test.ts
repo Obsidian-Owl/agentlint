@@ -154,7 +154,9 @@ describe('directories', () => {
 
     it('getProjectLearningsDbPath should return project learnings.db path', () => {
       const projectPath = '/home/user/project';
-      expect(getProjectLearningsDbPath(projectPath)).toBe('/home/user/project/.agentlint/learnings.db');
+      expect(getProjectLearningsDbPath(projectPath)).toBe(
+        '/home/user/project/.agentlint/learnings.db'
+      );
     });
 
     it('getGlobalLearningsDir should return global learnings path', () => {

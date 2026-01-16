@@ -304,7 +304,11 @@ describe('baselines/storage', () => {
       const baseline = createTestBaseline();
       await saveBaseline(baseline, { baseDir: testBaseDir });
 
-      const updated = await updateBaseline(baseline.id, { label: 'new-label' }, { baseDir: testBaseDir });
+      const updated = await updateBaseline(
+        baseline.id,
+        { label: 'new-label' },
+        { baseDir: testBaseDir }
+      );
 
       expect(updated).toBe(true);
 
@@ -316,7 +320,11 @@ describe('baselines/storage', () => {
       const baseline = createTestBaseline();
       await saveBaseline(baseline, { baseDir: testBaseDir });
 
-      const updated = await updateBaseline(baseline.id, { notes: 'Updated notes.' }, { baseDir: testBaseDir });
+      const updated = await updateBaseline(
+        baseline.id,
+        { notes: 'Updated notes.' },
+        { baseDir: testBaseDir }
+      );
 
       expect(updated).toBe(true);
 
@@ -342,7 +350,11 @@ describe('baselines/storage', () => {
     });
 
     it('should return false for non-existent baseline', async () => {
-      const updated = await updateBaseline('non-existent-id', { label: 'test' }, { baseDir: testBaseDir });
+      const updated = await updateBaseline(
+        'non-existent-id',
+        { label: 'test' },
+        { baseDir: testBaseDir }
+      );
 
       expect(updated).toBe(false);
     });

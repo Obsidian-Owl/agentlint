@@ -12,7 +12,15 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
-import { existsSync, rmSync, readFileSync, readdirSync, mkdirSync, chmodSync, statSync } from 'node:fs';
+import {
+  existsSync,
+  rmSync,
+  readFileSync,
+  readdirSync,
+  mkdirSync,
+  chmodSync,
+  statSync,
+} from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
@@ -22,7 +30,11 @@ import {
   atomicWriteJson,
   cleanupOrphanedTempFiles,
 } from '../../../src/persistence/common/atomic-write';
-import { AtomicWriteError, PermissionError, PersistenceError } from '../../../src/errors/persistence';
+import {
+  AtomicWriteError,
+  PermissionError,
+  PersistenceError,
+} from '../../../src/errors/persistence';
 
 describe('atomic-write crash simulation', () => {
   const testBaseDir = join(tmpdir(), 'agentlint-test-atomic-crash');

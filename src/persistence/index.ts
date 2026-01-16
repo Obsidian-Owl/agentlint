@@ -150,8 +150,4 @@ export {
   cleanupOrphanedTempFiles,
 } from './common';
 
-export type {
-  OpenDatabaseOptions,
-  SQLParams,
-  AtomicWriteOptions,
-} from './common';
+export type { OpenDatabaseOptions, SQLParams, AtomicWriteOptions } from './common';

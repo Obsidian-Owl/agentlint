@@ -86,7 +86,8 @@ export class FileNotFoundError extends PersistenceError {
     fileType: 'baseline' | 'learning' | 'session' | 'database' | 'unknown' = 'unknown',
     message?: string
   ) {
-    const typeLabel = fileType === 'unknown' ? 'File' : `${fileType.charAt(0).toUpperCase()}${fileType.slice(1)}`;
+    const typeLabel =
+      fileType === 'unknown' ? 'File' : `${fileType.charAt(0).toUpperCase()}${fileType.slice(1)}`;
     super(message ?? `${typeLabel} not found: ${filePath}`, {
       code: PersistenceExitCode.FileNotFound,
       filePath,
@@ -139,7 +140,14 @@ export class FileCorruptedError extends PersistenceError {
  */
 export class DatabaseError extends PersistenceError {
   /** Database operation that failed */
-  public readonly operation: 'query' | 'insert' | 'update' | 'delete' | 'init' | 'transaction' | 'unknown';
+  public readonly operation:
+    | 'query'
+    | 'insert'
+    | 'update'
+    | 'delete'
+    | 'init'
+    | 'transaction'
+    | 'unknown';
 
   constructor(
     operation: 'query' | 'insert' | 'update' | 'delete' | 'init' | 'transaction' | 'unknown',
@@ -252,10 +260,13 @@ export class SchemaVersionError extends PersistenceError {
   public readonly actualVersion: string;
 
   constructor(filePath: string, expectedVersion: string, actualVersion: string) {
-    super(`Schema version mismatch in ${filePath}: expected ${expectedVersion}, got ${actualVersion}`, {
-      code: PersistenceExitCode.SchemaVersionError,
-      filePath,
-    });
+    super(
+      `Schema version mismatch in ${filePath}: expected ${expectedVersion}, got ${actualVersion}`,
+      {
+        code: PersistenceExitCode.SchemaVersionError,
+        filePath,
+      }
+    );
 
     this.name = 'SchemaVersionError';
     this.expectedVersion = expectedVersion;

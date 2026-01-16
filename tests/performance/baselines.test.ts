@@ -117,7 +117,9 @@ describe('baseline performance', () => {
     expect(results.length).toBe(1);
     expect(elapsed).toBeLessThan(500);
 
-    console.log(`Queried by exact label in ${elapsed.toFixed(2)}ms, found ${results.length} baseline`);
+    console.log(
+      `Queried by exact label in ${elapsed.toFixed(2)}ms, found ${results.length} baseline`
+    );
   });
 
   it('should get single baseline by ID in < 100ms', async () => {
@@ -175,7 +177,9 @@ describe('baseline performance', () => {
     expect(results.length).toBe(50); // All baselines were created recently
     expect(elapsed).toBeLessThan(500);
 
-    console.log(`Queried by date range in ${elapsed.toFixed(2)}ms, found ${results.length} baselines`);
+    console.log(
+      `Queried by date range in ${elapsed.toFixed(2)}ms, found ${results.length} baselines`
+    );
   });
 
   it('should handle pagination in < 200ms per page', async () => {

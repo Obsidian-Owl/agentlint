@@ -87,7 +87,9 @@ describe('database', () => {
 
       // Reopen and verify table exists
       const db2 = await openDatabase(dbPath);
-      const result = db2.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='test'").get();
+      const result = db2
+        .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='test'")
+        .get();
       expect(result).toBeTruthy();
       db2.close();
     });
@@ -152,9 +154,13 @@ describe('database', () => {
       db.exec('CREATE TABLE items (id INTEGER PRIMARY KEY, name TEXT)');
       db.exec("INSERT INTO items (name) VALUES ('a'), ('b'), ('c')");
 
-      const results = queryAll<{ id: number; name: string }>(db, 'SELECT * FROM items WHERE name = $name', {
-        $name: 'b',
-      });
+      const results = queryAll<{ id: number; name: string }>(
+        db,
+        'SELECT * FROM items WHERE name = $name',
+        {
+          $name: 'b',
+        }
+      );
 
       expect(results.length).toBe(1);
       expect(results[0]?.name).toBe('b');
@@ -169,7 +175,10 @@ describe('database', () => {
       db.exec('CREATE TABLE items (id INTEGER PRIMARY KEY, name TEXT)');
       db.exec("INSERT INTO items (name) VALUES ('first'), ('second')");
 
-      const result = queryOne<{ id: number; name: string }>(db, 'SELECT * FROM items ORDER BY id LIMIT 1');
+      const result = queryOne<{ id: number; name: string }>(
+        db,
+        'SELECT * FROM items ORDER BY id LIMIT 1'
+      );
 
       expect(result).not.toBeNull();
       expect(result?.name).toBe('first');
@@ -213,8 +222,8 @@ describe('database', () => {
       db.exec('CREATE TABLE items (id INTEGER PRIMARY KEY, name TEXT)');
 
       transaction(db, () => {
-        execute(db, "INSERT INTO items (name) VALUES ($name)", { $name: 'a' });
-        execute(db, "INSERT INTO items (name) VALUES ($name)", { $name: 'b' });
+        execute(db, 'INSERT INTO items (name) VALUES ($name)', { $name: 'a' });
+        execute(db, 'INSERT INTO items (name) VALUES ($name)', { $name: 'b' });
       });
 
       const count = queryOne<{ count: number }>(db, 'SELECT COUNT(*) as count FROM items');
@@ -231,9 +240,9 @@ describe('database', () => {
 
       try {
         transaction(db, () => {
-          execute(db, "INSERT INTO items (name) VALUES ($name)", { $name: 'a' });
+          execute(db, 'INSERT INTO items (name) VALUES ($name)', { $name: 'a' });
           // This should fail due to UNIQUE constraint
-          execute(db, "INSERT INTO items (name) VALUES ($name)", { $name: 'a' });
+          execute(db, 'INSERT INTO items (name) VALUES ($name)', { $name: 'a' });
         });
       } catch {
         // Expected to throw
@@ -252,7 +261,7 @@ describe('database', () => {
       db.exec('CREATE TABLE items (id INTEGER PRIMARY KEY, name TEXT)');
 
       const result = transaction(db, () => {
-        execute(db, "INSERT INTO items (name) VALUES ($name)", { $name: 'test' });
+        execute(db, 'INSERT INTO items (name) VALUES ($name)', { $name: 'test' });
         return 'success';
       });
 

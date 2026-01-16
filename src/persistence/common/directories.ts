@@ -27,7 +27,10 @@ import { DEFAULT_PERSISTENCE_CONFIG } from '../types';
  * @param mode - Permission mode (default: 0700 - owner only)
  * @throws {DirectoryError} If directory creation fails
  */
-export async function ensureDir(dir: string, mode: number = DEFAULT_PERSISTENCE_CONFIG.dirMode): Promise<void> {
+export async function ensureDir(
+  dir: string,
+  mode: number = DEFAULT_PERSISTENCE_CONFIG.dirMode
+): Promise<void> {
   if (existsSync(dir)) {
     return;
   }
@@ -52,7 +55,10 @@ export async function ensureDir(dir: string, mode: number = DEFAULT_PERSISTENCE_
  * @param mode - Permission mode (default: 0700)
  * @throws {DirectoryError} If directory creation fails
  */
-export function ensureDirSync(dir: string, mode: number = DEFAULT_PERSISTENCE_CONFIG.dirMode): void {
+export function ensureDirSync(
+  dir: string,
+  mode: number = DEFAULT_PERSISTENCE_CONFIG.dirMode
+): void {
   if (existsSync(dir)) {
     return;
   }

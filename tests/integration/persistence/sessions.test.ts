@@ -88,7 +88,8 @@ describe('Session Persistence Integration', () => {
         type: 'config_antipattern',
         severity: 'medium',
         title: 'Using wildcard in shell command allowlist',
-        description: 'The allow_bash pattern "npm *" is overly permissive and could allow unintended commands.',
+        description:
+          'The allow_bash pattern "npm *" is overly permissive and could allow unintended commands.',
         location: {
           file: 'CLAUDE.md',
           line: 45,
@@ -102,7 +103,8 @@ describe('Session Persistence Integration', () => {
         recommendations: [
           {
             type: 'preventive',
-            action: 'Replace "npm *" with specific commands: "npm install", "npm test", "npm run build"',
+            action:
+              'Replace "npm *" with specific commands: "npm install", "npm test", "npm run build"',
             rationale: 'Explicit allowlist prevents command injection vectors',
             priority: 'medium',
           },

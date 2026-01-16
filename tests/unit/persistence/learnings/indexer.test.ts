@@ -137,10 +137,22 @@ describe('learnings/indexer', () => {
       // Seed with test data
       const learnings = [
         createTestLearning({ title: 'API Pattern', category: 'patterns', tags: ['api', 'rest'] }),
-        createTestLearning({ title: 'DB Anti-Pattern', category: 'anti-patterns', tags: ['database', 'sql'] }),
-        createTestLearning({ title: 'Git Workflow', category: 'workflows', tags: ['git', 'version-control'] }),
+        createTestLearning({
+          title: 'DB Anti-Pattern',
+          category: 'anti-patterns',
+          tags: ['database', 'sql'],
+        }),
+        createTestLearning({
+          title: 'Git Workflow',
+          category: 'workflows',
+          tags: ['git', 'version-control'],
+        }),
         createTestLearning({ title: 'Testing Tool', category: 'tools', tags: ['testing', 'jest'] }),
-        createTestLearning({ title: 'Another API Pattern', category: 'patterns', tags: ['api', 'graphql'] }),
+        createTestLearning({
+          title: 'Another API Pattern',
+          category: 'patterns',
+          tags: ['api', 'graphql'],
+        }),
       ];
 
       for (const l of learnings) {
@@ -291,10 +303,7 @@ describe('learnings/indexer', () => {
         await indexLearning(l, { baseDir: testBaseDir });
       }
 
-      const results = await listAllLearnings(
-        { projectDir: testBaseDir },
-        {}
-      );
+      const results = await listAllLearnings({ projectDir: testBaseDir }, {});
 
       expect(results.length).toBe(2);
     });
@@ -317,10 +326,7 @@ describe('learnings/indexer', () => {
       await indexLearning(globalLearning, { baseDir: globalDir });
 
       // Query both
-      const results = await listAllLearnings(
-        { projectDir: testBaseDir, globalDir },
-        {}
-      );
+      const results = await listAllLearnings({ projectDir: testBaseDir, globalDir }, {});
 
       expect(results.length).toBe(2);
       expect(results.some((r) => r.title === 'Project Learning')).toBe(true);
@@ -387,10 +393,7 @@ describe('learnings/indexer', () => {
       const globalLearning = createTestLearning({ scope: 'global' });
       await indexLearning(globalLearning, { baseDir: globalDir });
 
-      const results = await listAllLearnings(
-        { projectDir: '/non/existent/path', globalDir },
-        {}
-      );
+      const results = await listAllLearnings({ projectDir: '/non/existent/path', globalDir }, {});
 
       expect(results.length).toBe(1);
 

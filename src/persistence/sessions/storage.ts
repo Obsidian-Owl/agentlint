@@ -191,10 +191,7 @@ export function listSessionIds(options: LoadStateOptions = {}): string[] {
  * @param options - Storage options
  * @returns True if deleted, false if not found
  */
-export function deleteSessionState(
-  sessionId: string,
-  options: LoadStateOptions = {}
-): boolean {
+export function deleteSessionState(sessionId: string, options: LoadStateOptions = {}): boolean {
   const baseDir = options.baseDir ?? DEFAULT_SESSIONS_DIR;
   const filePath = join(baseDir, `${sessionId}.json`);
 

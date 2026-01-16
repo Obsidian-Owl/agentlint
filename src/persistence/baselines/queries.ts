@@ -83,7 +83,10 @@ export async function queryBaselines(
  * @param options - Query options
  * @returns Full baseline or null if not found
  */
-export async function getBaselineById(id: string, options: QueryOptions = {}): Promise<Baseline | null> {
+export async function getBaselineById(
+  id: string,
+  options: QueryOptions = {}
+): Promise<Baseline | null> {
   const baseDir = options.baseDir ?? getBaselinesDir();
   return loadBaseline(id, { baseDir });
 }

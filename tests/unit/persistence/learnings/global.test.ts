@@ -25,7 +25,9 @@ describe('learnings/global', () => {
   const testGlobalDir = join(tmpdir(), 'agentlint-test-learnings-global');
 
   // Helper to create a test learning input
-  function createTestLearningInput(overrides: Partial<CreateLearningInput> = {}): CreateLearningInput {
+  function createTestLearningInput(
+    overrides: Partial<CreateLearningInput> = {}
+  ): CreateLearningInput {
     return {
       title: 'Test Learning',
       content: '# Test Learning\n\nThis is a test learning content.',
@@ -169,9 +171,9 @@ describe('learnings/global', () => {
       const globalDir = getLearningsDir('global');
 
       // Global should be in home directory
-      expect(globalDir.startsWith('/') || globalDir.includes('Users') || globalDir.includes('home')).toBe(
-        true
-      );
+      expect(
+        globalDir.startsWith('/') || globalDir.includes('Users') || globalDir.includes('home')
+      ).toBe(true);
     });
 
     it('should include .agentlint in project path', () => {

@@ -130,10 +130,7 @@ export function indexLearning(learning: Learning, options: IndexOptions): void {
  * @param options - Index options
  * @returns Learning summary, or null if not found
  */
-export function getLearningById(
-  id: string,
-  options: IndexOptions
-): LearningSummary | null {
+export function getLearningById(id: string, options: IndexOptions): LearningSummary | null {
   const dbPath = join(options.baseDir, 'learnings.db');
   if (!existsSync(dbPath)) {
     return null;
@@ -173,7 +170,8 @@ export function queryLearnings(
   const db = getDb(options.baseDir);
 
   // Build query
-  let sql = 'SELECT id, title, category, scope, tags, created_at, updated_at FROM learnings WHERE 1=1';
+  let sql =
+    'SELECT id, title, category, scope, tags, created_at, updated_at FROM learnings WHERE 1=1';
   const params: (string | number)[] = [];
 
   if (queryOptions.category) {

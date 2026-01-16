@@ -197,10 +197,7 @@ export function listLearnings(options: LoadLearningOptions = {}): string[] {
  * @param options - Storage options
  * @returns True if deleted, false if not found
  */
-export function deleteLearning(
-  learningId: string,
-  options: LoadLearningOptions = {}
-): boolean {
+export function deleteLearning(learningId: string, options: LoadLearningOptions = {}): boolean {
   const baseDir = options.baseDir ?? DEFAULT_PROJECT_LEARNINGS_DIR;
 
   if (!existsSync(baseDir)) {
@@ -294,11 +291,19 @@ function parseLearning(markdown: string): Learning | null {
     const learning: Learning = {
       id: typeof frontmatter.id === 'string' ? frontmatter.id : '',
       version: typeof frontmatter.version === 'string' ? frontmatter.version : LEARNING_VERSION,
-      createdAt: typeof frontmatter.createdAt === 'string' ? frontmatter.createdAt : new Date().toISOString(),
-      updatedAt: typeof frontmatter.updatedAt === 'string' ? frontmatter.updatedAt : new Date().toISOString(),
+      createdAt:
+        typeof frontmatter.createdAt === 'string'
+          ? frontmatter.createdAt
+          : new Date().toISOString(),
+      updatedAt:
+        typeof frontmatter.updatedAt === 'string'
+          ? frontmatter.updatedAt
+          : new Date().toISOString(),
       title: typeof frontmatter.title === 'string' ? frontmatter.title : '',
       content: markdownContent,
-      tags: Array.isArray(frontmatter.tags) ? frontmatter.tags.filter((t): t is string => typeof t === 'string') : [],
+      tags: Array.isArray(frontmatter.tags)
+        ? frontmatter.tags.filter((t): t is string => typeof t === 'string')
+        : [],
       category: frontmatter.category as Learning['category'],
       scope: frontmatter.scope as Learning['scope'],
     };
@@ -368,7 +373,9 @@ function parseYaml(yaml: string): Record<string, unknown> | null {
   try {
     const result: Record<string, unknown> = {};
     const lines = yaml.split('\n');
-    const stack: Array<{ obj: Record<string, unknown>; indent: number }> = [{ obj: result, indent: -1 }];
+    const stack: Array<{ obj: Record<string, unknown>; indent: number }> = [
+      { obj: result, indent: -1 },
+    ];
     let currentArray: unknown[] | null = null;
 
     for (const line of lines) {
@@ -435,7 +442,10 @@ function parseYaml(yaml: string): Record<string, unknown> | null {
  */
 function parseYamlScalar(value: string): string | number | boolean {
   // Remove quotes
-  if ((value.startsWith('"') && value.endsWith('"')) || (value.startsWith("'") && value.endsWith("'"))) {
+  if (
+    (value.startsWith('"') && value.endsWith('"')) ||
+    (value.startsWith("'") && value.endsWith("'"))
+  ) {
     return value.slice(1, -1).replace(/\\"/g, '"');
   }
 

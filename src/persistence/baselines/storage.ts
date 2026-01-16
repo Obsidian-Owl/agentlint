@@ -76,7 +76,10 @@ export function getCurrentVersion(): string {
  * @returns Path to the saved baseline file
  * @throws {Error} If baseline validation fails
  */
-export async function saveBaseline(baseline: Baseline, options: BaselineStorageOptions = {}): Promise<string> {
+export async function saveBaseline(
+  baseline: Baseline,
+  options: BaselineStorageOptions = {}
+): Promise<string> {
   const baseDir = options.baseDir ?? getBaselinesDir();
 
   // Validate baseline before saving
@@ -111,7 +114,10 @@ export async function saveBaseline(baseline: Baseline, options: BaselineStorageO
  * @param options - Storage options
  * @returns The baseline, or null if not found or invalid
  */
-export async function loadBaseline(id: string, options: BaselineStorageOptions = {}): Promise<Baseline | null> {
+export async function loadBaseline(
+  id: string,
+  options: BaselineStorageOptions = {}
+): Promise<Baseline | null> {
   const baseDir = options.baseDir ?? getBaselinesDir();
   const filePath = join(baseDir, `${id}.json`);
 
@@ -146,7 +152,9 @@ export async function loadBaseline(id: string, options: BaselineStorageOptions =
  * @param options - Storage options
  * @returns The latest baseline, or null if none exists
  */
-export async function getLatestBaseline(options: BaselineStorageOptions = {}): Promise<Baseline | null> {
+export async function getLatestBaseline(
+  options: BaselineStorageOptions = {}
+): Promise<Baseline | null> {
   const baseDir = options.baseDir ?? getBaselinesDir();
   const latestPath = join(baseDir, LATEST_FILENAME);
 
@@ -211,7 +219,10 @@ export async function updateBaseline(
  * @param options - Storage options
  * @returns True if deleted, false if not found
  */
-export async function deleteBaseline(id: string, options: BaselineStorageOptions = {}): Promise<boolean> {
+export async function deleteBaseline(
+  id: string,
+  options: BaselineStorageOptions = {}
+): Promise<boolean> {
   const baseDir = options.baseDir ?? getBaselinesDir();
   const filePath = join(baseDir, `${id}.json`);
 
@@ -272,7 +283,11 @@ export function listBaselineIds(options: BaselineStorageOptions = {}): string[] 
  *
  * Only updates if the new baseline is actually newer than the current latest.
  */
-async function updateLatestPointer(baseDir: string, baselineId: string, createdAt: string): Promise<void> {
+async function updateLatestPointer(
+  baseDir: string,
+  baselineId: string,
+  createdAt: string
+): Promise<void> {
   const latestPath = join(baseDir, LATEST_FILENAME);
 
   // Check if we need to update

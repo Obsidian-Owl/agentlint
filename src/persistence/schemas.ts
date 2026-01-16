@@ -278,7 +278,9 @@ export function parseLearning(data: unknown): z.infer<typeof LearningSchema> | n
 /**
  * Parse a session state file with best-effort validation.
  */
-export function parseSessionStateFile(data: unknown): z.infer<typeof SessionStateFileSchema> | null {
+export function parseSessionStateFile(
+  data: unknown
+): z.infer<typeof SessionStateFileSchema> | null {
   const result = SessionStateFileSchema.safeParse(data);
   return result.success ? result.data : null;
 }

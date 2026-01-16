@@ -59,7 +59,9 @@ describe('database transactions', () => {
       try {
         transaction(db, () => {
           // Deduct from Alice
-          execute(db, 'UPDATE accounts SET balance = balance - 30 WHERE name = $name', { $name: 'Alice' });
+          execute(db, 'UPDATE accounts SET balance = balance - 30 WHERE name = $name', {
+            $name: 'Alice',
+          });
           // Try to add to non-existent column (will fail)
           execute(db, 'UPDATE accounts SET nonexistent = 30 WHERE name = $name', { $name: 'Bob' });
         });
@@ -68,12 +70,20 @@ describe('database transactions', () => {
       }
 
       // Balances should be unchanged
-      const alice = queryOne<{ balance: number }>(db, 'SELECT balance FROM accounts WHERE name = $name', {
-        $name: 'Alice',
-      });
-      const bob = queryOne<{ balance: number }>(db, 'SELECT balance FROM accounts WHERE name = $name', {
-        $name: 'Bob',
-      });
+      const alice = queryOne<{ balance: number }>(
+        db,
+        'SELECT balance FROM accounts WHERE name = $name',
+        {
+          $name: 'Alice',
+        }
+      );
+      const bob = queryOne<{ balance: number }>(
+        db,
+        'SELECT balance FROM accounts WHERE name = $name',
+        {
+          $name: 'Bob',
+        }
+      );
 
       expect(alice?.balance).toBe(100);
       expect(bob?.balance).toBe(50);
@@ -93,20 +103,26 @@ describe('database transactions', () => {
       `);
       db.exec("INSERT INTO items (code) VALUES ('A001')");
 
-      const countBefore = queryOne<{ count: number }>(db, 'SELECT COUNT(*) as count FROM items')?.count;
+      const countBefore = queryOne<{ count: number }>(
+        db,
+        'SELECT COUNT(*) as count FROM items'
+      )?.count;
 
       try {
         transaction(db, () => {
-          execute(db, "INSERT INTO items (code) VALUES ($code)", { $code: 'B002' });
-          execute(db, "INSERT INTO items (code) VALUES ($code)", { $code: 'C003' });
+          execute(db, 'INSERT INTO items (code) VALUES ($code)', { $code: 'B002' });
+          execute(db, 'INSERT INTO items (code) VALUES ($code)', { $code: 'C003' });
           // Duplicate code - violates UNIQUE constraint
-          execute(db, "INSERT INTO items (code) VALUES ($code)", { $code: 'A001' });
+          execute(db, 'INSERT INTO items (code) VALUES ($code)', { $code: 'A001' });
         });
       } catch {
         // Expected
       }
 
-      const countAfter = queryOne<{ count: number }>(db, 'SELECT COUNT(*) as count FROM items')?.count;
+      const countAfter = queryOne<{ count: number }>(
+        db,
+        'SELECT COUNT(*) as count FROM items'
+      )?.count;
 
       expect(countAfter).toBe(countBefore);
 
@@ -121,14 +137,14 @@ describe('database transactions', () => {
 
       // First transaction - should commit
       transaction(db, () => {
-        execute(db, "INSERT INTO logs (message) VALUES ($msg)", { $msg: 'Log 1' });
-        execute(db, "INSERT INTO logs (message) VALUES ($msg)", { $msg: 'Log 2' });
+        execute(db, 'INSERT INTO logs (message) VALUES ($msg)', { $msg: 'Log 1' });
+        execute(db, 'INSERT INTO logs (message) VALUES ($msg)', { $msg: 'Log 2' });
       });
 
       // Second transaction - should fail and rollback
       try {
         transaction(db, () => {
-          execute(db, "INSERT INTO logs (message) VALUES ($msg)", { $msg: 'Log 3' });
+          execute(db, 'INSERT INTO logs (message) VALUES ($msg)', { $msg: 'Log 3' });
           throw new Error('Simulated failure');
         });
       } catch {
@@ -153,7 +169,7 @@ describe('database transactions', () => {
       db.exec('CREATE TABLE items (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT)');
 
       const result = transaction(db, () => {
-        execute(db, "INSERT INTO items (name) VALUES ($name)", { $name: 'test' });
+        execute(db, 'INSERT INTO items (name) VALUES ($name)', { $name: 'test' });
         const item = queryOne<{ id: number }>(db, 'SELECT last_insert_rowid() as id');
         return item?.id;
       });
@@ -170,8 +186,8 @@ describe('database transactions', () => {
       db.exec('CREATE TABLE data (id INTEGER PRIMARY KEY, value TEXT)');
 
       const result = transaction(db, () => {
-        execute(db, "INSERT INTO data (value) VALUES ($v)", { $v: 'a' });
-        execute(db, "INSERT INTO data (value) VALUES ($v)", { $v: 'b' });
+        execute(db, 'INSERT INTO data (value) VALUES ($v)', { $v: 'a' });
+        execute(db, 'INSERT INTO data (value) VALUES ($v)', { $v: 'b' });
         const items = queryAll<{ id: number; value: string }>(db, 'SELECT * FROM data');
         return { count: items.length, items };
       });
@@ -345,7 +361,7 @@ describe('database transactions', () => {
 
       transaction(db, () => {
         for (let i = 0; i < itemCount; i++) {
-          execute(db, "INSERT INTO items (name) VALUES ($name)", { $name: `Item ${i}` });
+          execute(db, 'INSERT INTO items (name) VALUES ($name)', { $name: `Item ${i}` });
         }
       });
 

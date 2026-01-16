@@ -77,7 +77,9 @@ describe('baselines/indexer', () => {
     it('should create the baselines table', async () => {
       const db = await initBaselineSchema({ baseDir: testBaseDir });
 
-      const result = db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='baselines'").get();
+      const result = db
+        .prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='baselines'")
+        .get();
       expect(result).toBeTruthy();
 
       db.close();
@@ -111,7 +113,9 @@ describe('baselines/indexer', () => {
     it('should set schema version in metadata', async () => {
       const db = await initBaselineSchema({ baseDir: testBaseDir });
 
-      const meta = db.prepare("SELECT value FROM _meta WHERE key = 'schema_version'").get() as { value: string } | null;
+      const meta = db.prepare("SELECT value FROM _meta WHERE key = 'schema_version'").get() as {
+        value: string;
+      } | null;
       expect(meta?.value).toBe('1.0.0');
 
       db.close();
@@ -136,7 +140,9 @@ describe('baselines/indexer', () => {
 
       await indexBaseline(db, baseline);
 
-      const count = db.prepare('SELECT COUNT(*) as count FROM baselines').get() as { count: number };
+      const count = db.prepare('SELECT COUNT(*) as count FROM baselines').get() as {
+        count: number;
+      };
       expect(count.count).toBe(1);
 
       db.close();
@@ -157,7 +163,9 @@ describe('baselines/indexer', () => {
 
       await indexBaseline(db, baseline);
 
-      const row = db.prepare('SELECT findings_count, critical_count, high_count FROM baselines WHERE id = ?').get(baseline.id) as {
+      const row = db
+        .prepare('SELECT findings_count, critical_count, high_count FROM baselines WHERE id = ?')
+        .get(baseline.id) as {
         findings_count: number;
         critical_count: number;
         high_count: number;
@@ -176,7 +184,9 @@ describe('baselines/indexer', () => {
 
       await indexBaseline(db, baseline);
 
-      const row = db.prepare('SELECT label FROM baselines WHERE id = ?').get(baseline.id) as { label: string };
+      const row = db.prepare('SELECT label FROM baselines WHERE id = ?').get(baseline.id) as {
+        label: string;
+      };
       expect(row.label).toBe('before-refactor');
 
       db.close();
@@ -188,7 +198,9 @@ describe('baselines/indexer', () => {
 
       await indexBaseline(db, baseline);
 
-      const row = db.prepare('SELECT git_commit FROM baselines WHERE id = ?').get(baseline.id) as { git_commit: string };
+      const row = db.prepare('SELECT git_commit FROM baselines WHERE id = ?').get(baseline.id) as {
+        git_commit: string;
+      };
       expect(row.git_commit).toBe('abc123');
 
       db.close();
@@ -200,7 +212,9 @@ describe('baselines/indexer', () => {
 
       await indexBaseline(db, baseline);
 
-      const row = db.prepare('SELECT git_commit FROM baselines WHERE id = ?').get(baseline.id) as { git_commit: string | null };
+      const row = db.prepare('SELECT git_commit FROM baselines WHERE id = ?').get(baseline.id) as {
+        git_commit: string | null;
+      };
       expect(row.git_commit).toBeNull();
 
       db.close();
@@ -216,10 +230,14 @@ describe('baselines/indexer', () => {
       baseline.label = 'updated';
       await indexBaseline(db, baseline);
 
-      const count = db.prepare('SELECT COUNT(*) as count FROM baselines').get() as { count: number };
+      const count = db.prepare('SELECT COUNT(*) as count FROM baselines').get() as {
+        count: number;
+      };
       expect(count.count).toBe(1);
 
-      const row = db.prepare('SELECT label FROM baselines WHERE id = ?').get(baseline.id) as { label: string };
+      const row = db.prepare('SELECT label FROM baselines WHERE id = ?').get(baseline.id) as {
+        label: string;
+      };
       expect(row.label).toBe('updated');
 
       db.close();
@@ -232,7 +250,9 @@ describe('baselines/indexer', () => {
 
       await indexBaseline(db, baseline, filePath);
 
-      const row = db.prepare('SELECT file_path FROM baselines WHERE id = ?').get(baseline.id) as { file_path: string };
+      const row = db.prepare('SELECT file_path FROM baselines WHERE id = ?').get(baseline.id) as {
+        file_path: string;
+      };
       expect(row.file_path).toBe(filePath);
 
       db.close();
@@ -248,7 +268,9 @@ describe('baselines/indexer', () => {
       const removed = await removeIndex(db, baseline.id);
 
       expect(removed).toBe(true);
-      const count = db.prepare('SELECT COUNT(*) as count FROM baselines').get() as { count: number };
+      const count = db.prepare('SELECT COUNT(*) as count FROM baselines').get() as {
+        count: number;
+      };
       expect(count.count).toBe(0);
 
       db.close();
@@ -376,19 +398,40 @@ describe('baselines/indexer', () => {
       await indexBaseline(
         db,
         createTestBaseline({
-          metrics: { findingsCount: 5, criticalCount: 0, highCount: 0, mediumCount: 0, lowCount: 0, infoCount: 0 },
+          metrics: {
+            findingsCount: 5,
+            criticalCount: 0,
+            highCount: 0,
+            mediumCount: 0,
+            lowCount: 0,
+            infoCount: 0,
+          },
         })
       );
       await indexBaseline(
         db,
         createTestBaseline({
-          metrics: { findingsCount: 10, criticalCount: 0, highCount: 0, mediumCount: 0, lowCount: 0, infoCount: 0 },
+          metrics: {
+            findingsCount: 10,
+            criticalCount: 0,
+            highCount: 0,
+            mediumCount: 0,
+            lowCount: 0,
+            infoCount: 0,
+          },
         })
       );
       await indexBaseline(
         db,
         createTestBaseline({
-          metrics: { findingsCount: 3, criticalCount: 0, highCount: 0, mediumCount: 0, lowCount: 0, infoCount: 0 },
+          metrics: {
+            findingsCount: 3,
+            criticalCount: 0,
+            highCount: 0,
+            mediumCount: 0,
+            lowCount: 0,
+            infoCount: 0,
+          },
         })
       );
 

@@ -79,7 +79,8 @@ describe('Baseline Persistence Integration', () => {
           {
             type: 'preventive',
             action: 'Add a permissions section to CLAUDE.md specifying allowed file operations',
-            rationale: 'Explicit permissions prevent accidental file modifications outside project scope.',
+            rationale:
+              'Explicit permissions prevent accidental file modifications outside project scope.',
             priority: 'high',
           },
         ],
@@ -91,7 +92,8 @@ describe('Baseline Persistence Integration', () => {
         type: 'config_antipattern',
         severity: 'high',
         title: 'Overly permissive glob pattern',
-        description: 'The allow_edit pattern "**/*" grants edit access to all files, including sensitive configurations.',
+        description:
+          'The allow_edit pattern "**/*" grants edit access to all files, including sensitive configurations.',
         location: {
           file: 'CLAUDE.md',
           line: 42,
@@ -124,7 +126,8 @@ describe('Baseline Persistence Integration', () => {
         type: 'quality_issue',
         severity: 'medium',
         title: 'Incomplete project description',
-        description: 'The project description lacks technical context about the architecture and dependencies.',
+        description:
+          'The project description lacks technical context about the architecture and dependencies.',
         location: {
           file: 'CLAUDE.md',
           line: 1,
@@ -158,7 +161,8 @@ describe('Baseline Persistence Integration', () => {
           {
             type: 'systemic',
             action: 'Add a coding standards section referencing your ESLint/Prettier config',
-            rationale: 'Consistent code style reduces review friction and improves maintainability.',
+            rationale:
+              'Consistent code style reduces review friction and improves maintainability.',
             priority: 'medium',
             effort: 'trivial',
           },
@@ -171,7 +175,8 @@ describe('Baseline Persistence Integration', () => {
         type: 'improvement',
         severity: 'low',
         title: 'Consider adding example prompts',
-        description: 'Example prompts can help users understand how to interact with the agent effectively.',
+        description:
+          'Example prompts can help users understand how to interact with the agent effectively.',
         location: null,
         origin: null,
         recommendations: [
@@ -222,7 +227,11 @@ describe('Baseline Persistence Integration', () => {
       expect(loaded?.findings[0]?.recommendations.length).toBeGreaterThan(0);
 
       // 4. Update label and notes
-      const updated = await updateBaseline(baseline.id, { label: 'v1.0.1', notes: 'Minor update' }, { baseDir: testBaseDir });
+      const updated = await updateBaseline(
+        baseline.id,
+        { label: 'v1.0.1', notes: 'Minor update' },
+        { baseDir: testBaseDir }
+      );
       expect(updated).toBe(true);
 
       const reloaded = await loadBaseline(baseline.id, { baseDir: testBaseDir });
@@ -315,7 +324,10 @@ describe('Baseline Persistence Integration', () => {
       }
 
       // Get first page
-      const page1 = await queryBaselines({ baseDir: testBaseDir }, { limit: 10, orderBy: 'createdAt', order: 'asc' });
+      const page1 = await queryBaselines(
+        { baseDir: testBaseDir },
+        { limit: 10, orderBy: 'createdAt', order: 'asc' }
+      );
       expect(page1.length).toBe(10);
 
       // All baselines
@@ -360,16 +372,32 @@ describe('Baseline Persistence Integration', () => {
 
     it('should detect regression', async () => {
       const baseline1 = createRealisticBaseline({
-        metrics: { findingsCount: 5, criticalCount: 0, highCount: 1, mediumCount: 2, lowCount: 1, infoCount: 1 },
+        metrics: {
+          findingsCount: 5,
+          criticalCount: 0,
+          highCount: 1,
+          mediumCount: 2,
+          lowCount: 1,
+          infoCount: 1,
+        },
       });
       const baseline2 = createRealisticBaseline({
-        metrics: { findingsCount: 12, criticalCount: 3, highCount: 4, mediumCount: 3, lowCount: 1, infoCount: 1 },
+        metrics: {
+          findingsCount: 12,
+          criticalCount: 3,
+          highCount: 4,
+          mediumCount: 3,
+          lowCount: 1,
+          infoCount: 1,
+        },
       });
 
       await saveBaseline(baseline1, { baseDir: testBaseDir });
       await saveBaseline(baseline2, { baseDir: testBaseDir });
 
-      const comparison = await compareBaselines(baseline1.id, baseline2.id, { baseDir: testBaseDir });
+      const comparison = await compareBaselines(baseline1.id, baseline2.id, {
+        baseDir: testBaseDir,
+      });
 
       expect(comparison?.trend).toBe('regressed');
       expect(comparison?.delta.criticalCount).toBe(3); // Added 3 critical
@@ -380,7 +408,9 @@ describe('Baseline Persistence Integration', () => {
     it('should retrieve baseline history in chronological order', async () => {
       const dates = ['2026-01-15', '2026-01-01', '2026-01-08', '2026-01-22'];
       for (const date of dates) {
-        await saveBaseline(createRealisticBaseline({ createdAt: `${date}T00:00:00.000Z` }), { baseDir: testBaseDir });
+        await saveBaseline(createRealisticBaseline({ createdAt: `${date}T00:00:00.000Z` }), {
+          baseDir: testBaseDir,
+        });
       }
 
       const history = await getBaselineHistory({ baseDir: testBaseDir });

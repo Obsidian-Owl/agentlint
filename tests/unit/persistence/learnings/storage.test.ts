@@ -26,7 +26,9 @@ describe('learnings/storage', () => {
   const testBaseDir = join(tmpdir(), 'agentlint-test-learnings-storage');
 
   // Helper to create a test learning input
-  function createTestLearningInput(overrides: Partial<CreateLearningInput> = {}): CreateLearningInput {
+  function createTestLearningInput(
+    overrides: Partial<CreateLearningInput> = {}
+  ): CreateLearningInput {
     return {
       title: 'Test Learning',
       content: '# Test Learning\n\nThis is a test learning content.',
@@ -194,7 +196,10 @@ describe('learnings/storage', () => {
       // Create directory and corrupted file manually
       const { mkdir } = await import('node:fs/promises');
       await mkdir(testBaseDir, { recursive: true });
-      await Bun.write(join(testBaseDir, '2026-01-16-corrupted-abc123.md'), 'not valid yaml frontmatter');
+      await Bun.write(
+        join(testBaseDir, '2026-01-16-corrupted-abc123.md'),
+        'not valid yaml frontmatter'
+      );
 
       const loaded = await loadLearning('abc123', { baseDir: testBaseDir });
 

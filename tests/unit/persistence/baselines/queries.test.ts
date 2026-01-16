@@ -111,9 +111,15 @@ describe('baselines/queries', () => {
     });
 
     it('should filter by date range', async () => {
-      await saveBaseline(createTestBaseline({ createdAt: '2026-01-01T00:00:00.000Z' }), { baseDir: testBaseDir });
-      await saveBaseline(createTestBaseline({ createdAt: '2026-01-15T00:00:00.000Z' }), { baseDir: testBaseDir });
-      await saveBaseline(createTestBaseline({ createdAt: '2026-01-30T00:00:00.000Z' }), { baseDir: testBaseDir });
+      await saveBaseline(createTestBaseline({ createdAt: '2026-01-01T00:00:00.000Z' }), {
+        baseDir: testBaseDir,
+      });
+      await saveBaseline(createTestBaseline({ createdAt: '2026-01-15T00:00:00.000Z' }), {
+        baseDir: testBaseDir,
+      });
+      await saveBaseline(createTestBaseline({ createdAt: '2026-01-30T00:00:00.000Z' }), {
+        baseDir: testBaseDir,
+      });
 
       const results = await queryBaselines(
         { baseDir: testBaseDir },
@@ -148,9 +154,15 @@ describe('baselines/queries', () => {
     });
 
     it('should order by createdAt desc by default', async () => {
-      await saveBaseline(createTestBaseline({ createdAt: '2026-01-01T00:00:00.000Z' }), { baseDir: testBaseDir });
-      await saveBaseline(createTestBaseline({ createdAt: '2026-01-03T00:00:00.000Z' }), { baseDir: testBaseDir });
-      await saveBaseline(createTestBaseline({ createdAt: '2026-01-02T00:00:00.000Z' }), { baseDir: testBaseDir });
+      await saveBaseline(createTestBaseline({ createdAt: '2026-01-01T00:00:00.000Z' }), {
+        baseDir: testBaseDir,
+      });
+      await saveBaseline(createTestBaseline({ createdAt: '2026-01-03T00:00:00.000Z' }), {
+        baseDir: testBaseDir,
+      });
+      await saveBaseline(createTestBaseline({ createdAt: '2026-01-02T00:00:00.000Z' }), {
+        baseDir: testBaseDir,
+      });
 
       const results = await queryBaselines({ baseDir: testBaseDir });
 
@@ -162,24 +174,48 @@ describe('baselines/queries', () => {
     it('should order by findingsCount when specified', async () => {
       await saveBaseline(
         createTestBaseline({
-          metrics: { findingsCount: 5, criticalCount: 0, highCount: 0, mediumCount: 0, lowCount: 0, infoCount: 0 },
+          metrics: {
+            findingsCount: 5,
+            criticalCount: 0,
+            highCount: 0,
+            mediumCount: 0,
+            lowCount: 0,
+            infoCount: 0,
+          },
         }),
         { baseDir: testBaseDir }
       );
       await saveBaseline(
         createTestBaseline({
-          metrics: { findingsCount: 10, criticalCount: 0, highCount: 0, mediumCount: 0, lowCount: 0, infoCount: 0 },
+          metrics: {
+            findingsCount: 10,
+            criticalCount: 0,
+            highCount: 0,
+            mediumCount: 0,
+            lowCount: 0,
+            infoCount: 0,
+          },
         }),
         { baseDir: testBaseDir }
       );
       await saveBaseline(
         createTestBaseline({
-          metrics: { findingsCount: 1, criticalCount: 0, highCount: 0, mediumCount: 0, lowCount: 0, infoCount: 0 },
+          metrics: {
+            findingsCount: 1,
+            criticalCount: 0,
+            highCount: 0,
+            mediumCount: 0,
+            lowCount: 0,
+            infoCount: 0,
+          },
         }),
         { baseDir: testBaseDir }
       );
 
-      const results = await queryBaselines({ baseDir: testBaseDir }, { orderBy: 'findingsCount', order: 'desc' });
+      const results = await queryBaselines(
+        { baseDir: testBaseDir },
+        { orderBy: 'findingsCount', order: 'desc' }
+      );
 
       expect(results[0]?.metrics.findingsCount).toBe(10);
       expect(results[1]?.metrics.findingsCount).toBe(5);
@@ -215,10 +251,14 @@ describe('baselines/queries', () => {
 
   describe('getLatest', () => {
     it('should return the most recently created baseline', async () => {
-      await saveBaseline(createTestBaseline({ createdAt: '2026-01-01T00:00:00.000Z' }), { baseDir: testBaseDir });
+      await saveBaseline(createTestBaseline({ createdAt: '2026-01-01T00:00:00.000Z' }), {
+        baseDir: testBaseDir,
+      });
       const latest = createTestBaseline({ createdAt: '2026-01-03T00:00:00.000Z' });
       await saveBaseline(latest, { baseDir: testBaseDir });
-      await saveBaseline(createTestBaseline({ createdAt: '2026-01-02T00:00:00.000Z' }), { baseDir: testBaseDir });
+      await saveBaseline(createTestBaseline({ createdAt: '2026-01-02T00:00:00.000Z' }), {
+        baseDir: testBaseDir,
+      });
 
       const result = await getLatest({ baseDir: testBaseDir });
 
@@ -247,11 +287,25 @@ describe('baselines/queries', () => {
     it('should return diff between two baselines', async () => {
       const baseline1 = createTestBaseline({
         createdAt: '2026-01-01T00:00:00.000Z',
-        metrics: { findingsCount: 10, criticalCount: 2, highCount: 3, mediumCount: 3, lowCount: 1, infoCount: 1 },
+        metrics: {
+          findingsCount: 10,
+          criticalCount: 2,
+          highCount: 3,
+          mediumCount: 3,
+          lowCount: 1,
+          infoCount: 1,
+        },
       });
       const baseline2 = createTestBaseline({
         createdAt: '2026-01-02T00:00:00.000Z',
-        metrics: { findingsCount: 7, criticalCount: 1, highCount: 2, mediumCount: 2, lowCount: 1, infoCount: 1 },
+        metrics: {
+          findingsCount: 7,
+          criticalCount: 1,
+          highCount: 2,
+          mediumCount: 2,
+          lowCount: 1,
+          infoCount: 1,
+        },
       });
       await saveBaseline(baseline1, { baseDir: testBaseDir });
       await saveBaseline(baseline2, { baseDir: testBaseDir });
@@ -277,10 +331,24 @@ describe('baselines/queries', () => {
 
     it('should include improvement/regression classification', async () => {
       const worse = createTestBaseline({
-        metrics: { findingsCount: 5, criticalCount: 0, highCount: 0, mediumCount: 0, lowCount: 0, infoCount: 0 },
+        metrics: {
+          findingsCount: 5,
+          criticalCount: 0,
+          highCount: 0,
+          mediumCount: 0,
+          lowCount: 0,
+          infoCount: 0,
+        },
       });
       const better = createTestBaseline({
-        metrics: { findingsCount: 3, criticalCount: 0, highCount: 0, mediumCount: 0, lowCount: 0, infoCount: 0 },
+        metrics: {
+          findingsCount: 3,
+          criticalCount: 0,
+          highCount: 0,
+          mediumCount: 0,
+          lowCount: 0,
+          infoCount: 0,
+        },
       });
       await saveBaseline(worse, { baseDir: testBaseDir });
       await saveBaseline(better, { baseDir: testBaseDir });
@@ -292,10 +360,24 @@ describe('baselines/queries', () => {
 
     it('should detect regression', async () => {
       const better = createTestBaseline({
-        metrics: { findingsCount: 3, criticalCount: 0, highCount: 0, mediumCount: 0, lowCount: 0, infoCount: 0 },
+        metrics: {
+          findingsCount: 3,
+          criticalCount: 0,
+          highCount: 0,
+          mediumCount: 0,
+          lowCount: 0,
+          infoCount: 0,
+        },
       });
       const worse = createTestBaseline({
-        metrics: { findingsCount: 8, criticalCount: 0, highCount: 0, mediumCount: 0, lowCount: 0, infoCount: 0 },
+        metrics: {
+          findingsCount: 8,
+          criticalCount: 0,
+          highCount: 0,
+          mediumCount: 0,
+          lowCount: 0,
+          infoCount: 0,
+        },
       });
       await saveBaseline(better, { baseDir: testBaseDir });
       await saveBaseline(worse, { baseDir: testBaseDir });
@@ -307,10 +389,24 @@ describe('baselines/queries', () => {
 
     it('should detect no change', async () => {
       const baseline1 = createTestBaseline({
-        metrics: { findingsCount: 5, criticalCount: 0, highCount: 0, mediumCount: 0, lowCount: 0, infoCount: 0 },
+        metrics: {
+          findingsCount: 5,
+          criticalCount: 0,
+          highCount: 0,
+          mediumCount: 0,
+          lowCount: 0,
+          infoCount: 0,
+        },
       });
       const baseline2 = createTestBaseline({
-        metrics: { findingsCount: 5, criticalCount: 0, highCount: 0, mediumCount: 0, lowCount: 0, infoCount: 0 },
+        metrics: {
+          findingsCount: 5,
+          criticalCount: 0,
+          highCount: 0,
+          mediumCount: 0,
+          lowCount: 0,
+          infoCount: 0,
+        },
       });
       await saveBaseline(baseline1, { baseDir: testBaseDir });
       await saveBaseline(baseline2, { baseDir: testBaseDir });
@@ -323,9 +419,15 @@ describe('baselines/queries', () => {
 
   describe('getBaselineHistory', () => {
     it('should return baselines in chronological order', async () => {
-      await saveBaseline(createTestBaseline({ createdAt: '2026-01-03T00:00:00.000Z' }), { baseDir: testBaseDir });
-      await saveBaseline(createTestBaseline({ createdAt: '2026-01-01T00:00:00.000Z' }), { baseDir: testBaseDir });
-      await saveBaseline(createTestBaseline({ createdAt: '2026-01-02T00:00:00.000Z' }), { baseDir: testBaseDir });
+      await saveBaseline(createTestBaseline({ createdAt: '2026-01-03T00:00:00.000Z' }), {
+        baseDir: testBaseDir,
+      });
+      await saveBaseline(createTestBaseline({ createdAt: '2026-01-01T00:00:00.000Z' }), {
+        baseDir: testBaseDir,
+      });
+      await saveBaseline(createTestBaseline({ createdAt: '2026-01-02T00:00:00.000Z' }), {
+        baseDir: testBaseDir,
+      });
 
       const history = await getBaselineHistory({ baseDir: testBaseDir });
 
@@ -352,17 +454,28 @@ describe('baselines/queries', () => {
     });
 
     it('should filter by label', async () => {
-      await saveBaseline(createTestBaseline({ label: 'release', createdAt: '2026-01-01T00:00:00.000Z' }), {
-        baseDir: testBaseDir,
-      });
-      await saveBaseline(createTestBaseline({ label: 'release', createdAt: '2026-01-02T00:00:00.000Z' }), {
-        baseDir: testBaseDir,
-      });
-      await saveBaseline(createTestBaseline({ label: 'dev', createdAt: '2026-01-03T00:00:00.000Z' }), {
-        baseDir: testBaseDir,
-      });
+      await saveBaseline(
+        createTestBaseline({ label: 'release', createdAt: '2026-01-01T00:00:00.000Z' }),
+        {
+          baseDir: testBaseDir,
+        }
+      );
+      await saveBaseline(
+        createTestBaseline({ label: 'release', createdAt: '2026-01-02T00:00:00.000Z' }),
+        {
+          baseDir: testBaseDir,
+        }
+      );
+      await saveBaseline(
+        createTestBaseline({ label: 'dev', createdAt: '2026-01-03T00:00:00.000Z' }),
+        {
+          baseDir: testBaseDir,
+        }
+      );
 
-      const history = await getBaselineHistory({ baseDir: testBaseDir }, undefined, { label: 'release' });
+      const history = await getBaselineHistory({ baseDir: testBaseDir }, undefined, {
+        label: 'release',
+      });
 
       expect(history.length).toBe(2);
       expect(history.every((b) => b.label === 'release')).toBe(true);
