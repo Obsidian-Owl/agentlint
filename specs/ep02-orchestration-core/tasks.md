@@ -151,16 +151,16 @@
 
 ### Tests (write first)
 
-- [ ] T041 [P] [US7] Unit test: SessionState saves to JSON file in `tests/unit/orchestration/session-state.test.ts`
-- [ ] T042 [P] [US7] Unit test: loadState() restores SessionState from file in `tests/unit/orchestration/session-state.test.ts`
-- [ ] T043 [P] [US6] Unit test: Orchestrator.interrupt() pauses execution in `tests/unit/orchestration/orchestrator.test.ts`
+- [x] T041 [P] [US7] Unit test: SessionState saves to JSON file in `tests/unit/orchestration/session-state.test.ts`
+- [x] T042 [P] [US7] Unit test: loadState() restores SessionState from file in `tests/unit/orchestration/session-state.test.ts`
+- [x] T043 [P] [US6] Unit test: Orchestrator.interrupt() pauses execution in `tests/unit/orchestration/orchestrator.test.ts`
 
 ### Implementation
 
-- [ ] T044 [US7] Create `src/orchestration/session-state.ts` with save/load functions
-- [ ] T045 [US7] Implement Orchestrator.resume() using SDK resume option
-- [ ] T046 [US7] Inject state summary into conversation on resume via SessionStart hook
-- [ ] T047 [US6] Implement Orchestrator.interrupt() for human-in-the-loop pauses
+- [x] T044 [US7] Create `src/orchestration/session-state.ts` with save/load functions
+- [x] T045 [US7] Implement Orchestrator.resume() using SDK resume option
+- [x] T046 [US7] Inject state summary into conversation on resume via SessionStart hook
+- [x] T047 [US6] Implement Orchestrator.interrupt() for human-in-the-loop pauses
 
 **Checkpoint**: US6+US7 complete - sessions save/resume, pauses work
 

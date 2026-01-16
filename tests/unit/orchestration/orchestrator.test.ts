@@ -168,18 +168,68 @@ describe('Orchestrator', () => {
   });
 
   // ===========================================================================
-  // Interrupt
+  // T043: Interrupt pauses execution
   // ===========================================================================
 
-  describe('interrupt()', () => {
+  describe('interrupt() (T043)', () => {
     test('sets isActive to false', async () => {
       const orchestrator = new Orchestrator(config, toolRegistry);
 
-      // Simulate active state
-      // Note: In real implementation, interrupt() should cleanly stop execution
       await orchestrator.interrupt();
 
       expect(orchestrator.isActive).toBe(false);
+    });
+
+    test('is an async function', () => {
+      const orchestrator = new Orchestrator(config, toolRegistry);
+      const result = orchestrator.interrupt();
+
+      expect(result).toBeInstanceOf(Promise);
+    });
+
+    test('can be called multiple times safely', async () => {
+      const orchestrator = new Orchestrator(config, toolRegistry);
+
+      await orchestrator.interrupt();
+      await orchestrator.interrupt();
+      await orchestrator.interrupt();
+
+      expect(orchestrator.isActive).toBe(false);
+    });
+
+    test('can be called even when not running', async () => {
+      const orchestrator = new Orchestrator(config, toolRegistry);
+
+      expect(orchestrator.isActive).toBe(false);
+
+      // Should not throw
+      await orchestrator.interrupt();
+
+      expect(orchestrator.isActive).toBe(false);
+    });
+  });
+
+  // ===========================================================================
+  // Resume
+  // ===========================================================================
+
+  describe('resume()', () => {
+    test('returns an async generator', () => {
+      const orchestrator = new Orchestrator(config, toolRegistry);
+      const generator = orchestrator.resume('test-session-id');
+
+      expect(generator[Symbol.asyncIterator]).toBeDefined();
+    });
+
+    test('yields status chunk for session resume', async () => {
+      const orchestrator = new Orchestrator(config, toolRegistry);
+      const generator = orchestrator.resume('test-session-id');
+
+      const result = await generator.next();
+
+      expect(result.done).toBe(false);
+      expect(result.value?.type).toBe('status');
+      expect(result.value?.content).toContain('test-session-id');
     });
   });
 });

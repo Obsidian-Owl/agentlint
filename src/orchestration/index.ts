@@ -120,10 +120,20 @@ export {
 } from './checkpoint';
 
 // =============================================================================
-// Session State (T044-T046) - Phase 6 Placeholder
+// Session State (T044-T046) - Phase 6 Complete
 // =============================================================================
 
-// export { saveState, loadState, buildStateSummary } from './session-state';
+export type { SessionSummary } from './session-state';
+export {
+  saveState,
+  loadState,
+  listSessions,
+  deleteSession,
+  getSessionsDir,
+  getSessionFilePath,
+  buildStateSummary,
+  SESSION_STATE_VERSION,
+} from './session-state';
 
 // =============================================================================
 // Cognitive Workspace (T051-T052) - Phase 7 Placeholder
