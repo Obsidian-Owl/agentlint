@@ -321,8 +321,32 @@ import {
 
 ---
 
+## Deferred Work
+
+The following items were identified during EP02 implementation but deferred to future epics:
+
+### VCR Integration Tests (Deferred to EP04)
+
+**Issue**: The integration tests in `tests/integration/orchestration/` use mocked tools and don't make actual Claude API calls. The original plan specified VCR-style recordings for deterministic API testing.
+
+**Current State**:
+- `tests/integration/orchestration/recordings/` directory exists but is empty
+- Integration tests verify component integration (ToolRegistry + CheckpointHandler + StreamProcessor, etc.)
+- No actual `query()` calls are tested against recorded API responses
+
+**Required Work** (to be added to EP04):
+1. Implement VCR recording infrastructure for Claude API responses
+2. Create `bun run record` script to capture API responses
+3. Add true end-to-end integration tests that replay recordings
+4. Remove or refactor mock-based "integration" tests to clarify their role as component tests
+
+**Tracking**: Linear issue created for EP04 backlog
+
+---
+
 ## Revision History
 
 | Date | Author | Changes |
 |------|--------|---------|
 | 2026-01-16 | Claude | Initial task generation |
+| 2026-01-16 | Claude | Phase 8 complete; added Deferred Work section for VCR tests |
