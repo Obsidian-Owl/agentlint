@@ -3,38 +3,17 @@
  */
 
 // =============================================================================
-// Exit Codes
+// Base Types (re-exported from base.ts)
 // =============================================================================
 
-/**
- * CLI exit codes
- */
-export const ExitCode = {
-  Success: 0,
-  GeneralError: 1,
-  InvalidArgument: 2,
-  NetworkError: 3,
-  ChecksumMismatch: 4,
-} as const;
+export { ExitCode, AgentlintError } from './base';
+export type { ExitCode as ExitCodeType } from './base';
 
-export type ExitCode = (typeof ExitCode)[keyof typeof ExitCode];
+import { AgentlintError, ExitCode } from './base';
 
 // =============================================================================
 // Error Types
 // =============================================================================
-
-/**
- * Base error for agentlint CLI
- */
-export class AgentlintError extends Error {
-  constructor(
-    message: string,
-    public readonly code: ExitCode = ExitCode.GeneralError
-  ) {
-    super(message);
-    this.name = 'AgentlintError';
-  }
-}
 
 /**
  * Invalid argument or option provided
@@ -89,3 +68,21 @@ export function formatError(error: unknown): string {
   }
   return `Error: ${String(error)}`;
 }
+
+// =============================================================================
+// Orchestration Errors (EP02)
+// =============================================================================
+
+export {
+  OrchestrationError,
+  SessionResumeError,
+  ToolRegistrationError,
+  ApiKeyError,
+  SubagentDepthError,
+  OrchestrationExitCode,
+  isOrchestrationError,
+  isSessionResumeError,
+  isToolRegistrationError,
+  isApiKeyError,
+  isSubagentDepthError,
+} from './orchestration';
