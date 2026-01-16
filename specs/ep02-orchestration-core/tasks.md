@@ -83,18 +83,18 @@
 
 ### Tests (write first)
 
-- [ ] T018 [P] [US1] Unit test: Orchestrator.run() executes with mock tools in `tests/unit/orchestration/orchestrator.test.ts`
-- [ ] T019 [P] [US2] Unit test: ToolRegistry.register() accepts tool() definitions in `tests/unit/orchestration/tool-registry.test.ts`
-- [ ] T020 [P] [US2] Unit test: ToolRegistry.toMcpServer() returns valid McpSdkServerConfigWithInstance in `tests/unit/orchestration/tool-registry.test.ts`
+- [x] T018 [P] [US1] Unit test: Orchestrator.run() executes with mock tools in `tests/unit/orchestration/orchestrator.test.ts`
+- [x] T019 [P] [US2] Unit test: ToolRegistry.register() accepts tool() definitions in `tests/unit/orchestration/tool-registry.test.ts`
+- [x] T020 [P] [US2] Unit test: ToolRegistry.toMcpServer() returns valid McpSdkServerConfigWithInstance in `tests/unit/orchestration/tool-registry.test.ts`
 
 ### Implementation
 
-- [ ] T021 [US2] Create `src/orchestration/tool-registry.ts` with IToolRegistry interface implementation
-- [ ] T022 [US2] Implement ToolRegistry.register() and registerMany() methods
-- [ ] T023 [US2] Implement ToolRegistry.toMcpServer() using createSdkMcpServer()
-- [ ] T024 [US1] Create `src/orchestration/orchestrator.ts` with Orchestrator class skeleton
-- [ ] T025 [US1] Implement Orchestrator.run() wrapping SDK query() function
-- [ ] T026 [US1] Wire ToolRegistry into Orchestrator via mcpServers option
+- [x] T021 [US2] Create `src/orchestration/tool-registry.ts` with IToolRegistry interface implementation
+- [x] T022 [US2] Implement ToolRegistry.register() and registerMany() methods
+- [x] T023 [US2] Implement ToolRegistry.toMcpServer() using createSdkMcpServer()
+- [x] T024 [US1] Create `src/orchestration/orchestrator.ts` with Orchestrator class skeleton
+- [x] T025 [US1] Implement Orchestrator.run() wrapping SDK query() function
+- [x] T026 [US1] Wire ToolRegistry into Orchestrator via mcpServers option
 
 **Checkpoint**: US1+US2 complete - master loop runs, tools register and invoke
 
@@ -107,17 +107,17 @@
 
 ### Tests (write first)
 
-- [ ] T027 [P] [US4] Unit test: StreamProcessor converts SDK messages to StreamChunks in `tests/unit/orchestration/streaming.test.ts`
-- [ ] T028 [P] [US4] Unit test: filterByVerbosity() filters chunks correctly in `tests/unit/orchestration/streaming.test.ts`
-- [ ] T029 [P] [US3] Unit test: Large tool results trigger summarization in `tests/unit/orchestration/tool-registry.test.ts`
+- [x] T027 [P] [US4] Unit test: StreamProcessor converts SDK messages to StreamChunks in `tests/unit/orchestration/streaming.test.ts`
+- [x] T028 [P] [US4] Unit test: filterByVerbosity() filters chunks correctly in `tests/unit/orchestration/streaming.test.ts`
+- [x] T029 [P] [US3] Unit test: Large tool results trigger summarization in `tests/unit/orchestration/tool-registry.test.ts`
 
 ### Implementation
 
-- [ ] T030 [US4] Create `src/orchestration/streaming.ts` with IStreamProcessor interface
-- [ ] T031 [US4] Implement StreamProcessor.process() for SDK message type conversion
-- [ ] T032 [US4] Implement filterByVerbosity() helper function
-- [ ] T033 [US3] Add PreCompact hook handler for context compression events
-- [ ] T034 [US3] Implement handleToolResult() with size threshold and summarization stub (full impl EP03)
+- [x] T030 [US4] Create `src/orchestration/streaming.ts` with IStreamProcessor interface
+- [x] T031 [US4] Implement StreamProcessor.process() for SDK message type conversion
+- [x] T032 [US4] Implement filterByVerbosity() helper function
+- [x] T033 [US3] Add PreCompact hook handler for context compression events
+- [x] T034 [US3] Implement handleToolResult() with size threshold and summarization stub (full impl EP03)
 
 **Checkpoint**: US3+US4 complete - streaming works, context compression handled
 

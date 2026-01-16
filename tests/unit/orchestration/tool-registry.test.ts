@@ -201,3 +201,80 @@ describe('ToolRegistry', () => {
     });
   });
 });
+
+// ===========================================================================
+// T029: Large Tool Results Summarization
+// ===========================================================================
+
+import {
+  handleToolResult,
+  isLargeResult,
+  RESULT_SIZE_THRESHOLD,
+} from '../../../src/orchestration/context';
+
+describe('Tool Result Handling (T029)', () => {
+  describe('isLargeResult()', () => {
+    test('returns false for small results', () => {
+      const smallResult = 'a'.repeat(1000);
+      expect(isLargeResult(smallResult)).toBe(false);
+    });
+
+    test('returns true for results exceeding threshold', () => {
+      const largeResult = 'a'.repeat(RESULT_SIZE_THRESHOLD + 1);
+      expect(isLargeResult(largeResult)).toBe(true);
+    });
+
+    test('returns false for results at exactly the threshold', () => {
+      const exactResult = 'a'.repeat(RESULT_SIZE_THRESHOLD);
+      expect(isLargeResult(exactResult)).toBe(false);
+    });
+
+    test('handles object results by stringifying', () => {
+      const largeObject = { data: 'a'.repeat(RESULT_SIZE_THRESHOLD + 1) };
+      expect(isLargeResult(largeObject)).toBe(true);
+    });
+  });
+
+  describe('handleToolResult()', () => {
+    test('returns original result for small content', () => {
+      const result = { status: 'ok', data: 'small content' };
+      const handled = handleToolResult('test_tool', result);
+
+      expect(handled.summarized).toBe(false);
+      expect(handled.content).toBe(result);
+    });
+
+    test('summarizes large results', () => {
+      const largeContent = 'x'.repeat(RESULT_SIZE_THRESHOLD + 1000);
+      const handled = handleToolResult('test_tool', largeContent);
+
+      expect(handled.summarized).toBe(true);
+      expect(handled.summary).toBeDefined();
+      expect(handled.originalSize).toBe(largeContent.length);
+    });
+
+    test('includes tool name in summary metadata', () => {
+      const largeContent = 'x'.repeat(RESULT_SIZE_THRESHOLD + 1000);
+      const handled = handleToolResult('read_file', largeContent);
+
+      expect(handled.toolName).toBe('read_file');
+    });
+
+    test('stores reference to full content when summarized', () => {
+      const largeContent = 'x'.repeat(RESULT_SIZE_THRESHOLD + 1000);
+      const handled = handleToolResult('test_tool', largeContent);
+
+      expect(handled.fullContentRef).toBeDefined();
+      expect(typeof handled.fullContentRef).toBe('string');
+    });
+
+    test('provides truncated preview in summary', () => {
+      const largeContent = 'START_' + 'x'.repeat(RESULT_SIZE_THRESHOLD + 1000) + '_END';
+      const handled = handleToolResult('test_tool', largeContent);
+
+      expect(handled.summary).toContain('START_');
+      // Summary should be shorter than original
+      expect(handled.summary!.length).toBeLessThan(largeContent.length);
+    });
+  });
+});

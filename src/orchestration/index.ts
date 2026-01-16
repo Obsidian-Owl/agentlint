@@ -83,11 +83,30 @@ export type { IOrchestrator } from './orchestrator';
 export { Orchestrator, createOrchestrator } from './orchestrator';
 
 // =============================================================================
-// Streaming (T030-T032) - Phase 4 Placeholder
+// Streaming (T030-T032) - Phase 4 Complete
 // =============================================================================
 
-// export type { IStreamProcessor } from './streaming';
-// export { StreamProcessor, filterByVerbosity } from './streaming';
+export type { IStreamProcessor } from './streaming';
+export {
+  StreamProcessor,
+  createStreamProcessor,
+  filterByVerbosity,
+  shouldDisplay,
+  createStreamChunk,
+} from './streaming';
+
+// =============================================================================
+// Context Management (T029, T033-T034) - Phase 4 Complete
+// =============================================================================
+
+export type { ToolResultSummary, PreCompactHandler, PreCompactEvent } from './context';
+export {
+  handleToolResult,
+  isLargeResult,
+  createPreCompactHandler,
+  buildPreservedContext,
+  RESULT_SIZE_THRESHOLD,
+} from './context';
 
 // =============================================================================
 // Checkpointing (T038-T040) - Phase 5 Placeholder
