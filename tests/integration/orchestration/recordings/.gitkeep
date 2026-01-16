@@ -1,0 +1,3 @@
+# VCR recordings for integration tests
+# These JSON files capture SDK API responses for deterministic testing
+# Per ADR-0011: Integration tests use recordings, not live API calls

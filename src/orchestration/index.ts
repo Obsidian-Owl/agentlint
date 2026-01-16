@@ -1,0 +1,109 @@
+/**
+ * EP02: Orchestration Core
+ *
+ * This module wraps the Claude Agent SDK to power agentlint analysis sessions.
+ * It provides:
+ * - Master loop execution (Orchestrator)
+ * - Tool registration and MCP server creation (ToolRegistry)
+ * - Streaming output processing (StreamProcessor)
+ * - Checkpointing for crash recovery (CheckpointHandler)
+ * - Session state persistence (SessionState)
+ * - Context workspace management (CognitiveWorkspace)
+ *
+ * @module orchestration
+ */
+
+// =============================================================================
+// Types (T010-T013) - Phase 2 Complete
+// =============================================================================
+
+export type {
+  // Verbosity & Streaming
+  VerbosityLevel,
+  StreamChunkType,
+  StreamChunk,
+  // Configuration
+  OrchestratorConfig,
+  AgentlintGlobalConfig,
+  // Session State
+  SessionState,
+  ToolResult,
+  ProjectContext,
+  // Findings
+  FindingType,
+  Severity,
+  Finding,
+  Location,
+  Origin,
+  Recommendation,
+  // Checkpointing
+  CheckpointTrigger,
+  CheckpointEvent,
+  CheckpointMetadata,
+  // Cognitive Workspace
+  CognitiveWorkspace,
+  ProgressSummary,
+  FindingSummary,
+  BaselineAwareness,
+  // File Formats
+  SessionStateFile,
+  // Events
+  OrchestratorEvents,
+  OrchestratorEventHandler,
+} from './types';
+
+// =============================================================================
+// Configuration (T017) - Phase 2 Complete
+// =============================================================================
+
+export {
+  loadConfig,
+  getDefaultConfig,
+  getDefaultGlobalConfig,
+  saveGlobalConfig,
+  initializeConfig,
+  getConfigDir,
+  getConfigFilePath,
+  configFileExists,
+  mergeWithDefaults,
+} from './config';
+
+// =============================================================================
+// Tool Registry (T021-T023) - Phase 3 Complete
+// =============================================================================
+
+export type { IToolRegistry } from './tool-registry';
+export { ToolRegistry, createToolRegistry } from './tool-registry';
+
+// =============================================================================
+// Orchestrator (T024-T026) - Phase 3 Complete
+// =============================================================================
+
+export type { IOrchestrator } from './orchestrator';
+export { Orchestrator, createOrchestrator } from './orchestrator';
+
+// =============================================================================
+// Streaming (T030-T032) - Phase 4 Placeholder
+// =============================================================================
+
+// export type { IStreamProcessor } from './streaming';
+// export { StreamProcessor, filterByVerbosity } from './streaming';
+
+// =============================================================================
+// Checkpointing (T038-T040) - Phase 5 Placeholder
+// =============================================================================
+
+// export type { ICheckpointHandler } from './checkpoint';
+// export { CheckpointHandler } from './checkpoint';
+
+// =============================================================================
+// Session State (T044-T046) - Phase 6 Placeholder
+// =============================================================================
+
+// export { saveState, loadState, buildStateSummary } from './session-state';
+
+// =============================================================================
+// Cognitive Workspace (T051-T052) - Phase 7 Placeholder
+// =============================================================================
+
+// export { buildCognitiveWorkspace } from './cognitive-workspace';

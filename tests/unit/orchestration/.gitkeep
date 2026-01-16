@@ -1,0 +1,8 @@
+# Unit tests for orchestration module
+# Test files will be added in Phase 3+:
+# - orchestrator.test.ts (T018, T043, T048)
+# - tool-registry.test.ts (T019, T020, T029)
+# - streaming.test.ts (T027, T028)
+# - checkpoint.test.ts (T035, T036, T037)
+# - session-state.test.ts (T041, T042)
+# - cognitive-workspace.test.ts (T049)

@@ -1,0 +1,6 @@
+# Integration tests for orchestration module
+# Test files will be added in Phase 8:
+# - orchestrator-flow.test.ts (T055)
+#
+# Uses VCR recordings in ./recordings/ for deterministic testing
+# Run `bun run record` to refresh recordings when SDK patterns change
