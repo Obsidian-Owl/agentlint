@@ -8,13 +8,23 @@
  */
 
 import { tool } from '@anthropic-ai/claude-agent-sdk';
-import type { CallToolResult } from '@modelcontextprotocol/sdk/types.js';
 import type { z } from 'zod';
 import type { ToolDefinition } from '../../src/orchestration/tool-registry';
 
 // =============================================================================
 // Types
 // =============================================================================
+
+/**
+ * MCP CallToolResult type.
+ * Defined locally to avoid dependency on @modelcontextprotocol/sdk.
+ * Index signature required for SDK compatibility.
+ */
+interface CallToolResult {
+  [x: string]: unknown;
+  content: Array<{ type: 'text'; text: string; [x: string]: unknown }>;
+  isError?: boolean;
+}
 
 /**
  * Type alias for Zod raw shape (the schema format expected by SDK tool()).
@@ -122,7 +132,7 @@ export function createMockTool<Schema extends ZodRawShape>(
 ): ToolDefinition {
   // Cast is safe: SDK's createSdkMcpServer accepts Array<SdkMcpToolDefinition<any>>
   // TypeScript's contravariance on handler args is stricter than runtime behavior
-  return tool(name, description, schema, async (args, _extra) => {
+  return tool(name, description, schema, async (args, _extra): Promise<CallToolResult> => {
     const result = await simpleHandler(args as InferArgs<Schema>);
     return textResult(result);
   }) as ToolDefinition;
@@ -154,7 +164,7 @@ export function createMockJsonTool<Schema extends ZodRawShape>(
   jsonHandler: (args: InferArgs<Schema>) => Promise<unknown>
 ): ToolDefinition {
   // Cast is safe: SDK's createSdkMcpServer accepts Array<SdkMcpToolDefinition<any>>
-  return tool(name, description, schema, async (args, _extra) => {
+  return tool(name, description, schema, async (args, _extra): Promise<CallToolResult> => {
     const result = await jsonHandler(args as InferArgs<Schema>);
     return jsonResult(result);
   }) as ToolDefinition;
