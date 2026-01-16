@@ -1,0 +1,378 @@
+{
+  "metadata": {
+    "feature": "ep03-persistence-layer",
+    "project": "EP03: Persistence Layer",
+    "project_id": "3ef2602f-2bdb-4ee3-a85e-f4c65a8f5578",
+    "epic_label": "epic:EP03",
+    "label_id": "eed7c5c4-f01d-4d2b-b1f2-21bc29e267a8",
+    "team_id": "026f9bb0-5934-4186-b047-155812ae914d",
+    "created_at": "2026-01-16T02:01:23Z",
+    "last_sync": "2026-01-16T02:05:35Z"
+  },
+  "mappings": {
+    "T001": {
+      "linear_id": "2b695c73-8cab-4cc6-b959-42725a0bd7c6",
+      "linear_identifier": "AGE-102",
+      "title": "T001: Create directory structure `src/persistence/` per plan.md",
+      "url": "https://linear.app/obsidianowl/issue/AGE-102",
+      "status": "Todo"
+    },
+    "T002": {
+      "linear_id": "7095d339-7a63-40a8-8645-038196c4ab5e",
+      "linear_identifier": "AGE-103",
+      "title": "T002: Create `src/persistence/index.ts` with public exports skeleton",
+      "url": "https://linear.app/obsidianowl/issue/AGE-103",
+      "status": "Todo"
+    },
+    "T003": {
+      "linear_id": "a55e0d6a-19e4-4b4d-803f-f5d880b12f42",
+      "linear_identifier": "AGE-104",
+      "title": "T003: Create `src/persistence/types.ts` with persistence-specific types",
+      "url": "https://linear.app/obsidianowl/issue/AGE-104",
+      "status": "Todo"
+    },
+    "T004": {
+      "linear_id": "f2949f51-c496-4774-abbc-7eae14ee674a",
+      "linear_identifier": "AGE-105",
+      "title": "T004: Create `src/errors/persistence.ts` with persistence error classes",
+      "url": "https://linear.app/obsidianowl/issue/AGE-105",
+      "status": "Todo"
+    },
+    "T005": {
+      "linear_id": "49156a61-79fe-4a08-9303-8b5280379a63",
+      "linear_identifier": "AGE-106",
+      "title": "T005: Add persistence exports to `src/errors/index.ts`",
+      "url": "https://linear.app/obsidianowl/issue/AGE-106",
+      "status": "Todo"
+    },
+    "T006": {
+      "linear_id": "04970f96-ff54-481b-8959-96942b67d705",
+      "linear_identifier": "AGE-107",
+      "title": "T006: Create `src/persistence/common/directories.ts` with ensureDir()",
+      "url": "https://linear.app/obsidianowl/issue/AGE-107",
+      "status": "Todo"
+    },
+    "T007": {
+      "linear_id": "67bbf256-009e-457a-9274-300ebb2a18c8",
+      "linear_identifier": "AGE-108",
+      "title": "T007: Create `src/persistence/common/database.ts` with SQLite helpers",
+      "url": "https://linear.app/obsidianowl/issue/AGE-108",
+      "status": "Todo"
+    },
+    "T008": {
+      "linear_id": "7a887048-ad0c-4ab3-bbf5-a6b059aa91e2",
+      "linear_identifier": "AGE-109",
+      "title": "T008: Create `src/persistence/common/atomic-write.ts` with temp+rename",
+      "url": "https://linear.app/obsidianowl/issue/AGE-109",
+      "status": "Todo"
+    },
+    "T009": {
+      "linear_id": "ed38941c-8542-4e03-a373-b75ca3a1c0f3",
+      "linear_identifier": "AGE-110",
+      "title": "T009: Write unit tests for ensureDir() in directories.test.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-110",
+      "status": "Todo"
+    },
+    "T010": {
+      "linear_id": "cdeb4e35-fe43-4cd8-951b-a5be9d3622de",
+      "linear_identifier": "AGE-111",
+      "title": "T010: Write unit tests for atomicWrite() in atomic-write.test.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-111",
+      "status": "Todo"
+    },
+    "T011": {
+      "linear_id": "5850066f-cd4f-4bda-9041-1f78d3760e73",
+      "linear_identifier": "AGE-112",
+      "title": "T011: Write unit tests for database helpers in database.test.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-112",
+      "status": "Todo"
+    },
+    "T012": {
+      "linear_id": "a2e45575-b27b-4ec6-9345-cf91a9c62194",
+      "linear_identifier": "AGE-113",
+      "title": "T012: Create `src/persistence/common/index.ts` exporting utilities",
+      "url": "https://linear.app/obsidianowl/issue/AGE-113",
+      "status": "Todo"
+    },
+    "T013": {
+      "linear_id": "f47333ac-1281-44c4-bd90-6a4138849de3",
+      "linear_identifier": "AGE-114",
+      "title": "T013: Add zod schemas for validation in `src/persistence/schemas.ts`",
+      "url": "https://linear.app/obsidianowl/issue/AGE-114",
+      "status": "Todo"
+    },
+    "T014": {
+      "linear_id": "86055d90-4544-400e-ba45-a7609443353a",
+      "linear_identifier": "AGE-115",
+      "title": "T014: Write unit tests for baseline save in storage.test.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-115",
+      "status": "Todo"
+    },
+    "T015": {
+      "linear_id": "ae0cfd4b-0fd4-4270-94b0-b23eeb464e6b",
+      "linear_identifier": "AGE-116",
+      "title": "T015: Write unit tests for baseline index in index.test.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-116",
+      "status": "Todo"
+    },
+    "T016": {
+      "linear_id": "21f5c70e-7d63-4069-b415-1a70d731482c",
+      "linear_identifier": "AGE-117",
+      "title": "T016: Write unit tests for baseline queries in queries.test.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-117",
+      "status": "Todo"
+    },
+    "T017": {
+      "linear_id": "4f980413-949a-4bf7-807e-fc4150c02e45",
+      "linear_identifier": "AGE-118",
+      "title": "T017: Write integration test for baseline save+query flow",
+      "url": "https://linear.app/obsidianowl/issue/AGE-118",
+      "status": "Todo"
+    },
+    "T018": {
+      "linear_id": "e4f12406-3bdb-4329-b83b-1ea3b67aabc2",
+      "linear_identifier": "AGE-119",
+      "title": "T018: Create baselines/storage.ts with saveBaseline(), loadBaseline()",
+      "url": "https://linear.app/obsidianowl/issue/AGE-119",
+      "status": "Todo"
+    },
+    "T019": {
+      "linear_id": "ea0b9710-0640-4e0f-b380-ef6fad8e288d",
+      "linear_identifier": "AGE-120",
+      "title": "T019: Create baselines/index.ts with SQLite schema and indexBaseline()",
+      "url": "https://linear.app/obsidianowl/issue/AGE-120",
+      "status": "Todo"
+    },
+    "T020": {
+      "linear_id": "83f3ba83-5f55-46cf-b7c0-6c0421036fb0",
+      "linear_identifier": "AGE-121",
+      "title": "T020: Create baselines/queries.ts with query functions",
+      "url": "https://linear.app/obsidianowl/issue/AGE-121",
+      "status": "Todo"
+    },
+    "T021": {
+      "linear_id": "bd1b44d3-b9c2-4c76-99dd-bf9efa3aa9e3",
+      "linear_identifier": "AGE-122",
+      "title": "T021: Implement latest.json symlink management in storage.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-122",
+      "status": "Todo"
+    },
+    "T022": {
+      "linear_id": "45319f6d-d1e0-4e63-bb8c-626e9ac34aeb",
+      "linear_identifier": "AGE-123",
+      "title": "T022: Add schema version validation in storage.ts per FR-019",
+      "url": "https://linear.app/obsidianowl/issue/AGE-123",
+      "status": "Todo"
+    },
+    "T023": {
+      "linear_id": "483bfdf4-462f-43da-8f88-1907dd526b94",
+      "linear_identifier": "AGE-124",
+      "title": "T023: Create baselines barrel export in index.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-124",
+      "status": "Todo"
+    },
+    "T024": {
+      "linear_id": "30f53291-d38e-4729-905e-46beea0a570b",
+      "linear_identifier": "AGE-125",
+      "title": "T024: Write unit tests for session save in storage.test.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-125",
+      "status": "Todo"
+    },
+    "T025": {
+      "linear_id": "9a4db60f-b29f-4a5d-859d-1b66cc1767c4",
+      "linear_identifier": "AGE-126",
+      "title": "T025: Write unit tests for session load/resume in resume.test.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-126",
+      "status": "Todo"
+    },
+    "T026": {
+      "linear_id": "541df175-62ca-44dd-aee8-409dea6e4da6",
+      "linear_identifier": "AGE-127",
+      "title": "T026: Write integration test for checkpoint + crash recovery",
+      "url": "https://linear.app/obsidianowl/issue/AGE-127",
+      "status": "Todo"
+    },
+    "T027": {
+      "linear_id": "3cdfae23-503c-4b72-8dd6-b1a57f708aa1",
+      "linear_identifier": "AGE-128",
+      "title": "T027: Create sessions/storage.ts with enhanced saveState() using atomic writes",
+      "url": "https://linear.app/obsidianowl/issue/AGE-128",
+      "status": "Todo"
+    },
+    "T028": {
+      "linear_id": "89cb9f62-c927-48b2-b040-8c11e51d05ea",
+      "linear_identifier": "AGE-129",
+      "title": "T028: Add loadState() with version validation in storage.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-129",
+      "status": "Todo"
+    },
+    "T029": {
+      "linear_id": "0d5bdd6a-bd66-48c9-9861-1608e27be212",
+      "linear_identifier": "AGE-130",
+      "title": "T029: Implement findIncomplete() for crash recovery in storage.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-130",
+      "status": "Todo"
+    },
+    "T030": {
+      "linear_id": "8f6a88cc-4306-4703-94e5-6ad09cdb3ce2",
+      "linear_identifier": "AGE-131",
+      "title": "T030: Implement cleanup() for old session retention in storage.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-131",
+      "status": "Todo"
+    },
+    "T031": {
+      "linear_id": "83342c1b-bf35-4f8b-a7c7-06562acdb7c3",
+      "linear_identifier": "AGE-132",
+      "title": "T031: Create sessions/index.ts barrel export",
+      "url": "https://linear.app/obsidianowl/issue/AGE-132",
+      "status": "Todo"
+    },
+    "T032": {
+      "linear_id": "1ca0e2d8-1e11-4895-a7e8-4c4dff5e2510",
+      "linear_identifier": "AGE-133",
+      "title": "T032: Write unit tests for project learning save in storage.test.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-133",
+      "status": "Todo"
+    },
+    "T033": {
+      "linear_id": "8c915aa9-bb9f-45fa-a3f8-60bb57324540",
+      "linear_identifier": "AGE-134",
+      "title": "T033: Write unit tests for global learning save in global.test.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-134",
+      "status": "Todo"
+    },
+    "T034": {
+      "linear_id": "540c2879-2dff-4c5b-9b38-83e65185cfa2",
+      "linear_identifier": "AGE-135",
+      "title": "T034: Write unit tests for learning index in index.test.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-135",
+      "status": "Todo"
+    },
+    "T035": {
+      "linear_id": "98386cb6-07bf-4310-92a1-78ae15c22586",
+      "linear_identifier": "AGE-136",
+      "title": "T035: Write integration test for learning save+query",
+      "url": "https://linear.app/obsidianowl/issue/AGE-136",
+      "status": "Todo"
+    },
+    "T036": {
+      "linear_id": "a73c9d2a-7e34-4f3d-bf05-a29861b038e3",
+      "linear_identifier": "AGE-137",
+      "title": "T036: Create learnings/storage.ts with markdown + YAML frontmatter",
+      "url": "https://linear.app/obsidianowl/issue/AGE-137",
+      "status": "Todo"
+    },
+    "T037": {
+      "linear_id": "3a0cc48e-fb56-4601-8601-5b7fb9129a17",
+      "linear_identifier": "AGE-138",
+      "title": "T037: Create learnings/index.ts with SQLite schema for learnings.db",
+      "url": "https://linear.app/obsidianowl/issue/AGE-138",
+      "status": "Todo"
+    },
+    "T038": {
+      "linear_id": "7a170352-3cbe-4f83-9fc8-4318bb95579e",
+      "linear_identifier": "AGE-139",
+      "title": "T038: Add global scope support (~/.agentlint/learnings/) in storage.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-139",
+      "status": "Todo"
+    },
+    "T039": {
+      "linear_id": "81c434bb-3743-4aa7-9b41-9f5704e2369d",
+      "linear_identifier": "AGE-140",
+      "title": "T039: Implement listAll() querying both project and global DBs",
+      "url": "https://linear.app/obsidianowl/issue/AGE-140",
+      "status": "Todo"
+    },
+    "T040": {
+      "linear_id": "d53b0725-067f-42f2-a6cb-8e735bc70892",
+      "linear_identifier": "AGE-141",
+      "title": "T040: Create learnings/index.ts barrel export",
+      "url": "https://linear.app/obsidianowl/issue/AGE-141",
+      "status": "Todo"
+    },
+    "T041": {
+      "linear_id": "4888234c-43be-4b06-8f0e-d80a6da05830",
+      "linear_identifier": "AGE-142",
+      "title": "T041: Add YAML frontmatter parsing/serialization utilities",
+      "url": "https://linear.app/obsidianowl/issue/AGE-142",
+      "status": "Todo"
+    },
+    "T042": {
+      "linear_id": "ec703e3d-6d08-4383-9efb-0702e1454714",
+      "linear_identifier": "AGE-143",
+      "title": "T042: Write crash simulation tests in atomic-write-crash.test.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-143",
+      "status": "Todo"
+    },
+    "T043": {
+      "linear_id": "5003ee4a-4695-49d4-8790-96bc8ab7d069",
+      "linear_identifier": "AGE-144",
+      "title": "T043: Write SQLite transaction tests in database-transactions.test.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-144",
+      "status": "Todo"
+    },
+    "T044": {
+      "linear_id": "d9a465ef-d464-4819-b999-bb6af2cb8ea5",
+      "linear_identifier": "AGE-145",
+      "title": "T044: Enhance atomicWrite() with error handling for disk full, permissions",
+      "url": "https://linear.app/obsidianowl/issue/AGE-145",
+      "status": "Todo"
+    },
+    "T045": {
+      "linear_id": "0bba5b10-7ffc-4088-80ab-f63538a51078",
+      "linear_identifier": "AGE-146",
+      "title": "T045: Add SQLite transaction wrapper with rollback in database.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-146",
+      "status": "Todo"
+    },
+    "T046": {
+      "linear_id": "29afe171-884b-4d21-b3f0-b4af4ab77f86",
+      "linear_identifier": "AGE-147",
+      "title": "T046: Write directory init tests in directories-init.test.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-147",
+      "status": "Todo"
+    },
+    "T047": {
+      "linear_id": "7e9c5813-b65f-480c-a98f-d3c6306b6969",
+      "linear_identifier": "AGE-148",
+      "title": "T047: Write permission tests in permissions.test.ts (platform-dependent)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-148",
+      "status": "Todo"
+    },
+    "T048": {
+      "linear_id": "23c60811-a4a5-4609-92ea-d2a6d092d017",
+      "linear_identifier": "AGE-149",
+      "title": "T048: Add auto-create to all storage operations",
+      "url": "https://linear.app/obsidianowl/issue/AGE-149",
+      "status": "Todo"
+    },
+    "T049": {
+      "linear_id": "8a4c6322-7f8b-4e57-8fb2-77d49516f34f",
+      "linear_identifier": "AGE-150",
+      "title": "T049: Add permission setting (0600/0700) to ensureDir() and atomicWrite()",
+      "url": "https://linear.app/obsidianowl/issue/AGE-150",
+      "status": "Todo"
+    },
+    "T050": {
+      "linear_id": "9a8ebccf-da5d-4f05-b0be-931d7c938d61",
+      "linear_identifier": "AGE-151",
+      "title": "T050: Run full test suite, ensure > 80% coverage",
+      "url": "https://linear.app/obsidianowl/issue/AGE-151",
+      "status": "Todo"
+    },
+    "T051": {
+      "linear_id": "2b086cad-621a-40ae-9365-b21fd608c7fd",
+      "linear_identifier": "AGE-152",
+      "title": "T051: Performance test: query 50 baselines < 2s",
+      "url": "https://linear.app/obsidianowl/issue/AGE-152",
+      "status": "Todo"
+    },
+    "T052": {
+      "linear_id": "4cb40cf1-acc3-4181-ab74-0d87d0522e80",
+      "linear_identifier": "AGE-153",
+      "title": "T052: Update src/persistence/index.ts with complete public API exports",
+      "url": "https://linear.app/obsidianowl/issue/AGE-153",
+      "status": "Todo"
+    }
+  }
+}
