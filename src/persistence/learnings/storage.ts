@@ -12,7 +12,7 @@ import { existsSync, readdirSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 
-import type { Learning, CreateLearningInput, LearningScope } from '../types';
+import type { Learning, CreateLearningInput, LearningScope, LearningOrigin } from '../types';
 import { ensureDir } from '../common';
 
 // =============================================================================
@@ -106,7 +106,7 @@ export async function saveLearning(
     tags: input.tags ?? [],
     category: input.category,
     scope: input.scope,
-    origin: input.origin,
+    ...(input.origin !== undefined && { origin: input.origin }),
   };
 
   // Generate filename: YYYY-MM-DD-slug-id.md
@@ -176,7 +176,7 @@ export async function loadLearning(
  * @param options - Storage options
  * @returns Array of learning IDs
  */
-export async function listLearnings(options: LoadLearningOptions = {}): Promise<string[]> {
+export function listLearnings(options: LoadLearningOptions = {}): string[] {
   const baseDir = options.baseDir ?? DEFAULT_PROJECT_LEARNINGS_DIR;
 
   if (!existsSync(baseDir)) {
@@ -197,10 +197,10 @@ export async function listLearnings(options: LoadLearningOptions = {}): Promise<
  * @param options - Storage options
  * @returns True if deleted, false if not found
  */
-export async function deleteLearning(
+export function deleteLearning(
   learningId: string,
   options: LoadLearningOptions = {}
-): Promise<boolean> {
+): boolean {
   const baseDir = options.baseDir ?? DEFAULT_PROJECT_LEARNINGS_DIR;
 
   if (!existsSync(baseDir)) {
@@ -240,7 +240,7 @@ function slugify(text: string): string {
  */
 function extractIdFromFilename(filename: string): string | null {
   const match = filename.match(/-([a-f0-9]+)\.md$/);
-  return match ? match[1] : null;
+  return match?.[1] ?? null;
 }
 
 /**
@@ -291,18 +291,23 @@ function parseLearning(markdown: string): Learning | null {
       return null;
     }
 
-    return {
-      id: String(frontmatter.id),
-      version: String(frontmatter.version ?? LEARNING_VERSION),
-      createdAt: String(frontmatter.createdAt ?? new Date().toISOString()),
-      updatedAt: String(frontmatter.updatedAt ?? new Date().toISOString()),
-      title: String(frontmatter.title),
+    const learning: Learning = {
+      id: typeof frontmatter.id === 'string' ? frontmatter.id : '',
+      version: typeof frontmatter.version === 'string' ? frontmatter.version : LEARNING_VERSION,
+      createdAt: typeof frontmatter.createdAt === 'string' ? frontmatter.createdAt : new Date().toISOString(),
+      updatedAt: typeof frontmatter.updatedAt === 'string' ? frontmatter.updatedAt : new Date().toISOString(),
+      title: typeof frontmatter.title === 'string' ? frontmatter.title : '',
       content: markdownContent,
-      tags: Array.isArray(frontmatter.tags) ? frontmatter.tags.map(String) : [],
+      tags: Array.isArray(frontmatter.tags) ? frontmatter.tags.filter((t): t is string => typeof t === 'string') : [],
       category: frontmatter.category as Learning['category'],
       scope: frontmatter.scope as Learning['scope'],
-      origin: frontmatter.origin as Learning['origin'],
     };
+
+    if (frontmatter.origin) {
+      learning.origin = frontmatter.origin as LearningOrigin;
+    }
+
+    return learning;
   } catch {
     return null;
   }
@@ -364,7 +369,6 @@ function parseYaml(yaml: string): Record<string, unknown> | null {
     const result: Record<string, unknown> = {};
     const lines = yaml.split('\n');
     const stack: Array<{ obj: Record<string, unknown>; indent: number }> = [{ obj: result, indent: -1 }];
-    let currentArrayKey: string | null = null;
     let currentArray: unknown[] | null = null;
 
     for (const line of lines) {
@@ -403,7 +407,6 @@ function parseYaml(yaml: string): Record<string, unknown> | null {
           const nextLine = lines[lines.indexOf(line) + 1];
           if (nextLine && nextLine.trim().startsWith('- ')) {
             // It's an array
-            currentArrayKey = key;
             currentArray = [];
             current[key] = currentArray;
           } else {
@@ -412,14 +415,12 @@ function parseYaml(yaml: string): Record<string, unknown> | null {
             current[key] = nestedObj;
             stack.push({ obj: nestedObj, indent });
             currentArray = null;
-            currentArrayKey = null;
           }
         }
       } else {
         // Simple value
         current[key] = parseYamlScalar(rawValue);
         currentArray = null;
-        currentArrayKey = null;
       }
     }
 

@@ -145,7 +145,7 @@ export async function loadSessionState(
 
   try {
     const content = await Bun.file(filePath).text();
-    const data = JSON.parse(content);
+    const data: unknown = JSON.parse(content);
     const parsed = parseSessionStateFile(data);
 
     if (!parsed) {
@@ -173,7 +173,7 @@ export async function loadSessionState(
  * @param options - Storage options
  * @returns Array of session UUIDs
  */
-export async function listSessionIds(options: LoadStateOptions = {}): Promise<string[]> {
+export function listSessionIds(options: LoadStateOptions = {}): string[] {
   const baseDir = options.baseDir ?? DEFAULT_SESSIONS_DIR;
 
   if (!existsSync(baseDir)) {
@@ -191,10 +191,10 @@ export async function listSessionIds(options: LoadStateOptions = {}): Promise<st
  * @param options - Storage options
  * @returns True if deleted, false if not found
  */
-export async function deleteSessionState(
+export function deleteSessionState(
   sessionId: string,
   options: LoadStateOptions = {}
-): Promise<boolean> {
+): boolean {
   const baseDir = options.baseDir ?? DEFAULT_SESSIONS_DIR;
   const filePath = join(baseDir, `${sessionId}.json`);
 
@@ -224,7 +224,7 @@ export async function findIncomplete(
     return [];
   }
 
-  const sessionIds = await listSessionIds({ baseDir });
+  const sessionIds = listSessionIds({ baseDir });
   const incomplete: IncompleteSessionInfo[] = [];
 
   for (const sessionId of sessionIds) {
@@ -278,7 +278,7 @@ export async function cleanup(options: CleanupOptions = {}): Promise<number> {
   cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
   const cutoffTime = cutoffDate.getTime();
 
-  const sessionIds = await listSessionIds({ baseDir });
+  const sessionIds = listSessionIds({ baseDir });
   let deleted = 0;
 
   for (const sessionId of sessionIds) {

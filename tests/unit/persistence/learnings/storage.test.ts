@@ -6,11 +6,11 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
-import { existsSync, rmSync, readdirSync } from 'node:fs';
+import { existsSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
-import type { Learning, CreateLearningInput } from '../../../../src/persistence/types';
+import type { CreateLearningInput } from '../../../../src/persistence/types';
 
 // Functions to be implemented in T036-T041
 import {

@@ -38,4 +38,25 @@ module.exports = {
     'no-var': 'error',
   },
   ignorePatterns: ['dist/', 'node_modules/', 'coverage/', '*.cjs'],
+  overrides: [
+    {
+      // Relax some rules for test files
+      files: ['tests/**/*.ts', 'tests/**/*.test.ts'],
+      rules: {
+        // Allow awaiting sync functions in tests (common pattern when APIs change from async to sync)
+        '@typescript-eslint/await-thenable': 'off',
+        // Allow require() in tests for mocking
+        '@typescript-eslint/no-require-imports': 'off',
+        // Allow any types in tests for mocking/stubbing
+        '@typescript-eslint/no-unsafe-assignment': 'off',
+        '@typescript-eslint/no-unsafe-member-access': 'off',
+        '@typescript-eslint/no-unsafe-call': 'off',
+        '@typescript-eslint/no-unsafe-argument': 'off',
+        // Allow implicit return types in test callbacks
+        '@typescript-eslint/explicit-function-return-type': 'off',
+        // Allow async functions without await in tests (common for test setup)
+        '@typescript-eslint/require-await': 'off',
+      },
+    },
+  ],
 };

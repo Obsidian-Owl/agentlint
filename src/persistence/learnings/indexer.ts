@@ -11,7 +11,7 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { Database } from 'bun:sqlite';
 
-import type { Learning, LearningSummary, LearningQueryOptions, LearningScope } from '../types';
+import type { Learning, LearningSummary, LearningQueryOptions } from '../types';
 import { ensureDir } from '../common';
 
 // =============================================================================
@@ -85,7 +85,7 @@ export async function initLearningsIndex(options: IndexOptions): Promise<void> {
  *
  * @param options - Index options
  */
-export async function closeLearningsIndex(options: IndexOptions): Promise<void> {
+export function closeLearningsIndex(options: IndexOptions): void {
   const dbPath = join(options.baseDir, 'learnings.db');
   const db = dbCache.get(dbPath);
   if (db) {
@@ -104,7 +104,7 @@ export async function closeLearningsIndex(options: IndexOptions): Promise<void> 
  * @param learning - The learning to index
  * @param options - Index options
  */
-export async function indexLearning(learning: Learning, options: IndexOptions): Promise<void> {
+export function indexLearning(learning: Learning, options: IndexOptions): void {
   const db = getDb(options.baseDir);
 
   const stmt = db.prepare(`
@@ -130,10 +130,10 @@ export async function indexLearning(learning: Learning, options: IndexOptions): 
  * @param options - Index options
  * @returns Learning summary, or null if not found
  */
-export async function getLearningById(
+export function getLearningById(
   id: string,
   options: IndexOptions
-): Promise<LearningSummary | null> {
+): LearningSummary | null {
   const dbPath = join(options.baseDir, 'learnings.db');
   if (!existsSync(dbPath)) {
     return null;
@@ -161,10 +161,10 @@ export async function getLearningById(
  * @param options - Index options
  * @returns Array of learning summaries
  */
-export async function queryLearnings(
+export function queryLearnings(
   queryOptions: LearningQueryOptions,
   options: IndexOptions
-): Promise<LearningSummary[]> {
+): LearningSummary[] {
   const dbPath = join(options.baseDir, 'learnings.db');
   if (!existsSync(dbPath)) {
     return [];
@@ -174,7 +174,7 @@ export async function queryLearnings(
 
   // Build query
   let sql = 'SELECT id, title, category, scope, tags, created_at, updated_at FROM learnings WHERE 1=1';
-  const params: unknown[] = [];
+  const params: (string | number)[] = [];
 
   if (queryOptions.category) {
     sql += ' AND category = ?';
@@ -215,7 +215,7 @@ export async function queryLearnings(
  * @param options - Index options
  * @returns True if removed, false if not found
  */
-export async function removeLearningFromIndex(id: string, options: IndexOptions): Promise<boolean> {
+export function removeLearningFromIndex(id: string, options: IndexOptions): boolean {
   const dbPath = join(options.baseDir, 'learnings.db');
   if (!existsSync(dbPath)) {
     return false;
@@ -237,16 +237,16 @@ export async function removeLearningFromIndex(id: string, options: IndexOptions)
  * @param queryOptions - Query options to apply
  * @returns Merged array of learning summaries
  */
-export async function listAllLearnings(
+export function listAllLearnings(
   dirs: ListAllDirs,
   queryOptions: LearningQueryOptions
-): Promise<LearningSummary[]> {
+): LearningSummary[] {
   const results: LearningSummary[] = [];
 
   // Query project learnings
   const projectDbPath = join(dirs.projectDir, 'learnings.db');
   if (existsSync(projectDbPath)) {
-    const projectResults = await queryLearnings(queryOptions, { baseDir: dirs.projectDir });
+    const projectResults = queryLearnings(queryOptions, { baseDir: dirs.projectDir });
     results.push(...projectResults);
   }
 
@@ -254,7 +254,7 @@ export async function listAllLearnings(
   if (dirs.globalDir) {
     const globalDbPath = join(dirs.globalDir, 'learnings.db');
     if (existsSync(globalDbPath)) {
-      const globalResults = await queryLearnings(queryOptions, { baseDir: dirs.globalDir });
+      const globalResults = queryLearnings(queryOptions, { baseDir: dirs.globalDir });
       results.push(...globalResults);
     }
   }
@@ -297,7 +297,7 @@ function rowToSummary(row: DbRow): LearningSummary {
     title: row.title,
     category: row.category as LearningSummary['category'],
     scope: row.scope as LearningSummary['scope'],
-    tags: JSON.parse(row.tags),
+    tags: JSON.parse(row.tags) as string[],
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

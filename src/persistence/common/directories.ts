@@ -8,7 +8,7 @@
  */
 
 import { mkdir } from 'node:fs/promises';
-import { existsSync } from 'node:fs';
+import { existsSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 
@@ -58,9 +58,7 @@ export function ensureDirSync(dir: string, mode: number = DEFAULT_PERSISTENCE_CO
   }
 
   try {
-    // Use Bun's synchronous mkdir
-    const fs = require('node:fs');
-    fs.mkdirSync(dir, { recursive: true, mode });
+    mkdirSync(dir, { recursive: true, mode });
   } catch (error) {
     throw new DirectoryError(
       dir,

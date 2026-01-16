@@ -11,7 +11,7 @@ import { Database } from 'bun:sqlite';
 import { dirname } from 'node:path';
 
 import { DatabaseError } from '../../errors/persistence';
-import { ensureDir } from './directories';
+import { ensureDir, ensureDirSync } from './directories';
 
 // =============================================================================
 // Database Initialization
@@ -91,7 +91,6 @@ export function openDatabaseSync(
   try {
     // Ensure parent directory exists (sync)
     if (createDir && !readonly) {
-      const { ensureDirSync } = require('./directories');
       ensureDirSync(dirname(path));
     }
 

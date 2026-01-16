@@ -10,7 +10,7 @@ import { existsSync, rmSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
-import type { Learning, CreateLearningInput, LearningQueryOptions } from '../../../src/persistence/types';
+import type { CreateLearningInput } from '../../../src/persistence/types';
 
 // Full public API
 import {

@@ -69,7 +69,7 @@ export async function queryBaselines(
   const db = await ensureIndexUpToDate(baseDir);
 
   try {
-    const results = await getIndexedBaselines(db, queryOptions);
+    const results = getIndexedBaselines(db, queryOptions);
     return results;
   } finally {
     db.close();
@@ -118,8 +118,8 @@ export async function compareBaselines(
   const db = await ensureIndexUpToDate(baseDir);
 
   try {
-    const from = await getIndexedBaselineById(db, fromId);
-    const to = await getIndexedBaselineById(db, toId);
+    const from = getIndexedBaselineById(db, fromId);
+    const to = getIndexedBaselineById(db, toId);
 
     if (!from || !to) {
       return null;
@@ -200,16 +200,16 @@ async function ensureIndexUpToDate(baseDir: string): Promise<Database> {
   const db = await initBaselineSchema({ baseDir });
 
   // Get all baseline IDs from filesystem
-  const fileIds = await listBaselineIds({ baseDir });
+  const fileIds = listBaselineIds({ baseDir });
 
   // Index any that are missing
   for (const id of fileIds) {
-    const exists = await getIndexedBaselineById(db, id);
+    const exists = getIndexedBaselineById(db, id);
     if (!exists) {
       const baseline = await loadBaseline(id, { baseDir });
       if (baseline) {
         const { indexBaseline } = await import('./indexer');
-        await indexBaseline(db, baseline, `${baseDir}/${id}.json`);
+        indexBaseline(db, baseline, `${baseDir}/${id}.json`);
       }
     }
   }

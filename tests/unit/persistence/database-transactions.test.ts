@@ -11,11 +11,9 @@ import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { existsSync, rmSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { Database } from 'bun:sqlite';
 
 import {
   openDatabase,
-  openDatabaseSync,
   queryAll,
   queryOne,
   execute,

@@ -121,7 +121,7 @@ export async function loadBaseline(id: string, options: BaselineStorageOptions =
 
   try {
     const content = await Bun.file(filePath).text();
-    const data = JSON.parse(content);
+    const data: unknown = JSON.parse(content);
     const parsed = parseBaselineFile(data);
 
     if (!parsed) {
@@ -156,7 +156,7 @@ export async function getLatestBaseline(options: BaselineStorageOptions = {}): P
 
   try {
     const content = await Bun.file(latestPath).text();
-    const data = JSON.parse(content);
+    const data: unknown = JSON.parse(content);
     const parsed = parseBaselineFile(data);
 
     if (!parsed) {
@@ -230,7 +230,7 @@ export async function deleteBaseline(id: string, options: BaselineStorageOptions
   try {
     const { initBaselineSchema, removeIndex } = await import('./indexer');
     const db = await initBaselineSchema({ baseDir });
-    await removeIndex(db, id);
+    removeIndex(db, id);
     db.close();
   } catch {
     // Index may not exist yet, that's ok
@@ -250,7 +250,7 @@ export async function deleteBaseline(id: string, options: BaselineStorageOptions
  * @param options - Storage options
  * @returns Array of baseline UUIDs
  */
-export async function listBaselineIds(options: BaselineStorageOptions = {}): Promise<string[]> {
+export function listBaselineIds(options: BaselineStorageOptions = {}): string[] {
   const baseDir = options.baseDir ?? getBaselinesDir();
 
   if (!existsSync(baseDir)) {
@@ -279,7 +279,7 @@ async function updateLatestPointer(baseDir: string, baselineId: string, createdA
   if (existsSync(latestPath)) {
     try {
       const content = await Bun.file(latestPath).text();
-      const data = JSON.parse(content);
+      const data: unknown = JSON.parse(content);
       const parsed = parseBaselineFile(data);
 
       if (parsed && parsed.baseline.createdAt >= createdAt) {
@@ -311,7 +311,7 @@ async function rebuildLatestPointer(baseDir: string): Promise<void> {
   const latestPath = join(baseDir, LATEST_FILENAME);
 
   // Get all baseline IDs
-  const ids = await listBaselineIds({ baseDir });
+  const ids = listBaselineIds({ baseDir });
 
   if (ids.length === 0) {
     // No baselines left, remove latest pointer

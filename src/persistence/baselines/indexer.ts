@@ -134,7 +134,7 @@ export async function initBaselineSchema(options: BaselineIndexerOptions = {}): 
  * @param baseline - The baseline to index
  * @param filePath - Optional path to the baseline JSON file
  */
-export async function indexBaseline(db: Database, baseline: Baseline, filePath?: string): Promise<void> {
+export function indexBaseline(db: Database, baseline: Baseline, filePath?: string): void {
   const sql = `
     INSERT INTO baselines (
       id, created_at, project_path, act_type, git_commit,
@@ -184,7 +184,7 @@ export async function indexBaseline(db: Database, baseline: Baseline, filePath?:
  * @param id - Baseline UUID
  * @returns True if removed, false if not found
  */
-export async function removeIndex(db: Database, id: string): Promise<boolean> {
+export function removeIndex(db: Database, id: string): boolean {
   const changes = execute(db, 'DELETE FROM baselines WHERE id = $id', { $id: id });
   return changes > 0;
 }
@@ -196,10 +196,10 @@ export async function removeIndex(db: Database, id: string): Promise<boolean> {
  * @param options - Query options
  * @returns Array of baseline summaries
  */
-export async function getIndexedBaselines(
+export function getIndexedBaselines(
   db: Database,
   options: BaselineQueryOptions = {}
-): Promise<(BaselineSummary & { filePath?: string | undefined })[]> {
+): (BaselineSummary & { filePath?: string | undefined })[] {
   const conditions: string[] = [];
   const params: Record<string, string | number | null> = {};
 
@@ -250,10 +250,10 @@ export async function getIndexedBaselines(
  * @param id - Baseline UUID
  * @returns Baseline summary or null if not found
  */
-export async function getIndexedBaselineById(
+export function getIndexedBaselineById(
   db: Database,
   id: string
-): Promise<(BaselineSummary & { filePath?: string | undefined }) | null> {
+): (BaselineSummary & { filePath?: string | undefined }) | null {
   const row = queryOne<BaselineRow>(db, 'SELECT * FROM baselines WHERE id = $id', { $id: id });
   if (!row) {
     return null;

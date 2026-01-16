@@ -11,11 +11,10 @@
  * @module tests/unit/persistence/atomic-write-crash
  */
 
-import { describe, it, expect, beforeEach, afterEach, mock, spyOn } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { existsSync, rmSync, readFileSync, readdirSync, mkdirSync, chmodSync, statSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
-import { rename } from 'node:fs/promises';
 
 import {
   atomicWrite,
