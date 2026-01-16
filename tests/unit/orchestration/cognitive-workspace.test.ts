@@ -6,10 +6,7 @@
  */
 
 import { describe, test, expect } from 'bun:test';
-import type {
-  SessionState,
-  BaselineAwareness,
-} from '../../../src/orchestration/types';
+import type { SessionState, BaselineAwareness } from '../../../src/orchestration/types';
 import {
   buildCognitiveWorkspace,
   formatWorkspaceForPrompt,
@@ -54,9 +51,9 @@ function createTestSessionState(overrides: Partial<SessionState> = {}): SessionS
       },
     ],
     toolResultCache: {
-      'read_file_1': { toolName: 'read_file', input: {}, output: '', timestamp: '', durationMs: 10 },
-      'read_file_2': { toolName: 'read_file', input: {}, output: '', timestamp: '', durationMs: 15 },
-      'grep_1': { toolName: 'grep', input: {}, output: '', timestamp: '', durationMs: 20 },
+      read_file_1: { toolName: 'read_file', input: {}, output: '', timestamp: '', durationMs: 10 },
+      read_file_2: { toolName: 'read_file', input: {}, output: '', timestamp: '', durationMs: 15 },
+      grep_1: { toolName: 'grep', input: {}, output: '', timestamp: '', durationMs: 20 },
     },
     checkpointSequence: 5,
     taskGoal: 'Analyze CLAUDE.md for configuration quality',

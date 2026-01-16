@@ -135,9 +135,7 @@ describe('Orchestrator', () => {
     test('can register additional tools after creation', () => {
       const orchestrator = new Orchestrator(config, toolRegistry);
 
-      orchestrator.toolRegistry.register(
-        createSuccessTool('additional_tool', 'additional')
-      );
+      orchestrator.toolRegistry.register(createSuccessTool('additional_tool', 'additional'));
 
       expect(orchestrator.toolRegistry.list()).toContain('additional_tool');
     });
@@ -149,10 +147,7 @@ describe('Orchestrator', () => {
 
   describe('configuration', () => {
     test('merges user config with defaults', () => {
-      const orchestrator = new Orchestrator(
-        { model: 'custom-model' },
-        toolRegistry
-      );
+      const orchestrator = new Orchestrator({ model: 'custom-model' }, toolRegistry);
 
       expect(orchestrator.config.model).toBe('custom-model');
       expect(orchestrator.config.verbosity).toBe('normal'); // default

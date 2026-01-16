@@ -39,7 +39,9 @@
     "format:check": "prettier --check src tests",
     "typecheck": "tsc --noEmit",
     "test": "bun test",
-    "test:coverage": "bun test --coverage"
+    "test:coverage": "bun test --coverage",
+    "ci": "bun run lint && bun run format:check && bun run typecheck && bun test && bun run build",
+    "prepare": "scripts/install-hooks.sh"
   },
   "dependencies": {
     "@anthropic-ai/claude-agent-sdk": "^0.2.7",

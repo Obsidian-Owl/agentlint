@@ -19,12 +19,7 @@
  * @module orchestration/checkpoint
  */
 
-import type {
-  CheckpointEvent,
-  CheckpointTrigger,
-  CheckpointMetadata,
-  SessionState,
-} from './types';
+import type { CheckpointEvent, CheckpointTrigger, CheckpointMetadata, SessionState } from './types';
 
 // =============================================================================
 // Constants
@@ -62,11 +57,7 @@ export interface ICheckpointHandler {
    * @param state - Current session state
    * @param metadata - Additional context for the trigger
    */
-  emit(
-    trigger: CheckpointTrigger,
-    state: SessionState,
-    metadata?: CheckpointMetadata
-  ): void;
+  emit(trigger: CheckpointTrigger, state: SessionState, metadata?: CheckpointMetadata): void;
 
   /**
    * Start the interval-based checkpoint timer.
@@ -144,11 +135,7 @@ export class CheckpointHandler implements ICheckpointHandler {
   /**
    * Emit a checkpoint event (T039).
    */
-  emit(
-    trigger: CheckpointTrigger,
-    state: SessionState,
-    metadata?: CheckpointMetadata
-  ): void {
+  emit(trigger: CheckpointTrigger, state: SessionState, metadata?: CheckpointMetadata): void {
     // Increment sequence
     this.sequence++;
 
@@ -181,9 +168,7 @@ export class CheckpointHandler implements ICheckpointHandler {
     }
 
     if (!this.getState) {
-      throw new Error(
-        'Cannot start interval timer without getState configuration'
-      );
+      throw new Error('Cannot start interval timer without getState configuration');
     }
 
     this.intervalTimer = setInterval(() => {
@@ -236,10 +221,7 @@ export class CheckpointHandler implements ICheckpointHandler {
   /**
    * Create a deep copy of session state with checkpoint info updated.
    */
-  private createStateSnapshot(
-    state: SessionState,
-    timestamp: string
-  ): SessionState {
+  private createStateSnapshot(state: SessionState, timestamp: string): SessionState {
     // Deep clone via JSON serialization
     const snapshot: SessionState = JSON.parse(JSON.stringify(state)) as SessionState;
 
@@ -261,8 +243,6 @@ export class CheckpointHandler implements ICheckpointHandler {
  * @param config - Handler configuration
  * @returns Configured CheckpointHandler
  */
-export function createCheckpointHandler(
-  config: CheckpointHandlerConfig
-): ICheckpointHandler {
+export function createCheckpointHandler(config: CheckpointHandlerConfig): ICheckpointHandler {
   return new CheckpointHandler(config);
 }

@@ -14,12 +14,7 @@
 
 import { query, type SDKMessage } from '@anthropic-ai/claude-agent-sdk';
 import type { IToolRegistry } from './tool-registry';
-import type {
-  OrchestratorConfig,
-  SessionState,
-  StreamChunk,
-  VerbosityLevel,
-} from './types';
+import type { OrchestratorConfig, SessionState, StreamChunk, VerbosityLevel } from './types';
 import { loadConfig, MAX_SUBAGENT_DEPTH } from './config';
 import { SubagentDepthError } from '../errors';
 
@@ -248,8 +243,7 @@ export class Orchestrator implements IOrchestrator {
       yield this.createChunk('status', 'normal', 'Analysis complete');
     } catch (error) {
       // Yield error chunk
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
       yield this.createChunk('error', 'quiet', `Error: ${errorMessage}`);
       throw error;
     } finally {
@@ -267,18 +261,10 @@ export class Orchestrator implements IOrchestrator {
   // eslint-disable-next-line @typescript-eslint/require-await
   async *resume(sessionId: string): AsyncGenerator<StreamChunk, void, unknown> {
     // Placeholder for Phase 6 implementation (T045)
-    yield this.createChunk(
-      'status',
-      'normal',
-      `Resuming session: ${sessionId}`
-    );
+    yield this.createChunk('status', 'normal', `Resuming session: ${sessionId}`);
 
     // TODO: Load session state and resume with SDK's resume option
-    yield this.createChunk(
-      'error',
-      'quiet',
-      'Resume not yet implemented (Phase 6)'
-    );
+    yield this.createChunk('error', 'quiet', 'Resume not yet implemented (Phase 6)');
   }
 
   /**
@@ -362,12 +348,10 @@ export class Orchestrator implements IOrchestrator {
           chunks.push(this.createChunk('text', 'normal', block.text));
         } else if (block.type === 'tool_use') {
           chunks.push(
-            this.createChunk(
-              'tool_start',
-              'verbose',
-              `Calling tool: ${block.name}`,
-              { toolName: block.name, input: block.input }
-            )
+            this.createChunk('tool_start', 'verbose', `Calling tool: ${block.name}`, {
+              toolName: block.name,
+              input: block.input,
+            })
           );
         }
       }

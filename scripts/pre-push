@@ -1,0 +1,88 @@
+#!/bin/bash
+# Pre-push hook: Runs CI checks locally before pushing
+# Mirrors .github/workflows/ci.yml to fail fast locally
+#
+# To skip (use sparingly): git push --no-verify
+
+set -e
+
+echo "🔍 Running pre-push CI checks..."
+echo ""
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+NC='\033[0m' # No Color
+
+# Track failures
+FAILED=0
+
+# 1. Lint
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "📝 Running ESLint..."
+if bun run lint; then
+  echo -e "${GREEN}✓ Lint passed${NC}"
+else
+  echo -e "${RED}✗ Lint failed${NC}"
+  FAILED=1
+fi
+echo ""
+
+# 2. Format check
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "🎨 Checking formatting (Prettier)..."
+if bun run format:check; then
+  echo -e "${GREEN}✓ Format check passed${NC}"
+else
+  echo -e "${RED}✗ Format check failed${NC}"
+  echo -e "${YELLOW}  Run 'bun run format' to fix${NC}"
+  FAILED=1
+fi
+echo ""
+
+# 3. Type check
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "🔷 Running TypeScript type check..."
+if bun run typecheck; then
+  echo -e "${GREEN}✓ Type check passed${NC}"
+else
+  echo -e "${RED}✗ Type check failed${NC}"
+  FAILED=1
+fi
+echo ""
+
+# 4. Tests
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "🧪 Running tests..."
+if bun test; then
+  echo -e "${GREEN}✓ Tests passed${NC}"
+else
+  echo -e "${RED}✗ Tests failed${NC}"
+  FAILED=1
+fi
+echo ""
+
+# 5. Build
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "🏗️  Building..."
+if bun run build; then
+  echo -e "${GREEN}✓ Build passed${NC}"
+else
+  echo -e "${RED}✗ Build failed${NC}"
+  FAILED=1
+fi
+echo ""
+
+# Summary
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+if [ $FAILED -eq 0 ]; then
+  echo -e "${GREEN}✅ All CI checks passed! Pushing...${NC}"
+  exit 0
+else
+  echo -e "${RED}❌ CI checks failed. Push aborted.${NC}"
+  echo ""
+  echo "Fix the issues above and try again."
+  echo "To bypass (not recommended): git push --no-verify"
+  exit 1
+fi

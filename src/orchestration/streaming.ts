@@ -12,11 +12,7 @@
  * @module orchestration/streaming
  */
 
-import type {
-  StreamChunk,
-  StreamChunkType,
-  VerbosityLevel,
-} from './types';
+import type { StreamChunk, StreamChunkType, VerbosityLevel } from './types';
 
 // =============================================================================
 // Verbosity Level Ordering
@@ -91,21 +87,14 @@ export class StreamProcessor implements IStreamProcessor {
       // Process content blocks from assistant message
       for (const block of msg.content) {
         if (block.type === 'text') {
-          chunks.push(
-            createStreamChunk('text', 'normal', block.text as string)
-          );
+          chunks.push(createStreamChunk('text', 'normal', block.text as string));
         } else if (block.type === 'tool_use') {
           const toolName = block.name as string;
           chunks.push(
-            createStreamChunk(
-              'tool_start',
-              'verbose',
-              `Calling tool: ${toolName}`,
-              {
-                toolName,
-                input: block.input,
-              }
-            )
+            createStreamChunk('tool_start', 'verbose', `Calling tool: ${toolName}`, {
+              toolName,
+              input: block.input,
+            })
           );
         }
       }
@@ -154,10 +143,7 @@ export class StreamProcessor implements IStreamProcessor {
  * const visibleChunks = filterByVerbosity(allChunks, 'normal');
  * ```
  */
-export function filterByVerbosity(
-  chunks: StreamChunk[],
-  verbosity: VerbosityLevel
-): StreamChunk[] {
+export function filterByVerbosity(chunks: StreamChunk[], verbosity: VerbosityLevel): StreamChunk[] {
   return chunks.filter((chunk) => shouldDisplay(chunk.level, verbosity));
 }
 
@@ -175,10 +161,7 @@ export function filterByVerbosity(
  * }
  * ```
  */
-export function shouldDisplay(
-  chunkLevel: VerbosityLevel,
-  displayLevel: VerbosityLevel
-): boolean {
+export function shouldDisplay(chunkLevel: VerbosityLevel, displayLevel: VerbosityLevel): boolean {
   return VERBOSITY_ORDER[chunkLevel] <= VERBOSITY_ORDER[displayLevel];
 }
 

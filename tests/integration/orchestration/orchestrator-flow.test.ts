@@ -100,7 +100,7 @@ function createTestSessionState(overrides: Partial<SessionState> = {}): SessionS
       },
     ],
     toolResultCache: {
-      'read_file_1': {
+      read_file_1: {
         toolName: 'read_file',
         input: { path: '/project/CLAUDE.md' },
         output: '# CLAUDE.md\n\nMinimal content',

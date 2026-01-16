@@ -8,10 +8,7 @@
  */
 
 import { describe, test, expect, beforeEach, afterEach } from 'bun:test';
-import type {
-  CheckpointEvent,
-  SessionState,
-} from '../../../src/orchestration/types';
+import type { CheckpointEvent, SessionState } from '../../../src/orchestration/types';
 import {
   createCheckpointHandler,
   type ICheckpointHandler,

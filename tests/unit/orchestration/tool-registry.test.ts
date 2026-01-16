@@ -11,11 +11,7 @@ import { describe, test, expect, beforeEach } from 'bun:test';
 import { z } from 'zod';
 import { ToolRegistry, type ToolDefinition } from '../../../src/orchestration/tool-registry';
 import { ToolRegistrationError } from '../../../src/errors';
-import {
-  createMockTool,
-  createSuccessTool,
-  textResult,
-} from '../../utils/sdk-test-helpers';
+import { createMockTool, createSuccessTool, textResult } from '../../utils/sdk-test-helpers';
 import { tool } from '@anthropic-ai/claude-agent-sdk';
 
 describe('ToolRegistry', () => {
@@ -92,9 +88,7 @@ describe('ToolRegistry', () => {
         createSuccessTool('existing', 'dup'), // Duplicate!
       ];
 
-      expect(() => registry.registerMany(newTools)).toThrow(
-        ToolRegistrationError
-      );
+      expect(() => registry.registerMany(newTools)).toThrow(ToolRegistrationError);
       // new_tool should not be registered due to atomic failure
       expect(registry.list()).not.toContain('new_tool');
     });
@@ -153,10 +147,7 @@ describe('ToolRegistry', () => {
     });
 
     test('includes all registered tools in MCP server', () => {
-      registry.registerMany([
-        createSuccessTool('tool_1', '1'),
-        createSuccessTool('tool_2', '2'),
-      ]);
+      registry.registerMany([createSuccessTool('tool_1', '1'), createSuccessTool('tool_2', '2')]);
 
       const mcpConfig = registry.toMcpServer();
 
@@ -183,11 +174,8 @@ describe('ToolRegistry', () => {
 
       // Create tool with properly typed handler using SDK tool() directly
       // Cast is safe: SDK's createSdkMcpServer accepts Array<SdkMcpToolDefinition<any>>
-      const analyzeTool = tool(
-        'analyze_file',
-        'Analyze a file',
-        { path: z.string() },
-        ({ path }) => Promise.resolve(textResult(analyzeHandler({ path })))
+      const analyzeTool = tool('analyze_file', 'Analyze a file', { path: z.string() }, ({ path }) =>
+        Promise.resolve(textResult(analyzeHandler({ path })))
       ) as ToolDefinition;
 
       registry.register(analyzeTool);

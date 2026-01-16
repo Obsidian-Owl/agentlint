@@ -10,11 +10,7 @@
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
-import type {
-  OrchestratorConfig,
-  AgentlintGlobalConfig,
-  VerbosityLevel,
-} from './types';
+import type { OrchestratorConfig, AgentlintGlobalConfig, VerbosityLevel } from './types';
 
 // =============================================================================
 // Constants
@@ -89,9 +85,7 @@ export function getDefaultGlobalConfig(): AgentlintGlobalConfig {
  * @param overrides - Optional overrides to apply on top of loaded config
  * @returns Fully populated orchestrator configuration
  */
-export function loadConfig(
-  overrides?: Partial<OrchestratorConfig>
-): Required<OrchestratorConfig> {
+export function loadConfig(overrides?: Partial<OrchestratorConfig>): Required<OrchestratorConfig> {
   const defaults = getDefaultConfig();
   const fileConfig = loadConfigFile();
 
@@ -102,11 +96,9 @@ export function loadConfig(
       overrides?.checkpointIntervalMs ??
       fileConfig?.checkpoint?.intervalMs ??
       defaults.checkpointIntervalMs,
-    verbosity:
-      overrides?.verbosity ?? fileConfig?.verbosity ?? defaults.verbosity,
+    verbosity: overrides?.verbosity ?? fileConfig?.verbosity ?? defaults.verbosity,
     cwd: overrides?.cwd ?? defaults.cwd,
-    systemPromptAppend:
-      overrides?.systemPromptAppend ?? defaults.systemPromptAppend,
+    systemPromptAppend: overrides?.systemPromptAppend ?? defaults.systemPromptAppend,
     settingSources: overrides?.settingSources ?? defaults.settingSources,
     depth: overrides?.depth ?? defaults.depth,
   };
@@ -127,17 +119,13 @@ function loadConfigFile(): AgentlintGlobalConfig | null {
 
     // Basic validation
     if (!isValidGlobalConfig(parsed)) {
-      console.warn(
-        `Warning: Invalid config file at ${CONFIG_FILE}, using defaults`
-      );
+      console.warn(`Warning: Invalid config file at ${CONFIG_FILE}, using defaults`);
       return null;
     }
 
     return parsed;
   } catch {
-    console.warn(
-      `Warning: Failed to load config file at ${CONFIG_FILE}, using defaults`
-    );
+    console.warn(`Warning: Failed to load config file at ${CONFIG_FILE}, using defaults`);
     return null;
   }
 }
@@ -163,10 +151,7 @@ function isValidGlobalConfig(obj: unknown): obj is AgentlintGlobalConfig {
       return false;
     }
     const checkpoint = config.checkpoint as Record<string, unknown>;
-    if (
-      checkpoint.intervalMs !== undefined &&
-      typeof checkpoint.intervalMs !== 'number'
-    ) {
+    if (checkpoint.intervalMs !== undefined && typeof checkpoint.intervalMs !== 'number') {
       return false;
     }
   }
@@ -255,8 +240,7 @@ export function mergeWithDefaults(
   const defaults = getDefaultConfig();
   return {
     model: partial.model ?? defaults.model,
-    checkpointIntervalMs:
-      partial.checkpointIntervalMs ?? defaults.checkpointIntervalMs,
+    checkpointIntervalMs: partial.checkpointIntervalMs ?? defaults.checkpointIntervalMs,
     verbosity: partial.verbosity ?? defaults.verbosity,
     cwd: partial.cwd ?? defaults.cwd,
     systemPromptAppend: partial.systemPromptAppend ?? defaults.systemPromptAppend,

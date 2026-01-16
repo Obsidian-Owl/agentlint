@@ -15,11 +15,7 @@ import { readdir, readFile, writeFile, mkdir, unlink } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
-import type {
-  SessionState,
-  SessionStateFile,
-  FindingSummary,
-} from './types';
+import type { SessionState, SessionStateFile, FindingSummary } from './types';
 
 // =============================================================================
 // Constants
@@ -182,17 +178,13 @@ export async function loadState(
  * @param baseDir - Base directory for sessions
  * @returns Array of session IDs
  */
-export async function listSessions(
-  baseDir: string = DEFAULT_SESSIONS_DIR
-): Promise<string[]> {
+export async function listSessions(baseDir: string = DEFAULT_SESSIONS_DIR): Promise<string[]> {
   if (!existsSync(baseDir)) {
     return [];
   }
 
   const files = await readdir(baseDir);
-  return files
-    .filter((f) => f.endsWith('.json'))
-    .map((f) => f.replace('.json', ''));
+  return files.filter((f) => f.endsWith('.json')).map((f) => f.replace('.json', ''));
 }
 
 /**
@@ -259,9 +251,7 @@ export function buildStateSummary(state: SessionState): SessionSummary {
   // Build formatted summary for system prompt
   const findingsList =
     findingSummaries.length > 0
-      ? findingSummaries
-          .map((f) => `  - [${f.severity.toUpperCase()}] ${f.title}`)
-          .join('\n')
+      ? findingSummaries.map((f) => `  - [${f.severity.toUpperCase()}] ${f.title}`).join('\n')
       : '  (none)';
 
   const formattedSummary = `[Session Resume Context]

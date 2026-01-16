@@ -126,10 +126,7 @@ function getResultSize(result: unknown): number {
  * }
  * ```
  */
-export function handleToolResult(
-  toolName: string,
-  result: unknown
-): ToolResultSummary {
+export function handleToolResult(toolName: string, result: unknown): ToolResultSummary {
   const size = getResultSize(result);
 
   if (!isLargeResult(result)) {

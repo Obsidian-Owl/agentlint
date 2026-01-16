@@ -55,10 +55,7 @@ export class OrchestrationError extends AgentlintError {
     }
   ) {
     // Cast to ExitCode since our extended codes are compatible (just larger numbers)
-    super(
-      message,
-      (options?.code ?? OrchestrationExitCode.OrchestrationError) as ExitCode
-    );
+    super(message, (options?.code ?? OrchestrationExitCode.OrchestrationError) as ExitCode);
     this.name = 'OrchestrationError';
     this.sessionId = options?.sessionId;
     if (options?.cause) {
@@ -153,10 +150,7 @@ export class ApiKeyError extends OrchestrationError {
   /** Reason for the failure */
   public readonly reason: 'missing' | 'invalid_format' | 'rejected' | 'unknown';
 
-  constructor(
-    reason: 'missing' | 'invalid_format' | 'rejected' | 'unknown',
-    message?: string
-  ) {
+  constructor(reason: 'missing' | 'invalid_format' | 'rejected' | 'unknown', message?: string) {
     const defaultMessages: Record<typeof reason, string> = {
       missing: 'ANTHROPIC_API_KEY environment variable is not set',
       invalid_format: 'ANTHROPIC_API_KEY has an invalid format',
