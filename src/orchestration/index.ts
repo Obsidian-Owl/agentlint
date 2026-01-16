@@ -109,11 +109,15 @@ export {
 } from './context';
 
 // =============================================================================
-// Checkpointing (T038-T040) - Phase 5 Placeholder
+// Checkpointing (T038-T040) - Phase 5 Complete
 // =============================================================================
 
-// export type { ICheckpointHandler } from './checkpoint';
-// export { CheckpointHandler } from './checkpoint';
+export type { ICheckpointHandler, CheckpointHandlerConfig } from './checkpoint';
+export {
+  CheckpointHandler,
+  createCheckpointHandler,
+  DEFAULT_CHECKPOINT_INTERVAL_MS,
+} from './checkpoint';
 
 // =============================================================================
 // Session State (T044-T046) - Phase 6 Placeholder

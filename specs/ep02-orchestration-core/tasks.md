@@ -130,15 +130,15 @@
 
 ### Tests (write first)
 
-- [ ] T035 [P] [US5] Unit test: CheckpointHandler emits events on triggers in `tests/unit/orchestration/checkpoint.test.ts`
-- [ ] T036 [P] [US5] Unit test: Interval-based checkpoint fires after configured time in `tests/unit/orchestration/checkpoint.test.ts`
-- [ ] T037 [P] [US5] Unit test: CheckpointEvent contains full SessionState snapshot in `tests/unit/orchestration/checkpoint.test.ts`
+- [x] T035 [P] [US5] Unit test: CheckpointHandler emits events on triggers in `tests/unit/orchestration/checkpoint.test.ts`
+- [x] T036 [P] [US5] Unit test: Interval-based checkpoint fires after configured time in `tests/unit/orchestration/checkpoint.test.ts`
+- [x] T037 [P] [US5] Unit test: CheckpointEvent contains full SessionState snapshot in `tests/unit/orchestration/checkpoint.test.ts`
 
 ### Implementation
 
-- [ ] T038 [US5] Create `src/orchestration/checkpoint.ts` with ICheckpointHandler interface
-- [ ] T039 [US5] Implement checkpoint triggers: PostToolUse hook, finding detection, phase change
-- [ ] T040 [US5] Implement interval-based checkpoint timer with configurable intervalMs
+- [x] T038 [US5] Create `src/orchestration/checkpoint.ts` with ICheckpointHandler interface
+- [x] T039 [US5] Implement checkpoint triggers: PostToolUse hook, finding detection, phase change
+- [x] T040 [US5] Implement interval-based checkpoint timer with configurable intervalMs
 
 **Checkpoint**: US5 complete - checkpoints emit on all triggers
 
