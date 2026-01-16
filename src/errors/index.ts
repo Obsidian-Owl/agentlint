@@ -86,3 +86,27 @@ export {
   isApiKeyError,
   isSubagentDepthError,
 } from './orchestration';
+
+// =============================================================================
+// Persistence Errors (EP03)
+// =============================================================================
+
+export {
+  PersistenceError,
+  FileNotFoundError,
+  FileCorruptedError,
+  DatabaseError,
+  DirectoryError,
+  AtomicWriteError,
+  SchemaVersionError,
+  PermissionError,
+  PersistenceExitCode,
+  isPersistenceError,
+  isFileNotFoundError,
+  isFileCorruptedError,
+  isDatabaseError,
+  isDirectoryError,
+  isAtomicWriteError,
+  isSchemaVersionError,
+  isPermissionError,
+} from './persistence';
