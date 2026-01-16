@@ -87,6 +87,56 @@
 
 ---
 
+## Level 3: CLI Module Structure (EP04)
+
+```
+src/cli/
+├── index.ts           Public exports
+├── program.ts         Commander.js setup, command definitions
+├── types.ts           CLI-specific types, re-exports from EP02/EP03
+│
+├── commands/          Command implementations
+│   ├── scan.ts        Discover AI configurations
+│   ├── analyse.ts     Run full analysis
+│   ├── baseline.ts    Capture baseline state
+│   ├── compare.ts     Compare against baseline
+│   └── trace.ts       Trace finding to origin
+│
+├── components/        Ink React components (ADR-0004)
+│   ├── App.tsx        Main application wrapper
+│   ├── Progress.tsx   Spinner + phase indicator
+│   ├── FindingsList.tsx  Findings table display
+│   ├── Summary.tsx    Analysis summary
+│   ├── CausalTree.tsx Custom tree visualization
+│   └── CompareView.tsx Baseline comparison view
+│
+├── formatters/        Output format handlers
+│   ├── json.ts        JSON/JSON Lines streaming
+│   ├── markdown.ts    Markdown report generation
+│   └── plain.ts       Plain text (no colors)
+│
+└── utils/             Shared utilities
+    ├── terminal.ts    Width detection, text wrapping
+    ├── colors.ts      ANSI colors, NO_COLOR support
+    └── output.ts      Output mode detection
+```
+
+| Module | Responsibility |
+|--------|----------------|
+| `program.ts` | Commander.js configuration, global options, command routing |
+| `commands/` | Individual command logic, calls orchestration layer |
+| `components/` | Ink-based React components for terminal UI |
+| `formatters/` | Output serialization (JSON, Markdown, plain text) |
+| `utils/` | Terminal detection, color support, text formatting |
+
+**Key Design Decisions**:
+- Commander.js for argument parsing ([ADR-0003](../adr/0003-cli-framework-and-command-structure.md))
+- Ink for terminal UI with React components ([ADR-0004](../adr/0004-output-format-and-rendering.md))
+- Custom CausalTree component for trace visualization
+- ANSI 4-bit colors for accessibility (NFR-005)
+
+---
+
 ## Level 2: Orchestration Layer
 
 ```

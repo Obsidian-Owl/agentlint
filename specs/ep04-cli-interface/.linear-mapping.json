@@ -1,0 +1,517 @@
+{
+  "metadata": {
+    "feature": "ep04-cli-interface",
+    "project": "EP04: CLI Interface & Commands",
+    "project_id": "b0b1d851-7b7b-412b-a0ae-868ac956e95d",
+    "epic_label": "epic:EP04",
+    "created_at": "2026-01-16T09:52:39.501Z",
+    "last_sync": "2026-01-16T09:58:00.000Z"
+  },
+  "mappings": {
+    "T001": {
+      "linear_id": "c724ad75-c07e-4617-9048-a67b73807725",
+      "linear_identifier": "AGE-154",
+      "title": "T001: Add CLI dependencies to package.json: ink, @inkjs/ui, commander, chalk",
+      "url": "https://linear.app/obsidianowl/issue/AGE-154",
+      "phase": "Phase 1: Setup"
+    },
+    "T002": {
+      "linear_id": "287d5fe1-daaf-4d35-94f0-8cf9327371a9",
+      "linear_identifier": "AGE-155",
+      "title": "T002: Create src/cli/ directory structure per plan.md",
+      "url": "https://linear.app/obsidianowl/issue/AGE-155",
+      "phase": "Phase 1: Setup"
+    },
+    "T003": {
+      "linear_id": "a54cae9e-a762-4672-8b27-acf4762b44f9",
+      "linear_identifier": "AGE-156",
+      "title": "T003: Create src/cli/index.ts with public exports stub",
+      "url": "https://linear.app/obsidianowl/issue/AGE-156",
+      "phase": "Phase 1: Setup"
+    },
+    "T004": {
+      "linear_id": "19d8a532-e706-4343-9161-a849e91942ea",
+      "linear_identifier": "AGE-157",
+      "title": "T004: Create src/cli/types.ts with CLI-specific types from contracts/interfaces.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-157",
+      "phase": "Phase 1: Setup"
+    },
+    "T005": {
+      "linear_id": "ed57512b-0571-47eb-be62-f848e43a020c",
+      "linear_identifier": "AGE-158",
+      "title": "T005: Create tsconfig.json JSX configuration for Ink React components",
+      "url": "https://linear.app/obsidianowl/issue/AGE-158",
+      "phase": "Phase 1: Setup"
+    },
+    "T006": {
+      "linear_id": "52c66d91-083e-4ce3-9b34-6ac27695a1ef",
+      "linear_identifier": "AGE-159",
+      "title": "T006: Verify TypeScript compilation with new dependencies",
+      "url": "https://linear.app/obsidianowl/issue/AGE-159",
+      "phase": "Phase 1: Setup"
+    },
+    "T007": {
+      "linear_id": "37ca749a-1d3d-4a1a-9ac2-0710786e8319",
+      "linear_identifier": "AGE-160",
+      "title": "T007: Create src/cli/utils/output.ts with getOutputMode() function (FR-012)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-160",
+      "phase": "Phase 2: Foundational"
+    },
+    "T008": {
+      "linear_id": "7b29ce47-7f5d-444a-a782-b4c17d21e625",
+      "linear_identifier": "AGE-161",
+      "title": "T008: Create src/cli/utils/colors.ts with NO_COLOR support (FR-014, NFR-005)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-161",
+      "phase": "Phase 2: Foundational"
+    },
+    "T009": {
+      "linear_id": "450b2ba4-f7ac-401b-b7c7-4cb40d645462",
+      "linear_identifier": "AGE-162",
+      "title": "T009: Create src/cli/utils/terminal.ts with width detection (NFR-002)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-162",
+      "phase": "Phase 2: Foundational"
+    },
+    "T010": {
+      "linear_id": "260cb08a-68d8-4cf2-8bb4-9dc09fee5630",
+      "linear_identifier": "AGE-163",
+      "title": "T010: Create src/cli/utils/index.ts exporting all utilities",
+      "url": "https://linear.app/obsidianowl/issue/AGE-163",
+      "phase": "Phase 2: Foundational"
+    },
+    "T011": {
+      "linear_id": "62454434-5ba9-4298-a963-7dc1356510d0",
+      "linear_identifier": "AGE-164",
+      "title": "T011: Create src/errors/cli.ts with CLI-specific error classes",
+      "url": "https://linear.app/obsidianowl/issue/AGE-164",
+      "phase": "Phase 2: Foundational"
+    },
+    "T012": {
+      "linear_id": "ca737a6c-4328-473c-b39f-4705c5d09881",
+      "linear_identifier": "AGE-165",
+      "title": "T012: Update src/errors/index.ts to export CLI errors",
+      "url": "https://linear.app/obsidianowl/issue/AGE-165",
+      "phase": "Phase 2: Foundational"
+    },
+    "T013": {
+      "linear_id": "ea6bdbb9-82db-4f4b-b25a-80d2084cca74",
+      "linear_identifier": "AGE-166",
+      "title": "T013: Create src/cli/program.ts with Commander.js program skeleton (FR-001)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-166",
+      "phase": "Phase 2: Foundational"
+    },
+    "T014": {
+      "linear_id": "ca2e932a-c1d5-4ed4-b592-74e548e3f0c4",
+      "linear_identifier": "AGE-167",
+      "title": "T014: Register global options (--json, --markdown, --plain, --verbose, --fail-on-findings)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-167",
+      "phase": "Phase 2: Foundational"
+    },
+    "T015": {
+      "linear_id": "aba91faf-c7e7-4453-89ed-0f5b6efbb2cd",
+      "linear_identifier": "AGE-168",
+      "title": "T015: Update src/cli.ts entry point to use new program.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-168",
+      "phase": "Phase 2: Foundational"
+    },
+    "T016": {
+      "linear_id": "8019fcaf-3e08-4154-9b1f-e9117e7d3a8b",
+      "linear_identifier": "AGE-169",
+      "title": "T016: Wire program to export version from package.json (FR-003)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-169",
+      "phase": "Phase 2: Foundational"
+    },
+    "T017": {
+      "linear_id": "aa47cb0e-6278-43a8-ab10-f3c1b757820c",
+      "linear_identifier": "AGE-170",
+      "title": "T017: [US-002] Unit test for --help output in tests/unit/cli/help.test.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-170",
+      "phase": "Phase 3: US-002 - Help & Version (P1)"
+    },
+    "T018": {
+      "linear_id": "531993ef-31e4-4e82-a7b4-3f9c31c7af09",
+      "linear_identifier": "AGE-171",
+      "title": "T018: [US-002] Unit test for --version output in tests/unit/cli/version.test.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-171",
+      "phase": "Phase 3: US-002 - Help & Version (P1)"
+    },
+    "T019": {
+      "linear_id": "279d8b5c-a1ec-4828-9995-96c86db5e122",
+      "linear_identifier": "AGE-172",
+      "title": "T019: [US-002] Configure Commander help text for all commands (FR-002)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-172",
+      "phase": "Phase 3: US-002 - Help & Version (P1)"
+    },
+    "T020": {
+      "linear_id": "c7b935d0-217d-4e6b-abca-7b3650a7d42c",
+      "linear_identifier": "AGE-173",
+      "title": "T020: [US-002] Add command descriptions and examples to help",
+      "url": "https://linear.app/obsidianowl/issue/AGE-173",
+      "phase": "Phase 3: US-002 - Help & Version (P1)"
+    },
+    "T021": {
+      "linear_id": "66820f72-740d-45aa-9a2d-cddd32465418",
+      "linear_identifier": "AGE-174",
+      "title": "T021: [US-002] Implement custom help formatter matching CLI guidelines",
+      "url": "https://linear.app/obsidianowl/issue/AGE-174",
+      "phase": "Phase 3: US-002 - Help & Version (P1)"
+    },
+    "T022": {
+      "linear_id": "d8de4c89-66c0-4637-a284-ec59ca82fc54",
+      "linear_identifier": "AGE-175",
+      "title": "T022: [US-004] Unit test for scan command in tests/unit/cli/commands/scan.test.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-175",
+      "phase": "Phase 4: US-004 - Scan for AI Configurations (P1)"
+    },
+    "T023": {
+      "linear_id": "eb38bfc5-85a1-4bd2-be70-d80e0f66ad66",
+      "linear_identifier": "AGE-176",
+      "title": "T023: [US-004] Integration test for scan in tests/integration/cli/scan.test.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-176",
+      "phase": "Phase 4: US-004 - Scan for AI Configurations (P1)"
+    },
+    "T024": {
+      "linear_id": "54b7e095-c406-457d-b2af-53190abf6d8f",
+      "linear_identifier": "AGE-177",
+      "title": "T024: [US-004] Create src/cli/commands/scan.ts command handler",
+      "url": "https://linear.app/obsidianowl/issue/AGE-177",
+      "phase": "Phase 4: US-004 - Scan for AI Configurations (P1)"
+    },
+    "T025": {
+      "linear_id": "e2c70c9a-cce0-4611-9ff6-8ae8a6755aad",
+      "linear_identifier": "AGE-178",
+      "title": "T025: [US-004] Implement config file discovery (CLAUDE.md, .cursorrules, etc.)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-178",
+      "phase": "Phase 4: US-004 - Scan for AI Configurations (P1)"
+    },
+    "T026": {
+      "linear_id": "684f93aa-6792-4928-a820-d59584b3b26b",
+      "linear_identifier": "AGE-179",
+      "title": "T026: [US-004] Format scan results for terminal output",
+      "url": "https://linear.app/obsidianowl/issue/AGE-179",
+      "phase": "Phase 4: US-004 - Scan for AI Configurations (P1)"
+    },
+    "T027": {
+      "linear_id": "942c3d07-6512-403d-912e-412e1fc959f6",
+      "linear_identifier": "AGE-180",
+      "title": "T027: [US-004] Handle \"no configs found\" case with helpful message",
+      "url": "https://linear.app/obsidianowl/issue/AGE-180",
+      "phase": "Phase 4: US-004 - Scan for AI Configurations (P1)"
+    },
+    "T028": {
+      "linear_id": "d3317ffe-5893-4451-91ab-ba5060f33338",
+      "linear_identifier": "AGE-181",
+      "title": "T028: [US-003] Unit test for JSON formatter in tests/unit/cli/formatters/json.test.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-181",
+      "phase": "Phase 5: US-003 - Export Results to JSON (P1)"
+    },
+    "T029": {
+      "linear_id": "09ee9114-7be7-411a-8398-d1d240b07d9f",
+      "linear_identifier": "AGE-182",
+      "title": "T029: [US-003] Integration test for --json flag in tests/integration/cli/json-output.test.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-182",
+      "phase": "Phase 5: US-003 - Export Results to JSON (P1)"
+    },
+    "T030": {
+      "linear_id": "aa3d15b4-e59a-45b6-a4f3-bfafd71d813a",
+      "linear_identifier": "AGE-183",
+      "title": "T030: [US-003] Create src/cli/formatters/json.ts implementing IJSONFormatter",
+      "url": "https://linear.app/obsidianowl/issue/AGE-183",
+      "phase": "Phase 5: US-003 - Export Results to JSON (P1)"
+    },
+    "T031": {
+      "linear_id": "f3bcf01c-e4a2-4712-96bf-59ef0eb7a3a6",
+      "linear_identifier": "AGE-184",
+      "title": "T031: [US-003] Implement formatStreamChunk() for JSON Lines streaming",
+      "url": "https://linear.app/obsidianowl/issue/AGE-184",
+      "phase": "Phase 5: US-003 - Export Results to JSON (P1)"
+    },
+    "T032": {
+      "linear_id": "ca599e42-f6cc-4656-b12b-e35ed85e0b4a",
+      "linear_identifier": "AGE-185",
+      "title": "T032: [US-003] Implement formatComplete() for single JSON object output",
+      "url": "https://linear.app/obsidianowl/issue/AGE-185",
+      "phase": "Phase 5: US-003 - Export Results to JSON (P1)"
+    },
+    "T033": {
+      "linear_id": "6c3f326e-5947-4d36-95de-6f48ba256fd7",
+      "linear_identifier": "AGE-186",
+      "title": "T033: [US-003] Auto-detect non-TTY and switch to JSON (FR-012)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-186",
+      "phase": "Phase 5: US-003 - Export Results to JSON (P1)"
+    },
+    "T034": {
+      "linear_id": "16ccf43e-b416-41d8-bc96-a5bf8b98d1ea",
+      "linear_identifier": "AGE-187",
+      "title": "T034: [US-003] Implement --fail-on-findings exit code logic (FR-016)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-187",
+      "phase": "Phase 5: US-003 - Export Results to JSON (P1)"
+    },
+    "T035": {
+      "linear_id": "7d193e74-bbf4-42fe-8433-c4b899cb1e64",
+      "linear_identifier": "AGE-188",
+      "title": "T035: [US-003] Update scan command to support --json flag",
+      "url": "https://linear.app/obsidianowl/issue/AGE-188",
+      "phase": "Phase 5: US-003 - Export Results to JSON (P1)"
+    },
+    "T036": {
+      "linear_id": "c2f036d2-f438-48b0-b3b7-e96fc9f9416a",
+      "linear_identifier": "AGE-189",
+      "title": "T036: [US-001] Unit test for Progress component in tests/unit/cli/components/Progress.test.tsx",
+      "url": "https://linear.app/obsidianowl/issue/AGE-189",
+      "phase": "Phase 6: US-001 - Analyse with Streaming Output (P1)"
+    },
+    "T037": {
+      "linear_id": "38b25a3c-8eb6-4d53-994a-e11d81f8c169",
+      "linear_identifier": "AGE-190",
+      "title": "T037: [US-001] Unit test for FindingsList component in tests/unit/cli/components/FindingsList.test.tsx",
+      "url": "https://linear.app/obsidianowl/issue/AGE-190",
+      "phase": "Phase 6: US-001 - Analyse with Streaming Output (P1)"
+    },
+    "T038": {
+      "linear_id": "3ddab8ad-d530-44e0-8b46-29577a7be130",
+      "linear_identifier": "AGE-191",
+      "title": "T038: [US-001] Integration test for analyse command in tests/integration/cli/analyse.test.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-191",
+      "phase": "Phase 6: US-001 - Analyse with Streaming Output (P1)"
+    },
+    "T039": {
+      "linear_id": "4273bc57-e6c1-486d-9269-d43c584b5f4d",
+      "linear_identifier": "AGE-192",
+      "title": "T039: [US-001] Create src/cli/components/Progress.tsx with Spinner from @inkjs/ui (FR-006)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-192",
+      "phase": "Phase 6: US-001 - Analyse with Streaming Output (P1)"
+    },
+    "T040": {
+      "linear_id": "bea78cf1-7eed-474b-9c72-1c826c8d07c0",
+      "linear_identifier": "AGE-193",
+      "title": "T040: [US-001] Create src/cli/components/FindingsList.tsx using StatusMessage (FR-005)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-193",
+      "phase": "Phase 6: US-001 - Analyse with Streaming Output (P1)"
+    },
+    "T041": {
+      "linear_id": "a74d81ea-e499-4a73-b1e8-bef5348d4f20",
+      "linear_identifier": "AGE-194",
+      "title": "T041: [US-001] Create src/cli/components/Summary.tsx for analysis summary",
+      "url": "https://linear.app/obsidianowl/issue/AGE-194",
+      "phase": "Phase 6: US-001 - Analyse with Streaming Output (P1)"
+    },
+    "T042": {
+      "linear_id": "a5e406af-1876-4d70-97af-a4db14d9329e",
+      "linear_identifier": "AGE-195",
+      "title": "T042: [US-001] Create src/cli/components/App.tsx root component",
+      "url": "https://linear.app/obsidianowl/issue/AGE-195",
+      "phase": "Phase 6: US-001 - Analyse with Streaming Output (P1)"
+    },
+    "T043": {
+      "linear_id": "6a3ff5a5-d9c9-4fac-945e-2f23dd14373d",
+      "linear_identifier": "AGE-196",
+      "title": "T043: [US-001] Create src/cli/commands/analyse.ts command handler",
+      "url": "https://linear.app/obsidianowl/issue/AGE-196",
+      "phase": "Phase 6: US-001 - Analyse with Streaming Output (P1)"
+    },
+    "T044": {
+      "linear_id": "beb71cd2-4ebc-4ba8-91fc-8a79a2facebf",
+      "linear_identifier": "AGE-197",
+      "title": "T044: [US-001] Wire orchestrator.run() to Ink rendering (depends on T042, T043)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-197",
+      "phase": "Phase 6: US-001 - Analyse with Streaming Output (P1)",
+      "blockedBy": ["T042", "T043"]
+    },
+    "T045": {
+      "linear_id": "a99ef0e3-ccc8-45c7-97b6-7721eab9e57d",
+      "linear_identifier": "AGE-198",
+      "title": "T045: [US-001] Implement --config-only and --sessions-only flags (FR-015)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-198",
+      "phase": "Phase 6: US-001 - Analyse with Streaming Output (P1)"
+    },
+    "T046": {
+      "linear_id": "323c7e16-d138-4651-8d24-9df319ebc280",
+      "linear_identifier": "AGE-199",
+      "title": "T046: [US-001] Handle analysis errors with partial results display",
+      "url": "https://linear.app/obsidianowl/issue/AGE-199",
+      "phase": "Phase 6: US-001 - Analyse with Streaming Output (P1)"
+    },
+    "T047": {
+      "linear_id": "73ff64cb-f35b-4379-b9fa-a6b11cd2e510",
+      "linear_identifier": "AGE-200",
+      "title": "T047: [US-005] Unit test for CausalTree component in tests/unit/cli/components/CausalTree.test.tsx",
+      "url": "https://linear.app/obsidianowl/issue/AGE-200",
+      "phase": "Phase 7: US-005 - Trace Issue to Origin (P2)"
+    },
+    "T048": {
+      "linear_id": "725bb67e-26d2-4235-9ae4-381f540851b3",
+      "linear_identifier": "AGE-201",
+      "title": "T048: [US-005] Integration test for trace command in tests/integration/cli/trace.test.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-201",
+      "phase": "Phase 7: US-005 - Trace Issue to Origin (P2)"
+    },
+    "T049": {
+      "linear_id": "adfc5782-f030-4ca6-9d3e-df46ac40e7a6",
+      "linear_identifier": "AGE-202",
+      "title": "T049: [US-005] Create src/cli/components/CausalTree.tsx with box-drawing characters (FR-007)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-202",
+      "phase": "Phase 7: US-005 - Trace Issue to Origin (P2)"
+    },
+    "T050": {
+      "linear_id": "259b2380-e462-4e7c-9336-e753e99159a8",
+      "linear_identifier": "AGE-203",
+      "title": "T050: [US-005] Create src/cli/commands/trace.ts command handler",
+      "url": "https://linear.app/obsidianowl/issue/AGE-203",
+      "phase": "Phase 7: US-005 - Trace Issue to Origin (P2)"
+    },
+    "T051": {
+      "linear_id": "d67ad053-4422-4e63-b971-031f68d80e29",
+      "linear_identifier": "AGE-204",
+      "title": "T051: [US-005] Implement finding lookup by ID",
+      "url": "https://linear.app/obsidianowl/issue/AGE-204",
+      "phase": "Phase 7: US-005 - Trace Issue to Origin (P2)"
+    },
+    "T052": {
+      "linear_id": "321126a6-b908-4a67-b323-4d185620451e",
+      "linear_identifier": "AGE-205",
+      "title": "T052: [US-005] Handle \"finding not found\" error case",
+      "url": "https://linear.app/obsidianowl/issue/AGE-205",
+      "phase": "Phase 7: US-005 - Trace Issue to Origin (P2)"
+    },
+    "T053": {
+      "linear_id": "16b386a5-bf3c-41ce-afba-62435bda24f2",
+      "linear_identifier": "AGE-206",
+      "title": "T053: [US-006] Unit test for CompareView component in tests/unit/cli/components/CompareView.test.tsx",
+      "url": "https://linear.app/obsidianowl/issue/AGE-206",
+      "phase": "Phase 8: US-006 - Compare Against Baseline (P2)"
+    },
+    "T054": {
+      "linear_id": "aaaa6381-852e-4d38-8e60-ec4a33800e09",
+      "linear_identifier": "AGE-207",
+      "title": "T054: [US-006] Integration test for compare command in tests/integration/cli/compare.test.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-207",
+      "phase": "Phase 8: US-006 - Compare Against Baseline (P2)"
+    },
+    "T055": {
+      "linear_id": "f4ba6949-acc5-49a4-b171-566ac29e1f26",
+      "linear_identifier": "AGE-208",
+      "title": "T055: [US-006] Create src/cli/components/CompareView.tsx with delta indicators (FR-009)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-208",
+      "phase": "Phase 8: US-006 - Compare Against Baseline (P2)"
+    },
+    "T056": {
+      "linear_id": "fea3af9b-77da-411f-ab15-b1009cf6d614",
+      "linear_identifier": "AGE-209",
+      "title": "T056: [US-006] Create src/cli/commands/compare.ts command handler",
+      "url": "https://linear.app/obsidianowl/issue/AGE-209",
+      "phase": "Phase 8: US-006 - Compare Against Baseline (P2)"
+    },
+    "T057": {
+      "linear_id": "fd34c386-c6e9-4d25-a442-85c0be726891",
+      "linear_identifier": "AGE-210",
+      "title": "T057: [US-006] Create src/cli/commands/baseline.ts command handler",
+      "url": "https://linear.app/obsidianowl/issue/AGE-210",
+      "phase": "Phase 8: US-006 - Compare Against Baseline (P2)"
+    },
+    "T058": {
+      "linear_id": "dfff92de-6cc1-43f8-821f-942efb8344d7",
+      "linear_identifier": "AGE-211",
+      "title": "T058: [US-006] Handle \"no baseline\" error case",
+      "url": "https://linear.app/obsidianowl/issue/AGE-211",
+      "phase": "Phase 8: US-006 - Compare Against Baseline (P2)"
+    },
+    "T059": {
+      "linear_id": "ef7103ef-2d7b-4364-80b9-3863703ff28a",
+      "linear_identifier": "AGE-212",
+      "title": "T059: [US-007] Unit test for Markdown formatter in tests/unit/cli/formatters/markdown.test.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-212",
+      "phase": "Phase 9: US-007 - Export Results to Markdown (P2)"
+    },
+    "T060": {
+      "linear_id": "9dd2a909-d56f-45df-b656-1c936fafb592",
+      "linear_identifier": "AGE-213",
+      "title": "T060: [US-007] Integration test for --markdown flag in tests/integration/cli/markdown-output.test.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-213",
+      "phase": "Phase 9: US-007 - Export Results to Markdown (P2)"
+    },
+    "T061": {
+      "linear_id": "d079b375-8459-4657-bb1f-6985179c7be3",
+      "linear_identifier": "AGE-214",
+      "title": "T061: [US-007] Create src/cli/formatters/markdown.ts implementing IOutputFormatter",
+      "url": "https://linear.app/obsidianowl/issue/AGE-214",
+      "phase": "Phase 9: US-007 - Export Results to Markdown (P2)"
+    },
+    "T062": {
+      "linear_id": "87c47b71-2d9b-4634-8210-6395c6f35f20",
+      "linear_identifier": "AGE-215",
+      "title": "T062: [US-007] Implement findings table format in Markdown",
+      "url": "https://linear.app/obsidianowl/issue/AGE-215",
+      "phase": "Phase 9: US-007 - Export Results to Markdown (P2)"
+    },
+    "T063": {
+      "linear_id": "854c18af-0fc7-45f3-bb75-7323aba726f8",
+      "linear_identifier": "AGE-216",
+      "title": "T063: [US-007] Implement causal traces as nested lists",
+      "url": "https://linear.app/obsidianowl/issue/AGE-216",
+      "phase": "Phase 9: US-007 - Export Results to Markdown (P2)"
+    },
+    "T064": {
+      "linear_id": "8c2a6ba7-b835-4cd5-a7db-4a1fba1f5079",
+      "linear_identifier": "AGE-217",
+      "title": "T064: [US-007] Update commands to support --markdown flag",
+      "url": "https://linear.app/obsidianowl/issue/AGE-217",
+      "phase": "Phase 9: US-007 - Export Results to Markdown (P2)"
+    },
+    "T065": {
+      "linear_id": "f29e1562-82d0-41a9-a011-8db9dd052b58",
+      "linear_identifier": "AGE-218",
+      "title": "T065: Create src/cli/commands/recommend.ts stub (placeholder for EP05+)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-218",
+      "phase": "Phase 10: Polish"
+    },
+    "T066": {
+      "linear_id": "77bd23a9-680c-45b2-b392-1f0551b64bf2",
+      "linear_identifier": "AGE-219",
+      "title": "T066: Create src/cli/commands/validate.ts stub (placeholder for EP05+)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-219",
+      "phase": "Phase 10: Polish"
+    },
+    "T067": {
+      "linear_id": "4af493a3-fff4-4976-b617-a7579c663e35",
+      "linear_identifier": "AGE-220",
+      "title": "T067: Create src/cli/commands/learn.ts with subcommands (FR-011, FR-017)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-220",
+      "phase": "Phase 10: Polish"
+    },
+    "T068": {
+      "linear_id": "5ae424d8-0c66-4400-8108-1732106f6b05",
+      "linear_identifier": "AGE-221",
+      "title": "T068: Create src/cli/formatters/plain.ts for --plain output (FR-013)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-221",
+      "phase": "Phase 10: Polish"
+    },
+    "T069": {
+      "linear_id": "d075fe70-4925-4c2f-b2bf-c0177558375b",
+      "linear_identifier": "AGE-222",
+      "title": "T069: Add startup time performance test (NFR-001: < 100ms)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-222",
+      "phase": "Phase 10: Polish"
+    },
+    "T070": {
+      "linear_id": "b0ec82c0-40fa-4208-9977-f297aa924b7d",
+      "linear_identifier": "AGE-223",
+      "title": "T070: Add memory usage test (NFR-004: < 100MB)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-223",
+      "phase": "Phase 10: Polish"
+    },
+    "T071": {
+      "linear_id": "478b6eec-6988-4e1e-9c08-2049e2ddbce4",
+      "linear_identifier": "AGE-224",
+      "title": "T071: Run full CI pipeline (lint, format, typecheck, test, build)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-224",
+      "phase": "Phase 10: Polish"
+    },
+    "T072": {
+      "linear_id": "b5c2367e-e303-4230-9d21-97587e78dce8",
+      "linear_identifier": "AGE-225",
+      "title": "T072: Verify all acceptance criteria from spec.md",
+      "url": "https://linear.app/obsidianowl/issue/AGE-225",
+      "phase": "Phase 10: Polish"
+    }
+  }
+}
