@@ -232,6 +232,55 @@ describe('Orchestrator', () => {
       expect(result.value?.content).toContain('test-session-id');
     });
   });
+
+  // ===========================================================================
+  // T048: Subagent depth limit
+  // ===========================================================================
+
+  describe('subagent depth tracking (T048)', () => {
+    test('tracks current depth level', () => {
+      const orchestrator = new Orchestrator(config, toolRegistry);
+
+      expect(orchestrator.depth).toBe(0);
+    });
+
+    test('can be created with specific depth', () => {
+      const orchestrator = new Orchestrator({ ...config, depth: 1 }, toolRegistry);
+
+      expect(orchestrator.depth).toBe(1);
+    });
+
+    test('enforces maximum depth of 1', () => {
+      // Depth=1 is allowed (one level of subagent)
+      const depth1 = new Orchestrator({ ...config, depth: 1 }, toolRegistry);
+      expect(depth1.depth).toBe(1);
+
+      // Depth=2 should throw (exceeds C8 limit)
+      expect(() => new Orchestrator({ ...config, depth: 2 }, toolRegistry)).toThrow();
+    });
+
+    test('canSpawnSubagent returns true at depth 0', () => {
+      const orchestrator = new Orchestrator(config, toolRegistry);
+
+      expect(orchestrator.canSpawnSubagent()).toBe(true);
+    });
+
+    test('canSpawnSubagent returns false at depth 1', () => {
+      const orchestrator = new Orchestrator({ ...config, depth: 1 }, toolRegistry);
+
+      expect(orchestrator.canSpawnSubagent()).toBe(false);
+    });
+
+    test('getSubagentConfig returns config with incremented depth', () => {
+      const orchestrator = new Orchestrator(config, toolRegistry);
+      const subConfig = orchestrator.getSubagentConfig();
+
+      expect(subConfig.depth).toBe(1);
+      // Should preserve other config
+      expect(subConfig.model).toBe(config.model);
+      expect(subConfig.verbosity).toBe(config.verbosity);
+    });
+  });
 });
 
 // ===========================================================================

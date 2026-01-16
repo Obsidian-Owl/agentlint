@@ -78,9 +78,11 @@ export {
   SessionResumeError,
   ToolRegistrationError,
   ApiKeyError,
+  SubagentDepthError,
   OrchestrationExitCode,
   isOrchestrationError,
   isSessionResumeError,
   isToolRegistrationError,
   isApiKeyError,
+  isSubagentDepthError,
 } from './orchestration';

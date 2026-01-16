@@ -20,7 +20,8 @@ import type {
   StreamChunk,
   VerbosityLevel,
 } from './types';
-import { loadConfig } from './config';
+import { loadConfig, MAX_SUBAGENT_DEPTH } from './config';
+import { SubagentDepthError } from '../errors';
 
 // =============================================================================
 // IOrchestrator Interface
@@ -42,6 +43,9 @@ export interface IOrchestrator {
   /** Whether orchestrator is currently running */
   readonly isActive: boolean;
 
+  /** Current subagent depth level (0 = main, 1 = subagent) */
+  readonly depth: number;
+
   /**
    * Execute an analysis task
    * @param task - The task description/prompt
@@ -60,6 +64,18 @@ export interface IOrchestrator {
    * Interrupt the current execution
    */
   interrupt(): Promise<void>;
+
+  /**
+   * Check if this orchestrator can spawn a subagent
+   * @returns true if depth < MAX_SUBAGENT_DEPTH
+   */
+  canSpawnSubagent(): boolean;
+
+  /**
+   * Get configuration for spawning a subagent
+   * @returns Config with incremented depth
+   */
+  getSubagentConfig(): OrchestratorConfig;
 }
 
 // =============================================================================
@@ -108,10 +124,16 @@ export class Orchestrator implements IOrchestrator {
    *
    * @param config - Configuration options (merged with defaults)
    * @param toolRegistry - Registry of tools available to the agent
+   * @throws SubagentDepthError if depth exceeds MAX_SUBAGENT_DEPTH
    */
   constructor(config: OrchestratorConfig, toolRegistry: IToolRegistry) {
     this.config = loadConfig(config);
     this.toolRegistry = toolRegistry;
+
+    // Validate depth limit (T050)
+    if (this.config.depth > MAX_SUBAGENT_DEPTH) {
+      throw new SubagentDepthError(this.config.depth, MAX_SUBAGENT_DEPTH);
+    }
   }
 
   /**
@@ -126,6 +148,32 @@ export class Orchestrator implements IOrchestrator {
    */
   get isActive(): boolean {
     return this._isActive;
+  }
+
+  /**
+   * Get current subagent depth level.
+   */
+  get depth(): number {
+    return this.config.depth;
+  }
+
+  /**
+   * Check if this orchestrator can spawn a subagent.
+   * Returns true if current depth is less than MAX_SUBAGENT_DEPTH.
+   */
+  canSpawnSubagent(): boolean {
+    return this.config.depth < MAX_SUBAGENT_DEPTH;
+  }
+
+  /**
+   * Get configuration for spawning a subagent.
+   * Returns a copy of the current config with depth incremented.
+   */
+  getSubagentConfig(): OrchestratorConfig {
+    return {
+      ...this.config,
+      depth: this.config.depth + 1,
+    };
   }
 
   /**

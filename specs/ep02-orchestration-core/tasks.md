@@ -173,14 +173,14 @@
 
 ### Tests (write first)
 
-- [ ] T048 [P] [US8] Unit test: Subagent depth limit enforced in `tests/unit/orchestration/orchestrator.test.ts`
-- [ ] T049 [P] [US9] Unit test: CognitiveWorkspace builds hierarchical context in `tests/unit/orchestration/cognitive-workspace.test.ts`
+- [x] T048 [P] [US8] Unit test: Subagent depth limit enforced in `tests/unit/orchestration/orchestrator.test.ts`
+- [x] T049 [P] [US9] Unit test: CognitiveWorkspace builds hierarchical context in `tests/unit/orchestration/cognitive-workspace.test.ts`
 
 ### Implementation
 
-- [ ] T050 [US8] Add subagent depth tracking to Orchestrator (depth=1 limit per C8)
-- [ ] T051 [US9] Create `src/orchestration/cognitive-workspace.ts` with buildCognitiveWorkspace()
-- [ ] T052 [US9] Integrate cognitive workspace into systemPrompt.append
+- [x] T050 [US8] Add subagent depth tracking to Orchestrator (depth=1 limit per C8)
+- [x] T051 [US9] Create `src/orchestration/cognitive-workspace.ts` with buildCognitiveWorkspace()
+- [x] T052 [US9] Integrate cognitive workspace into systemPrompt.append
 
 **Checkpoint**: US8+US9 complete - subagents limited, workspace structured
 

@@ -89,6 +89,14 @@ export interface OrchestratorConfig {
    * If omitted or empty, SDK does not load any filesystem settings.
    */
   settingSources?: ('user' | 'project' | 'local')[];
+  /**
+   * Current subagent depth level (default: 0)
+   * - 0: Main orchestrator (can spawn subagents)
+   * - 1: Subagent (cannot spawn further subagents per C8)
+   *
+   * Maximum depth is 1 per Constitution Principle C8.
+   */
+  depth?: number;
 }
 
 /**

@@ -136,7 +136,18 @@ export {
 } from './session-state';
 
 // =============================================================================
-// Cognitive Workspace (T051-T052) - Phase 7 Placeholder
+// Cognitive Workspace (T051-T052) - Phase 7 Complete
 // =============================================================================
 
-// export { buildCognitiveWorkspace } from './cognitive-workspace';
+export {
+  buildCognitiveWorkspace,
+  formatWorkspaceForPrompt,
+  createProgressSummary,
+  compressFindingsToSummary,
+} from './cognitive-workspace';
+
+// =============================================================================
+// Configuration Exports (for subagent depth)
+// =============================================================================
+
+export { MAX_SUBAGENT_DEPTH } from './config';

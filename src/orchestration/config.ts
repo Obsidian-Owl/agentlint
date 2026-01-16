@@ -32,6 +32,12 @@ const DEFAULT_VERBOSITY: VerbosityLevel = 'normal';
 /** Default setting sources (must include 'project' for CLAUDE.md) */
 const DEFAULT_SETTING_SOURCES: ('user' | 'project' | 'local')[] = ['project'];
 
+/** Default subagent depth (0 = main orchestrator) */
+const DEFAULT_DEPTH = 0;
+
+/** Maximum allowed subagent depth per Constitution Principle C8 */
+export const MAX_SUBAGENT_DEPTH = 1;
+
 /** Config directory path */
 const CONFIG_DIR = path.join(os.homedir(), '.agentlint');
 
@@ -54,6 +60,7 @@ export function getDefaultConfig(): Required<OrchestratorConfig> {
     cwd: process.cwd(),
     systemPromptAppend: '',
     settingSources: DEFAULT_SETTING_SOURCES,
+    depth: DEFAULT_DEPTH,
   };
 }
 
@@ -101,6 +108,7 @@ export function loadConfig(
     systemPromptAppend:
       overrides?.systemPromptAppend ?? defaults.systemPromptAppend,
     settingSources: overrides?.settingSources ?? defaults.settingSources,
+    depth: overrides?.depth ?? defaults.depth,
   };
 }
 
@@ -253,5 +261,6 @@ export function mergeWithDefaults(
     cwd: partial.cwd ?? defaults.cwd,
     systemPromptAppend: partial.systemPromptAppend ?? defaults.systemPromptAppend,
     settingSources: partial.settingSources ?? defaults.settingSources,
+    depth: partial.depth ?? defaults.depth,
   };
 }

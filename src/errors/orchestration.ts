@@ -27,6 +27,8 @@ export const OrchestrationExitCode = {
   ApiKeyError: 12,
   /** Orchestration execution error */
   OrchestrationError: 13,
+  /** Subagent depth limit exceeded */
+  SubagentDepthError: 14,
 } as const;
 
 export type OrchestrationExitCode =
@@ -201,4 +203,37 @@ export function isToolRegistrationError(error: unknown): error is ToolRegistrati
  */
 export function isApiKeyError(error: unknown): error is ApiKeyError {
   return error instanceof ApiKeyError;
+}
+
+// =============================================================================
+// Subagent Depth Error (T050)
+// =============================================================================
+
+/**
+ * Error thrown when subagent depth limit is exceeded.
+ * Per Constitution Principle C8, subagents are limited to depth=1.
+ */
+export class SubagentDepthError extends OrchestrationError {
+  /** The depth that was attempted */
+  public readonly attemptedDepth: number;
+  /** Maximum allowed depth */
+  public readonly maxDepth: number;
+
+  constructor(attemptedDepth: number, maxDepth: number) {
+    super(
+      `Subagent depth limit exceeded: attempted depth ${attemptedDepth}, max is ${maxDepth} (per C8)`,
+      { code: OrchestrationExitCode.SubagentDepthError }
+    );
+
+    this.name = 'SubagentDepthError';
+    this.attemptedDepth = attemptedDepth;
+    this.maxDepth = maxDepth;
+  }
+}
+
+/**
+ * Check if an error is a SubagentDepthError
+ */
+export function isSubagentDepthError(error: unknown): error is SubagentDepthError {
+  return error instanceof SubagentDepthError;
 }
