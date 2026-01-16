@@ -190,12 +190,12 @@
 
 **Goal**: Documentation, exports, integration readiness
 
-- [ ] T053 [P] Update `src/orchestration/index.ts` with all public exports
-- [ ] T054 [P] Add JSDoc comments to all public interfaces and classes
-- [ ] T055 Create integration test: Full orchestrator flow with mock tools in `tests/integration/orchestration/orchestrator-flow.test.ts`
-- [ ] T056 Validate against quickstart.md code examples - ensure patterns work
-- [ ] T057 Update CLAUDE.md with EP02 implementation notes
-- [ ] T058 Run test coverage, ensure > 80% on orchestration module
+- [x] T053 [P] Update `src/orchestration/index.ts` with all public exports
+- [x] T054 [P] Add JSDoc comments to all public interfaces and classes
+- [x] T055 Create integration test: Full orchestrator flow with mock tools in `tests/integration/orchestration/orchestrator-flow.test.ts`
+- [x] T056 Validate against quickstart.md code examples - ensure patterns work
+- [x] T057 Update CLAUDE.md with EP02 implementation notes
+- [x] T058 Run test coverage, ensure > 80% on orchestration module
 
 **Checkpoint**: EP02 complete, ready for EP03 integration
 

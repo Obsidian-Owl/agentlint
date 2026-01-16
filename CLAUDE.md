@@ -6,9 +6,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 agentlint is a local-first CLI tool for continuous improvement of AI-assisted development workflows. It traces issues to their origins and provides preventive recommendations that compound value over time. Unlike traditional linters, agentlint analyzes the AI development system itself—configuration quality, session effectiveness, and workflow optimization.
 
-**Status**: Pre-implementation (architecture and planning complete, no source code yet)
+**Status**: EP02 Complete (Orchestration Core implemented)
 
-**Stack** (planned): TypeScript + Bun, Claude Agent SDK, Ink + Commander.js CLI, SQLite persistence
+**Stack**: TypeScript + Bun, Claude Agent SDK (@anthropic-ai/claude-agent-sdk), Zod validation
+
+**Implemented Epics**:
+- EP01: Project Setup (CI/CD, TypeScript config, test framework)
+- EP02: Orchestration Core (Claude Agent SDK wrapper, streaming, checkpoints, session management)
 
 ## Constitution
 
@@ -50,6 +54,35 @@ Use the dev.* skills in `.claude/skills/` for structured feature development:
 | `docs/planning/epic-catalogue.md` | 12 implementation epics with dependencies |
 | `docs/requirements/` | Functional requirements, use cases, personas |
 | `docs/vision/north-star.md` | Mission, vision, success indicators |
+
+## Orchestration Module (EP02)
+
+The `src/orchestration/` module wraps the Claude Agent SDK:
+
+| Component | File | Purpose |
+|-----------|------|---------|
+| Orchestrator | `orchestrator.ts` | Main loop wrapping SDK `query()` |
+| ToolRegistry | `tool-registry.ts` | MCP tool registration via `createSdkMcpServer()` |
+| StreamProcessor | `streaming.ts` | SDK message → StreamChunk conversion |
+| CheckpointHandler | `checkpoint.ts` | Crash recovery checkpoints |
+| SessionState | `session-state.ts` | Session persistence to JSON |
+| CognitiveWorkspace | `cognitive-workspace.ts` | Hierarchical context for agent |
+| Context | `context.ts` | Large result summarization |
+
+**Key patterns**:
+- Tool definitions use SDK's `tool()` with Zod schemas
+- Streaming yields `StreamChunk` objects with verbosity levels
+- Checkpoints emit on tool completion, findings, phase changes, intervals
+- Subagent depth limited to 1 per Constitution Principle C8
+
+**Configuration** (`~/.agentlint/config.json`):
+```json
+{
+  "model": "claude-sonnet-4-20250514",
+  "checkpoint": { "intervalMs": 60000 },
+  "verbosity": "normal"
+}
+```
 
 ## ADR Implementation Pattern
 
