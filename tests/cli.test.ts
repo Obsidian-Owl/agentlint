@@ -1,5 +1,7 @@
 /**
  * CLI smoke tests
+ *
+ * Tests CLI behavior with Commander.js (EP04).
  */
 
 import { describe, test, expect } from 'bun:test';
@@ -9,18 +11,13 @@ describe('CLI', () => {
   describe('--version', () => {
     test('outputs version string', async () => {
       const result = await $`bun run src/cli.ts --version`.text();
-      expect(result).toContain('agentlint v');
-    });
-
-    test('includes platform info', async () => {
-      const result = await $`bun run src/cli.ts --version`.text();
-      expect(result).toMatch(/darwin|linux/);
-      expect(result).toMatch(/arm64|x64/);
+      // Commander.js outputs just the version number
+      expect(result.trim()).toMatch(/^\d+\.\d+\.\d+$/);
     });
 
     test('-v is alias for --version', async () => {
       const result = await $`bun run src/cli.ts -v`.text();
-      expect(result).toContain('agentlint v');
+      expect(result.trim()).toMatch(/^\d+\.\d+\.\d+$/);
     });
   });
 
@@ -37,6 +34,18 @@ describe('CLI', () => {
       expect(result).toContain('update');
     });
 
+    test('includes all EP04 commands', async () => {
+      const result = await $`bun run src/cli.ts --help`.text();
+      expect(result).toContain('scan');
+      expect(result).toContain('analyse');
+      expect(result).toContain('baseline');
+      expect(result).toContain('compare');
+      expect(result).toContain('trace');
+      expect(result).toContain('learn');
+      expect(result).toContain('recommend');
+      expect(result).toContain('validate');
+    });
+
     test('-h is alias for --help', async () => {
       const result = await $`bun run src/cli.ts -h`.text();
       expect(result).toContain('Usage:');
@@ -44,9 +53,17 @@ describe('CLI', () => {
   });
 
   describe('no arguments', () => {
-    test('shows help by default', async () => {
-      const result = await $`bun run src/cli.ts`.text();
-      expect(result).toContain('Usage:');
+    test('shows help when no command given', async () => {
+      // Commander.js shows help on stderr when no command is given
+      const proc = Bun.spawn(['bun', 'run', 'src/cli.ts'], {
+        stdout: 'pipe',
+        stderr: 'pipe',
+      });
+      const stdout = await new Response(proc.stdout).text();
+      const stderr = await new Response(proc.stderr).text();
+      const output = stdout + stderr;
+
+      expect(output).toContain('Usage:');
     });
   });
 
@@ -59,8 +76,36 @@ describe('CLI', () => {
       const stderr = await new Response(proc.stderr).text();
       const exitCode = await proc.exited;
 
-      expect(stderr).toContain('Unknown command');
-      expect(exitCode).toBe(2);
+      // Commander.js uses lowercase "error: unknown command"
+      expect(stderr).toContain('unknown command');
+      expect(exitCode).toBe(1);
+    });
+  });
+
+  describe('global options', () => {
+    test('--json option is available', async () => {
+      const result = await $`bun run src/cli.ts --help`.text();
+      expect(result).toContain('--json');
+    });
+
+    test('--markdown option is available', async () => {
+      const result = await $`bun run src/cli.ts --help`.text();
+      expect(result).toContain('--markdown');
+    });
+
+    test('--plain option is available', async () => {
+      const result = await $`bun run src/cli.ts --help`.text();
+      expect(result).toContain('--plain');
+    });
+
+    test('--verbose option is available', async () => {
+      const result = await $`bun run src/cli.ts --help`.text();
+      expect(result).toContain('--verbose');
+    });
+
+    test('--fail-on-findings option is available', async () => {
+      const result = await $`bun run src/cli.ts --help`.text();
+      expect(result).toContain('--fail-on-findings');
     });
   });
 });

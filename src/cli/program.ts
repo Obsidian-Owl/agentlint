@@ -1,0 +1,424 @@
+/**
+ * EP04 CLI Interface - Commander.js Program Setup
+ *
+ * Implements FR-001: Central program definition using Commander.js.
+ * Implements FR-002: Help text for all commands.
+ * Defines all commands and global options for the agentlint CLI.
+ *
+ * @module cli/program
+ */
+
+import { Command, Help } from 'commander';
+import { getVersion } from '../version';
+import { getTerminalWidth } from './utils/terminal';
+import type { GlobalOptions } from './types';
+
+/**
+ * Package description for CLI.
+ */
+const DESCRIPTION =
+  'Local-first CLI tool for continuous improvement of AI-assisted development workflows';
+
+/**
+ * Custom Help class that respects terminal width (NFR-002).
+ */
+class TerminalAwareHelp extends Help {
+  override helpWidth: number;
+
+  constructor() {
+    super();
+    // Use terminal width with a max of 120 chars (NFR-002)
+    this.helpWidth = Math.min(getTerminalWidth(), 120);
+  }
+}
+
+/**
+ * Creates and configures the Commander.js program.
+ *
+ * @returns Configured Commander program instance
+ */
+export function createProgram(): Command {
+  const program = new Command();
+  const version = getVersion();
+
+  // Program metadata
+  program
+    .name('agentlint')
+    .description(DESCRIPTION)
+    .version(version.version, '-v, --version', 'Show version information')
+    .usage('[options] [command]');
+
+  // Add examples to main help
+  program.addHelpText(
+    'after',
+    `
+Examples:
+  $ agentlint scan                     Discover AI config files in current directory
+  $ agentlint analyse                  Run full analysis on configs and sessions
+  $ agentlint analyse --json           Output analysis results as JSON
+  $ agentlint trace FND-001            Trace finding to its root cause
+  $ agentlint baseline -l "v1.0"       Capture current state as baseline
+
+Documentation:
+  https://github.com/Obsidian-Owl/agentlint`
+  );
+
+  // Global options (available on all commands)
+  program
+    .option('--json', 'Output results as JSON')
+    .option('--markdown', 'Output results as Markdown')
+    .option('--plain', 'Plain text output without colors')
+    .option('--verbose', 'Show detailed output including tool calls')
+    .option('--fail-on-findings', 'Exit with code 1 if findings are present');
+
+  // Configure help behavior with terminal-aware formatter
+  program.configureHelp({
+    sortSubcommands: true,
+    sortOptions: false,
+    helpWidth: Math.min(getTerminalWidth(), 120),
+  });
+
+  // Use custom help class
+  program.createHelp = (): Help => new TerminalAwareHelp();
+
+  // Add commands (stubs for now, will be implemented in later phases)
+  addScanCommand(program);
+  addAnalyseCommand(program);
+  addBaselineCommand(program);
+  addCompareCommand(program);
+  addTraceCommand(program);
+  addLearnCommand(program);
+  addRecommendCommand(program);
+  addValidateCommand(program);
+
+  // Keep existing update command
+  addUpdateCommand(program);
+
+  return program;
+}
+
+/**
+ * Extracts global options from parsed command options.
+ *
+ * @param options - Parsed command options
+ * @returns Extracted global options
+ */
+export function extractGlobalOptions(options: Record<string, unknown>): GlobalOptions {
+  const result: GlobalOptions = {};
+
+  if (typeof options['json'] === 'boolean') {
+    result.json = options['json'];
+  }
+  if (typeof options['markdown'] === 'boolean') {
+    result.markdown = options['markdown'];
+  }
+  if (typeof options['plain'] === 'boolean') {
+    result.plain = options['plain'];
+  }
+  if (typeof options['verbose'] === 'boolean') {
+    result.verbose = options['verbose'];
+  }
+  if (typeof options['failOnFindings'] === 'boolean') {
+    result.failOnFindings = options['failOnFindings'];
+  }
+
+  return result;
+}
+
+// =============================================================================
+// Command Definitions (Stubs)
+// =============================================================================
+
+function addScanCommand(program: Command): void {
+  program
+    .command('scan')
+    .description('Discover AI configuration files in the project')
+    .option('-d, --directory <path>', 'Directory to scan', '.')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ agentlint scan                   Scan current directory
+  $ agentlint scan -d ./projects     Scan specific directory
+  $ agentlint scan --json            Output results as JSON
+
+Supported config files:
+  - CLAUDE.md           Claude Code project instructions
+  - .cursorrules        Cursor AI rules
+  - .github/copilot-*   GitHub Copilot configuration
+  - .continue/*         Continue.dev configuration`
+    )
+    .action(async (options: { directory?: string }) => {
+      const { runScan } = await import('./commands/scan');
+      const globalOpts = extractGlobalOptions(program.opts());
+      const exitCode = await runScan({ ...globalOpts, ...options });
+      if (exitCode !== 0) {
+        process.exit(exitCode);
+      }
+    });
+}
+
+function addAnalyseCommand(program: Command): void {
+  program
+    .command('analyse')
+    .alias('analyze') // Support both spellings
+    .description('Run analysis on AI configurations and sessions')
+    .option('-d, --directory <path>', 'Directory to analyse', '.')
+    .option('--config-only', 'Only analyze configuration files')
+    .option('--sessions-only', 'Only analyze session logs')
+    .option('--dry-run', 'Scan only, do not run full analysis')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ agentlint analyse                Run full analysis
+  $ agentlint analyse --config-only  Analyze only config files
+  $ agentlint analyse --json         Output as JSON for CI
+  $ agentlint analyse --verbose      Show agent reasoning
+  $ agentlint analyse --dry-run      Scan configs without full analysis
+
+The analyse command runs the full agentlint analysis pipeline:
+  1. Discovers AI configuration files
+  2. Parses and validates configurations
+  3. Analyzes session logs (if available)
+  4. Identifies issues and traces to root causes
+  5. Generates recommendations`
+    )
+    .action(
+      async (options: {
+        directory?: string;
+        configOnly?: boolean;
+        sessionsOnly?: boolean;
+        dryRun?: boolean;
+      }) => {
+        const { runAnalyse } = await import('./commands/analyse');
+        const globalOpts = extractGlobalOptions(program.opts());
+        const exitCode = await runAnalyse({ ...globalOpts, ...options });
+        if (exitCode !== 0) {
+          process.exit(exitCode);
+        }
+      }
+    );
+}
+
+function addBaselineCommand(program: Command): void {
+  program
+    .command('baseline')
+    .description('Capture current analysis state as a baseline')
+    .option('-l, --label <label>', 'Label for the baseline')
+    .option('-n, --notes <notes>', 'Notes about the baseline')
+    .option('-d, --directory <path>', 'Directory to capture baseline for', '.')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ agentlint baseline                    Capture baseline with auto-generated ID
+  $ agentlint baseline -l "pre-refactor"  Capture with descriptive label
+  $ agentlint baseline -n "Before Q1"     Add notes to baseline
+
+Baselines are stored in .agentlint/baselines/ and can be used
+with 'agentlint compare' to track improvement over time.`
+    )
+    .action(async (options: { label?: string; notes?: string; directory?: string }) => {
+      const { runBaseline } = await import('./commands/baseline');
+      const globalOpts = extractGlobalOptions(program.opts());
+      const exitCode = await runBaseline({ ...globalOpts, ...options });
+      if (exitCode !== 0) {
+        process.exit(exitCode);
+      }
+    });
+}
+
+function addCompareCommand(program: Command): void {
+  program
+    .command('compare')
+    .description('Compare current state against a baseline')
+    .option('-b, --baseline <id>', 'Baseline ID or label to compare against')
+    .option('-d, --directory <path>', 'Directory to compare', '.')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ agentlint compare                     Compare to latest baseline
+  $ agentlint compare -b "pre-refactor"   Compare to labeled baseline
+  $ agentlint compare --json              Output comparison as JSON
+
+The comparison shows:
+  - New findings (not in baseline)
+  - Resolved findings (in baseline, not current)
+  - Delta metrics (improved/worsened)`
+    )
+    .action(async (options: { baseline?: string; directory?: string }) => {
+      const { runCompare } = await import('./commands/compare');
+      const globalOpts = extractGlobalOptions(program.opts());
+      const exitCode = await runCompare({ ...globalOpts, ...options });
+      if (exitCode !== 0) {
+        process.exit(exitCode);
+      }
+    });
+}
+
+function addTraceCommand(program: Command): void {
+  program
+    .command('trace <finding-id>')
+    .description('Trace a finding to its origin and show causal chain')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ agentlint trace FND-001              Show causal chain for finding
+  $ agentlint trace FND-001 --json       Output as JSON
+
+The trace shows the causal chain from issue to root cause:
+  Issue → Origin → Root Cause → Recommendation`
+    )
+    .action(async (findingId: string) => {
+      const { runTrace } = await import('./commands/trace');
+      const globalOpts = extractGlobalOptions(program.opts());
+      const exitCode = await runTrace({ ...globalOpts, findingId });
+      if (exitCode !== 0) {
+        process.exit(exitCode);
+      }
+    });
+}
+
+function addLearnCommand(program: Command): void {
+  const learn = program
+    .command('learn')
+    .description('Manage learnings from analysis')
+    .addHelpText(
+      'after',
+      `
+Subcommands:
+  list     List stored learnings
+  add      Add a new learning
+  promote  Promote project learning to global scope`
+    );
+
+  learn
+    .command('list')
+    .description('List stored learnings')
+    .option(
+      '-c, --category <category>',
+      'Filter by category (patterns, anti-patterns, tools, workflows)'
+    )
+    .option('-s, --scope <scope>', 'Filter by scope (project, global)')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ agentlint learn list                        List all learnings
+  $ agentlint learn list -c patterns            Filter by category
+  $ agentlint learn list -s global              Show only global learnings`
+    )
+    .action((_options) => {
+      console.log('learn list not yet implemented (Phase 10)');
+    });
+
+  learn
+    .command('add')
+    .description('Add a new learning')
+    .requiredOption('-t, --title <title>', 'Learning title')
+    .requiredOption('--content <content>', 'Learning content (Markdown)')
+    .requiredOption(
+      '-c, --category <category>',
+      'Category (patterns, anti-patterns, tools, workflows)'
+    )
+    .option('-s, --scope <scope>', 'Scope (project, global)', 'project')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ agentlint learn add -t "Use TypeScript" -c patterns --content "Always..."
+  $ agentlint learn add -t "Avoid globals" -c anti-patterns -s global --content "..."`
+    )
+    .action((_options) => {
+      console.log('learn add not yet implemented (Phase 10)');
+    });
+
+  learn
+    .command('promote <learning-id>')
+    .description('Promote a project learning to global scope')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ agentlint learn promote LRN-001  Promote learning to global scope`
+    )
+    .action((_learningId) => {
+      console.log('learn promote not yet implemented (Phase 10)');
+    });
+}
+
+function addRecommendCommand(program: Command): void {
+  program
+    .command('recommend')
+    .description('Show recommendations for improving AI workflows')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ agentlint recommend              Show all recommendations
+  $ agentlint recommend --json       Output as JSON
+
+Recommendations are generated based on analysis findings and
+stored learnings.`
+    )
+    .action(() => {
+      console.log('recommend command not yet implemented (EP05+)');
+    });
+}
+
+function addValidateCommand(program: Command): void {
+  program
+    .command('validate')
+    .description('Validate AI configuration files')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ agentlint validate               Validate all config files
+  $ agentlint validate --json        Output validation results as JSON
+
+Validates syntax and schema of discovered AI configuration files.`
+    )
+    .action(() => {
+      console.log('validate command not yet implemented (EP05+)');
+    });
+}
+
+function addUpdateCommand(program: Command): void {
+  program
+    .command('update')
+    .description('Update agentlint to the latest version')
+    .option('-c, --check', 'Check for updates without installing')
+    .option('--channel <channel>', 'Release channel (stable, beta, nightly)', 'stable')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ agentlint update                 Update to latest stable
+  $ agentlint update --check         Check for updates only
+  $ agentlint update --channel beta  Update to latest beta`
+    )
+    .action(async (options: { check?: boolean; channel?: string }) => {
+      // Import dynamically to avoid loading update logic when not needed
+      const { runUpdate } = await import('../commands/update');
+      const args: string[] = [];
+      if (options.check) args.push('--check');
+      if (options.channel) args.push('--channel', options.channel);
+      const exitCode = await runUpdate(args);
+      process.exit(exitCode);
+    });
+}
+
+/**
+ * Runs the CLI program.
+ *
+ * @param argv - Command line arguments (default: process.argv)
+ * @returns Promise that resolves when program completes
+ */
+export async function run(argv: string[] = process.argv): Promise<void> {
+  const program = createProgram();
+  await program.parseAsync(argv);
+}

@@ -65,6 +65,35 @@ const ExitCode = {
 } as const;
 ```
 
+### CLI Exit Codes (EP04)
+
+Located in `src/errors/cli.ts`, CLI-specific exit codes use range 10-19:
+
+```typescript
+const CLIExitCode = {
+  CommandNotFound: 10,    // Unknown command name
+  InvalidOption: 11,      // Invalid flag or option value
+  MissingArgument: 12,    // Required argument not provided
+  OutputError: 13,        // Output formatting/rendering failed
+  UserCancelled: 14,      // User cancelled operation (Ctrl+C)
+  FindingsPresent: 15,    // Findings present (with --fail-on-findings)
+} as const;
+```
+
+| Code | Error Class | Description |
+|------|-------------|-------------|
+| 10 | `CommandNotFoundError` | Unknown command, suggests available commands |
+| 11 | `InvalidOptionError` | Invalid flag value or combination |
+| 12 | `MissingArgumentError` | Required positional argument missing |
+| 13 | `OutputError` | JSON/Markdown/terminal rendering failed |
+| 14 | `UserCancelledError` | User interrupted with SIGINT |
+| 15 | `FindingsPresentError` | CI mode exit when findings exist |
+
+Additional CLI error classes:
+- `ConfigNotFoundError` - AI config file not found (uses GeneralError)
+- `BaselineNotFoundError` - No baseline for compare (uses GeneralError)
+- `FindingNotFoundError` - Invalid finding ID for trace (uses GeneralError)
+
 ### Tool Error Format
 
 ```typescript
@@ -111,6 +140,28 @@ Following Claude Code patterns:
 | **Evaluation** | Agent reasoning | LLM-as-judge ([ADR-0012](../adr/0012-evaluation-framework-for-analysis-quality.md)) |
 | **E2E** | Full CLI | Real project fixtures |
 | **Snapshot** | Output format | Golden file comparison |
+| **Performance** | CLI startup, memory | Threshold-based assertions |
+
+### Performance Tests (EP04)
+
+Located in `tests/performance/`:
+
+| Test | NFR | Target | Approach |
+|------|-----|--------|----------|
+| `cli-startup.test.ts` | NFR-001 | < 100ms | Measure time to first output |
+| `cli-memory.test.ts` | NFR-004 | < 100MB | Track peak memory during streaming |
+
+```typescript
+// Example: Startup time test
+test('CLI starts within 100ms', async () => {
+  const start = performance.now();
+  await spawn(['agentlint', '--version']);
+  const elapsed = performance.now() - start;
+  expect(elapsed).toBeLessThan(100);
+});
+```
+
+Performance tests run in CI but are excluded from standard `bun test` to avoid flakiness on slow runners.
 
 ---
 
@@ -122,6 +173,41 @@ Following Claude Code patterns:
 | Debug Logging | `DEBUG=agentlint:*` environment control |
 | Agent Transparency | Tool invocations visible in verbose mode |
 | Session Recording | Analysis logged to `.agentlint/session-state/` |
+
+### Color Handling (EP04)
+
+Located in `src/cli/utils/colors.ts`:
+
+**Environment Variables**:
+| Variable | Effect |
+|----------|--------|
+| `NO_COLOR` | Disables all ANSI colors ([no-color.org](https://no-color.org/)) |
+| `FORCE_COLOR` | Enables colors even in non-TTY environments |
+
+**Color Levels** (NFR-005):
+- Uses ANSI 4-bit colors (16 colors) for maximum terminal compatibility
+- Avoids 256-color or true-color codes that may not render correctly
+- Chalk configured with `level: 1` when colors enabled
+
+**Severity Colors**:
+| Severity | Color | ANSI Code |
+|----------|-------|-----------|
+| Critical | Red | `\x1b[31m` |
+| High | Yellow | `\x1b[33m` |
+| Medium | Cyan | `\x1b[36m` |
+| Low | Blue | `\x1b[34m` |
+| Info | White | `\x1b[37m` |
+
+**Output Mode Detection** (`src/cli/utils/output.ts`):
+```typescript
+function getOutputMode(options: GlobalOptions): OutputMode {
+  if (options.json) return 'json';
+  if (options.markdown) return 'markdown';
+  if (options.plain) return 'plain';
+  if (!process.stdout.isTTY) return 'json';  // Auto-JSON for pipes
+  return 'terminal';
+}
+```
 
 ---
 

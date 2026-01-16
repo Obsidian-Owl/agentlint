@@ -10,6 +10,9 @@ module.exports = {
     ecmaVersion: 'latest',
     sourceType: 'module',
     project: './tsconfig.json',
+    ecmaFeatures: {
+      jsx: true,
+    },
   },
   plugins: ['@typescript-eslint'],
   extends: [
@@ -41,7 +44,7 @@ module.exports = {
   overrides: [
     {
       // Relax some rules for test files
-      files: ['tests/**/*.ts', 'tests/**/*.test.ts'],
+      files: ['tests/**/*.ts', 'tests/**/*.test.ts', 'tests/**/*.tsx', 'tests/**/*.test.tsx'],
       rules: {
         // Allow awaiting sync functions in tests (common pattern when APIs change from async to sync)
         '@typescript-eslint/await-thenable': 'off',
@@ -56,6 +59,17 @@ module.exports = {
         '@typescript-eslint/explicit-function-return-type': 'off',
         // Allow async functions without await in tests (common for test setup)
         '@typescript-eslint/require-await': 'off',
+      },
+    },
+    {
+      // JSX/Ink component rules
+      files: ['src/**/*.tsx'],
+      rules: {
+        // Allow implicit return types in JSX functional components
+        '@typescript-eslint/explicit-function-return-type': ['error', {
+          allowExpressions: true,
+          allowTypedFunctionExpressions: true,
+        }],
       },
     },
   ],

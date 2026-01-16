@@ -110,3 +110,30 @@ export {
   isSchemaVersionError,
   isPermissionError,
 } from './persistence';
+
+// =============================================================================
+// CLI Errors (EP04)
+// =============================================================================
+
+export {
+  CLIError,
+  CLIExitCode,
+  CommandNotFoundError,
+  InvalidOptionError,
+  MissingArgumentError,
+  OutputError,
+  UserCancelledError,
+  FindingsPresentError,
+  ConfigNotFoundError,
+  BaselineNotFoundError,
+  FindingNotFoundError,
+  isCLIError,
+  isCommandNotFoundError,
+  isInvalidOptionError,
+  isMissingArgumentError,
+  isOutputError,
+  isUserCancelledError,
+  isFindingsPresentError,
+  isBaselineNotFoundError,
+  isFindingNotFoundError,
+} from './cli';
