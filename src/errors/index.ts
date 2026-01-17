@@ -155,3 +155,29 @@ export {
   isConfigValidationError,
   isConfigDiscoveryError,
 } from './config';
+
+// =============================================================================
+// Session Analysis Errors (EP06)
+// =============================================================================
+
+export {
+  SessionError,
+  SessionExitCode,
+  SessionsDirNotFoundError,
+  SessionFileNotFoundError,
+  SessionFileUnreadableError,
+  InvalidJsonlError,
+  IndexLockedError,
+  IndexCorruptedError,
+  QuerySyntaxError,
+  QueryTimeoutError,
+  isSessionError,
+  isSessionsDirNotFoundError,
+  isSessionFileNotFoundError,
+  isSessionFileUnreadableError,
+  isInvalidJsonlError,
+  isIndexLockedError,
+  isIndexCorruptedError,
+  isQuerySyntaxError,
+  isQueryTimeoutError,
+} from './sessions';

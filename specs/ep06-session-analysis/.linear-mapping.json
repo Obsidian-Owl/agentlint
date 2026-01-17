@@ -1,0 +1,412 @@
+{
+  "metadata": {
+    "feature": "ep06-session-analysis",
+    "project": "EP06: Session Analysis Tools",
+    "project_id": "bb5efa73-2001-43a6-8a0f-6f6486f69b70",
+    "team_id": "026f9bb0-5934-4186-b047-155812ae914d",
+    "epic_label": "epic:EP06",
+    "created_at": "2026-01-17T05:02:39.007Z",
+    "last_sync": "2026-01-17T05:26:00.000Z"
+  },
+  "mappings": {
+    "T001": {
+      "linear_id": "648a5a9e-02ce-4054-ab6f-23aa5d9443bf",
+      "linear_identifier": "AGE-304",
+      "title": "T001: Create directory structure `src/tools/sessions/` per plan.md",
+      "url": "https://linear.app/obsidianowl/issue/AGE-304",
+      "status": "Todo"
+    },
+    "T002": {
+      "linear_id": "92713603-6f06-4bd5-aac2-7dbb77dfe271",
+      "linear_identifier": "AGE-305",
+      "title": "T002: Create directory structure `src/errors/` if not exists",
+      "url": "https://linear.app/obsidianowl/issue/AGE-305",
+      "status": "Todo"
+    },
+    "T003": {
+      "linear_id": "2540c596-0a0e-41db-b930-01cba0f799d5",
+      "linear_identifier": "AGE-306",
+      "title": "T003: Create test directory structure `tests/unit/tools/sessions/`",
+      "url": "https://linear.app/obsidianowl/issue/AGE-306",
+      "status": "Todo"
+    },
+    "T004": {
+      "linear_id": "81d2a627-0b3f-4874-ac31-990e17fe4759",
+      "linear_identifier": "AGE-307",
+      "title": "T004: Create test fixtures directory `tests/fixtures/sessions/`",
+      "url": "https://linear.app/obsidianowl/issue/AGE-307",
+      "status": "Todo"
+    },
+    "T005": {
+      "linear_id": "7f0d122f-11ab-42c6-b19e-07c1d7626769",
+      "linear_identifier": "AGE-308",
+      "title": "T005: Copy and adapt types from contracts/interfaces.ts to src/tools/sessions/types.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-308",
+      "status": "Todo"
+    },
+    "T006": {
+      "linear_id": "e1bc5f26-1012-44d2-800e-c5ab4faf666f",
+      "linear_identifier": "AGE-309",
+      "title": "T006: Create session error types in src/errors/sessions.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-309",
+      "status": "Todo"
+    },
+    "T007": {
+      "linear_id": "7ca92b1a-00d8-4d46-8b46-593b5e4def17",
+      "linear_identifier": "AGE-310",
+      "title": "T007: Create Zod validation schemas for SessionEntry",
+      "url": "https://linear.app/obsidianowl/issue/AGE-310",
+      "status": "Todo"
+    },
+    "T008": {
+      "linear_id": "9b0682c9-c1b8-41ca-b485-8ffa061e051b",
+      "linear_identifier": "AGE-311",
+      "title": "T008: Create Zod validation schemas for SearchSessionsInput",
+      "url": "https://linear.app/obsidianowl/issue/AGE-311",
+      "status": "Todo"
+    },
+    "T009": {
+      "linear_id": "0da1bac1-ddb1-45c7-be8d-ebc4fa3a5d49",
+      "linear_identifier": "AGE-312",
+      "title": "T009: Create Zod validation schemas for GetSessionStatsInput",
+      "url": "https://linear.app/obsidianowl/issue/AGE-312",
+      "status": "Todo"
+    },
+    "T010": {
+      "linear_id": "92a02db5-b7dd-4e4d-98c0-0a057da5a43f",
+      "linear_identifier": "AGE-313",
+      "title": "T010: Create FTS5 database initialization in src/persistence/sessions/fts.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-313",
+      "status": "Todo"
+    },
+    "T011": {
+      "linear_id": "5863fefb-946f-40ce-a61d-7bae33e00307",
+      "linear_identifier": "AGE-314",
+      "title": "T011: Create database schema migration helper in src/persistence/sessions/fts.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-314",
+      "status": "Todo"
+    },
+    "T012": {
+      "linear_id": "a0c9dec7-7596-48c4-bf46-d8168a461851",
+      "linear_identifier": "AGE-315",
+      "title": "T012: Create path encoding/decoding utilities in src/tools/sessions/utils.ts (FR-001)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-315",
+      "status": "Todo"
+    },
+    "T013": {
+      "linear_id": "a2f65538-b712-41f1-b721-2996d4d13309",
+      "linear_identifier": "AGE-316",
+      "title": "T013: Create public exports barrel file src/tools/sessions/index.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-316",
+      "status": "Todo"
+    },
+    "T014": {
+      "linear_id": "259a47f5-6511-44ab-9bb8-597c7814e051",
+      "linear_identifier": "AGE-317",
+      "title": "T014: Unit test for path decoding in tests/unit/tools/sessions/utils.test.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-317",
+      "status": "Todo"
+    },
+    "T015": {
+      "linear_id": "b6f8087c-c56f-4d1f-88ca-bb56b2b0819e",
+      "linear_identifier": "AGE-318",
+      "title": "T015: Unit test for session discovery in tests/unit/tools/sessions/discovery.test.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-318",
+      "status": "Todo"
+    },
+    "T016": {
+      "linear_id": "0c6c924f-5e63-4505-9ab9-4c11677009e7",
+      "linear_identifier": "AGE-319",
+      "title": "T016: Create test fixture: mock ~/.claude/projects/ structure",
+      "url": "https://linear.app/obsidianowl/issue/AGE-319",
+      "status": "Todo"
+    },
+    "T017": {
+      "linear_id": "550e6976-eec9-479d-ae46-d3decbf1c8eb",
+      "linear_identifier": "AGE-320",
+      "title": "T017: Implement discoverSessions() function in src/tools/sessions/discovery.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-320",
+      "status": "Todo"
+    },
+    "T018": {
+      "linear_id": "30f48fcb-e263-49f9-ba62-058ef7c98aff",
+      "linear_identifier": "AGE-321",
+      "title": "T018: Handle edge cases: missing directory, empty directory, permission denied",
+      "url": "https://linear.app/obsidianowl/issue/AGE-321",
+      "status": "Todo"
+    },
+    "T019": {
+      "linear_id": "00ba2328-27a2-4215-bfde-ff5d99fa7277",
+      "linear_identifier": "AGE-322",
+      "title": "T019: Handle symlinks and corrupted directory structures",
+      "url": "https://linear.app/obsidianowl/issue/AGE-322",
+      "status": "Todo"
+    },
+    "T020": {
+      "linear_id": "fbd226fc-a4e0-4d37-8856-7898566610b4",
+      "linear_identifier": "AGE-323",
+      "title": "T020: Create test fixture: sample JSONL files in tests/fixtures/sessions/",
+      "url": "https://linear.app/obsidianowl/issue/AGE-323",
+      "status": "Todo"
+    },
+    "T021": {
+      "linear_id": "6bd7b00e-97dc-4478-873d-ee571a6848ea",
+      "linear_identifier": "AGE-324",
+      "title": "T021: Unit test for JSONL parsing in tests/unit/tools/sessions/parser.test.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-324",
+      "status": "Todo"
+    },
+    "T022": {
+      "linear_id": "6e1636f2-9764-4c47-872a-7c2047a6c459",
+      "linear_identifier": "AGE-325",
+      "title": "T022: Unit test for malformed JSONL handling in parser.test.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-325",
+      "status": "Todo"
+    },
+    "T023": {
+      "linear_id": "942a3b84-48c1-4662-a5b7-835fc0a24948",
+      "linear_identifier": "AGE-326",
+      "title": "T023: Implement streaming JSONL parser in src/tools/sessions/parser.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-326",
+      "status": "Todo"
+    },
+    "T024": {
+      "linear_id": "5a0cd61c-eba4-41de-9b07-10cfded09d48",
+      "linear_identifier": "AGE-327",
+      "title": "T024: Implement parseSessionEntry() with position tracking",
+      "url": "https://linear.app/obsidianowl/issue/AGE-327",
+      "status": "Todo"
+    },
+    "T025": {
+      "linear_id": "b6e09605-83fa-478e-8138-ac4c78bbb984",
+      "linear_identifier": "AGE-328",
+      "title": "T025: Handle malformed lines, binary data, large content gracefully",
+      "url": "https://linear.app/obsidianowl/issue/AGE-328",
+      "status": "Todo"
+    },
+    "T026": {
+      "linear_id": "6918e78d-30dd-4dff-af2b-128e634bf8e9",
+      "linear_identifier": "AGE-329",
+      "title": "T026: Implement compression event detection (type='summary')",
+      "url": "https://linear.app/obsidianowl/issue/AGE-329",
+      "status": "Todo"
+    },
+    "T027": {
+      "linear_id": "ab24889d-2cbf-416a-a1ba-c362af79afac",
+      "linear_identifier": "AGE-330",
+      "title": "T027: Unit test for token metrics extraction in metrics.test.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-330",
+      "status": "Todo"
+    },
+    "T028": {
+      "linear_id": "f13cd951-a1cd-49e4-8123-6b94fc42be60",
+      "linear_identifier": "AGE-331",
+      "title": "T028: Unit test for tool distribution categorization in metrics.test.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-331",
+      "status": "Todo"
+    },
+    "T029": {
+      "linear_id": "176c381c-4a3c-4127-ba73-5bc91a02799e",
+      "linear_identifier": "AGE-332",
+      "title": "T029: Unit test for compression event counting in metrics.test.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-332",
+      "status": "Todo"
+    },
+    "T030": {
+      "linear_id": "cf0af021-0b4c-44a8-baab-224cae1f131d",
+      "linear_identifier": "AGE-333",
+      "title": "T030: Implement extractMetrics() function in src/tools/sessions/metrics.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-333",
+      "status": "Todo"
+    },
+    "T031": {
+      "linear_id": "fe47479c-f476-485b-b848-0c89946b5c21",
+      "linear_identifier": "AGE-334",
+      "title": "T031: Implement tool categorization (read/write/bash/search/other)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-334",
+      "status": "Todo"
+    },
+    "T032": {
+      "linear_id": "a7935144-84f7-4ebc-aed2-934bb479dfe3",
+      "linear_identifier": "AGE-335",
+      "title": "T032: Aggregate metrics from message.usage fields",
+      "url": "https://linear.app/obsidianowl/issue/AGE-335",
+      "status": "Todo"
+    },
+    "T033": {
+      "linear_id": "91b31b58-2afb-49ed-8d06-c300d8205017",
+      "linear_identifier": "AGE-336",
+      "title": "T033: Unit test for FTS5 indexing in indexer.test.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-336",
+      "status": "Todo"
+    },
+    "T034": {
+      "linear_id": "d3c6a389-a429-43a9-84aa-776099afbc23",
+      "linear_identifier": "AGE-337",
+      "title": "T034: Unit test for incremental indexing in indexer.test.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-337",
+      "status": "Todo"
+    },
+    "T035": {
+      "linear_id": "fbb16b0d-c316-406f-aca9-04ed566ada3e",
+      "linear_identifier": "AGE-338",
+      "title": "T035: Performance test for large corpus indexing",
+      "url": "https://linear.app/obsidianowl/issue/AGE-338",
+      "status": "Todo"
+    },
+    "T036": {
+      "linear_id": "705cbd36-c9b1-4f15-9136-142658e5ce22",
+      "linear_identifier": "AGE-339",
+      "title": "T036: Implement indexSessions() function in src/tools/sessions/indexer.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-339",
+      "status": "Todo"
+    },
+    "T037": {
+      "linear_id": "257e8289-7ab8-450f-80fc-9284c82b9f99",
+      "linear_identifier": "AGE-340",
+      "title": "T037: Implement incremental indexing with mtime check",
+      "url": "https://linear.app/obsidianowl/issue/AGE-340",
+      "status": "Todo"
+    },
+    "T038": {
+      "linear_id": "62b38cf5-3e04-4d2b-b17d-36f6260b3e47",
+      "linear_identifier": "AGE-341",
+      "title": "T038: Populate sessions and session_tools tables during indexing",
+      "url": "https://linear.app/obsidianowl/issue/AGE-341",
+      "status": "Todo"
+    },
+    "T039": {
+      "linear_id": "830f4320-04d9-4cf4-a2d6-5a5e5826c934",
+      "linear_identifier": "AGE-342",
+      "title": "T039: Handle memory-efficient streaming for large files",
+      "url": "https://linear.app/obsidianowl/issue/AGE-342",
+      "status": "Todo"
+    },
+    "T040": {
+      "linear_id": "e8e0c7e6-bd7a-4abc-a54b-e150876e64be",
+      "linear_identifier": "AGE-343",
+      "title": "T040: Unit test for basic search in search.test.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-343",
+      "status": "Todo"
+    },
+    "T041": {
+      "linear_id": "c9c89834-0f62-4ae4-919c-a7c8d76009a2",
+      "linear_identifier": "AGE-344",
+      "title": "T041: Unit test for phrase/prefix/field search in search.test.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-344",
+      "status": "Todo"
+    },
+    "T042": {
+      "linear_id": "4a9f3d66-6b82-4333-a9c4-96c2aae454df",
+      "linear_identifier": "AGE-345",
+      "title": "T042: Unit test for date range filtering in search.test.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-345",
+      "status": "Todo"
+    },
+    "T043": {
+      "linear_id": "40ee8f87-ffd0-48f8-b853-52dd99020d87",
+      "linear_identifier": "AGE-346",
+      "title": "T043: Implement searchSessions() function in src/tools/sessions/search.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-346",
+      "status": "Todo"
+    },
+    "T044": {
+      "linear_id": "f7707731-0f13-4f70-b32f-8af06a8d42f2",
+      "linear_identifier": "AGE-347",
+      "title": "T044: Implement BM25 ranking and snippet generation",
+      "url": "https://linear.app/obsidianowl/issue/AGE-347",
+      "status": "Todo"
+    },
+    "T045": {
+      "linear_id": "138bb4be-a6cc-4771-a3f5-e1ffbb3f02ab",
+      "linear_identifier": "AGE-348",
+      "title": "T045: Implement date range filtering (--since, --until)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-348",
+      "status": "Todo"
+    },
+    "T046": {
+      "linear_id": "9db06cf5-e966-4bd3-8b3d-87b3788f786e",
+      "linear_identifier": "AGE-349",
+      "title": "T046: Create search_sessions SDK tool in search-sessions-tool.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-349",
+      "status": "Todo"
+    },
+    "T047": {
+      "linear_id": "24f38f0d-1e2d-4adb-8c85-55aa90c2f247",
+      "linear_identifier": "AGE-350",
+      "title": "T047: Register search_sessions tool with orchestration layer",
+      "url": "https://linear.app/obsidianowl/issue/AGE-350",
+      "status": "Todo"
+    },
+    "T048": {
+      "linear_id": "93d02959-c636-4851-ad15-ce0a9988807c",
+      "linear_identifier": "AGE-351",
+      "title": "T048: Unit test for stats aggregation in stats.test.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-351",
+      "status": "Todo"
+    },
+    "T049": {
+      "linear_id": "10c04134-66dc-4136-b6eb-6a179c6fbb0f",
+      "linear_identifier": "AGE-352",
+      "title": "T049: Unit test for project/date filtering in stats.test.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-352",
+      "status": "Todo"
+    },
+    "T050": {
+      "linear_id": "42648244-f45e-4b4b-97a4-ee015057f4d1",
+      "linear_identifier": "AGE-353",
+      "title": "T050: Implement getSessionStats() function in src/tools/sessions/stats.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-353",
+      "status": "Todo"
+    },
+    "T051": {
+      "linear_id": "5d6603a8-01c1-4404-a305-7ad1336ee590",
+      "linear_identifier": "AGE-354",
+      "title": "T051: Create get_session_stats SDK tool in get-session-stats-tool.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-354",
+      "status": "Todo"
+    },
+    "T052": {
+      "linear_id": "0fd835d7-3c37-425f-94d2-c6fa3416b322",
+      "linear_identifier": "AGE-355",
+      "title": "T052: Register get_session_stats tool with orchestration layer",
+      "url": "https://linear.app/obsidianowl/issue/AGE-355",
+      "status": "Todo"
+    },
+    "T053": {
+      "linear_id": "b62da4c5-63f9-4549-b344-5f094d5e56f0",
+      "linear_identifier": "AGE-356",
+      "title": "T053: Integration test: full workflow (discover → parse → index → search)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-356",
+      "status": "Todo"
+    },
+    "T054": {
+      "linear_id": "fc7b0bf9-6e9c-40a7-90e8-929c75b145e3",
+      "linear_identifier": "AGE-357",
+      "title": "T054: Validate against quickstart.md examples",
+      "url": "https://linear.app/obsidianowl/issue/AGE-357",
+      "status": "Todo"
+    },
+    "T055": {
+      "linear_id": "58d8f0c5-8b82-48fc-a050-b1a782088f83",
+      "linear_identifier": "AGE-358",
+      "title": "T055: Performance validation: search < 2s on 500MB corpus",
+      "url": "https://linear.app/obsidianowl/issue/AGE-358",
+      "status": "Todo"
+    },
+    "T056": {
+      "linear_id": "7b235c06-56a8-4668-a45c-8dd7e44b9ca4",
+      "linear_identifier": "AGE-359",
+      "title": "T056: Update src/tools/index.ts to export session tools",
+      "url": "https://linear.app/obsidianowl/issue/AGE-359",
+      "status": "Todo"
+    },
+    "T057": {
+      "linear_id": "18e63b59-cdf2-4320-a213-86c8ab4588a5",
+      "linear_identifier": "AGE-360",
+      "title": "T057: Run full test suite and verify > 80% coverage",
+      "url": "https://linear.app/obsidianowl/issue/AGE-360",
+      "status": "Todo"
+    }
+  }
+}

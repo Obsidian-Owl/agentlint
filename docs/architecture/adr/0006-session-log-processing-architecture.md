@@ -145,6 +145,7 @@ Parse and index logs in memory at startup.
 -- Main session entries table (FTS5 virtual table)
 CREATE VIRTUAL TABLE session_entries USING fts5(
   session_id,        -- UUID of the session
+  project_path,      -- Decoded project path (for filtering)
   timestamp,         -- ISO-8601 timestamp
   role,              -- 'user' | 'assistant'
   content,           -- Text content (flattened from message.content)
@@ -159,7 +160,8 @@ CREATE VIRTUAL TABLE session_entries USING fts5(
 -- Metadata table for tracking indexed files
 CREATE TABLE indexed_files (
   file_path TEXT PRIMARY KEY,
-  last_modified INTEGER,    -- mtime for incremental updates
+  project_path TEXT NOT NULL,  -- Decoded project path
+  last_modified INTEGER,       -- mtime for incremental updates
   entry_count INTEGER,
   indexed_at TEXT
 );
@@ -171,9 +173,50 @@ CREATE TABLE sessions (
   first_timestamp TEXT,
   last_timestamp TEXT,
   entry_count INTEGER,
-  total_tokens INTEGER
+  input_tokens INTEGER,     -- Total input tokens
+  output_tokens INTEGER,    -- Total output tokens
+  cache_tokens INTEGER,     -- Cache read + creation tokens
+  compression_count INTEGER,-- Context compression events
+  model TEXT,               -- Claude model used (e.g., "claude-opus-4-5-20251101")
+  cli_version TEXT          -- Claude Code CLI version (e.g., "1.0.62")
 );
+
+-- Tool usage tracking per session
+CREATE TABLE session_tools (
+  session_id TEXT NOT NULL,
+  tool_name TEXT NOT NULL,
+  category TEXT NOT NULL,   -- 'read' | 'write' | 'bash' | 'search' | 'other'
+  call_count INTEGER DEFAULT 0,
+  error_count INTEGER DEFAULT 0,
+  PRIMARY KEY (session_id, tool_name),
+  FOREIGN KEY (session_id) REFERENCES sessions(session_id) ON DELETE CASCADE
+);
+
+-- Schema version tracking for migrations
+CREATE TABLE schema_version (
+  version INTEGER PRIMARY KEY,
+  applied_at TEXT NOT NULL
+);
+
+-- Indexes for common query patterns
+CREATE INDEX idx_sessions_project ON sessions(project_path);
+CREATE INDEX idx_sessions_timestamp ON sessions(first_timestamp);
+CREATE INDEX idx_indexed_files_project ON indexed_files(project_path);
 ```
+
+#### 1.1 Input Validation Constants
+
+Tool inputs are validated with Zod schemas to prevent abuse and ensure reasonable limits:
+
+| Constant | Value | Purpose |
+|----------|-------|---------|
+| `MAX_QUERY_LENGTH` | 1000 | Maximum FTS5 query string length |
+| `MAX_TIMESTAMP_LENGTH` | 30 | Maximum ISO-8601 timestamp length |
+| `MAX_PROJECT_PATH_LENGTH` | 500 | Maximum project path filter length |
+| `MAX_SESSION_ID_LENGTH` | 50 | Maximum session UUID length |
+| `MAX_MODEL_LENGTH` | 100 | Maximum model name filter length |
+
+Timestamps are validated as ISO-8601 format with helpful error messages suggesting correct format.
 
 #### 2. Indexing Process
 

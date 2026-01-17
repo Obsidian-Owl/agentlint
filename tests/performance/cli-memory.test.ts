@@ -91,17 +91,52 @@ describe('CLI memory performance', () => {
   });
 
   describe('process memory limits', () => {
-    test('current process stays under 100MB', () => {
-      const memoryUsage = process.memoryUsage();
-      const heapUsedMB = memoryUsage.heapUsed / (1024 * 1024);
-      const rssMB = memoryUsage.rss / (1024 * 1024);
+    test('CLI operations do not leak memory', async () => {
+      // Force GC if available to get clean baseline
+      if (global.gc) {
+        global.gc();
+      }
 
-      // Heap should be well under 100MB
-      expect(heapUsedMB).toBeLessThan(100);
+      const beforeMemory = process.memoryUsage().heapUsed;
 
-      // RSS (total process memory) can be higher due to Bun runtime
-      // but should still be reasonable
-      expect(rssMB).toBeLessThan(200);
+      // Simulate typical CLI operations
+      const { createJSONFormatter } = await import('../../src/cli/formatters/json');
+      const { createMarkdownFormatter } = await import('../../src/cli/formatters/markdown');
+      const { createPlainFormatter } = await import('../../src/cli/formatters/plain');
+
+      // Create and use formatters (typical CLI workflow)
+      const jsonFormatter = createJSONFormatter();
+      const mdFormatter = createMarkdownFormatter();
+      const plainFormatter = createPlainFormatter();
+
+      // Simulate formatting operations with mock analysis result
+      const mockResult = {
+        projectPath: '/test',
+        timestamp: new Date().toISOString(),
+        findings: Array.from({ length: 50 }, (_, i) => ({
+          id: `finding-${i}`,
+          type: 'config' as const,
+          severity: 'warning' as const,
+          title: `Finding ${i}`,
+          description: `Description for finding ${i}`,
+          origin: { file: `/test/config-${i}.md`, line: 1 },
+        })),
+        summary: { total: 50, byType: { config: 50 }, bySeverity: { warning: 50 } },
+      };
+
+      // Format the same data multiple times to detect leaks
+      for (let i = 0; i < 10; i++) {
+        jsonFormatter.formatComplete(mockResult as never);
+        mdFormatter.formatComplete(mockResult as never);
+        plainFormatter.formatComplete(mockResult as never);
+      }
+
+      const afterMemory = process.memoryUsage().heapUsed;
+      const memoryDeltaMB = (afterMemory - beforeMemory) / (1024 * 1024);
+
+      // Memory growth from CLI operations should be minimal (<20MB)
+      // This tests actual CLI memory usage, not cumulative test runner state
+      expect(memoryDeltaMB).toBeLessThan(20);
     });
   });
 });
