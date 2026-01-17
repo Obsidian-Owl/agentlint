@@ -6,8 +6,16 @@
  * @module src/persistence/causal
  */
 
-// Schema will be exported here as implemented:
-// export { createCausalTables, CAUSAL_SCHEMA_VERSION } from './schema.js';
+// Schema exports
+export {
+  CAUSAL_SCHEMA_VERSION,
+  causalTablesExist,
+  getCausalSchemaVersion,
+  createCausalTables,
+  dropCausalTables,
+  migrateCausalSchema,
+  initCausalSchema,
+} from './schema.js';
 
 // Queries will be exported here as implemented:
 // export { insertChain, getChainById, getChainsByProject } from './queries.js';
