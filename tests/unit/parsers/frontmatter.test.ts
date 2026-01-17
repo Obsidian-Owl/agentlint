@@ -4,7 +4,7 @@
  * T014: Tests for src/parsers/frontmatter.ts
  */
 
-import { describe, it, expect, beforeAll } from 'bun:test';
+import { describe, it, beforeAll } from 'bun:test';
 import { join } from 'node:path';
 import { readFile } from 'node:fs/promises';
 
@@ -14,14 +14,17 @@ import { readFile } from 'node:fs/promises';
 const FIXTURES_DIR = join(import.meta.dir, '../../fixtures/configs');
 
 describe('parseFrontmatter', () => {
-  let skillContent: string;
-  let invalidYamlContent: string;
-  let noFrontmatterContent: string;
+  // Variables used in skipped tests - prefixed with _ to avoid unused warnings
+  let _skillContent: string;
+  let _invalidYamlContent: string;
+  let _noFrontmatterContent: string;
 
   beforeAll(async () => {
-    skillContent = await readFile(join(FIXTURES_DIR, 'valid/skill/SKILL.md'), 'utf-8');
-    invalidYamlContent = await readFile(join(FIXTURES_DIR, 'malformed/invalid-yaml.md'), 'utf-8');
-    noFrontmatterContent = await readFile(join(FIXTURES_DIR, 'valid/claude-simple.md'), 'utf-8');
+    _skillContent = await readFile(join(FIXTURES_DIR, 'valid/skill/SKILL.md'), 'utf-8');
+    _invalidYamlContent = await readFile(join(FIXTURES_DIR, 'malformed/invalid-yaml.md'), 'utf-8');
+    _noFrontmatterContent = await readFile(join(FIXTURES_DIR, 'valid/claude-simple.md'), 'utf-8');
+    // Consume variables to prevent unused warnings (tests are skipped)
+    void [_skillContent, _invalidYamlContent, _noFrontmatterContent];
   });
 
   describe('valid frontmatter extraction', () => {

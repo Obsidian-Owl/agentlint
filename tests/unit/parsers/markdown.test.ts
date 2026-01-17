@@ -4,7 +4,7 @@
  * T012: Tests for src/parsers/markdown.ts
  */
 
-import { describe, it, expect, beforeAll } from 'bun:test';
+import { describe, it, beforeAll } from 'bun:test';
 import { join } from 'node:path';
 import { readFile } from 'node:fs/promises';
 
@@ -14,14 +14,17 @@ import { readFile } from 'node:fs/promises';
 const FIXTURES_DIR = join(import.meta.dir, '../../fixtures/configs');
 
 describe('parseMarkdown', () => {
-  let simpleContent: string;
-  let complexContent: string;
-  let unclosedCodeblock: string;
+  // Variables used in skipped tests - prefixed with _ to avoid unused warnings
+  let _simpleContent: string;
+  let _complexContent: string;
+  let _unclosedCodeblock: string;
 
   beforeAll(async () => {
-    simpleContent = await readFile(join(FIXTURES_DIR, 'valid/claude-simple.md'), 'utf-8');
-    complexContent = await readFile(join(FIXTURES_DIR, 'valid/claude-complex.md'), 'utf-8');
-    unclosedCodeblock = await readFile(join(FIXTURES_DIR, 'malformed/unclosed-codeblock.md'), 'utf-8');
+    _simpleContent = await readFile(join(FIXTURES_DIR, 'valid/claude-simple.md'), 'utf-8');
+    _complexContent = await readFile(join(FIXTURES_DIR, 'valid/claude-complex.md'), 'utf-8');
+    _unclosedCodeblock = await readFile(join(FIXTURES_DIR, 'malformed/unclosed-codeblock.md'), 'utf-8');
+    // Consume variables to prevent unused warnings (tests are skipped)
+    void [_simpleContent, _complexContent, _unclosedCodeblock];
   });
 
   describe('basic parsing', () => {

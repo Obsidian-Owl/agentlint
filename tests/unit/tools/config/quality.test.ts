@@ -14,7 +14,6 @@ import * as os from 'node:os';
 import { parseConfig } from '../../../../src/tools/config/parse-config';
 import type {
   QualityAssessment,
-  QualityDimensions,
   ParsedConfig,
 } from '../../../../src/tools/config/types';
 

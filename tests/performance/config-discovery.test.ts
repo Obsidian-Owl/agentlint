@@ -159,7 +159,7 @@ describe('Config Discovery Performance', () => {
   it('should maintain consistent performance with parseSkills option', async () => {
     // Test without parseSkills
     const startWithout = performance.now();
-    const resultWithout = await discoverConfigs({
+    await discoverConfigs({
       cwd: tempDir,
       includeGlobal: false,
       parseSkills: false,

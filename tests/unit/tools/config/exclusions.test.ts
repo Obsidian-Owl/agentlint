@@ -10,15 +10,10 @@ import { describe, it, expect, beforeAll, afterAll } from 'bun:test';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
-import type { DiscoverConfigsResult } from '../../../../src/tools/config/types';
-
 import {
   discoverConfigs,
   DEFAULT_EXCLUSIONS,
 } from '../../../../src/tools/config/discovery';
-
-// Test fixture paths
-const FIXTURES_DIR = path.join(__dirname, '../../../fixtures/configs');
 
 describe('glob exclusions', () => {
   // Temporary directory for testing exclusions

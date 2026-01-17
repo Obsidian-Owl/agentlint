@@ -8,7 +8,11 @@
  */
 
 import { describe, it, expect, beforeEach } from 'bun:test';
-import { createToolRegistry, ToolRegistry } from '../../../../src/orchestration/tool-registry';
+import {
+  createToolRegistry,
+  ToolRegistry,
+  type ToolDefinition,
+} from '../../../../src/orchestration/tool-registry';
 import {
   discoverConfigsTool,
   parseConfigTool,
@@ -17,6 +21,12 @@ import {
   registerEP05Tools,
   registerAllTools,
 } from '../../../../src/tools';
+
+// Cast tools to ToolDefinition for direct registration
+// (The helper functions handle this internally, but direct registration needs explicit casts)
+const discoverTool = discoverConfigsTool as ToolDefinition;
+const parseTool = parseConfigTool as ToolDefinition;
+const hierarchyTool = analyzeHierarchyTool as ToolDefinition;
 
 describe('EP05 Tool Registration', () => {
   let registry: ToolRegistry;
@@ -27,30 +37,30 @@ describe('EP05 Tool Registration', () => {
 
   describe('individual tool registration', () => {
     it('should register discover_configs tool', () => {
-      registry.register(discoverConfigsTool);
+      registry.register(discoverTool);
 
       const tools = registry.list();
       expect(tools).toContain('discover_configs');
     });
 
     it('should register parse_config tool', () => {
-      registry.register(parseConfigTool);
+      registry.register(parseTool);
 
       const tools = registry.list();
       expect(tools).toContain('parse_config');
     });
 
     it('should register analyze_hierarchy tool', () => {
-      registry.register(analyzeHierarchyTool);
+      registry.register(hierarchyTool);
 
       const tools = registry.list();
       expect(tools).toContain('analyze_hierarchy');
     });
 
     it('should retrieve registered tools by name', () => {
-      registry.register(discoverConfigsTool);
-      registry.register(parseConfigTool);
-      registry.register(analyzeHierarchyTool);
+      registry.register(discoverTool);
+      registry.register(parseTool);
+      registry.register(hierarchyTool);
 
       expect(registry.get('discover_configs')).toBeDefined();
       expect(registry.get('parse_config')).toBeDefined();
@@ -91,10 +101,10 @@ describe('EP05 Tool Registration', () => {
     });
 
     it('should reject duplicate registrations', () => {
-      registry.register(discoverConfigsTool);
+      registry.register(discoverTool);
 
       expect(() => {
-        registry.register(discoverConfigsTool);
+        registry.register(discoverTool);
       }).toThrow();
     });
   });
@@ -121,10 +131,10 @@ describe('EP05 Tool Registration', () => {
     });
 
     it('should invalidate cache on new registration', () => {
-      registry.register(discoverConfigsTool);
+      registry.register(discoverTool);
       const server1 = registry.toMcpServer();
 
-      registry.register(parseConfigTool);
+      registry.register(parseTool);
       const server2 = registry.toMcpServer();
 
       // Should return different instances

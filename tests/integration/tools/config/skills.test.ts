@@ -116,7 +116,7 @@ The references/ directory contains documentation.
         const skills = await discoverSkills({ cwd: tempDir, maxDepth: 5 });
 
         expect(skills.length).toBe(1);
-        const skill = skills[0];
+        const skill = skills[0]!;
 
         // Check all file types are cataloged
         const scripts = skill.bundledFiles.filter((f) => f.type === 'script');
@@ -227,7 +227,7 @@ Use this skill when you need to process data.
         const skills = await discoverSkills({ cwd: tempDir, maxDepth: 3 });
 
         expect(skills.length).toBe(1);
-        const skill = skills[0];
+        const skill = skills[0]!;
 
         // Check sections are extracted
         expect(skill.contentSections.length).toBeGreaterThan(0);

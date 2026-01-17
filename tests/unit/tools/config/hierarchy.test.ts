@@ -11,11 +11,7 @@ import { describe, it, expect, beforeAll } from 'bun:test';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
-import type {
-  ConfigHierarchy,
-  AnalyzeHierarchyResult,
-  Conflict,
-} from '../../../../src/tools/config/types';
+import type { AnalyzeHierarchyResult } from '../../../../src/tools/config/types';
 
 // Lazy load to allow tests to be written first (TDD)
 type AnalyzeHierarchyFn = (options: {
@@ -98,7 +94,7 @@ describe('analyzeHierarchy', () => {
         });
 
         expect(result.hierarchy.local.length).toBeGreaterThan(0);
-        expect(result.hierarchy.local[0].file.level).toBe('local');
+        expect(result.hierarchy.local[0]!.file.level).toBe('local');
       } finally {
         fs.rmSync(tempDir, { recursive: true });
       }
@@ -122,7 +118,7 @@ describe('analyzeHierarchy', () => {
         });
 
         expect(result.hierarchy.skills.length).toBeGreaterThan(0);
-        expect(result.hierarchy.skills[0].name).toBe('my-skill');
+        expect(result.hierarchy.skills[0]!.name).toBe('my-skill');
       } finally {
         fs.rmSync(tempDir, { recursive: true });
       }

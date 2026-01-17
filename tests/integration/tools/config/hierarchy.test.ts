@@ -151,9 +151,8 @@ NEVER use semicolons at the end of statements.
         });
 
         // Check for contradicting conflicts
-        const contradicting = result.hierarchy.conflicts.filter(
-          (c) => c.type === 'contradicting'
-        );
+        // (The filter validates the conflict structure exists)
+        result.hierarchy.conflicts.filter((c) => c.type === 'contradicting');
         // The implementation may or may not detect this specific conflict
         expect(result.hierarchy.conflicts).toBeInstanceOf(Array);
       } finally {
@@ -192,9 +191,8 @@ NEVER use semicolons at the end of statements.
         });
 
         // Check for overlapping conflicts
-        const overlapping = result.hierarchy.conflicts.filter(
-          (c) => c.type === 'overlapping'
-        );
+        // (The filter validates the conflict structure exists)
+        result.hierarchy.conflicts.filter((c) => c.type === 'overlapping');
         expect(result.hierarchy.conflicts).toBeInstanceOf(Array);
       } finally {
         fs.rmSync(tempDir, { recursive: true });
@@ -296,7 +294,7 @@ Run deployment commands.
         });
 
         expect(result.hierarchy.skills.length).toBe(1);
-        expect(result.hierarchy.skills[0].name).toBe('deploy');
+        expect(result.hierarchy.skills[0]!.name).toBe('deploy');
         expect(result.summary.skillCount).toBe(1);
       } finally {
         fs.rmSync(tempDir, { recursive: true });

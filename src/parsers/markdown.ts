@@ -10,7 +10,7 @@ import { unified } from 'unified';
 import remarkParse from 'remark-parse';
 import remarkFrontmatter from 'remark-frontmatter';
 import remarkGfm from 'remark-gfm';
-import type { Root, Heading, Code, RootContent } from 'mdast';
+import type { Root, Heading, RootContent } from 'mdast';
 import type { Position, ParseWarning, WarningCode } from '../tools/config/types';
 
 /**
@@ -164,7 +164,7 @@ export async function parseMarkdown(content: string): Promise<MarkdownParseResul
 
   function visit(node: RootContent | Root): void {
     if (node.type === 'heading') {
-      const heading = node as Heading;
+      const heading = node;
       const headingInfo: HeadingInfo = {
         text: extractHeadingText(heading),
         level: heading.depth,
@@ -175,7 +175,7 @@ export async function parseMarkdown(content: string): Promise<MarkdownParseResul
     }
 
     if (node.type === 'code') {
-      const code = node as Code;
+      const code = node;
       const blockInfo: CodeBlockInfo = {
         content: code.value,
         lineCount: code.value.split('\n').length,
@@ -196,14 +196,14 @@ export async function parseMarkdown(content: string): Promise<MarkdownParseResul
 
   visit(ast);
 
-  return {
+  return await Promise.resolve({
     ast,
     raw: content,
     lineCount: content.split('\n').length,
     headings,
     codeBlocks,
     warnings,
-  };
+  });
 }
 
 /**
@@ -227,7 +227,7 @@ export function parseMarkdownSync(content: string): MarkdownParseResult {
 
   function visit(node: RootContent | Root): void {
     if (node.type === 'heading') {
-      const heading = node as Heading;
+      const heading = node;
       const headingInfo: HeadingInfo = {
         text: extractHeadingText(heading),
         level: heading.depth,
@@ -238,7 +238,7 @@ export function parseMarkdownSync(content: string): MarkdownParseResult {
     }
 
     if (node.type === 'code') {
-      const code = node as Code;
+      const code = node;
       const blockInfo: CodeBlockInfo = {
         content: code.value,
         lineCount: code.value.split('\n').length,

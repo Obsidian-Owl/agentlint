@@ -10,7 +10,7 @@
 
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import type { Root, Heading, Code, Text, RootContent } from 'mdast';
+import type { Root, Heading, RootContent } from 'mdast';
 import { parseMarkdownSync } from '../../parsers/markdown';
 import { parseFrontmatterSync } from '../../parsers/frontmatter';
 import { parseJsonConfigSync } from '../../parsers/json-config';
@@ -46,7 +46,7 @@ import {
  * @throws ConfigNotFoundError if file doesn't exist
  */
 export async function parseConfig(filePath: string): Promise<ParsedConfig> {
-  return parseConfigSync(filePath);
+  return await Promise.resolve(parseConfigSync(filePath));
 }
 
 /**
@@ -282,7 +282,7 @@ function extractSections(ast: Root, rawContent: string): Section[] {
   let nodeIndex = 0;
   for (const child of ast.children) {
     if (child.type === 'heading') {
-      const heading = child as Heading;
+      const heading = child;
       const text = extractHeadingText(heading);
       const position = convertMdastPosition(heading.position);
 
@@ -403,7 +403,7 @@ function generateSectionId(text: string): string {
 function extractHeadingText(heading: Heading): string {
   return heading.children
     .map((child) => {
-      if (child.type === 'text') return (child as Text).value;
+      if (child.type === 'text') return (child).value;
       if (child.type === 'inlineCode') return child.value;
       return '';
     })
@@ -422,7 +422,7 @@ function extractCodeBlocks(ast: Root): CodeBlock[] {
 
   function visit(node: RootContent | Root): void {
     if (node.type === 'code') {
-      const code = node as Code;
+      const code = node;
       const position = convertMdastPosition(code.position);
 
       if (position) {

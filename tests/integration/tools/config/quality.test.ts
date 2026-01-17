@@ -225,7 +225,7 @@ describe('Quality Assessment Pipeline Integration', () => {
         );
 
         // All levels should produce valid assessments
-        for (const { level, assessment } of assessments) {
+        for (const { assessment } of assessments) {
           expect(assessment.score).toBeGreaterThanOrEqual(0);
           expect(assessment.grade).toBeDefined();
         }

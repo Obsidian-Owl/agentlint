@@ -53,7 +53,7 @@ export async function parseFrontmatter(
   content: string,
   options: FrontmatterParseOptions = {}
 ): Promise<FrontmatterParseResult> {
-  return parseFrontmatterSync(content, options);
+  return await Promise.resolve(parseFrontmatterSync(content, options));
 }
 
 /**
@@ -130,7 +130,7 @@ export function parseFrontmatterSync(
   // Parse YAML
   let frontmatter: Record<string, unknown> | undefined;
   try {
-    const parsed = YAML.parse(yamlContent);
+    const parsed = YAML.parse(yamlContent) as unknown;
 
     // Ensure it's an object
     if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {

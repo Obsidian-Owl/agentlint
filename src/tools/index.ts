@@ -7,7 +7,7 @@
  * @module tools
  */
 
-import type { IToolRegistry } from '../orchestration/tool-registry';
+import type { IToolRegistry, ToolDefinition } from '../orchestration/tool-registry';
 
 // Enumerations (shared across tools)
 export * from './types';
@@ -41,12 +41,13 @@ import {
 
 /**
  * All EP05 config analysis tools as an array for bulk registration.
+ * Cast to ToolDefinition[] for compatibility with ToolRegistry.
  */
-export const EP05_CONFIG_TOOLS = [
+export const EP05_CONFIG_TOOLS: ToolDefinition[] = [
   discoverConfigsTool,
   parseConfigTool,
   analyzeHierarchyTool,
-] as const;
+] as ToolDefinition[];
 
 /**
  * Register all EP05 config analysis tools with a ToolRegistry.
@@ -62,7 +63,7 @@ export const EP05_CONFIG_TOOLS = [
  * ```
  */
 export function registerEP05Tools(registry: IToolRegistry): void {
-  registry.registerMany([...EP05_CONFIG_TOOLS]);
+  registry.registerMany(EP05_CONFIG_TOOLS);
 }
 
 /**

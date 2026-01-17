@@ -4,7 +4,7 @@
  * T016: Tests for src/parsers/json-config.ts
  */
 
-import { describe, it, expect, beforeAll } from 'bun:test';
+import { describe, it, beforeAll } from 'bun:test';
 import { join } from 'node:path';
 import { readFile } from 'node:fs/promises';
 
@@ -14,12 +14,15 @@ import { readFile } from 'node:fs/promises';
 const FIXTURES_DIR = join(import.meta.dir, '../../fixtures/configs');
 
 describe('parseJsonConfig', () => {
-  let validSettings: string;
-  let invalidSettings: string;
+  // Variables used in skipped tests - prefixed with _ to avoid unused warnings
+  let _validSettings: string;
+  let _invalidSettings: string;
 
   beforeAll(async () => {
-    validSettings = await readFile(join(FIXTURES_DIR, 'valid/settings.json'), 'utf-8');
-    invalidSettings = await readFile(join(FIXTURES_DIR, 'malformed/invalid-settings.json'), 'utf-8');
+    _validSettings = await readFile(join(FIXTURES_DIR, 'valid/settings.json'), 'utf-8');
+    _invalidSettings = await readFile(join(FIXTURES_DIR, 'malformed/invalid-settings.json'), 'utf-8');
+    // Consume variables to prevent unused warnings (tests are skipped)
+    void [_validSettings, _invalidSettings];
   });
 
   describe('valid JSON parsing', () => {

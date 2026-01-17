@@ -196,7 +196,7 @@ async function discoverGlobalConfigs(): Promise<ConfigFile[]> {
     }
   }
 
-  return results;
+  return await Promise.resolve(results);
 }
 
 /**

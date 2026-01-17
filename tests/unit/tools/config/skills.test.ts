@@ -11,7 +11,7 @@ import { describe, it, expect, beforeAll } from 'bun:test';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
-import type { Skill, ParseWarning } from '../../../../src/tools/config/types';
+import type { Skill } from '../../../../src/tools/config/types';
 
 // Import functions we're testing (will be implemented in T060-T063)
 type DiscoverSkillsFn = (options: {
@@ -40,7 +40,7 @@ function createTempSkill(
 
   // Build SKILL.md content
   const frontmatterYaml = Object.entries(frontmatter)
-    .map(([key, value]) => `${key}: ${value}`)
+    .map(([key, value]) => `${key}: ${String(value)}`)
     .join('\n');
   const skillContent = `---\n${frontmatterYaml}\n---\n\n${content}`;
 
@@ -122,7 +122,7 @@ describe('discoverSkills (T057)', () => {
         });
 
         expect(skills.length).toBe(1);
-        expect(skills[0].name).toBe('nested-skill');
+        expect(skills[0]!.name).toBe('nested-skill');
       } finally {
         fs.rmSync(tempDir, { recursive: true });
       }

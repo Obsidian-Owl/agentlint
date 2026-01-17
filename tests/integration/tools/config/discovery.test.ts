@@ -8,7 +8,6 @@
 
 import { describe, it, expect } from 'bun:test';
 import * as path from 'node:path';
-import type { DiscoverConfigsResult } from '../../../../src/tools/config/types';
 
 import { discoverConfigs } from '../../../../src/tools/config/discovery';
 

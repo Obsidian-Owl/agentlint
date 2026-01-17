@@ -10,8 +10,6 @@ import { describe, it, expect, beforeAll, afterAll } from 'bun:test';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
-import type { DiscoverConfigsResult } from '../../../../src/tools/config/types';
-
 import { discoverConfigs } from '../../../../src/tools/config/discovery';
 
 // Test fixture paths

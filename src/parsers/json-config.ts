@@ -156,7 +156,7 @@ export async function parseJsonConfig(
   content: string,
   options: JsonConfigParseOptions = {}
 ): Promise<JsonConfigParseResult> {
-  return parseJsonConfigSync(content, options);
+  return await Promise.resolve(parseJsonConfigSync(content, options));
 }
 
 /**
