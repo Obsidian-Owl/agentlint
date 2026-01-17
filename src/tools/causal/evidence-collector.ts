@@ -1,0 +1,393 @@
+/**
+ * EP07 Causal Tracing Engine - Evidence Collector
+ *
+ * Collects evidence from sessions, git, and config analysis
+ * to build causal chains for issue tracing.
+ *
+ * @module src/tools/causal/evidence-collector
+ */
+
+import type { Database } from 'bun:sqlite';
+import { v4 as uuidv4 } from 'uuid';
+
+import type { EvidenceItem, Position } from './types';
+import { searchSessions } from '../sessions/search';
+import { DEFAULT_SESSIONS_DB_PATH } from '../sessions/utils';
+
+// =============================================================================
+// Types
+// =============================================================================
+
+/**
+ * Options for collecting session evidence.
+ */
+export interface CollectSessionEvidenceOptions {
+  /** Keywords to search for in sessions */
+  keywords: string[];
+  /** Only search sessions in this project */
+  projectPath?: string;
+  /** Only search sessions after this date */
+  since?: string;
+  /** Only search sessions before this date */
+  until?: string;
+  /** Maximum number of results to return */
+  limit?: number;
+  /** Path to the sessions database */
+  dbPath?: string;
+}
+
+/**
+ * Options for collecting evidence from a specific file location.
+ */
+export interface CollectLocationEvidenceOptions {
+  /** Path to the file where issue was found */
+  filePath: string;
+  /** Line number where issue was found */
+  lineNumber?: number;
+  /** Range of lines to search around the issue (default: 10) */
+  lineRange?: number;
+  /** Only search sessions in this project */
+  projectPath?: string;
+  /** Path to the sessions database */
+  dbPath?: string;
+}
+
+/**
+ * Result of evidence collection.
+ */
+export interface CollectEvidenceResult {
+  /** Collected evidence items */
+  evidence: EvidenceItem[];
+  /** Total matches found (may exceed evidence.length due to limit) */
+  totalMatches: number;
+  /** Query execution time in milliseconds */
+  queryTimeMs: number;
+  /** Any errors or warnings */
+  warnings?: string[];
+}
+
+
+// =============================================================================
+// Evidence Collector Class
+// =============================================================================
+
+/**
+ * Collects evidence from various sources to support causal chain construction.
+ *
+ * The EvidenceCollector searches session logs, correlates tool calls with
+ * file locations, and extracts temporal markers to build evidence for
+ * causal chains.
+ *
+ * @example
+ * ```typescript
+ * const collector = new EvidenceCollector();
+ *
+ * // Collect session evidence by keywords
+ * const result = await collector.collectSessionEvidence({
+ *   keywords: ['authentication', 'error'],
+ *   projectPath: '/my/project',
+ *   since: '2026-01-15T00:00:00Z',
+ * });
+ *
+ * // Collect evidence related to a specific file location
+ * const locationResult = await collector.collectLocationEvidence({
+ *   filePath: '/my/project/src/auth.ts',
+ *   lineNumber: 42,
+ * });
+ * ```
+ */
+export class EvidenceCollector {
+  private readonly dbPath: string;
+
+  /**
+   * Create a new EvidenceCollector.
+   *
+   * @param dbPath - Path to the sessions database (defaults to ~/.agentlint/sessions.db)
+   */
+  constructor(dbPath: string = DEFAULT_SESSIONS_DB_PATH) {
+    this.dbPath = dbPath;
+  }
+
+  /**
+   * Collect evidence from session logs matching the given keywords.
+   *
+   * Uses FTS5 full-text search with BM25 ranking to find relevant
+   * session entries. Results are sorted by relevance score.
+   *
+   * @param options - Search options including keywords and filters
+   * @returns Evidence items with metadata
+   */
+  collectSessionEvidence(
+    options: CollectSessionEvidenceOptions
+  ): CollectEvidenceResult {
+    const startTime = Date.now();
+    const {
+      keywords,
+      projectPath,
+      since,
+      until,
+      limit = 50,
+      dbPath = this.dbPath,
+    } = options;
+
+    // Build FTS5 query from keywords
+    const query = this.buildFtsQuery(keywords);
+    if (!query) {
+      return {
+        evidence: [],
+        totalMatches: 0,
+        queryTimeMs: Date.now() - startTime,
+        warnings: ['No valid keywords provided'],
+      };
+    }
+
+    // Use EP06 search function - build input object conditionally
+    const searchInput: Parameters<typeof searchSessions>[0] = {
+      query,
+      limit,
+      offset: 0,
+    };
+    if (projectPath) searchInput.project = projectPath;
+    if (since) searchInput.since = since;
+    if (until) searchInput.until = until;
+
+    const searchResult = searchSessions(searchInput, { dbPath });
+
+    if (!searchResult.success) {
+      return {
+        evidence: [],
+        totalMatches: 0,
+        queryTimeMs: Date.now() - startTime,
+        warnings: [searchResult.error?.message ?? 'Search failed'],
+      };
+    }
+
+    // Convert search results to evidence items
+    const evidence = searchResult.results.map((result) =>
+      this.searchResultToEvidence(result)
+    );
+
+    return {
+      evidence,
+      totalMatches: searchResult.totalMatches,
+      queryTimeMs: Date.now() - startTime,
+    };
+  }
+
+  /**
+   * Collect evidence from sessions that touched a specific file location.
+   *
+   * Searches for tool calls (Edit, Write, Read) that operated on the
+   * specified file, optionally within a range of lines around the issue.
+   *
+   * @param options - Location options including file path and line number
+   * @param db - Optional database instance for direct queries
+   * @returns Evidence items related to the file location
+   */
+  collectLocationEvidence(
+    options: CollectLocationEvidenceOptions,
+    _db?: Database
+  ): CollectEvidenceResult {
+    const startTime = Date.now();
+    const {
+      filePath,
+      lineNumber,
+      lineRange = 10,
+      projectPath,
+      dbPath = this.dbPath,
+    } = options;
+
+    // Use the search function with file path in query
+    const query = `file_path:"${this.escapeQuotes(filePath)}"`;
+
+    const searchInput: Parameters<typeof searchSessions>[0] = {
+      query,
+      limit: 100,
+      offset: 0,
+    };
+    if (projectPath) searchInput.project = projectPath;
+
+    const searchResult = searchSessions(searchInput, { dbPath });
+
+    if (!searchResult.success) {
+      return {
+        evidence: [],
+        totalMatches: 0,
+        queryTimeMs: Date.now() - startTime,
+        warnings: [searchResult.error?.message ?? 'Search failed'],
+      };
+    }
+
+    // Filter by line number range if specified
+    let filteredResults = searchResult.results;
+    if (lineNumber !== undefined) {
+      const minLine = lineNumber - lineRange;
+      const maxLine = lineNumber + lineRange;
+      filteredResults = searchResult.results.filter((result) => {
+        if (!result.lineNumber) return true; // Include results without line numbers
+        return result.lineNumber >= minLine && result.lineNumber <= maxLine;
+      });
+    }
+
+    // Convert to evidence items
+    const evidence = filteredResults.map((result) =>
+      this.searchResultToEvidence(result)
+    );
+
+    return {
+      evidence,
+      totalMatches: filteredResults.length,
+      queryTimeMs: Date.now() - startTime,
+    };
+  }
+
+  /**
+   * Sort evidence items by timestamp (ascending - oldest first).
+   *
+   * This ensures causal ordering where earlier events come before
+   * later effects.
+   *
+   * @param evidence - Evidence items to sort
+   * @returns Sorted evidence items
+   */
+  sortByTimestamp(evidence: EvidenceItem[]): EvidenceItem[] {
+    return [...evidence].sort((a, b) => {
+      const timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+      const timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+      return timeA - timeB;
+    });
+  }
+
+  /**
+   * Find the earliest evidence item (potential trigger).
+   *
+   * @param evidence - Evidence items to search
+   * @returns The earliest evidence item, or undefined if empty
+   */
+  findTrigger(evidence: EvidenceItem[]): EvidenceItem | undefined {
+    if (evidence.length === 0) return undefined;
+    return this.sortByTimestamp(evidence)[0];
+  }
+
+  /**
+   * Create a temporal marker evidence item.
+   *
+   * @param timestamp - When the event occurred
+   * @param description - What the event was
+   * @param metadata - Additional context
+   * @returns A TemporalMarker evidence item
+   */
+  createTemporalMarker(
+    timestamp: string,
+    description: string,
+    metadata?: Record<string, unknown>
+  ): EvidenceItem {
+    return {
+      id: uuidv4(),
+      type: 'TemporalMarker',
+      source: 'temporal-analysis',
+      timestamp,
+      content: description,
+      metadata,
+    };
+  }
+
+  /**
+   * Create a position object from file coordinates.
+   *
+   * @param filePath - Path to the file
+   * @param line - Line number (optional)
+   * @param column - Column number (optional)
+   * @param snippet - Code snippet (optional)
+   * @returns Position object
+   */
+  createPosition(
+    filePath: string,
+    line?: number,
+    column?: number,
+    snippet?: string
+  ): Position {
+    const position: Position = { filePath };
+    if (line !== undefined) position.line = line;
+    if (column !== undefined) position.column = column;
+    if (snippet !== undefined) position.snippet = snippet;
+    return position;
+  }
+
+  // ===========================================================================
+  // Private Methods
+  // ===========================================================================
+
+  /**
+   * Build an FTS5 query from keywords.
+   */
+  private buildFtsQuery(keywords: string[]): string {
+    if (keywords.length === 0) return '';
+
+    // Escape special characters and join with OR
+    const escaped = keywords
+      .filter((k) => k.trim().length > 0)
+      .map((k) => this.escapeQuotes(k.trim()));
+
+    if (escaped.length === 0) return '';
+    if (escaped.length === 1) return escaped[0]!;
+
+    return escaped.join(' OR ');
+  }
+
+  /**
+   * Escape quotes in a search term.
+   */
+  private escapeQuotes(term: string): string {
+    return term.replace(/"/g, '""');
+  }
+
+  /**
+   * Convert a search result to an evidence item.
+   */
+  private searchResultToEvidence(result: {
+    sessionId: string;
+    timestamp: string;
+    contentSnippet: string;
+    relevanceScore: number;
+    filePath: string;
+    lineNumber: number;
+    projectPath: string;
+    role?: string;
+    toolName?: string;
+  }): EvidenceItem {
+    const position =
+      result.filePath && result.filePath.length > 0
+        ? this.createPosition(result.filePath, result.lineNumber || undefined)
+        : undefined;
+
+    return {
+      id: uuidv4(),
+      type: result.toolName ? 'ToolTrace' : 'SessionMatch',
+      source: result.sessionId,
+      timestamp: result.timestamp,
+      content: result.contentSnippet,
+      position,
+      metadata: {
+        relevanceScore: result.relevanceScore,
+        projectPath: result.projectPath,
+        role: result.role,
+        toolName: result.toolName,
+      },
+    };
+  }
+}
+
+// =============================================================================
+// Factory Function
+// =============================================================================
+
+/**
+ * Create a new EvidenceCollector instance.
+ *
+ * @param dbPath - Optional path to the sessions database
+ * @returns EvidenceCollector instance
+ */
+export function createEvidenceCollector(dbPath?: string): EvidenceCollector {
+  return new EvidenceCollector(dbPath);
+}
