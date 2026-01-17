@@ -86,7 +86,7 @@ export class CounterfactualGenerator {
 
     // Generate counterfactual from gap properties
     const locationName = includeLocation
-      ? LOCATION_NAMES[gap.location] ?? 'configuration'
+      ? (LOCATION_NAMES[gap.location] ?? 'configuration')
       : undefined;
 
     const guidance = this.sanitizeGuidance(gap.expectedGuidance);
@@ -216,10 +216,7 @@ export function createCounterfactualGenerator(): CounterfactualGenerator {
  * @param options - Generation options
  * @returns Counterfactual statement
  */
-export function generateCounterfactual(
-  gap: Gap,
-  options: CounterfactualOptions = {}
-): string {
+export function generateCounterfactual(gap: Gap, options: CounterfactualOptions = {}): string {
   const generator = new CounterfactualGenerator();
   return generator.generateFromGap(gap, options);
 }

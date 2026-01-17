@@ -107,6 +107,39 @@ export {
   type AssessConfidenceInput,
 } from './confidence.js';
 
+// Git Evidence Collector
+export {
+  GitEvidenceCollector,
+  createGitEvidenceCollector,
+  type PickaxeOptions,
+  type CollectEvidenceOptions,
+  type GitEvidenceResult,
+} from './git-evidence.js';
+
+// Config Snapshot
+export {
+  ConfigSnapshot,
+  createConfigSnapshot,
+  captureConfigState,
+  type ClaudeMdContent,
+  type GuidanceItem,
+  type ConfigChange,
+  type ConfigDiff,
+  type ConfigState,
+} from './config-snapshot.js';
+
+// Pattern Tracking
+export {
+  PatternTracker,
+  createPatternTracker,
+  SeverityLevel,
+  type TrendDirection,
+  type FrequencyRecord,
+  type TrendAnalysis,
+  type PatternAlert,
+  type PatternSummary,
+} from './pattern-tracking.js';
+
 // SDK Tools
 export { traceIssueOriginTool } from './trace-issue-tool.js';
 export { getIssuePatternsTool } from './get-patterns-tool.js';

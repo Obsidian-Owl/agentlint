@@ -12,20 +12,13 @@ import { tmpdir } from 'node:os';
 import { v4 as uuidv4 } from 'uuid';
 
 import { createCausalTables, insertChain, insertPattern } from '../../../src/persistence/causal';
-import { EvidenceCollector, createEvidenceCollector, FTS_ERROR_MESSAGES } from '../../../src/tools/causal';
-import { PatternDetector, createPatternDetector, SYSTEMIC_THRESHOLD } from '../../../src/tools/causal';
-import { ChainBuilder, createChainBuilder } from '../../../src/tools/causal';
-import { GapAnalyzer, createGapAnalyzer } from '../../../src/tools/causal';
-import { ConfidenceAssessor, createConfidenceAssessor, CONFIDENCE_THRESHOLDS } from '../../../src/tools/causal';
-import { CounterfactualGenerator, createCounterfactualGenerator } from '../../../src/tools/causal';
+import { FTS_ERROR_MESSAGES } from '../../../src/tools/causal';
+import { createPatternDetector, SYSTEMIC_THRESHOLD } from '../../../src/tools/causal';
+import { createChainBuilder } from '../../../src/tools/causal';
+import { createConfidenceAssessor, CONFIDENCE_THRESHOLDS } from '../../../src/tools/causal';
+import { createCounterfactualGenerator } from '../../../src/tools/causal';
 
-import type {
-  CausalChain,
-  EvidenceItem,
-  Gap,
-  IssuePattern,
-  TracedIssue,
-} from '../../../src/tools/causal/types';
+import type { CausalChain, EvidenceItem, Gap, IssuePattern } from '../../../src/tools/causal/types';
 
 // =============================================================================
 // Test Fixtures
@@ -152,7 +145,8 @@ describe('EP07 Quickstart Scenarios (T051)', () => {
     it('should include counterfactual analysis', () => {
       const chainBuilder = createChainBuilder();
       const gap = createTestGap({
-        counterfactual: 'If credential handling were documented, secret would not have been exposed',
+        counterfactual:
+          'If credential handling were documented, secret would not have been exposed',
       });
 
       const result = chainBuilder.build({

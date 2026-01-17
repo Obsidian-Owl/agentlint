@@ -25,10 +25,7 @@ import { SYSTEMIC_THRESHOLD } from './pattern-detector';
  * Input schema for get_issue_patterns tool.
  */
 const getPatternsInputSchema = {
-  projectPath: z
-    .string()
-    .optional()
-    .describe('Filter patterns to this project path'),
+  projectPath: z.string().optional().describe('Filter patterns to this project path'),
   minFrequency: z
     .number()
     .int()
@@ -108,7 +105,9 @@ function formatPatterns(patterns: IssuePattern[], totalCount: number): string {
     lines.push(`**Total (unfiltered)**: ${totalCount}`);
   }
   if (systemicCount > 0) {
-    lines.push(`**Systemic Issues**: ${systemicCount} pattern(s) with ${SYSTEMIC_THRESHOLD}+ occurrences`);
+    lines.push(
+      `**Systemic Issues**: ${systemicCount} pattern(s) with ${SYSTEMIC_THRESHOLD}+ occurrences`
+    );
   }
   lines.push('');
 
@@ -175,6 +174,7 @@ Each pattern links back to the chains that contributed to it.
 
 Returns patterns sorted by frequency (most common first).`,
   getPatternsInputSchema,
+  // eslint-disable-next-line @typescript-eslint/require-await
   async (args) => {
     const dbPath = DEFAULT_SESSIONS_DB_PATH;
 
@@ -182,16 +182,11 @@ Returns patterns sorted by frequency (most common first).`,
       const db = openDatabase(dbPath);
       try {
         // Fetch patterns from database
-        let patterns: IssuePattern[];
-        let totalCount: number;
+        let patterns: IssuePattern[] = args.projectPath
+          ? getPatternsByProject(db, args.projectPath)
+          : getAllPatterns(db);
 
-        if (args.projectPath) {
-          patterns = getPatternsByProject(db, args.projectPath);
-        } else {
-          patterns = getAllPatterns(db);
-        }
-
-        totalCount = patterns.length;
+        const totalCount = patterns.length;
 
         // Apply filters
         if (args.minFrequency && args.minFrequency > 1) {

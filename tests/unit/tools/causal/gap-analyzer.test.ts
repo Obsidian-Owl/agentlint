@@ -11,6 +11,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
 import type { Gap, GapType, GapLocation } from '../../../../src/tools/causal/types';
+import type { ConfigState } from '../../../../src/tools/causal/config-snapshot';
 
 // =============================================================================
 // Test Fixtures
@@ -55,10 +56,7 @@ Follow best practices.
 
   if (options.hasProjectConfig) {
     const configPath = join(claudeDir, 'settings.json');
-    writeFileSync(
-      configPath,
-      JSON.stringify({ projectSettings: true }, null, 2)
-    );
+    writeFileSync(configPath, JSON.stringify({ projectSettings: true }, null, 2));
   }
 
   if (options.hasMcpConfig) {
@@ -69,10 +67,7 @@ Follow best practices.
   if (options.hasSkills) {
     const skillsDir = join(claudeDir, 'skills');
     mkdirSync(skillsDir, { recursive: true });
-    writeFileSync(
-      join(skillsDir, 'test-skill.md'),
-      '# Test Skill\nA test skill.'
-    );
+    writeFileSync(join(skillsDir, 'test-skill.md'), '# Test Skill\nA test skill.');
   }
 
   return projectDir;
@@ -119,8 +114,7 @@ describe('GapAnalyzer', () => {
         type: 'missing_config',
         location: 'claude_md',
         expectedGuidance: 'Project configuration and guidelines',
-        counterfactual:
-          'If CLAUDE.md existed, the agent would have project-specific guidance',
+        counterfactual: 'If CLAUDE.md existed, the agent would have project-specific guidance',
       };
 
       expect(gap.type).toBe('missing_config');
@@ -138,17 +132,10 @@ describe('GapAnalyzer', () => {
       const content = await Bun.file(claudeMdPath).text();
 
       // Check for expected sections (what GapAnalyzer will do)
-      const expectedSections = [
-        'error handling',
-        'testing',
-        'code style',
-        'architecture',
-      ];
+      const expectedSections = ['error handling', 'testing', 'code style', 'architecture'];
 
       const lowerContent = content.toLowerCase();
-      const missingSections = expectedSections.filter(
-        (section) => !lowerContent.includes(section)
-      );
+      const missingSections = expectedSections.filter((section) => !lowerContent.includes(section));
 
       expect(missingSections.length).toBeGreaterThan(0);
 
@@ -156,8 +143,7 @@ describe('GapAnalyzer', () => {
         type: 'missing_guidance',
         location: 'claude_md',
         expectedGuidance: `Missing sections: ${missingSections.join(', ')}`,
-        counterfactual:
-          'If these sections existed, the agent would have specific guidance',
+        counterfactual: 'If these sections existed, the agent would have specific guidance',
       };
 
       expect(gap.type).toBe('missing_guidance');
@@ -177,8 +163,7 @@ describe('GapAnalyzer', () => {
         type: 'missing_config',
         location: 'project_config',
         expectedGuidance: 'Project-specific Claude settings',
-        counterfactual:
-          'If project settings existed, behavior would be customized',
+        counterfactual: 'If project settings existed, behavior would be customized',
       };
 
       expect(gap.type).toBe('missing_config');
@@ -221,8 +206,7 @@ describe('GapAnalyzer', () => {
         type: 'missing_config',
         location: 'skill',
         expectedGuidance: 'Custom skill definitions',
-        counterfactual:
-          'If skills existed, specific workflows would be available',
+        counterfactual: 'If skills existed, specific workflows would be available',
       };
 
       expect(gap.type).toBe('missing_config');
@@ -256,9 +240,7 @@ Use modular design patterns.
 
       // Verify all files exist
       expect(existsSync(join(projectDir, 'CLAUDE.md'))).toBe(true);
-      expect(existsSync(join(projectDir, '.claude', 'settings.json'))).toBe(
-        true
-      );
+      expect(existsSync(join(projectDir, '.claude', 'settings.json'))).toBe(true);
       expect(existsSync(join(projectDir, '.mcp.json'))).toBe(true);
       expect(existsSync(join(projectDir, '.claude', 'skills'))).toBe(true);
 
@@ -308,8 +290,7 @@ The API should be called with proper parameters.
         type: 'missing_example',
         location: 'claude_md',
         expectedGuidance: 'Code examples for API usage',
-        counterfactual:
-          'If code examples existed, the agent would know the correct pattern',
+        counterfactual: 'If code examples existed, the agent would know the correct pattern',
       };
 
       expect(gap.type).toBe('missing_example');
@@ -329,8 +310,7 @@ TODO: Add error handling guidelines
         type: 'missing_guidance',
         location: 'claude_md',
         expectedGuidance: 'Error handling guidelines',
-        counterfactual:
-          'If guidelines were complete, the agent would handle errors correctly',
+        counterfactual: 'If guidelines were complete, the agent would handle errors correctly',
       };
 
       expect(gap.type).toBe('missing_guidance');
@@ -341,9 +321,7 @@ TODO: Add error handling guidelines
       const claudeMdContent = '# CLAUDE.md\n\nGeneral guidelines.';
 
       const termsInIssue = ['FooBar', 'BazQux'];
-      const termsDefined = termsInIssue.filter((term) =>
-        claudeMdContent.includes(term)
-      );
+      const termsDefined = termsInIssue.filter((term) => claudeMdContent.includes(term));
 
       expect(termsDefined.length).toBe(0);
 
@@ -351,8 +329,7 @@ TODO: Add error handling guidelines
         type: 'terminology_gap',
         location: 'claude_md',
         expectedGuidance: 'Definition of FooBar and BazQux patterns',
-        counterfactual:
-          'If terms were defined, the agent would use the correct pattern',
+        counterfactual: 'If terms were defined, the agent would use the correct pattern',
       };
 
       expect(gap.type).toBe('terminology_gap');
@@ -365,8 +342,7 @@ TODO: Add error handling guidelines
         type: 'context_loss',
         location: 'claude_md',
         expectedGuidance: 'Persistent architecture documentation',
-        counterfactual:
-          'If architecture was documented, agent would not need to ask again',
+        counterfactual: 'If architecture was documented, agent would not need to ask again',
       };
 
       expect(gap.type).toBe('context_loss');
@@ -429,12 +405,8 @@ TODO: Add error handling guidelines
         other: 0,
       };
 
-      expect(gapSeverity['missing_config']).toBeGreaterThan(
-        gapSeverity['missing_guidance']
-      );
-      expect(gapSeverity['missing_guidance']).toBeGreaterThan(
-        gapSeverity['missing_example']
-      );
+      expect(gapSeverity['missing_config']).toBeGreaterThan(gapSeverity['missing_guidance']);
+      expect(gapSeverity['missing_guidance']).toBeGreaterThan(gapSeverity['missing_example']);
     });
 
     it('should generate counterfactual from gap', () => {
@@ -454,8 +426,7 @@ TODO: Add error handling guidelines
     });
 
     it('should extract keywords from issue for gap matching', () => {
-      const issueDescription =
-        'TypeError: Cannot read property undefined - missing null check';
+      const issueDescription = 'TypeError: Cannot read property undefined - missing null check';
 
       const keywords = issueDescription
         .toLowerCase()
@@ -485,9 +456,7 @@ Use TypeScript strict mode.
       // Find sections that should contain these keywords
       const sections = claudeMdContent.split(/^## /m).slice(1);
       const matchingSections = sections.filter((section) =>
-        issueKeywords.some((keyword) =>
-          section.toLowerCase().includes(keyword)
-        )
+        issueKeywords.some((keyword) => section.toLowerCase().includes(keyword))
       );
 
       expect(matchingSections.length).toBeGreaterThan(0);
@@ -515,8 +484,7 @@ Use TypeScript strict mode.
         type: 'missing_guidance',
         location: 'claude_md',
         expectedGuidance: 'Any project guidance',
-        counterfactual:
-          'CLAUDE.md exists but is empty - no guidance available',
+        counterfactual: 'CLAUDE.md exists but is empty - no guidance available',
       };
 
       expect(gap.type).toBe('missing_guidance');
@@ -534,13 +502,7 @@ Use TypeScript strict mode.
     });
 
     it('should handle deeply nested project structure', () => {
-      const deepDir = join(
-        testBaseDir,
-        'deep',
-        'nested',
-        'project',
-        'structure'
-      );
+      const deepDir = join(testBaseDir, 'deep', 'nested', 'project', 'structure');
       mkdirSync(deepDir, { recursive: true });
       writeFileSync(join(deepDir, 'CLAUDE.md'), '# Deep Project');
 
@@ -555,6 +517,133 @@ Use TypeScript strict mode.
       // When file cannot be read, return undefined gap
       // rather than throwing
       expect(gap).toBeUndefined();
+    });
+  });
+
+  // ===========================================================================
+  // T058: Config Snapshot Integration
+  // ===========================================================================
+
+  describe('config snapshot integration', () => {
+    it('should accept configSnapshot in options', async () => {
+      const { createGapAnalyzer } = await import('../../../../src/tools/causal/gap-analyzer');
+
+      const analyzer = createGapAnalyzer();
+      const projectDir = createMockProject(testBaseDir, {
+        hasClaudeMd: true,
+        hasProjectConfig: true,
+        hasMcpConfig: true,
+      });
+
+      // Create a config snapshot
+      const snapshot: ConfigState = {
+        projectPath: projectDir,
+        capturedAt: new Date().toISOString(),
+        claudeMd: {
+          content: '# CLAUDE.md\n\n## Guidelines\n- Use TypeScript\n',
+          path: join(projectDir, 'CLAUDE.md'),
+        },
+        projectSettings: { model: 'claude-sonnet' },
+        mcpConfig: { mcpServers: {} },
+      };
+
+      const result = analyzer.analyzeGaps({
+        projectPath: projectDir,
+        configSnapshot: snapshot,
+      });
+
+      expect(result.configState).toBeDefined();
+      expect(result.configState?.projectPath).toBe(projectDir);
+    });
+
+    it('should use snapshot instead of reading files when provided', async () => {
+      const { createGapAnalyzer } = await import('../../../../src/tools/causal/gap-analyzer');
+
+      const analyzer = createGapAnalyzer();
+      const projectDir = join(testBaseDir, 'snapshot-only');
+      mkdirSync(projectDir, { recursive: true });
+
+      // No files on disk, but provide snapshot with config
+      const snapshot: ConfigState = {
+        projectPath: projectDir,
+        capturedAt: new Date().toISOString(),
+        claudeMd: {
+          content:
+            '# CLAUDE.md\n\n## Error Handling\nUse try-catch.\n\n## Testing\nWrite unit tests.',
+          path: join(projectDir, 'CLAUDE.md'),
+        },
+        projectSettings: { model: 'claude-sonnet' },
+        mcpConfig: { mcpServers: {} },
+      };
+
+      const result = analyzer.analyzeGaps({
+        projectPath: projectDir,
+        configSnapshot: snapshot,
+      });
+
+      // Should not flag CLAUDE.md as missing since snapshot has it
+      const missingClaudeMd = result.allGaps.find(
+        (g) => g.type === 'missing_config' && g.location === 'claude_md'
+      );
+      expect(missingClaudeMd).toBeUndefined();
+    });
+
+    it('should extract guidance from snapshot', async () => {
+      const { createGapAnalyzer } = await import('../../../../src/tools/causal/gap-analyzer');
+
+      const analyzer = createGapAnalyzer();
+      const projectDir = createMockProject(testBaseDir, {
+        hasClaudeMd: true,
+      });
+
+      const snapshot: ConfigState = {
+        projectPath: projectDir,
+        capturedAt: new Date().toISOString(),
+        claudeMd: {
+          content:
+            '# CLAUDE.md\n\n## Secrets\nNever commit API keys.\n\n## Guidelines\n- Use TypeScript\n- Follow TDD',
+          path: join(projectDir, 'CLAUDE.md'),
+        },
+      };
+
+      const result = analyzer.analyzeGaps({
+        projectPath: projectDir,
+        configSnapshot: snapshot,
+      });
+
+      expect(result.guidance).toBeDefined();
+      expect(result.guidance!.length).toBeGreaterThan(0);
+
+      // Should identify security guidance
+      const securityGuidance = result.guidance!.find((g) => g.category === 'security');
+      expect(securityGuidance).toBeDefined();
+    });
+
+    it('should detect gaps from missing snapshot fields', async () => {
+      const { createGapAnalyzer } = await import('../../../../src/tools/causal/gap-analyzer');
+
+      const analyzer = createGapAnalyzer();
+      const projectDir = join(testBaseDir, 'partial-snapshot');
+      mkdirSync(projectDir, { recursive: true });
+
+      // Snapshot without CLAUDE.md
+      const snapshot: ConfigState = {
+        projectPath: projectDir,
+        capturedAt: new Date().toISOString(),
+        // claudeMd is undefined
+        projectSettings: { model: 'claude-sonnet' },
+      };
+
+      const result = analyzer.analyzeGaps({
+        projectPath: projectDir,
+        configSnapshot: snapshot,
+      });
+
+      // Should flag missing CLAUDE.md
+      const missingClaudeMd = result.allGaps.find(
+        (g) => g.type === 'missing_config' && g.location === 'claude_md'
+      );
+      expect(missingClaudeMd).toBeDefined();
     });
   });
 });

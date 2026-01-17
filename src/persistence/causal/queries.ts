@@ -163,8 +163,7 @@ interface EvidenceRow {
 function rowToChain(row: ChainRow, evidence: EvidenceItem[]): CausalChain {
   // Find trigger evidence (first SessionMatch or first evidence)
   // Schema guarantees at least 1 evidence item, but handle empty case defensively
-  const trigger =
-    evidence.find((e) => e.type === 'SessionMatch') ??
+  const trigger = evidence.find((e) => e.type === 'SessionMatch') ??
     evidence[0] ?? {
       id: uuidv4(),
       type: 'TemporalMarker' as const,
@@ -223,9 +222,7 @@ function rowToEvidence(row: EvidenceRow): EvidenceItem {
             snippet: row.snippet ?? undefined,
           }
         : undefined,
-    metadata: row.metadata
-      ? (JSON.parse(row.metadata) as Record<string, unknown>)
-      : undefined,
+    metadata: row.metadata ? (JSON.parse(row.metadata) as Record<string, unknown>) : undefined,
   };
 }
 
@@ -246,9 +243,10 @@ export function getChainById(db: Database, chainId: string): CausalChain | null 
   }
 
   const evidenceRows = db
-    .query<EvidenceRow, [string]>(
-      'SELECT * FROM evidence_items WHERE chain_id = ? ORDER BY sequence'
-    )
+    .query<
+      EvidenceRow,
+      [string]
+    >('SELECT * FROM evidence_items WHERE chain_id = ? ORDER BY sequence')
     .all(chainId);
 
   const evidence = evidenceRows.map(rowToEvidence);
@@ -286,9 +284,10 @@ export function getChainsByProject(
 
   return chainRows.map((row) => {
     const evidenceRows = db
-      .query<EvidenceRow, [string]>(
-        'SELECT * FROM evidence_items WHERE chain_id = ? ORDER BY sequence'
-      )
+      .query<
+        EvidenceRow,
+        [string]
+      >('SELECT * FROM evidence_items WHERE chain_id = ? ORDER BY sequence')
       .all(row.id);
 
     const evidence = evidenceRows.map(rowToEvidence);
@@ -305,9 +304,10 @@ export function getChainsByProject(
  */
 export function countChainsByProject(db: Database, projectPath: string): number {
   const result = db
-    .query<{ count: number }, [string]>(
-      'SELECT COUNT(*) as count FROM causal_chains WHERE project_path = ?'
-    )
+    .query<
+      { count: number },
+      [string]
+    >('SELECT COUNT(*) as count FROM causal_chains WHERE project_path = ?')
     .get(projectPath);
   return result?.count ?? 0;
 }
@@ -367,10 +367,7 @@ export function insertPattern(db: Database, pattern: IssuePattern): string {
   for (const chainId of pattern.chainIds) {
     insertLinkStmt.run({ $chainId: chainId, $patternId: patternId });
     // Also update the chain's pattern_id
-    db.run('UPDATE causal_chains SET pattern_id = ? WHERE id = ?', [
-      patternId,
-      chainId,
-    ]);
+    db.run('UPDATE causal_chains SET pattern_id = ? WHERE id = ?', [patternId, chainId]);
   }
 
   return patternId;
@@ -465,10 +462,7 @@ export function getPatternsByProject(
  * @param patternId - Pattern ID to retrieve
  * @returns The pattern or null if not found
  */
-export function getPatternById(
-  db: Database,
-  patternId: string
-): IssuePattern | null {
+export function getPatternById(db: Database, patternId: string): IssuePattern | null {
   const row = db
     .query<PatternRow, [string]>('SELECT * FROM issue_patterns WHERE id = ?')
     .get(patternId);
@@ -512,16 +506,13 @@ export function addChainToPattern(
   timestamp: string
 ): void {
   // Link chain to pattern
-  db.run(
-    'INSERT OR IGNORE INTO chain_patterns (chain_id, pattern_id) VALUES (?, ?)',
-    [chainId, patternId]
-  );
+  db.run('INSERT OR IGNORE INTO chain_patterns (chain_id, pattern_id) VALUES (?, ?)', [
+    chainId,
+    patternId,
+  ]);
 
   // Update chain's pattern_id
-  db.run('UPDATE causal_chains SET pattern_id = ? WHERE id = ?', [
-    patternId,
-    chainId,
-  ]);
+  db.run('UPDATE causal_chains SET pattern_id = ? WHERE id = ?', [patternId, chainId]);
 
   // Update pattern frequency and timestamps
   db.run(
@@ -543,9 +534,7 @@ export function addChainToPattern(
  */
 export function deletePattern(db: Database, patternId: string): boolean {
   // Clear pattern_id from linked chains
-  db.run('UPDATE causal_chains SET pattern_id = NULL WHERE pattern_id = ?', [
-    patternId,
-  ]);
+  db.run('UPDATE causal_chains SET pattern_id = NULL WHERE pattern_id = ?', [patternId]);
 
   // Delete pattern (cascade will remove chain_patterns links)
   const result = db.run('DELETE FROM issue_patterns WHERE id = ?', [patternId]);

@@ -198,11 +198,7 @@ export class PatternDetector {
    * @param sampleGuidance - Sample expected guidance text
    * @returns Human-readable summary
    */
-  generateSummary(
-    category: GapType,
-    chainCount: number,
-    sampleGuidance?: string
-  ): string {
+  generateSummary(category: GapType, chainCount: number, sampleGuidance?: string): string {
     const categoryName = category.replace(/_/g, ' ');
     let summary = `Recurring ${categoryName} (${chainCount} occurrences)`;
 
@@ -241,14 +237,9 @@ export class PatternDetector {
   /**
    * Build a pattern from a group of chains.
    */
-  private buildPattern(
-    category: GapType,
-    chains: CausalChain[]
-  ): IssuePattern {
+  private buildPattern(category: GapType, chains: CausalChain[]): IssuePattern {
     const chainIds = chains.map((c) => c.id);
-    const timestamps = chains
-      .map((c) => c.createdAt)
-      .sort();
+    const timestamps = chains.map((c) => c.createdAt).sort();
     const firstOccurrence = timestamps[0] ?? new Date().toISOString();
     const lastOccurrence = timestamps[timestamps.length - 1] ?? firstOccurrence;
 
@@ -294,10 +285,7 @@ export class PatternDetector {
   /**
    * Update an existing pattern with a new chain.
    */
-  private updatePattern(
-    pattern: IssuePattern,
-    chain: CausalChain
-  ): IssuePattern {
+  private updatePattern(pattern: IssuePattern, chain: CausalChain): IssuePattern {
     const chainIds = [...pattern.chainIds, chain.id];
     const frequency = chainIds.length;
 
@@ -320,11 +308,7 @@ export class PatternDetector {
       isSystemic: this.isSystemic(frequency),
       firstOccurrence,
       lastOccurrence,
-      summary: this.generateSummary(
-        pattern.category,
-        frequency,
-        chain.gap?.expectedGuidance
-      ),
+      summary: this.generateSummary(pattern.category, frequency, chain.gap?.expectedGuidance),
     };
   }
 }

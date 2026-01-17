@@ -24,7 +24,6 @@ import type {
   EvidenceItem,
   Gap,
   IssuePattern,
-  GapType,
   GetPatternsInput,
   GetPatternsOutput,
 } from '../../../src/tools/causal/types';
@@ -327,9 +326,7 @@ describe('get_issue_patterns integration', () => {
       const allPatterns = getPatternsByProject(db, '/test/project');
 
       // Filter by category manually (simulating what the tool will do)
-      const filteredPatterns = allPatterns.filter(
-        (p) => p.category === 'missing_guidance'
-      );
+      const filteredPatterns = allPatterns.filter((p) => p.category === 'missing_guidance');
 
       expect(filteredPatterns).toHaveLength(1);
       expect(filteredPatterns[0]!.category).toBe('missing_guidance');
@@ -358,9 +355,7 @@ describe('get_issue_patterns integration', () => {
       const allPatterns = getPatternsByProject(db, '/test/project');
       const minFrequency = 3;
 
-      const filteredPatterns = allPatterns.filter(
-        (p) => p.frequency >= minFrequency
-      );
+      const filteredPatterns = allPatterns.filter((p) => p.frequency >= minFrequency);
 
       expect(filteredPatterns).toHaveLength(1);
       expect(filteredPatterns[0]!.frequency).toBe(5);

@@ -186,9 +186,7 @@ export function causalTablesExist(db: Database): boolean {
 export function getCausalSchemaVersion(db: Database): number {
   try {
     const result = db
-      .query<{ version: number }, []>(
-        'SELECT MAX(version) as version FROM causal_schema_version'
-      )
+      .query<{ version: number }, []>('SELECT MAX(version) as version FROM causal_schema_version')
       .get();
     return result?.version ?? 0;
   } catch {
@@ -204,10 +202,10 @@ export function getCausalSchemaVersion(db: Database): number {
  * @param version - Version to set
  */
 function setCausalSchemaVersion(db: Database, version: number): void {
-  db.run(
-    'INSERT OR IGNORE INTO causal_schema_version (version, applied_at) VALUES (?, ?)',
-    [version, new Date().toISOString()]
-  );
+  db.run('INSERT OR IGNORE INTO causal_schema_version (version, applied_at) VALUES (?, ?)', [
+    version,
+    new Date().toISOString(),
+  ]);
 }
 
 /**
@@ -277,11 +275,7 @@ const migrations: Record<number, MigrationFn> = {
  * @param fromVersion - Current version
  * @param toVersion - Target version
  */
-export function migrateCausalSchema(
-  db: Database,
-  fromVersion: number,
-  toVersion: number
-): void {
+export function migrateCausalSchema(db: Database, fromVersion: number, toVersion: number): void {
   if (fromVersion === 0) {
     // Fresh database - create all tables
     createCausalTables(db);

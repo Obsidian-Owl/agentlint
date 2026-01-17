@@ -54,9 +54,7 @@ function createTestGapWithCounterfactual(overrides: Partial<Gap> = {}): Gap {
 /**
  * Create a test evidence item.
  */
-function createTestEvidence(
-  overrides: Partial<EvidenceItem> = {}
-): EvidenceItem {
+function createTestEvidence(overrides: Partial<EvidenceItem> = {}): EvidenceItem {
   return {
     id: uuidv4(),
     type: 'SessionMatch',

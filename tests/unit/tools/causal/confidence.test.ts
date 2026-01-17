@@ -348,9 +348,7 @@ describe('Confidence Assessment', () => {
 
   describe('edge cases', () => {
     it('should handle evidence without timestamps', () => {
-      const evidence = [
-        createTestEvidence({ timestamp: undefined }),
-      ];
+      const evidence = [createTestEvidence({ timestamp: undefined })];
 
       const score = assessor.assess({
         evidence,
@@ -361,9 +359,7 @@ describe('Confidence Assessment', () => {
     });
 
     it('should handle evidence without position', () => {
-      const evidence = [
-        createTestEvidence({ position: undefined }),
-      ];
+      const evidence = [createTestEvidence({ position: undefined })];
 
       const score = assessor.assess({
         evidence,
@@ -376,9 +372,7 @@ describe('Confidence Assessment', () => {
 
     it('should handle very old evidence', () => {
       const oldDate = new Date('2020-01-01').toISOString();
-      const evidence = [
-        createTestEvidence({ timestamp: oldDate }),
-      ];
+      const evidence = [createTestEvidence({ timestamp: oldDate })];
 
       const score = assessor.assess({
         evidence,

@@ -2,8 +2,9 @@
  * EP07 Causal Tracing Engine - Type Contracts
  *
  * Zod schemas and TypeScript types for causal chain entities.
+ * These are design contracts - implementation will be in src/tools/causal/types.ts
  *
- * @module src/tools/causal/types
+ * @module specs/ep07-causal-tracing-engine/contracts/types
  */
 
 import { z } from 'zod';

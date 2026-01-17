@@ -169,8 +169,8 @@ describe('causal/queries', () => {
 
       const retrieved = getChainById(db, chain.id);
       expect(retrieved!.evidence.length).toBe(2);
-      expect(retrieved!.evidence[0].type).toBe('SessionMatch');
-      expect(retrieved!.evidence[1].type).toBe('ConfigGap');
+      expect(retrieved!.evidence[0]!.type).toBe('SessionMatch');
+      expect(retrieved!.evidence[1]!.type).toBe('ConfigGap');
     });
 
     it('should handle chain without gap', () => {
@@ -274,13 +274,13 @@ describe('causal/queries', () => {
         orderBy: 'created_at',
         order: 'DESC',
       });
-      expect(descOrder[0].createdAt).toBe('2026-01-17T10:00:00Z');
+      expect(descOrder[0]!.createdAt).toBe('2026-01-17T10:00:00Z');
 
       const ascOrder = getChainsByProject(db, '/project', {
         orderBy: 'created_at',
         order: 'ASC',
       });
-      expect(ascOrder[0].createdAt).toBe('2026-01-15T10:00:00Z');
+      expect(ascOrder[0]!.createdAt).toBe('2026-01-15T10:00:00Z');
     });
   });
 
@@ -318,18 +318,20 @@ describe('causal/queries', () => {
       insertChain(db, chain);
 
       const evidenceBefore = db
-        .query<{ count: number }, [string]>(
-          'SELECT COUNT(*) as count FROM evidence_items WHERE chain_id = ?'
-        )
+        .query<
+          { count: number },
+          [string]
+        >('SELECT COUNT(*) as count FROM evidence_items WHERE chain_id = ?')
         .get(chain.id);
       expect(evidenceBefore?.count).toBe(2);
 
       deleteChain(db, chain.id);
 
       const evidenceAfter = db
-        .query<{ count: number }, [string]>(
-          'SELECT COUNT(*) as count FROM evidence_items WHERE chain_id = ?'
-        )
+        .query<
+          { count: number },
+          [string]
+        >('SELECT COUNT(*) as count FROM evidence_items WHERE chain_id = ?')
         .get(chain.id);
       expect(evidenceAfter?.count).toBe(0);
     });
@@ -418,15 +420,11 @@ describe('causal/queries', () => {
     });
 
     it('should filter by minimum frequency', () => {
-      const chains = [
-        createTestChain(),
-        createTestChain(),
-        createTestChain(),
-      ];
+      const chains = [createTestChain(), createTestChain(), createTestChain()];
       chains.forEach((c) => insertChain(db, c));
 
-      const pattern1 = createTestPattern([chains[0].id], { frequency: 1 });
-      const pattern2 = createTestPattern([chains[1].id, chains[2].id], {
+      const pattern1 = createTestPattern([chains[0]!.id], { frequency: 1 });
+      const pattern2 = createTestPattern([chains[1]!.id, chains[2]!.id], {
         frequency: 2,
       });
 
@@ -435,7 +433,7 @@ describe('causal/queries', () => {
 
       const filtered = getPatternsByProject(db, null, { minFrequency: 2 });
       expect(filtered.length).toBe(1);
-      expect(filtered[0].frequency).toBe(2);
+      expect(filtered[0]!.frequency).toBe(2);
     });
 
     it('should filter by category', () => {
@@ -444,46 +442,35 @@ describe('causal/queries', () => {
       insertChain(db, chain1);
       insertChain(db, chain2);
 
-      insertPattern(
-        db,
-        createTestPattern([chain1.id], { category: 'missing_config' })
-      );
-      insertPattern(
-        db,
-        createTestPattern([chain2.id], { category: 'missing_guidance' })
-      );
+      insertPattern(db, createTestPattern([chain1.id], { category: 'missing_config' }));
+      insertPattern(db, createTestPattern([chain2.id], { category: 'missing_guidance' }));
 
       const filtered = getPatternsByProject(db, null, {
         category: 'missing_config',
       });
       expect(filtered.length).toBe(1);
-      expect(filtered[0].category).toBe('missing_config');
+      expect(filtered[0]!.category).toBe('missing_config');
     });
 
     it('should filter by systemic only', () => {
-      const chains = [
-        createTestChain(),
-        createTestChain(),
-        createTestChain(),
-        createTestChain(),
-      ];
+      const chains = [createTestChain(), createTestChain(), createTestChain(), createTestChain()];
       chains.forEach((c) => insertChain(db, c));
 
-      const nonSystemic = createTestPattern([chains[0].id], {
+      const nonSystemic = createTestPattern([chains[0]!.id], {
         frequency: 1,
         isSystemic: false,
       });
-      const systemic = createTestPattern(
-        [chains[1].id, chains[2].id, chains[3].id],
-        { frequency: 3, isSystemic: true }
-      );
+      const systemic = createTestPattern([chains[1]!.id, chains[2]!.id, chains[3]!.id], {
+        frequency: 3,
+        isSystemic: true,
+      });
 
       insertPattern(db, nonSystemic);
       insertPattern(db, systemic);
 
       const filtered = getPatternsByProject(db, null, { onlySystemic: true });
       expect(filtered.length).toBe(1);
-      expect(filtered[0].isSystemic).toBe(true);
+      expect(filtered[0]!.isSystemic).toBe(true);
     });
   });
 
@@ -492,10 +479,10 @@ describe('causal/queries', () => {
       const chains = [createTestChain(), createTestChain()];
       chains.forEach((c) => insertChain(db, c));
 
-      const pattern = createTestPattern([chains[0].id], { frequency: 1 });
+      const pattern = createTestPattern([chains[0]!.id], { frequency: 1 });
       insertPattern(db, pattern);
 
-      addChainToPattern(db, pattern.id, chains[1].id, '2026-01-18T10:00:00Z');
+      addChainToPattern(db, pattern.id, chains[1]!.id, '2026-01-18T10:00:00Z');
 
       const updated = getPatternById(db, pattern.id);
       expect(updated!.chainIds.length).toBe(2);
@@ -520,20 +507,16 @@ describe('causal/queries', () => {
     });
 
     it('should set isSystemic when frequency reaches 3', () => {
-      const chains = [
-        createTestChain(),
-        createTestChain(),
-        createTestChain(),
-      ];
+      const chains = [createTestChain(), createTestChain(), createTestChain()];
       chains.forEach((c) => insertChain(db, c));
 
-      const pattern = createTestPattern([chains[0].id, chains[1].id], {
+      const pattern = createTestPattern([chains[0]!.id, chains[1]!.id], {
         frequency: 2,
         isSystemic: false,
       });
       insertPattern(db, pattern);
 
-      addChainToPattern(db, pattern.id, chains[2].id, '2026-01-18T10:00:00Z');
+      addChainToPattern(db, pattern.id, chains[2]!.id, '2026-01-18T10:00:00Z');
 
       const updated = getPatternById(db, pattern.id);
       expect(updated!.frequency).toBe(3);

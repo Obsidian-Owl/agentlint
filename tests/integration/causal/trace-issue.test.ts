@@ -11,11 +11,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { v4 as uuidv4 } from 'uuid';
 
-import {
-  createCausalTables,
-  insertChain,
-  getChainById,
-} from '../../../src/persistence/causal';
+import { createCausalTables, insertChain, getChainById } from '../../../src/persistence/causal';
 
 import type {
   CausalChain,
@@ -124,10 +120,7 @@ function createTestInput(overrides: Partial<TraceIssueInput> = {}): TraceIssueIn
 /**
  * Create a complete CausalChain for testing.
  */
-function createTestChain(
-  projectPath: string,
-  overrides: Partial<CausalChain> = {}
-): CausalChain {
+function createTestChain(projectPath: string, overrides: Partial<CausalChain> = {}): CausalChain {
   const now = new Date().toISOString();
   const triggerId = uuidv4();
 
@@ -607,9 +600,10 @@ describe('trace_issue_origin integration', () => {
 
       // Search for non-matching term
       const results = db
-        .query<{ session_id: string }, [string]>(
-          `SELECT session_id FROM session_entries WHERE session_entries MATCH ?`
-        )
+        .query<
+          { session_id: string },
+          [string]
+        >(`SELECT session_id FROM session_entries WHERE session_entries MATCH ?`)
         .all('zzzznonexistent');
 
       expect(results.length).toBe(0);

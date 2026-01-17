@@ -14,6 +14,7 @@ import { v4 as uuidv4 } from 'uuid';
 import type { EvidenceItem, Position } from './types';
 import { searchSessions } from '../sessions/search';
 import { DEFAULT_SESSIONS_DB_PATH } from '../sessions/utils';
+import { GitEvidenceCollector } from './git-evidence';
 
 // =============================================================================
 // Error Message Constants (T049-T050)
@@ -46,10 +47,7 @@ export const FTS_ERROR_MESSAGES = {
  * @param dbPath - Path to the database
  * @returns User-friendly error message
  */
-export function classifySearchError(
-  errorMessage: string,
-  dbPath: string
-): string {
+export function classifySearchError(errorMessage: string, dbPath: string): string {
   const lower = errorMessage.toLowerCase();
 
   // Check for database file issues
@@ -91,15 +89,15 @@ export interface CollectSessionEvidenceOptions {
   /** Keywords to search for in sessions */
   keywords: string[];
   /** Only search sessions in this project */
-  projectPath?: string;
+  projectPath?: string | undefined;
   /** Only search sessions after this date */
-  since?: string;
+  since?: string | undefined;
   /** Only search sessions before this date */
-  until?: string;
+  until?: string | undefined;
   /** Maximum number of results to return */
-  limit?: number;
+  limit?: number | undefined;
   /** Path to the sessions database */
-  dbPath?: string;
+  dbPath?: string | undefined;
 }
 
 /**
@@ -109,13 +107,13 @@ export interface CollectLocationEvidenceOptions {
   /** Path to the file where issue was found */
   filePath: string;
   /** Line number where issue was found */
-  lineNumber?: number;
+  lineNumber?: number | undefined;
   /** Range of lines to search around the issue (default: 10) */
-  lineRange?: number;
+  lineRange?: number | undefined;
   /** Only search sessions in this project */
-  projectPath?: string;
+  projectPath?: string | undefined;
   /** Path to the sessions database */
-  dbPath?: string;
+  dbPath?: string | undefined;
 }
 
 /**
@@ -129,9 +127,8 @@ export interface CollectEvidenceResult {
   /** Query execution time in milliseconds */
   queryTimeMs: number;
   /** Any errors or warnings */
-  warnings?: string[];
+  warnings?: string[] | undefined;
 }
-
 
 // =============================================================================
 // Evidence Collector Class
@@ -183,18 +180,9 @@ export class EvidenceCollector {
    * @param options - Search options including keywords and filters
    * @returns Evidence items with metadata
    */
-  collectSessionEvidence(
-    options: CollectSessionEvidenceOptions
-  ): CollectEvidenceResult {
+  collectSessionEvidence(options: CollectSessionEvidenceOptions): CollectEvidenceResult {
     const startTime = Date.now();
-    const {
-      keywords,
-      projectPath,
-      since,
-      until,
-      limit = 50,
-      dbPath = this.dbPath,
-    } = options;
+    const { keywords, projectPath, since, until, limit = 50, dbPath = this.dbPath } = options;
 
     // Build FTS5 query from keywords
     const query = this.buildFtsQuery(keywords);
@@ -231,9 +219,7 @@ export class EvidenceCollector {
     }
 
     // Convert search results to evidence items
-    const evidence = searchResult.results.map((result) =>
-      this.searchResultToEvidence(result)
-    );
+    const evidence = searchResult.results.map((result) => this.searchResultToEvidence(result));
 
     return {
       evidence,
@@ -257,13 +243,7 @@ export class EvidenceCollector {
     _db?: Database
   ): CollectEvidenceResult {
     const startTime = Date.now();
-    const {
-      filePath,
-      lineNumber,
-      lineRange = 10,
-      projectPath,
-      dbPath = this.dbPath,
-    } = options;
+    const { filePath, lineNumber, lineRange = 10, projectPath, dbPath = this.dbPath } = options;
 
     // Use the search function with file path in query
     const query = `file_path:"${this.escapeQuotes(filePath)}"`;
@@ -300,9 +280,7 @@ export class EvidenceCollector {
     }
 
     // Convert to evidence items
-    const evidence = filteredResults.map((result) =>
-      this.searchResultToEvidence(result)
-    );
+    const evidence = filteredResults.map((result) => this.searchResultToEvidence(result));
 
     return {
       evidence,
@@ -371,17 +349,190 @@ export class EvidenceCollector {
    * @param snippet - Code snippet (optional)
    * @returns Position object
    */
-  createPosition(
-    filePath: string,
-    line?: number,
-    column?: number,
-    snippet?: string
-  ): Position {
+  createPosition(filePath: string, line?: number, column?: number, snippet?: string): Position {
     const position: Position = { filePath };
     if (line !== undefined) position.line = line;
     if (column !== undefined) position.column = column;
     if (snippet !== undefined) position.snippet = snippet;
     return position;
+  }
+
+  // ===========================================================================
+  // Git Evidence Collection (T055)
+  // ===========================================================================
+
+  /**
+   * Collect evidence from git history for a specific file position.
+   *
+   * Uses git blame to find the commit that introduced a specific line.
+   *
+   * @param position - File and line to investigate
+   * @param projectPath - Path to the git repository
+   * @returns Git-based evidence items
+   */
+  collectGitBlameEvidence(position: Position, projectPath?: string): CollectEvidenceResult {
+    return this.collectGitEvidenceInternal({ position }, projectPath);
+  }
+
+  /**
+   * Collect evidence from git history using pickaxe search.
+   *
+   * Finds commits that added or removed specific strings.
+   *
+   * @param searchTerms - Strings to search for in git history
+   * @param options - Search options (since, until, maxResults)
+   * @param projectPath - Path to the git repository
+   * @returns Git-based evidence items
+   */
+  collectGitPickaxeEvidence(
+    searchTerms: string[],
+    options: {
+      since?: string;
+      until?: string;
+      maxResults?: number;
+    } = {},
+    projectPath?: string
+  ): CollectEvidenceResult {
+    return this.collectGitEvidenceInternal({ searchTerms, ...options }, projectPath);
+  }
+
+  /**
+   * Collect combined evidence from git (blame + pickaxe).
+   *
+   * @param options - Collection options
+   * @param projectPath - Path to the git repository
+   * @returns Combined git evidence
+   */
+  collectGitEvidence(
+    options: {
+      position?: Position | undefined;
+      searchTerms?: string[] | undefined;
+      since?: string | undefined;
+      until?: string | undefined;
+      maxResults?: number | undefined;
+    },
+    projectPath?: string
+  ): CollectEvidenceResult {
+    return this.collectGitEvidenceInternal(options, projectPath);
+  }
+
+  /**
+   * Internal helper for git evidence collection.
+   */
+  private collectGitEvidenceInternal(
+    options: {
+      position?: Position | undefined;
+      searchTerms?: string[] | undefined;
+      since?: string | undefined;
+      until?: string | undefined;
+      maxResults?: number | undefined;
+    },
+    projectPath?: string
+  ): CollectEvidenceResult {
+    const startTime = Date.now();
+    const gitCollector = new GitEvidenceCollector(projectPath);
+
+    if (!gitCollector.isGitRepository()) {
+      return {
+        evidence: [],
+        totalMatches: 0,
+        queryTimeMs: Date.now() - startTime,
+        warnings: ['Not a git repository - git evidence collection skipped'],
+      };
+    }
+
+    const result = gitCollector.collectEvidence({
+      position: options.position,
+      searchTerms: options.searchTerms,
+      maxResults: options.maxResults,
+      since: options.since,
+      until: options.until,
+    });
+
+    return {
+      evidence: result.evidence,
+      totalMatches: result.evidence.length,
+      queryTimeMs: result.queryTimeMs,
+      warnings: result.warnings,
+    };
+  }
+
+  /**
+   * Collect all available evidence (session + git) for an issue.
+   *
+   * Combines session search results with git history correlation
+   * for comprehensive evidence gathering.
+   *
+   * @param options - Collection options
+   * @returns Combined evidence from all sources
+   */
+  collectAllEvidence(options: {
+    keywords: string[];
+    position?: Position;
+    projectPath?: string;
+    since?: string;
+    until?: string;
+    maxResults?: number;
+    dbPath?: string;
+  }): CollectEvidenceResult {
+    const startTime = Date.now();
+    const allEvidence: EvidenceItem[] = [];
+    const warnings: string[] = [];
+
+    // Collect session evidence
+    const sessionResult = this.collectSessionEvidence({
+      keywords: options.keywords,
+      projectPath: options.projectPath,
+      since: options.since,
+      until: options.until,
+      limit: options.maxResults,
+      dbPath: options.dbPath,
+    });
+    allEvidence.push(...sessionResult.evidence);
+    if (sessionResult.warnings) {
+      warnings.push(...sessionResult.warnings);
+    }
+
+    // Collect git evidence
+    const gitResult = this.collectGitEvidence(
+      {
+        position: options.position,
+        searchTerms: options.keywords,
+        since: options.since,
+        until: options.until,
+        maxResults: options.maxResults,
+      },
+      options.projectPath
+    );
+    allEvidence.push(...gitResult.evidence);
+    if (gitResult.warnings) {
+      warnings.push(...gitResult.warnings);
+    }
+
+    // Deduplicate by source (commit hash or session ID)
+    const uniqueEvidence = this.deduplicateEvidence(allEvidence);
+
+    return {
+      evidence: uniqueEvidence,
+      totalMatches: sessionResult.totalMatches + gitResult.totalMatches,
+      queryTimeMs: Date.now() - startTime,
+      warnings: warnings.length > 0 ? warnings : undefined,
+    };
+  }
+
+  /**
+   * Deduplicate evidence by source.
+   */
+  private deduplicateEvidence(evidence: EvidenceItem[]): EvidenceItem[] {
+    const seen = new Set<string>();
+    return evidence.filter((e) => {
+      const key = `${e.type}:${e.source}`;
+      if (seen.has(key)) {
+        return false;
+      }
+      seen.add(key);
+      return true;
+    });
   }
 
   // ===========================================================================

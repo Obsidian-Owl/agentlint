@@ -28,7 +28,6 @@ import {
 import {
   PatternDetector,
   createPatternDetector,
-  SYSTEMIC_THRESHOLD,
 } from '../../../../src/tools/causal/pattern-detector';
 
 // =============================================================================
@@ -221,9 +220,7 @@ describe('PatternDetector', () => {
         createTestPattern({ projectPath: '/project/a', frequency: 1 }),
       ];
 
-      const projectAPatterns = patterns.filter(
-        (p) => p.projectPath === '/project/a'
-      );
+      const projectAPatterns = patterns.filter((p) => p.projectPath === '/project/a');
 
       expect(projectAPatterns.length).toBe(2);
     });
@@ -241,11 +238,7 @@ describe('PatternDetector', () => {
     });
 
     it('should track first and last occurrence', () => {
-      const times = [
-        '2024-01-01T10:00:00Z',
-        '2024-01-02T10:00:00Z',
-        '2024-01-03T10:00:00Z',
-      ];
+      const times = ['2024-01-01T10:00:00Z', '2024-01-02T10:00:00Z', '2024-01-03T10:00:00Z'];
 
       const chains = times.map((t) => createTestChain({ createdAt: t }));
 
@@ -409,9 +402,7 @@ describe('PatternDetector', () => {
         gap: createTestGap({ type: 'terminology_gap' }),
       });
 
-      const hasMatchingPattern = existingPatterns.some(
-        (p) => p.category === newChain.gap?.type
-      );
+      const hasMatchingPattern = existingPatterns.some((p) => p.category === newChain.gap?.type);
 
       expect(hasMatchingPattern).toBe(false);
 
@@ -517,9 +508,7 @@ describe('PatternDetector', () => {
         createTestPattern({ category: 'missing_guidance' }),
       ];
 
-      const guidancePatterns = patterns.filter(
-        (p) => p.category === 'missing_guidance'
-      );
+      const guidancePatterns = patterns.filter((p) => p.category === 'missing_guidance');
 
       expect(guidancePatterns.length).toBe(2);
     });
@@ -548,19 +537,13 @@ describe('PatternDetector', () => {
         createTestPattern({ chainIds: ['chain-4'] }),
       ];
 
-      const matching = patterns.filter((p) =>
-        p.chainIds.includes(targetChainId)
-      );
+      const matching = patterns.filter((p) => p.chainIds.includes(targetChainId));
 
       expect(matching.length).toBe(1);
     });
 
     it('should count total patterns', () => {
-      const patterns = [
-        createTestPattern(),
-        createTestPattern(),
-        createTestPattern(),
-      ];
+      const patterns = [createTestPattern(), createTestPattern(), createTestPattern()];
 
       expect(patterns.length).toBe(3);
     });
@@ -585,10 +568,7 @@ describe('PatternDetector', () => {
     });
 
     it('should handle all chains without gaps', () => {
-      const chains = [
-        createTestChain({ gap: undefined }),
-        createTestChain({ gap: undefined }),
-      ];
+      const chains = [createTestChain({ gap: undefined }), createTestChain({ gap: undefined })];
 
       const chainsWithGaps = chains.filter((c) => c.gap);
 
@@ -610,8 +590,7 @@ describe('PatternDetector', () => {
 
       const firstDate = new Date(pattern.firstOccurrence);
       const lastDate = new Date(pattern.lastOccurrence);
-      const daysDiff =
-        (lastDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24);
+      const daysDiff = (lastDate.getTime() - firstDate.getTime()) / (1000 * 60 * 60 * 24);
 
       expect(daysDiff).toBeGreaterThan(365 * 4);
     });
@@ -727,11 +706,7 @@ describe('PatternDetector', () => {
     });
 
     it('should generate pattern summary', () => {
-      const summary = detector.generateSummary(
-        'missing_guidance',
-        3,
-        'Error handling patterns'
-      );
+      const summary = detector.generateSummary('missing_guidance', 3, 'Error handling patterns');
 
       expect(summary).toContain('missing guidance');
       expect(summary).toContain('3');
@@ -769,11 +744,7 @@ describe('PatternDetector', () => {
         gap: createTestGap({ type: 'terminology_gap' }),
       });
 
-      const newPattern = detector.addChainToPattern(
-        newChain,
-        [existingPattern],
-        '/test/project'
-      );
+      const newPattern = detector.addChainToPattern(newChain, [existingPattern], '/test/project');
 
       expect(newPattern.category).toBe('terminology_gap');
       expect(newPattern.chainIds).toHaveLength(1);

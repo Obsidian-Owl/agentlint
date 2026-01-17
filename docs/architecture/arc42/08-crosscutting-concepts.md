@@ -22,7 +22,56 @@
 │ • tokens     │     │ • origin     │     │ • scope      │
 │ • iterations │     │ • severity   │     │ • pattern    │
 └──────────────┘     └──────────────┘     └──────────────┘
+                            │
+                            ▼
+              ┌─────────────────────────┐
+              │      CausalChain        │
+              │ • trigger (evidence)    │
+              │ • gap (config gap)      │
+              │ • mechanism             │
+              │ • confidence            │
+              └─────────────────────────┘
+                     │           │
+          ┌──────────┘           └──────────┐
+          ▼                                 ▼
+┌──────────────────┐              ┌──────────────────┐
+│  EvidenceItem    │              │   IssuePattern   │
+│ • type           │              │ • category       │
+│ • source         │              │ • frequency      │
+│ • timestamp      │              │ • isSystemic     │
+│ • position       │              │ • chainIds       │
+└──────────────────┘              └──────────────────┘
 ```
+
+### Causal Analysis Entities (EP07)
+
+| Entity | Purpose |
+|--------|---------|
+| **CausalChain** | Links detected issue to origin via trigger → gap → mechanism → effect |
+| **EvidenceItem** | Single piece of supporting evidence (session match, git correlation, etc.) |
+| **Gap** | Missing configuration that enabled the issue |
+| **IssuePattern** | Recurring issue type aggregated across multiple chains |
+| **ConfidenceScore** | Validation assessment using 6-factor checklist |
+
+### Evidence Types
+
+| Type | Source |
+|------|--------|
+| `SessionMatch` | FTS5 search result from session logs |
+| `GitCorrelation` | Git blame or pickaxe search result |
+| `ConfigGap` | Missing configuration analysis |
+| `TemporalMarker` | Timestamp correlation evidence |
+| `ToolTrace` | Tool call pattern evidence |
+
+### Gap Categories
+
+| Category | Description |
+|----------|-------------|
+| `missing_config` | Configuration file or section missing |
+| `missing_guidance` | Behavioral guidance missing |
+| `missing_example` | Example code/usage missing |
+| `terminology_gap` | Domain terminology undefined |
+| `context_loss` | Context not preserved across sessions |
 
 ---
 

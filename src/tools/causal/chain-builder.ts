@@ -9,12 +9,7 @@
 
 import { v4 as uuidv4 } from 'uuid';
 
-import type {
-  CausalChain,
-  EvidenceItem,
-  Gap,
-  ConfidenceScore,
-} from './types';
+import type { CausalChain, EvidenceItem, Gap, ConfidenceScore } from './types';
 import { computeConfidenceLevel } from './types';
 
 // =============================================================================
@@ -106,13 +101,7 @@ export class ChainBuilder {
    * @returns The constructed chain and metadata
    */
   build(options: ChainBuilderOptions): ChainBuilderResult {
-    const {
-      issueId,
-      issueDescription,
-      evidence,
-      projectPath,
-      gap,
-    } = options;
+    const { issueId, issueDescription, evidence, projectPath, gap } = options;
     const maxDepth = Math.min(options.maxDepth ?? DEFAULT_MAX_DEPTH, DEFAULT_MAX_DEPTH);
     const warnings: string[] = [];
     const now = new Date().toISOString();
@@ -128,7 +117,9 @@ export class ChainBuilder {
     const depthLimitReached = evidence.length > maxDepth;
 
     if (depthLimitReached) {
-      warnings.push(`Trace depth limited to ${maxDepth} steps (${evidence.length} total evidence items)`);
+      warnings.push(
+        `Trace depth limited to ${maxDepth} steps (${evidence.length} total evidence items)`
+      );
     }
 
     // Generate mechanism from evidence
@@ -233,9 +224,7 @@ export class ChainBuilder {
     const hasMultiple = evidence.length >= 2;
     const hasTimestamps = evidence.some((e) => e.timestamp);
     const hasPositions = evidence.some((e) => e.position);
-    const hasContent = evidence.some(
-      (e) => e.content && e.content.length > MIN_CONTENT_LENGTH
-    );
+    const hasContent = evidence.some((e) => e.content && e.content.length > MIN_CONTENT_LENGTH);
 
     const factors = {
       specificity: hasPositions && hasContent,

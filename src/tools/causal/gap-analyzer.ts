@@ -8,10 +8,11 @@
  * @module src/tools/causal/gap-analyzer
  */
 
-import { existsSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import type { Gap, GapType, GapLocation, EvidenceItem } from './types';
+import type { ConfigState, GuidanceItem } from './config-snapshot';
 
 // =============================================================================
 // Types
@@ -29,6 +30,8 @@ export interface GapAnalysisOptions {
   evidence?: EvidenceItem[];
   /** Check for specific gap types only */
   checkTypes?: GapType[];
+  /** Pre-captured config state snapshot (avoids re-reading files) */
+  configSnapshot?: ConfigState;
 }
 
 /**
@@ -43,6 +46,10 @@ export interface GapAnalysisResult {
   filesChecked: string[];
   /** Warnings during analysis */
   warnings?: string[];
+  /** Extracted guidance items from config */
+  guidance?: GuidanceItem[];
+  /** Config state used for analysis (if snapshot provided) */
+  configState?: ConfigState;
 }
 
 /**
@@ -52,7 +59,7 @@ interface ConfigFileStatus {
   path: string;
   exists: boolean;
   location: GapLocation;
-  content?: string;
+  content?: string | undefined;
 }
 
 // =============================================================================
@@ -118,13 +125,15 @@ export class GapAnalyzer {
    * @returns Analysis result with identified gaps
    */
   analyzeGaps(options: GapAnalysisOptions): GapAnalysisResult {
-    const { projectPath, issueDescription, checkTypes } = options;
+    const { projectPath, issueDescription, checkTypes, configSnapshot } = options;
     const allGaps: Gap[] = [];
     const filesChecked: string[] = [];
     const warnings: string[] = [];
 
-    // Check CLAUDE.md
-    const claudeMdStatus = this.checkClaudeMd(projectPath);
+    // Use snapshot if provided, otherwise read from disk
+    const claudeMdStatus = configSnapshot
+      ? this.getClaudeMdFromSnapshot(configSnapshot)
+      : this.checkClaudeMd(projectPath);
     filesChecked.push(claudeMdStatus.path);
 
     if (!claudeMdStatus.exists) {
@@ -132,8 +141,7 @@ export class GapAnalyzer {
         type: 'missing_config',
         location: 'claude_md',
         expectedGuidance: 'Project configuration and guidelines',
-        counterfactual:
-          'If CLAUDE.md existed, the agent would have project-specific guidance',
+        counterfactual: 'If CLAUDE.md existed, the agent would have project-specific guidance',
       });
     } else if (claudeMdStatus.content) {
       // Check for missing sections
@@ -143,8 +151,7 @@ export class GapAnalyzer {
           type: 'missing_guidance',
           location: 'claude_md',
           expectedGuidance: `Missing sections: ${missingSections.join(', ')}`,
-          counterfactual:
-            'If these sections existed, the agent would have specific guidance',
+          counterfactual: 'If these sections existed, the agent would have specific guidance',
         });
       }
 
@@ -154,28 +161,25 @@ export class GapAnalyzer {
           type: 'missing_example',
           location: 'claude_md',
           expectedGuidance: 'Code examples for patterns and usage',
-          counterfactual:
-            'If code examples existed, the agent would know the correct patterns',
+          counterfactual: 'If code examples existed, the agent would know the correct patterns',
         });
       }
 
       // Check for TODO/incomplete sections
-      if (
-        claudeMdStatus.content.includes('TODO') ||
-        claudeMdStatus.content.includes('TBD')
-      ) {
+      if (claudeMdStatus.content.includes('TODO') || claudeMdStatus.content.includes('TBD')) {
         allGaps.push({
           type: 'missing_guidance',
           location: 'claude_md',
           expectedGuidance: 'Complete guidelines (contains TODO/TBD)',
-          counterfactual:
-            'If guidelines were complete, the agent would follow them',
+          counterfactual: 'If guidelines were complete, the agent would follow them',
         });
       }
     }
 
     // Check project settings
-    const projectConfigStatus = this.checkProjectConfig(projectPath);
+    const projectConfigStatus = configSnapshot
+      ? this.getProjectConfigFromSnapshot(configSnapshot)
+      : this.checkProjectConfig(projectPath);
     filesChecked.push(projectConfigStatus.path);
 
     if (!projectConfigStatus.exists) {
@@ -183,13 +187,14 @@ export class GapAnalyzer {
         type: 'missing_config',
         location: 'project_config',
         expectedGuidance: 'Project-specific Claude settings',
-        counterfactual:
-          'If project settings existed, behavior would be customized',
+        counterfactual: 'If project settings existed, behavior would be customized',
       });
     }
 
     // Check MCP config
-    const mcpStatus = this.checkMcpConfig(projectPath);
+    const mcpStatus = configSnapshot
+      ? this.getMcpConfigFromSnapshot(configSnapshot)
+      : this.checkMcpConfig(projectPath);
     filesChecked.push(mcpStatus.path);
 
     // Only flag MCP as gap if evidence suggests MCP was needed
@@ -204,10 +209,7 @@ export class GapAnalyzer {
 
     // Check for terminology gaps if issue description provided
     if (issueDescription && claudeMdStatus.content) {
-      const terminologyGap = this.checkTerminologyGap(
-        issueDescription,
-        claudeMdStatus.content
-      );
+      const terminologyGap = this.checkTerminologyGap(issueDescription, claudeMdStatus.content);
       if (terminologyGap) {
         allGaps.push(terminologyGap);
       }
@@ -222,6 +224,9 @@ export class GapAnalyzer {
     // Sort by severity and return highest
     const sortedGaps = this.sortGapsBySeverity(filteredGaps);
 
+    // Extract guidance if config snapshot provided
+    const guidance = configSnapshot ? this.extractGuidanceFromSnapshot(configSnapshot) : undefined;
+
     const result: GapAnalysisResult = {
       allGaps: sortedGaps,
       filesChecked,
@@ -231,6 +236,12 @@ export class GapAnalyzer {
     }
     if (warnings.length > 0) {
       result.warnings = warnings;
+    }
+    if (guidance && guidance.length > 0) {
+      result.guidance = guidance;
+    }
+    if (configSnapshot) {
+      result.configState = configSnapshot;
     }
     return result;
   }
@@ -257,10 +268,7 @@ export class GapAnalyzer {
    * @param configContent - Content of the config file (if any)
    * @returns The classified gap type
    */
-  classifyGapType(
-    issueDescription: string,
-    configContent: string | undefined
-  ): GapType {
+  classifyGapType(issueDescription: string, configContent: string | undefined): GapType {
     const lowerIssue = issueDescription.toLowerCase();
     const lowerConfig = configContent?.toLowerCase() ?? '';
 
@@ -280,9 +288,7 @@ export class GapAnalyzer {
 
     // Check for terminology issues
     const issueTerms = this.extractTerms(issueDescription);
-    const undefinedTerms = issueTerms.filter(
-      (term) => !lowerConfig.includes(term.toLowerCase())
-    );
+    const undefinedTerms = issueTerms.filter((term) => !lowerConfig.includes(term.toLowerCase()));
     if (undefinedTerms.length > 0) {
       return 'terminology_gap';
     }
@@ -329,13 +335,207 @@ export class GapAnalyzer {
 
     if (exists) {
       try {
-        result.content = require('fs').readFileSync(path, 'utf-8') as string;
+        result.content = readFileSync(path, 'utf-8');
       } catch {
         // Could not read file
       }
     }
 
     return result;
+  }
+
+  /**
+   * Get CLAUDE.md status from a config snapshot.
+   */
+  private getClaudeMdFromSnapshot(snapshot: ConfigState): ConfigFileStatus {
+    const path = join(snapshot.projectPath, 'CLAUDE.md');
+    return {
+      path,
+      exists: !!snapshot.claudeMd,
+      location: 'claude_md',
+      content: snapshot.claudeMd?.content,
+    };
+  }
+
+  /**
+   * Get project settings status from a config snapshot.
+   */
+  private getProjectConfigFromSnapshot(snapshot: ConfigState): ConfigFileStatus {
+    const path = join(snapshot.projectPath, '.claude', 'settings.json');
+    return {
+      path,
+      exists: !!snapshot.projectSettings,
+      location: 'project_config',
+    };
+  }
+
+  /**
+   * Get MCP config status from a config snapshot.
+   */
+  private getMcpConfigFromSnapshot(snapshot: ConfigState): ConfigFileStatus {
+    const path = join(snapshot.projectPath, '.mcp.json');
+    return {
+      path,
+      exists: !!snapshot.mcpConfig,
+      location: 'mcp_config',
+    };
+  }
+
+  /**
+   * Extract guidance items from a config snapshot.
+   */
+  private extractGuidanceFromSnapshot(snapshot: ConfigState): GuidanceItem[] {
+    const guidance: GuidanceItem[] = [];
+
+    if (!snapshot.claudeMd?.content) {
+      return guidance;
+    }
+
+    const content = snapshot.claudeMd.content;
+    const sections = this.parseSections(content);
+
+    for (const section of sections) {
+      const category = this.categorizeSection(section.header, section.content);
+
+      // Extract individual guidance items from section
+      const items = this.extractItemsFromSection(section);
+
+      for (const item of items) {
+        guidance.push({
+          topic: section.header,
+          content: item,
+          category,
+          source: `CLAUDE.md#${section.header}`,
+        });
+      }
+    }
+
+    return guidance;
+  }
+
+  /**
+   * Parse markdown content into sections.
+   */
+  private parseSections(content: string): Array<{ header: string; content: string }> {
+    const sections: Array<{ header: string; content: string }> = [];
+    const lines = content.split('\n');
+
+    let currentHeader = '';
+    let currentContent: string[] = [];
+
+    for (const line of lines) {
+      const headerMatch = line.match(/^#{1,3}\s+(.+)$/);
+      if (headerMatch) {
+        // Save previous section if exists
+        if (currentHeader) {
+          sections.push({
+            header: currentHeader,
+            content: currentContent.join('\n').trim(),
+          });
+        }
+        currentHeader = headerMatch[1]!;
+        currentContent = [];
+      } else {
+        currentContent.push(line);
+      }
+    }
+
+    // Save last section
+    if (currentHeader) {
+      sections.push({
+        header: currentHeader,
+        content: currentContent.join('\n').trim(),
+      });
+    }
+
+    return sections;
+  }
+
+  /**
+   * Categorize a section based on its header and content.
+   */
+  private categorizeSection(
+    header: string,
+    content: string
+  ): 'convention' | 'security' | 'process' | 'other' {
+    const headerLower = header.toLowerCase();
+    const contentLower = content.toLowerCase();
+
+    // Security keywords
+    const securityKeywords = [
+      'secret',
+      'api key',
+      'password',
+      'credential',
+      'token',
+      'security',
+      'auth',
+      'never commit',
+      'sensitive',
+    ];
+    for (const keyword of securityKeywords) {
+      if (headerLower.includes(keyword) || contentLower.includes(keyword)) {
+        return 'security';
+      }
+    }
+
+    // Convention keywords
+    const conventionKeywords = [
+      'guideline',
+      'convention',
+      'style',
+      'naming',
+      'format',
+      'pattern',
+      'use typescript',
+      'follow',
+    ];
+    for (const keyword of conventionKeywords) {
+      if (headerLower.includes(keyword) || contentLower.includes(keyword)) {
+        return 'convention';
+      }
+    }
+
+    // Process keywords
+    const processKeywords = [
+      'workflow',
+      'process',
+      'step',
+      'procedure',
+      'how to',
+      'getting started',
+      'setup',
+    ];
+    for (const keyword of processKeywords) {
+      if (headerLower.includes(keyword) || contentLower.includes(keyword)) {
+        return 'process';
+      }
+    }
+
+    return 'other';
+  }
+
+  /**
+   * Extract individual guidance items from a section.
+   */
+  private extractItemsFromSection(section: { header: string; content: string }): string[] {
+    const items: string[] = [];
+    const lines = section.content.split('\n');
+
+    for (const line of lines) {
+      // Extract list items
+      const listMatch = line.match(/^[-*]\s+(.+)$/);
+      if (listMatch) {
+        items.push(listMatch[1]!.trim());
+      }
+    }
+
+    // If no list items, use the whole content if it's meaningful
+    if (items.length === 0 && section.content.trim().length > 10) {
+      items.push(section.content.trim());
+    }
+
+    return items;
   }
 
   /**
@@ -359,9 +559,7 @@ export class GapAnalyzer {
    */
   private findMissingSections(content: string): string[] {
     const lowerContent = content.toLowerCase();
-    return EXPECTED_SECTIONS.filter(
-      (section) => !lowerContent.includes(section)
-    );
+    return EXPECTED_SECTIONS.filter((section) => !lowerContent.includes(section));
   }
 
   /**
@@ -381,24 +579,18 @@ export class GapAnalyzer {
   /**
    * Check for terminology gaps between issue and config.
    */
-  private checkTerminologyGap(
-    issueDescription: string,
-    configContent: string
-  ): Gap | undefined {
+  private checkTerminologyGap(issueDescription: string, configContent: string): Gap | undefined {
     const terms = this.extractTerms(issueDescription);
     const lowerConfig = configContent.toLowerCase();
 
-    const undefinedTerms = terms.filter(
-      (term) => !lowerConfig.includes(term.toLowerCase())
-    );
+    const undefinedTerms = terms.filter((term) => !lowerConfig.includes(term.toLowerCase()));
 
     if (undefinedTerms.length >= 2) {
       return {
         type: 'terminology_gap',
         location: 'claude_md',
         expectedGuidance: `Definition of terms: ${undefinedTerms.slice(0, 3).join(', ')}`,
-        counterfactual:
-          'If terms were defined, the agent would use correct terminology',
+        counterfactual: 'If terms were defined, the agent would use correct terminology',
       };
     }
 
@@ -429,18 +621,14 @@ export class GapAnalyzer {
       'Would',
     ]);
 
-    return matches.filter(
-      (term) => term.length > 3 && !commonWords.has(term)
-    );
+    return matches.filter((term) => term.length > 3 && !commonWords.has(term));
   }
 
   /**
    * Sort gaps by severity (highest first).
    */
   private sortGapsBySeverity(gaps: Gap[]): Gap[] {
-    return [...gaps].sort(
-      (a, b) => GAP_SEVERITY[b.type] - GAP_SEVERITY[a.type]
-    );
+    return [...gaps].sort((a, b) => GAP_SEVERITY[b.type] - GAP_SEVERITY[a.type]);
   }
 
   /**

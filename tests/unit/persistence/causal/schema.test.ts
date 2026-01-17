@@ -133,9 +133,10 @@ describe('causal/schema', () => {
       dropCausalTables(db);
 
       const tables = db
-        .query<{ name: string }, []>(
-          "SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'causal%' OR name LIKE 'evidence%' OR name LIKE 'issue_patterns' OR name LIKE 'chain_patterns'"
-        )
+        .query<
+          { name: string },
+          []
+        >("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'causal%' OR name LIKE 'evidence%' OR name LIKE 'issue_patterns' OR name LIKE 'chain_patterns'")
         .all();
 
       expect(tables.length).toBe(0);
@@ -182,9 +183,7 @@ describe('causal/schema', () => {
 
     it('should have correct columns', () => {
       const columns = db
-        .query<{ name: string; type: string }, []>(
-          "PRAGMA table_info(causal_chains)"
-        )
+        .query<{ name: string; type: string }, []>('PRAGMA table_info(causal_chains)')
         .all()
         .map((r) => r.name);
 
@@ -250,7 +249,7 @@ describe('causal/schema', () => {
 
     it('should have correct columns', () => {
       const columns = db
-        .query<{ name: string }, []>("PRAGMA table_info(evidence_items)")
+        .query<{ name: string }, []>('PRAGMA table_info(evidence_items)')
         .all()
         .map((r) => r.name);
 
@@ -290,9 +289,10 @@ describe('causal/schema', () => {
 
       // Verify evidence exists
       const before = db
-        .query<{ count: number }, []>(
-          "SELECT COUNT(*) as count FROM evidence_items WHERE id = 'ev-cascade'"
-        )
+        .query<
+          { count: number },
+          []
+        >("SELECT COUNT(*) as count FROM evidence_items WHERE id = 'ev-cascade'")
         .get();
       expect(before?.count).toBe(1);
 
@@ -301,9 +301,10 @@ describe('causal/schema', () => {
 
       // Evidence should be cascade deleted
       const after = db
-        .query<{ count: number }, []>(
-          "SELECT COUNT(*) as count FROM evidence_items WHERE id = 'ev-cascade'"
-        )
+        .query<
+          { count: number },
+          []
+        >("SELECT COUNT(*) as count FROM evidence_items WHERE id = 'ev-cascade'")
         .get();
       expect(after?.count).toBe(0);
     });
@@ -316,7 +317,7 @@ describe('causal/schema', () => {
 
     it('should have correct columns', () => {
       const columns = db
-        .query<{ name: string }, []>("PRAGMA table_info(issue_patterns)")
+        .query<{ name: string }, []>('PRAGMA table_info(issue_patterns)')
         .all()
         .map((r) => r.name);
 

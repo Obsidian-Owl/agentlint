@@ -170,6 +170,7 @@ src/cli/
 |----------|-------|
 | **Config Analysis (EP05)** | `discover_configs`, `parse_config`, `analyze_hierarchy` |
 | **Session Analysis (EP06)** | `search_sessions`, `get_session_stats` |
+| **Causal Analysis (EP07)** | `trace_issue_origin`, `get_issue_patterns` |
 | **Git Analysis** | `query_git` |
 | **Baseline** | `store_baseline`, `query_baseline`, `list_baselines` |
 | **Recommendation** | `store_recommendation`, `list_recommendations`, `update_recommendation` |
@@ -370,6 +371,130 @@ interface SessionStats {
 | Indexing throughput | <60s for 500MB | Incremental indexing, mtime checks |
 | Memory during indexing | <100MB peak | Streaming parser |
 | Index storage overhead | <20% of log size | FTS5 compression |
+
+---
+
+## Level 3: Causal Analysis Tools (EP07)
+
+```
+src/tools/causal/
+├── index.ts                    Public exports + SDK tool registration
+├── types.ts                    Zod schemas (CausalChain, EvidenceItem, Gap, etc.)
+│
+├── evidence-collector.ts       Session-based evidence collection
+├── gap-analyzer.ts             Configuration gap detection
+├── chain-builder.ts            Causal chain construction
+├── confidence.ts               Confidence scoring with validation checklist
+├── counterfactual.ts           "If X, then Y" analysis generation
+├── pattern-detector.ts         Recurring pattern detection
+├── pattern-tracking.ts         Frequency and severity tracking
+│
+├── git-evidence.ts             Git blame/pickaxe evidence collection
+├── config-snapshot.ts          Configuration state capture
+│
+├── trace-issue-tool.ts         SDK tool definition: trace_issue_origin
+└── get-patterns-tool.ts        SDK tool definition: get_issue_patterns
+```
+
+| Module | Responsibility |
+|--------|----------------|
+| `evidence-collector.ts` | Collects evidence from session FTS5 index by keywords and file location |
+| `gap-analyzer.ts` | Analyzes evidence to identify missing configuration guidance |
+| `chain-builder.ts` | Constructs causal chains from trigger → gap → mechanism → effect |
+| `confidence.ts` | Assesses chain confidence using 6-factor validation checklist |
+| `counterfactual.ts` | Generates preventive recommendations ("If X were present...") |
+| `pattern-detector.ts` | Detects recurring patterns across multiple causal chains |
+| `pattern-tracking.ts` | Tracks pattern frequency, severity, and trends over time |
+| `git-evidence.ts` | Collects git blame and pickaxe search evidence |
+| `config-snapshot.ts` | Captures CLAUDE.md, settings.json state for gap analysis |
+
+### EP07 Tool Definitions
+
+| Tool | Description |
+|------|-------------|
+| `trace_issue_origin` | Traces detected issues to their origin in session logs, builds causal chain |
+| `get_issue_patterns` | Queries recurring issue patterns with filtering by project, category, frequency |
+
+### Persistence Layer Integration
+
+Causal analysis extends the sessions database with additional tables:
+
+```
+src/persistence/causal/
+├── index.ts                    Public exports
+├── schema.ts                   Table definitions and migrations
+└── queries.ts                  CRUD operations for chains and patterns
+```
+
+Tables stored in `.agentlint/sessions.db`:
+- `causal_chains` - Traced causal chains with confidence scores
+- `evidence_items` - Individual evidence supporting chains
+- `issue_patterns` - Aggregated recurring patterns
+- `chain_patterns` - Many-to-many chain-pattern relationships
+
+### Key Entity Types
+
+```typescript
+interface EvidenceItem {
+  id: string;                   // UUID
+  type: EvidenceType;           // SessionMatch, GitCorrelation, ConfigGap, etc.
+  source: string;               // Session ID, commit hash, etc.
+  timestamp?: string;           // When evidence was created
+  content?: string;             // Relevant snippet
+  position?: Position;          // File location if applicable
+  metadata?: Record<string, unknown>;
+}
+
+interface CausalChain {
+  id: string;                   // UUID
+  issueId: string;              // Reference to detected issue
+  trigger: EvidenceItem;        // Origin action/prompt
+  gap?: Gap;                    // Configuration gap that enabled issue
+  mechanism: string;            // How gap led to issue
+  effect: string;               // Detected issue description
+  confidence: ConfidenceScore;  // Validation assessment
+  evidence: EvidenceItem[];     // All collected evidence
+  depth: number;                // Traversal steps (max 5)
+  projectPath: string;
+  createdAt: string;
+  counterfactual?: string;      // "If X, then Y wouldn't have occurred"
+}
+
+interface IssuePattern {
+  id: string;                   // UUID
+  category: GapType;            // missing_config, context_loss, etc.
+  chainIds: string[];           // Related causal chains
+  frequency: number;            // Occurrence count
+  isSystemic: boolean;          // true if frequency >= 3
+  firstOccurrence: string;
+  lastOccurrence: string;
+  projectPath?: string;         // null = global pattern
+  summary: string;              // Human-readable description
+}
+```
+
+### Confidence Assessment
+
+Causal chains are validated using a 6-factor checklist:
+
+| Factor | Description |
+|--------|-------------|
+| Specificity | Issue clearly links to specific trigger |
+| Temporal | Timing supports causal relationship |
+| Mechanistic | Plausible mechanism explains causation |
+| Evidence Quality | Evidence is direct, not inferred |
+| Reproducibility | Pattern seen multiple times |
+| Alternatives | Alternative causes were considered |
+
+Overall confidence: `high` (5-6 factors), `medium` (3-4), `low` (0-2)
+
+### Performance Characteristics (NFR)
+
+| Metric | Target | Implementation |
+|--------|--------|----------------|
+| Trace query time | <5s typical issues | FTS5 search + in-memory chain building |
+| Pattern detection | <2s for 100 chains | SQLite aggregation queries |
+| Evidence collection | <1s per source | Parallel session/git queries |
 
 ---
 

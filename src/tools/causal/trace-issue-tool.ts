@@ -11,13 +11,7 @@ import { tool } from '@anthropic-ai/claude-agent-sdk';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 
-import type {
-  EvidenceItem,
-  TracedIssue,
-  TraceIssueOutput,
-  ConfidenceScore,
-  Gap,
-} from './types';
+import type { EvidenceItem, TracedIssue, TraceIssueOutput, ConfidenceScore, Gap } from './types';
 import { EvidenceCollector } from './evidence-collector';
 import { GapAnalyzer } from './gap-analyzer';
 import { ChainBuilder } from './chain-builder';
@@ -37,39 +31,18 @@ const traceIssueInputSchema = {
     .string()
     .min(1)
     .describe('Description of the issue to trace (what went wrong)'),
-  filePath: z
-    .string()
-    .optional()
-    .describe('File path where the issue was detected'),
+  filePath: z.string().optional().describe('File path where the issue was detected'),
   lineNumber: z
     .number()
     .int()
     .positive()
     .optional()
     .describe('Line number where the issue was detected'),
-  keywords: z
-    .array(z.string())
-    .optional()
-    .describe('Keywords to search for in session logs'),
-  since: z
-    .string()
-    .optional()
-    .describe('Only search sessions after this ISO-8601 timestamp'),
-  until: z
-    .string()
-    .optional()
-    .describe('Only search sessions before this ISO-8601 timestamp'),
-  projectPath: z
-    .string()
-    .optional()
-    .describe('Project path to scope the search'),
-  maxDepth: z
-    .number()
-    .int()
-    .min(1)
-    .max(5)
-    .optional()
-    .describe('Maximum trace depth (default: 5)'),
+  keywords: z.array(z.string()).optional().describe('Keywords to search for in session logs'),
+  since: z.string().optional().describe('Only search sessions after this ISO-8601 timestamp'),
+  until: z.string().optional().describe('Only search sessions before this ISO-8601 timestamp'),
+  projectPath: z.string().optional().describe('Project path to scope the search'),
+  maxDepth: z.number().int().min(1).max(5).optional().describe('Maximum trace depth (default: 5)'),
 };
 
 // =============================================================================
@@ -93,10 +66,14 @@ function formatEvidence(evidence: EvidenceItem[]): string {
       lines.push(`- **Time**: ${e.timestamp}`);
     }
     if (e.position) {
-      lines.push(`- **Location**: ${e.position.filePath}${e.position.line ? `:${e.position.line}` : ''}`);
+      lines.push(
+        `- **Location**: ${e.position.filePath}${e.position.line ? `:${e.position.line}` : ''}`
+      );
     }
     if (e.content) {
-      lines.push(`- **Content**: ${e.content.substring(0, 200)}${e.content.length > 200 ? '...' : ''}`);
+      lines.push(
+        `- **Content**: ${e.content.substring(0, 200)}${e.content.length > 200 ? '...' : ''}`
+      );
     }
     lines.push('');
   }
@@ -262,6 +239,7 @@ Use this tool when you detect an issue and need to understand:
 
 Returns a TracedIssue with causal chain, evidence, and confidence score.`,
   traceIssueInputSchema,
+  // eslint-disable-next-line @typescript-eslint/require-await
   async (args) => {
     const issueId = `issue-${Date.now()}-${uuidv4().substring(0, 8)}`;
     const projectPath = args.projectPath ?? process.cwd();
@@ -312,7 +290,8 @@ Returns a TracedIssue with causal chain, evidence, and confidence score.`,
       if (allEvidence.length === 0) {
         const output: TraceIssueOutput = {
           success: false,
-          error: 'No matching sessions found for the issue. Try different keywords or check if sessions are indexed.',
+          error:
+            'No matching sessions found for the issue. Try different keywords or check if sessions are indexed.',
         };
 
         return {
@@ -461,16 +440,96 @@ Returns a TracedIssue with causal chain, evidence, and confidence score.`,
 function extractKeywords(description: string): string[] {
   // Remove common words and split into keywords
   const stopWords = new Set([
-    'a', 'an', 'the', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
-    'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could',
-    'should', 'may', 'might', 'must', 'can', 'to', 'of', 'in', 'for',
-    'on', 'with', 'at', 'by', 'from', 'as', 'into', 'through', 'during',
-    'before', 'after', 'above', 'below', 'up', 'down', 'out', 'off', 'over',
-    'under', 'again', 'further', 'then', 'once', 'here', 'there', 'when',
-    'where', 'why', 'how', 'all', 'each', 'every', 'both', 'few', 'more',
-    'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'only', 'own',
-    'same', 'so', 'than', 'too', 'very', 'and', 'but', 'if', 'or', 'because',
-    'until', 'while', 'this', 'that', 'these', 'those', 'it', 'its',
+    'a',
+    'an',
+    'the',
+    'is',
+    'are',
+    'was',
+    'were',
+    'be',
+    'been',
+    'being',
+    'have',
+    'has',
+    'had',
+    'do',
+    'does',
+    'did',
+    'will',
+    'would',
+    'could',
+    'should',
+    'may',
+    'might',
+    'must',
+    'can',
+    'to',
+    'of',
+    'in',
+    'for',
+    'on',
+    'with',
+    'at',
+    'by',
+    'from',
+    'as',
+    'into',
+    'through',
+    'during',
+    'before',
+    'after',
+    'above',
+    'below',
+    'up',
+    'down',
+    'out',
+    'off',
+    'over',
+    'under',
+    'again',
+    'further',
+    'then',
+    'once',
+    'here',
+    'there',
+    'when',
+    'where',
+    'why',
+    'how',
+    'all',
+    'each',
+    'every',
+    'both',
+    'few',
+    'more',
+    'most',
+    'other',
+    'some',
+    'such',
+    'no',
+    'nor',
+    'not',
+    'only',
+    'own',
+    'same',
+    'so',
+    'than',
+    'too',
+    'very',
+    'and',
+    'but',
+    'if',
+    'or',
+    'because',
+    'until',
+    'while',
+    'this',
+    'that',
+    'these',
+    'those',
+    'it',
+    'its',
   ]);
 
   const words = description

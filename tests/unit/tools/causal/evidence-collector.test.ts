@@ -105,9 +105,7 @@ function createTestPosition(overrides: Partial<Position> = {}): Position {
 /**
  * Create a test evidence item.
  */
-function createTestEvidence(
-  overrides: Partial<EvidenceItem> = {}
-): EvidenceItem {
+function createTestEvidence(overrides: Partial<EvidenceItem> = {}): EvidenceItem {
   return {
     id: uuidv4(),
     type: 'SessionMatch',
@@ -168,9 +166,10 @@ describe('EvidenceCollector', () => {
 
       // Verify FTS5 returns no results for non-matching query
       const results = db
-        .query<{ session_id: string }, [string]>(
-          "SELECT session_id FROM session_entries WHERE session_entries MATCH ?"
-        )
+        .query<
+          { session_id: string },
+          [string]
+        >('SELECT session_id FROM session_entries WHERE session_entries MATCH ?')
         .all('zzzznonexistent');
 
       expect(results).toEqual([]);
@@ -200,9 +199,7 @@ describe('EvidenceCollector', () => {
         .query<
           { session_id: string; content: string; timestamp: string },
           [string]
-        >(
-          "SELECT session_id, content, timestamp FROM session_entries WHERE session_entries MATCH ?"
-        )
+        >('SELECT session_id, content, timestamp FROM session_entries WHERE session_entries MATCH ?')
         .all('authentication');
 
       expect(results.length).toBe(1);
@@ -285,10 +282,7 @@ describe('EvidenceCollector', () => {
       ]);
 
       const results = db
-        .query<
-          { session_id: string; file_path: string; line_number: number },
-          [string]
-        >(
+        .query<{ session_id: string; file_path: string; line_number: number }, [string]>(
           `SELECT session_id, file_path, line_number FROM session_entries
            WHERE session_entries MATCH ? AND file_path != ''`
         )
@@ -313,8 +307,7 @@ describe('EvidenceCollector', () => {
           projectPath: '/project',
           timestamp: '2026-01-17T11:00:00Z',
           role: 'user',
-          content:
-            'Config config config - multiple mentions make this more relevant',
+          content: 'Config config config - multiple mentions make this more relevant',
         },
       ]);
 
@@ -512,12 +505,11 @@ describe('EvidenceCollector', () => {
 
       // Query all related entries ordered by time
       const results = db
-        .query<
-          { session_id: string; timestamp: string },
-          [string]
-        >(`SELECT session_id, timestamp FROM session_entries
+        .query<{ session_id: string; timestamp: string }, [string]>(
+          `SELECT session_id, timestamp FROM session_entries
            WHERE session_entries MATCH ?
-           ORDER BY timestamp ASC`)
+           ORDER BY timestamp ASC`
+        )
         .all('feature A');
 
       expect(results.length).toBe(3);
@@ -736,7 +728,7 @@ describe('EvidenceCollector', () => {
     it('should handle FTS5 query syntax errors', () => {
       // Invalid FTS5 syntax
       expect(() => {
-        db.query("SELECT * FROM session_entries WHERE session_entries MATCH ?").all(
+        db.query('SELECT * FROM session_entries WHERE session_entries MATCH ?').all(
           '(unclosed parenthesis'
         );
       }).toThrow();
@@ -755,9 +747,10 @@ describe('EvidenceCollector', () => {
       ]);
 
       const results = db
-        .query<{ session_id: string }, [string]>(
-          "SELECT session_id FROM session_entries WHERE session_entries MATCH ?"
-        )
+        .query<
+          { session_id: string },
+          [string]
+        >('SELECT session_id FROM session_entries WHERE session_entries MATCH ?')
         .all('zzzznonexistent');
 
       expect(results).toEqual([]);

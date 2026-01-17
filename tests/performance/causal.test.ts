@@ -15,22 +15,13 @@ import { v4 as uuidv4 } from 'uuid';
 
 import { createCausalTables, insertChain, insertPattern } from '../../src/persistence/causal';
 import {
-  ChainBuilder,
   createChainBuilder,
-  PatternDetector,
   createPatternDetector,
-  ConfidenceAssessor,
   createConfidenceAssessor,
-  CounterfactualGenerator,
   createCounterfactualGenerator,
 } from '../../src/tools/causal';
 
-import type {
-  CausalChain,
-  EvidenceItem,
-  Gap,
-  IssuePattern,
-} from '../../src/tools/causal/types';
+import type { CausalChain, EvidenceItem, Gap, IssuePattern } from '../../src/tools/causal/types';
 
 // =============================================================================
 // Test Fixtures
@@ -221,7 +212,7 @@ describe('EP07 Performance Tests (T052)', () => {
         chains.push(
           createTestChain({
             gap: createTestGap({
-              type: gapTypes[i % gapTypes.length],
+              type: gapTypes[i % gapTypes.length]!,
             }),
           })
         );

@@ -8,11 +8,7 @@
 import { describe, it, expect, beforeEach } from 'bun:test';
 import { v4 as uuidv4 } from 'uuid';
 
-import type {
-  EvidenceItem,
-  Gap,
-  CausalChain,
-} from '../../../../src/tools/causal/types';
+import type { EvidenceItem, Gap, CausalChain } from '../../../../src/tools/causal/types';
 import {
   ChainBuilder,
   createChainBuilder,
@@ -27,9 +23,7 @@ import {
 /**
  * Create a test evidence item.
  */
-function createTestEvidence(
-  overrides: Partial<EvidenceItem> = {}
-): EvidenceItem {
+function createTestEvidence(overrides: Partial<EvidenceItem> = {}): EvidenceItem {
   return {
     id: uuidv4(),
     type: 'SessionMatch',
@@ -48,8 +42,7 @@ function createTestGap(overrides: Partial<Gap> = {}): Gap {
     type: 'missing_guidance',
     location: 'claude_md',
     expectedGuidance: 'Error handling guidelines',
-    counterfactual:
-      'If error handling guidelines existed, this issue would not have occurred',
+    counterfactual: 'If error handling guidelines existed, this issue would not have occurred',
     ...overrides,
   };
 }
@@ -196,8 +189,7 @@ describe('ChainBuilder', () => {
         depthLimitReached: false,
         projectPath: '/test/project',
         createdAt: new Date().toISOString(),
-        counterfactual:
-          'If null check guidance existed, this error would not have occurred',
+        counterfactual: 'If null check guidance existed, this error would not have occurred',
         patternId: undefined,
       };
 
@@ -225,18 +217,14 @@ describe('ChainBuilder', () => {
     });
 
     it('should use fallback mechanism when evidence has no content', () => {
-      const evidence = [
-        createTestEvidence({ content: undefined }),
-      ];
+      const evidence = [createTestEvidence({ content: undefined })];
 
       // When no content, use fallback
       const mechanism =
         evidence[0]!.content?.substring(0, 100) ??
         'Unable to determine causal mechanism from available evidence.';
 
-      expect(mechanism).toBe(
-        'Unable to determine causal mechanism from available evidence.'
-      );
+      expect(mechanism).toBe('Unable to determine causal mechanism from available evidence.');
     });
 
     it('should include all evidence in chain', () => {
@@ -268,8 +256,8 @@ describe('ChainBuilder', () => {
       };
 
       expect(chain.evidence).toHaveLength(5);
-      expect(chain.evidence[0]).toEqual(evidence[0]!);
-      expect(chain.evidence[4]).toEqual(evidence[4]!);
+      expect(chain.evidence[0]).toEqual(evidence[0]);
+      expect(chain.evidence[4]).toEqual(evidence[4]);
     });
 
     it('should compute confidence based on evidence quality', () => {
@@ -289,9 +277,7 @@ describe('ChainBuilder', () => {
       const hasMultiple = goodEvidence.length >= 2;
       const hasTimestamps = goodEvidence.every((e) => e.timestamp);
       const hasPositions = goodEvidence.some((e) => e.position);
-      const hasContent = goodEvidence.some(
-        (e) => e.content && e.content.length > 50
-      );
+      const hasContent = goodEvidence.some((e) => e.content && e.content.length > 50);
 
       expect(hasMultiple).toBe(true);
       expect(hasTimestamps).toBe(true);
@@ -542,8 +528,7 @@ describe('ChainBuilder', () => {
 
       const hasPosition = evidenceWithPosition.position !== undefined;
       const hasContent =
-        evidenceWithPosition.content !== undefined &&
-        evidenceWithPosition.content.length > 20;
+        evidenceWithPosition.content !== undefined && evidenceWithPosition.content.length > 20;
       const specificity = hasPosition && hasContent;
 
       expect(specificity).toBe(true);
@@ -714,13 +699,7 @@ describe('ChainBuilder', () => {
     it('should use buildCausalChain standalone function', () => {
       const evidence = createTemporalEvidence(2);
 
-      const chain = buildCausalChain(
-        'issue-456',
-        'Error in file',
-        evidence,
-        '/project',
-        5
-      );
+      const chain = buildCausalChain('issue-456', 'Error in file', evidence, '/project', 5);
 
       expect(chain.issueId).toBe('issue-456');
       expect(chain.effect).toBe('Error in file');
@@ -801,7 +780,8 @@ describe('ChainBuilder', () => {
       const highQualityEvidence = [
         createTestEvidence({
           timestamp: new Date().toISOString(),
-          content: 'This is detailed content that explains the issue with sufficient context and information.',
+          content:
+            'This is detailed content that explains the issue with sufficient context and information.',
           position: { filePath: '/src/file.ts', line: 42 },
         }),
         createTestEvidence({

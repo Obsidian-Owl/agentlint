@@ -17,12 +17,7 @@
  * @module src/tools/causal/confidence
  */
 
-import type {
-  EvidenceItem,
-  Gap,
-  ConfidenceScore,
-  ConfidenceLevel,
-} from './types';
+import type { EvidenceItem, Gap, ConfidenceScore, ConfidenceLevel } from './types';
 import { computeConfidenceLevel } from './types';
 
 // =============================================================================
@@ -157,10 +152,7 @@ export class ConfidenceAssessor {
    *
    * True if evidence has specific file/line locations that match the issue.
    */
-  private assessSpecificity(
-    evidence: EvidenceItem[],
-    issueDescription: string
-  ): boolean {
+  private assessSpecificity(evidence: EvidenceItem[], issueDescription: string): boolean {
     if (evidence.length === 0) {
       return false;
     }
@@ -237,9 +229,7 @@ export class ConfidenceAssessor {
     // Direct evidence types
     const directTypes = ['SessionMatch', 'ToolTrace', 'GitCorrelation'];
 
-    const directCount = evidence.filter((e) =>
-      directTypes.includes(e.type)
-    ).length;
+    const directCount = evidence.filter((e) => directTypes.includes(e.type)).length;
 
     // More than half should be direct
     return directCount > evidence.length / 2;
