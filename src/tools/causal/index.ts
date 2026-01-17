@@ -96,6 +96,15 @@ export {
   type CounterfactualOptions,
 } from './counterfactual.js';
 
+// Confidence Assessor
+export {
+  ConfidenceAssessor,
+  createConfidenceAssessor,
+  assessConfidence,
+  CONFIDENCE_THRESHOLDS,
+  type AssessConfidenceInput,
+} from './confidence.js';
+
 // SDK Tools
 export { traceIssueOriginTool } from './trace-issue-tool.js';
 export { getIssuePatternsTool } from './get-patterns-tool.js';
