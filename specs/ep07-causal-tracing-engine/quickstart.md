@@ -124,7 +124,7 @@ Each chain includes a confidence score based on 6 factors:
 
 ```typescript
 // Issue: Missing domain terminology causing confusion
-const result = await traceIssueOrigin({
+const result = await trace_issue_origin({
   issueDescription: "Agent repeatedly confused about term 'deployment'",
   searchContext: {
     keywords: ["deployment", "clarify", "what do you mean"]
@@ -157,7 +157,7 @@ const patterns = await getIssuePatterns({
 When evidence is incomplete:
 
 ```typescript
-const result = await traceIssueOrigin({
+const result = await trace_issue_origin({
   issueDescription: "Style inconsistency in generated code",
   issueLocation: { filePath: "src/app.ts", line: 100 }
 });

@@ -152,7 +152,7 @@ describe('EvidenceCollector', () => {
   // ===========================================================================
 
   describe('collectSessionEvidence', () => {
-    it('should return empty array when no sessions match', async () => {
+    it('should return empty array when no sessions match', () => {
       // Insert one entry so FTS5 table is not empty
       insertMockSessionEntries(db, [
         {

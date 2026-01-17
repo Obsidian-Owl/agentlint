@@ -11,6 +11,28 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 // =============================================================================
+// Helpers
+// =============================================================================
+
+/**
+ * Stable JSON comparison that handles property ordering differences.
+ * Sorts object keys recursively before stringifying.
+ */
+function stableStringify(obj: unknown): string {
+  if (obj === null || typeof obj !== 'object') {
+    return JSON.stringify(obj);
+  }
+  if (Array.isArray(obj)) {
+    return '[' + obj.map(stableStringify).join(',') + ']';
+  }
+  const sortedKeys = Object.keys(obj as Record<string, unknown>).sort();
+  const pairs = sortedKeys.map(
+    (key) => `${JSON.stringify(key)}:${stableStringify((obj as Record<string, unknown>)[key])}`
+  );
+  return '{' + pairs.join(',') + '}';
+}
+
+// =============================================================================
 // Types
 // =============================================================================
 
@@ -90,13 +112,13 @@ export interface ConfigState {
  * const snapshot = new ConfigSnapshot('/my/project');
  *
  * // Capture current state
- * const state = await snapshot.capture();
+ * const state = snapshot.capture();
  * console.log(state.claudeMd?.content);
  *
  * // Compare states
- * const before = await snapshot.capture();
+ * const before = snapshot.capture();
  * // ... make changes ...
- * const after = await snapshot.capture();
+ * const after = snapshot.capture();
  * const diff = snapshot.compare(before, after);
  *
  * // Extract guidance
@@ -177,7 +199,7 @@ export class ConfigSnapshot {
     } else if (before.projectSettings && !after.projectSettings) {
       changes.push({ type: 'removed', file: 'settings.json' });
     } else if (before.projectSettings && after.projectSettings) {
-      if (JSON.stringify(before.projectSettings) !== JSON.stringify(after.projectSettings)) {
+      if (stableStringify(before.projectSettings) !== stableStringify(after.projectSettings)) {
         changes.push({ type: 'modified', file: 'settings.json' });
       }
     }
@@ -188,7 +210,7 @@ export class ConfigSnapshot {
     } else if (before.mcpConfig && !after.mcpConfig) {
       changes.push({ type: 'removed', file: '.mcp.json' });
     } else if (before.mcpConfig && after.mcpConfig) {
-      if (JSON.stringify(before.mcpConfig) !== JSON.stringify(after.mcpConfig)) {
+      if (stableStringify(before.mcpConfig) !== stableStringify(after.mcpConfig)) {
         changes.push({ type: 'modified', file: '.mcp.json' });
       }
     }
@@ -320,7 +342,7 @@ export class ConfigSnapshot {
 
     for (const line of lines) {
       const headerMatch = line.match(/^#{1,3}\s+(.+)$/);
-      if (headerMatch) {
+      if (headerMatch && headerMatch[1]) {
         // Save previous section if exists
         if (currentHeader) {
           sections.push({
@@ -328,7 +350,7 @@ export class ConfigSnapshot {
             content: currentContent.join('\n').trim(),
           });
         }
-        currentHeader = headerMatch[1]!;
+        currentHeader = headerMatch[1];
         currentContent = [];
       } else {
         currentContent.push(line);

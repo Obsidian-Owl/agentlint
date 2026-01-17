@@ -119,7 +119,7 @@ None - all warnings resolved.
 
 | Check | Status | Notes |
 |-------|--------|-------|
-| All tasks have IDs | ✓ | T001-T052 |
+| All tasks have IDs | ✓ | T001-T060 |
 | IDs sequential | ✓ | No gaps |
 | Proper checkbox format | ✓ | `- [ ]` used |
 | File paths included | ✓ | All implementation tasks have paths |

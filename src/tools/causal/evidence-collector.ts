@@ -7,7 +7,6 @@
  * @module src/tools/causal/evidence-collector
  */
 
-import type { Database } from 'bun:sqlite';
 import { existsSync } from 'node:fs';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -146,14 +145,14 @@ export interface CollectEvidenceResult {
  * const collector = new EvidenceCollector();
  *
  * // Collect session evidence by keywords
- * const result = await collector.collectSessionEvidence({
+ * const result = collector.collectSessionEvidence({
  *   keywords: ['authentication', 'error'],
  *   projectPath: '/my/project',
  *   since: '2026-01-15T00:00:00Z',
  * });
  *
  * // Collect evidence related to a specific file location
- * const locationResult = await collector.collectLocationEvidence({
+ * const locationResult = collector.collectLocationEvidence({
  *   filePath: '/my/project/src/auth.ts',
  *   lineNumber: 42,
  * });
@@ -235,13 +234,9 @@ export class EvidenceCollector {
    * specified file, optionally within a range of lines around the issue.
    *
    * @param options - Location options including file path and line number
-   * @param db - Optional database instance for direct queries
    * @returns Evidence items related to the file location
    */
-  collectLocationEvidence(
-    options: CollectLocationEvidenceOptions,
-    _db?: Database
-  ): CollectEvidenceResult {
+  collectLocationEvidence(options: CollectLocationEvidenceOptions): CollectEvidenceResult {
     const startTime = Date.now();
     const { filePath, lineNumber, lineRange = 10, projectPath, dbPath = this.dbPath } = options;
 

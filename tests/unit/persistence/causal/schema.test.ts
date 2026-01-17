@@ -136,7 +136,7 @@ describe('causal/schema', () => {
         .query<
           { name: string },
           []
-        >("SELECT name FROM sqlite_master WHERE type='table' AND name LIKE 'causal%' OR name LIKE 'evidence%' OR name LIKE 'issue_patterns' OR name LIKE 'chain_patterns'")
+        >("SELECT name FROM sqlite_master WHERE type='table' AND name IN ('causal_chains', 'evidence_items', 'issue_patterns', 'chain_patterns', 'causal_schema_version')")
         .all();
 
       expect(tables.length).toBe(0);

@@ -11,7 +11,12 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { v4 as uuidv4 } from 'uuid';
 
-import { createCausalTables, insertChain, insertPattern } from '../../../src/persistence/causal';
+import {
+  createCausalTables,
+  insertChain,
+  insertPattern,
+  getPatternsByProject,
+} from '../../../src/persistence/causal';
 import { FTS_ERROR_MESSAGES } from '../../../src/tools/causal';
 import { createPatternDetector, SYSTEMIC_THRESHOLD } from '../../../src/tools/causal';
 import { createChainBuilder } from '../../../src/tools/causal';
@@ -453,11 +458,10 @@ describe('EP07 Quickstart Scenarios (T051)', () => {
       insertPattern(db, pattern);
 
       // Query back
-      const { getPatternsByProject } = require('../../../src/persistence/causal');
       const patterns = getPatternsByProject(db, TEST_PROJECT);
 
       expect(patterns).toHaveLength(1);
-      expect(patterns[0].category).toBe('missing_guidance');
+      expect(patterns[0]!.category).toBe('missing_guidance');
     });
   });
 });

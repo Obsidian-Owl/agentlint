@@ -272,7 +272,7 @@ describe('CounterfactualGenerator', () => {
       const gap = createTestGap({ location: 'mcp_config' });
       const result = generator.generateFromGap(gap);
 
-      expect(result.toLowerCase()).toMatch(/mcp|\.mcp\.json/i);
+      expect(result.toLowerCase()).toMatch(/mcp|\.mcp\.json/);
     });
 
     it('should handle "other" location', () => {

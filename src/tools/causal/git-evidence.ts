@@ -529,7 +529,8 @@ export class GitEvidenceCollector {
 
     // Check for safe relative date formats (e.g., "1 week ago", "yesterday")
     // Only allow alphanumeric characters, spaces, and common date words
-    const relativeDateRegex = /^[\w\s]+$/;
+    // Note: \w includes underscores but that's safe for git date parsing
+    const relativeDateRegex = /^[a-zA-Z0-9\s]+$/;
     if (relativeDateRegex.test(dateStr) && dateStr.length < 50) {
       return true;
     }

@@ -273,11 +273,15 @@ export function getChainsByProject(
 ): CausalChain[] {
   const { limit = 100, offset = 0, orderBy = 'created_at', order = 'DESC' } = options;
 
+  // Validate orderBy and order to prevent SQL injection
+  const validOrderBy = orderBy === 'depth' ? 'depth' : 'created_at';
+  const validOrder = order === 'ASC' ? 'ASC' : 'DESC';
+
   const chainRows = db
     .query<ChainRow, [string, number, number]>(
       `SELECT * FROM causal_chains
        WHERE project_path = ?
-       ORDER BY ${orderBy} ${order}
+       ORDER BY ${validOrderBy} ${validOrder}
        LIMIT ? OFFSET ?`
     )
     .all(projectPath, limit, offset);

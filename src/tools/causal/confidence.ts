@@ -21,6 +21,16 @@ import type { EvidenceItem, Gap, ConfidenceScore, ConfidenceLevel } from './type
 import { computeConfidenceLevel } from './types';
 
 // =============================================================================
+// Constants
+// =============================================================================
+
+/**
+ * Minimum mechanism description length to be considered meaningful.
+ * Short mechanisms (e.g., "error") don't provide enough causal explanation.
+ */
+export const MIN_MECHANISM_LENGTH = 10;
+
+// =============================================================================
 // Types
 // =============================================================================
 
@@ -204,7 +214,7 @@ export class ConfidenceAssessor {
    */
   private assessMechanistic(gap?: Gap, mechanism?: string): boolean {
     // Need both gap and mechanism for full mechanistic understanding
-    if (gap && mechanism && mechanism.length > 10) {
+    if (gap && mechanism && mechanism.length > MIN_MECHANISM_LENGTH) {
       return true;
     }
 
