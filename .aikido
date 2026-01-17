@@ -1,0 +1,8 @@
+# Aikido Security Configuration
+# See: https://help.aikido.dev/code-scanning/scanning-practices/ignore-via-code-with-aikido-files
+
+exclude:
+  paths:
+    # Test files containing intentionally fake secrets for testing secret detection logic
+    - tests/unit/tools/config/anti-patterns.test.ts
+    - tests/fixtures/

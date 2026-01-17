@@ -1,0 +1,7 @@
+{
+  "model": "claude-sonnet",
+  "permissions": {
+    "allow_file_write": true
+    "missing_comma": false
+  }
+}
