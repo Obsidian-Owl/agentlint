@@ -61,6 +61,14 @@ export {
   type CollectEvidenceResult,
 } from './evidence-collector.js';
 
+// Gap Analyzer
+export {
+  GapAnalyzer,
+  createGapAnalyzer,
+  type GapAnalysisOptions,
+  type GapAnalysisResult,
+} from './gap-analyzer.js';
+
 // SDK Tools
 export { traceIssueOriginTool } from './trace-issue-tool.js';
 // export { getIssuePatternsTool } from './get-patterns-tool.js';

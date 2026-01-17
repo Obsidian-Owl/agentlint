@@ -21,6 +21,7 @@ import type {
 } from './types';
 import { computeConfidenceLevel } from './types';
 import { EvidenceCollector } from './evidence-collector';
+import { GapAnalyzer } from './gap-analyzer';
 import { insertChain, getPatternsByProject } from '../../persistence/causal';
 import { openDatabase, closeDatabase } from '../../persistence/sessions/fts';
 import { DEFAULT_SESSIONS_DB_PATH } from '../sessions/utils';
@@ -234,7 +235,8 @@ function buildCausalChain(
   issueDescription: string,
   evidence: EvidenceItem[],
   projectPath: string,
-  maxDepth: number
+  maxDepth: number,
+  gap?: Gap
 ): CausalChain {
   const now = new Date().toISOString();
 
@@ -282,7 +284,7 @@ function buildCausalChain(
     id: uuidv4(),
     issueId,
     trigger,
-    gap: undefined, // Gap detection done separately in US2
+    gap, // Gap detection via GapAnalyzer
     mechanism,
     effect: issueDescription,
     confidence,
@@ -410,13 +412,32 @@ Returns a TracedIssue with causal chain, evidence, and confidence score.`,
         return true;
       });
 
-      // Build causal chain
+      // Analyze configuration gaps
+      let gap: Gap | undefined;
+      try {
+        const gapAnalyzer = new GapAnalyzer();
+        const gapResult = gapAnalyzer.analyzeGaps({
+          projectPath,
+          issueDescription: args.issueDescription,
+          evidence: uniqueEvidence,
+        });
+        gap = gapResult.gap;
+
+        if (gapResult.warnings) {
+          limitations.push(...gapResult.warnings);
+        }
+      } catch {
+        limitations.push('Could not analyze configuration gaps');
+      }
+
+      // Build causal chain with gap analysis
       const chain = buildCausalChain(
         issueId,
         args.issueDescription,
         uniqueEvidence,
         projectPath,
-        maxDepth
+        maxDepth,
+        gap
       );
 
       // Check for existing patterns
@@ -450,11 +471,13 @@ Returns a TracedIssue with causal chain, evidence, and confidence score.`,
         limitations.push('Could not persist chain to database');
       }
 
-      // Build result
+      // Build result - use gap counterfactual if available
+      const counterfactual = chain.gap?.counterfactual ?? chain.counterfactual;
+
       const tracedIssue: TracedIssue = {
         issueId,
         chain,
-        counterfactual: chain.counterfactual,
+        counterfactual,
         patternId,
         traceCompleteness: chain.depthLimitReached ? 'partial' : 'full',
         limitations: limitations.length > 0 ? limitations : undefined,
