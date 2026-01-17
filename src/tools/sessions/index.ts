@@ -126,3 +126,17 @@ export {
 } from './parser';
 
 export type { ParseLineResult, ParseSessionResult, ParserStats, SessionParser } from './parser';
+
+// =============================================================================
+// Metrics
+// =============================================================================
+
+export {
+  aggregateTokenUsage,
+  calculateToolDistribution,
+  extractMetrics,
+  extractMetricsFromFile,
+  extractMetricsBatch,
+} from './metrics';
+
+export type { TokenUsageAggregate, BatchMetricsOptions } from './metrics';

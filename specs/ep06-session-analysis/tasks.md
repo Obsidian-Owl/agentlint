@@ -113,19 +113,19 @@
 
 ### Tests (write first)
 
-- [ ] T027 [P] [US3] Unit test for token metrics extraction in `tests/unit/tools/sessions/metrics.test.ts`
-- [ ] T028 [P] [US3] Unit test for tool distribution categorization in `tests/unit/tools/sessions/metrics.test.ts`
-- [ ] T029 [P] [US3] Unit test for compression event counting in `tests/unit/tools/sessions/metrics.test.ts`
+- [x] T027 [P] [US3] Unit test for token metrics extraction in `tests/unit/tools/sessions/metrics.test.ts`
+- [x] T028 [P] [US3] Unit test for tool distribution categorization in `tests/unit/tools/sessions/metrics.test.ts`
+- [x] T029 [P] [US3] Unit test for compression event counting in `tests/unit/tools/sessions/metrics.test.ts`
 
 ### Implementation
 
-- [ ] T030 [US3] Implement `extractMetrics()` function in `src/tools/sessions/metrics.ts`
-- [ ] T031 [US3] Implement tool categorization (read/write/bash/search/other) in `src/tools/sessions/metrics.ts` (depends on T030)
-- [ ] T032 [US3] Aggregate metrics from message.usage fields in `src/tools/sessions/metrics.ts` (depends on T030)
+- [x] T030 [US3] Implement `extractMetrics()` function in `src/tools/sessions/metrics.ts`
+- [x] T031 [US3] Implement tool categorization (read/write/bash/search/other) in `src/tools/sessions/metrics.ts` (depends on T030)
+- [x] T032 [US3] Aggregate metrics from message.usage fields in `src/tools/sessions/metrics.ts` (depends on T030)
 
 **Checkpoint**: US3 complete and independently testable
-- [ ] All US3 tests pass
-- [ ] Metrics match expected values for test fixtures
+- [x] All US3 tests pass
+- [x] Metrics match expected values for test fixtures
 
 ---
 
