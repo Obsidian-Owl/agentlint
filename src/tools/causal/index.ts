@@ -88,6 +88,14 @@ export {
   type PatternDetectionResult,
 } from './pattern-detector.js';
 
+// Counterfactual Generator
+export {
+  CounterfactualGenerator,
+  createCounterfactualGenerator,
+  generateCounterfactual,
+  type CounterfactualOptions,
+} from './counterfactual.js';
+
 // SDK Tools
 export { traceIssueOriginTool } from './trace-issue-tool.js';
 export { getIssuePatternsTool } from './get-patterns-tool.js';
