@@ -79,6 +79,15 @@ export {
   type ChainBuilderResult,
 } from './chain-builder.js';
 
+// Pattern Detector
+export {
+  PatternDetector,
+  createPatternDetector,
+  SYSTEMIC_THRESHOLD,
+  type PatternDetectorOptions,
+  type PatternDetectionResult,
+} from './pattern-detector.js';
+
 // SDK Tools
 export { traceIssueOriginTool } from './trace-issue-tool.js';
-// export { getIssuePatternsTool } from './get-patterns-tool.js';
+export { getIssuePatternsTool } from './get-patterns-tool.js';

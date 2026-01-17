@@ -29,6 +29,7 @@ export {
   insertPattern,
   getPatternById,
   getPatternsByProject,
+  getAllPatterns,
   addChainToPattern,
   deletePattern,
 } from './queries.js';

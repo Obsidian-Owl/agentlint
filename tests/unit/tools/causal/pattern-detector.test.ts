@@ -25,6 +25,11 @@ import {
   insertPattern,
   getPatternById,
 } from '../../../../src/persistence/causal';
+import {
+  PatternDetector,
+  createPatternDetector,
+  SYSTEMIC_THRESHOLD,
+} from '../../../../src/tools/causal/pattern-detector';
 
 // =============================================================================
 // Test Fixtures
@@ -630,6 +635,207 @@ describe('PatternDetector', () => {
 
       expect(pattern.summary).toContain('<script>');
       expect(pattern.summary).toContain('&');
+    });
+  });
+
+  // ===========================================================================
+  // Test Suite: PatternDetector Class Implementation
+  // ===========================================================================
+
+  describe('PatternDetector class implementation', () => {
+    let detector: PatternDetector;
+
+    beforeEach(() => {
+      detector = createPatternDetector();
+    });
+
+    it('should detect patterns from chains', () => {
+      const chains = [
+        createTestChain({ gap: createTestGap({ type: 'missing_guidance' }) }),
+        createTestChain({ gap: createTestGap({ type: 'missing_guidance' }) }),
+        createTestChain({ gap: createTestGap({ type: 'missing_config' }) }),
+      ];
+
+      const result = detector.detectPatterns(chains);
+
+      expect(result.patterns).toHaveLength(2);
+      expect(result.chainsAnalyzed).toBe(3);
+    });
+
+    it('should filter by minimum frequency', () => {
+      const chains = [
+        createTestChain({ gap: createTestGap({ type: 'missing_guidance' }) }),
+        createTestChain({ gap: createTestGap({ type: 'missing_guidance' }) }),
+        createTestChain({ gap: createTestGap({ type: 'missing_config' }) }),
+      ];
+
+      const result = detector.detectPatterns(chains, { minFrequency: 2 });
+
+      expect(result.patterns).toHaveLength(1);
+      expect(result.patterns[0]!.category).toBe('missing_guidance');
+    });
+
+    it('should filter by category', () => {
+      const chains = [
+        createTestChain({ gap: createTestGap({ type: 'missing_guidance' }) }),
+        createTestChain({ gap: createTestGap({ type: 'missing_config' }) }),
+        createTestChain({ gap: createTestGap({ type: 'missing_guidance' }) }),
+      ];
+
+      const result = detector.detectPatterns(chains, {
+        category: 'missing_config',
+      });
+
+      expect(result.patterns).toHaveLength(1);
+      expect(result.patterns[0]!.category).toBe('missing_config');
+    });
+
+    it('should filter systemic only', () => {
+      const chains = [
+        createTestChain({ gap: createTestGap({ type: 'missing_guidance' }) }),
+        createTestChain({ gap: createTestGap({ type: 'missing_guidance' }) }),
+        createTestChain({ gap: createTestGap({ type: 'missing_guidance' }) }),
+        createTestChain({ gap: createTestGap({ type: 'missing_config' }) }),
+      ];
+
+      const result = detector.detectPatterns(chains, { systemicOnly: true });
+
+      expect(result.patterns).toHaveLength(1);
+      expect(result.patterns[0]!.isSystemic).toBe(true);
+    });
+
+    it('should sort patterns by frequency', () => {
+      const chains = [
+        createTestChain({ gap: createTestGap({ type: 'missing_guidance' }) }),
+        createTestChain({ gap: createTestGap({ type: 'missing_config' }) }),
+        createTestChain({ gap: createTestGap({ type: 'missing_config' }) }),
+        createTestChain({ gap: createTestGap({ type: 'missing_config' }) }),
+        createTestChain({ gap: createTestGap({ type: 'missing_guidance' }) }),
+      ];
+
+      const result = detector.detectPatterns(chains);
+
+      expect(result.patterns[0]!.frequency).toBe(3); // missing_config
+      expect(result.patterns[1]!.frequency).toBe(2); // missing_guidance
+    });
+
+    it('should classify systemic patterns correctly', () => {
+      expect(detector.isSystemic(1)).toBe(false);
+      expect(detector.isSystemic(2)).toBe(false);
+      expect(detector.isSystemic(3)).toBe(true);
+      expect(detector.isSystemic(10)).toBe(true);
+    });
+
+    it('should generate pattern summary', () => {
+      const summary = detector.generateSummary(
+        'missing_guidance',
+        3,
+        'Error handling patterns'
+      );
+
+      expect(summary).toContain('missing guidance');
+      expect(summary).toContain('3');
+      expect(summary).toContain('Error handling');
+    });
+
+    it('should add chain to existing pattern', () => {
+      const existingChain = createTestChain({
+        gap: createTestGap({ type: 'missing_guidance' }),
+      });
+      const existingPattern = createTestPattern({ chainIds: [existingChain.id] });
+      const existingPatterns = [existingPattern];
+
+      const newChain = createTestChain({
+        gap: createTestGap({ type: 'missing_guidance' }),
+      });
+
+      const updatedPattern = detector.addChainToPattern(
+        newChain,
+        existingPatterns,
+        '/test/project'
+      );
+
+      expect(updatedPattern.chainIds).toHaveLength(2);
+      expect(updatedPattern.frequency).toBe(2);
+    });
+
+    it('should create new pattern when no match', () => {
+      const existingPattern = createTestPattern({
+        category: 'missing_config',
+        chainIds: ['existing-chain'],
+      });
+
+      const newChain = createTestChain({
+        gap: createTestGap({ type: 'terminology_gap' }),
+      });
+
+      const newPattern = detector.addChainToPattern(
+        newChain,
+        [existingPattern],
+        '/test/project'
+      );
+
+      expect(newPattern.category).toBe('terminology_gap');
+      expect(newPattern.chainIds).toHaveLength(1);
+    });
+
+    it('should match chain to pattern', () => {
+      const pattern = createTestPattern({ category: 'missing_guidance' });
+      const matchingChain = createTestChain({
+        gap: createTestGap({ type: 'missing_guidance' }),
+      });
+      const nonMatchingChain = createTestChain({
+        gap: createTestGap({ type: 'missing_config' }),
+      });
+      const noGapChain = createTestChain({ gap: undefined });
+
+      expect(detector.matchesPattern(matchingChain, pattern)).toBe(true);
+      expect(detector.matchesPattern(nonMatchingChain, pattern)).toBe(false);
+      expect(detector.matchesPattern(noGapChain, pattern)).toBe(false);
+    });
+
+    it('should track grouped counts', () => {
+      const chains = [
+        createTestChain({ gap: createTestGap({ type: 'missing_guidance' }) }),
+        createTestChain({ gap: createTestGap({ type: 'missing_guidance' }) }),
+        createTestChain({ gap: createTestGap({ type: 'missing_config' }) }),
+        createTestChain({ gap: undefined }),
+      ];
+
+      const result = detector.detectPatterns(chains);
+
+      expect(result.groupedCounts.get('missing_guidance')).toBe(2);
+      expect(result.groupedCounts.get('missing_config')).toBe(1);
+    });
+
+    it('should handle empty chains', () => {
+      const result = detector.detectPatterns([]);
+
+      expect(result.patterns).toHaveLength(0);
+      expect(result.chainsAnalyzed).toBe(0);
+    });
+
+    it('should track first and last occurrence', () => {
+      const chains = [
+        createTestChain({
+          createdAt: '2024-01-01T10:00:00Z',
+          gap: createTestGap({ type: 'missing_guidance' }),
+        }),
+        createTestChain({
+          createdAt: '2024-01-15T10:00:00Z',
+          gap: createTestGap({ type: 'missing_guidance' }),
+        }),
+        createTestChain({
+          createdAt: '2024-01-10T10:00:00Z',
+          gap: createTestGap({ type: 'missing_guidance' }),
+        }),
+      ];
+
+      const result = detector.detectPatterns(chains);
+      const pattern = result.patterns[0]!;
+
+      expect(pattern.firstOccurrence).toBe('2024-01-01T10:00:00Z');
+      expect(pattern.lastOccurrence).toBe('2024-01-15T10:00:00Z');
     });
   });
 });

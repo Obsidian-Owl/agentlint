@@ -551,3 +551,67 @@ export function deletePattern(db: Database, patternId: string): boolean {
   const result = db.run('DELETE FROM issue_patterns WHERE id = ?', [patternId]);
   return result.changes > 0;
 }
+
+/**
+ * Get all patterns across all projects.
+ *
+ * @param db - Database instance
+ * @param options - Query options
+ * @returns Array of all patterns
+ */
+export function getAllPatterns(
+  db: Database,
+  options: {
+    minFrequency?: number;
+    category?: GapType;
+    onlySystemic?: boolean;
+    limit?: number;
+  } = {}
+): IssuePattern[] {
+  const { minFrequency = 1, category, onlySystemic = false, limit = 100 } = options;
+
+  let sql = 'SELECT * FROM issue_patterns WHERE 1=1';
+  const params: (string | number)[] = [];
+
+  if (minFrequency > 1) {
+    sql += ' AND frequency >= ?';
+    params.push(minFrequency);
+  }
+
+  if (category) {
+    sql += ' AND category = ?';
+    params.push(category);
+  }
+
+  if (onlySystemic) {
+    sql += ' AND is_systemic = 1';
+  }
+
+  sql += ' ORDER BY frequency DESC, last_occurrence DESC';
+  sql += ' LIMIT ?';
+  params.push(limit);
+
+  const patternRows = db.query<PatternRow, typeof params>(sql).all(...params);
+
+  return patternRows.map((row) => {
+    // Get linked chain IDs
+    const chainIds = db
+      .query<{ chain_id: string }, [string]>(
+        'SELECT chain_id FROM chain_patterns WHERE pattern_id = ?'
+      )
+      .all(row.id)
+      .map((r) => r.chain_id);
+
+    return {
+      id: row.id,
+      category: row.category as GapType,
+      chainIds,
+      frequency: row.frequency,
+      isSystemic: row.is_systemic === 1,
+      firstOccurrence: row.first_occurrence,
+      lastOccurrence: row.last_occurrence,
+      projectPath: row.project_path ?? undefined,
+      summary: row.summary,
+    };
+  });
+}
