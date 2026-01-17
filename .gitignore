@@ -30,3 +30,6 @@ npm-debug.log*
 
 # agentlint local data (baselines, learnings, sessions)
 .agentlint/
+
+# Agent state files (epic auto-mode recovery)
+.agent/
