@@ -136,19 +136,19 @@
 
 ### Tests (write first)
 
-- [ ] T033 [P] [US4] Unit test for FTS5 indexing in `tests/unit/tools/sessions/indexer.test.ts`
-- [ ] T034 [P] [US4] Unit test for incremental indexing in `tests/unit/tools/sessions/indexer.test.ts`
+- [x] T033 [P] [US4] Unit test for FTS5 indexing in `tests/unit/tools/sessions/indexer.test.ts`
+- [x] T034 [P] [US4] Unit test for incremental indexing in `tests/unit/tools/sessions/indexer.test.ts`
 - [ ] T035 [P] [US4] Performance test for large corpus indexing in `tests/performance/sessions-indexer.test.ts`
 
 ### Implementation
 
-- [ ] T036 [US4] Implement `indexSessions()` function in `src/tools/sessions/indexer.ts`
-- [ ] T037 [US4] Implement incremental indexing with mtime check in `src/tools/sessions/indexer.ts` (depends on T036)
-- [ ] T038 [US4] Populate sessions and session_tools tables during indexing (depends on T036)
-- [ ] T039 [US4] Handle memory-efficient streaming for large files (depends on T036)
+- [x] T036 [US4] Implement `indexSessions()` function in `src/tools/sessions/indexer.ts`
+- [x] T037 [US4] Implement incremental indexing with mtime check in `src/tools/sessions/indexer.ts` (depends on T036)
+- [x] T038 [US4] Populate sessions and session_tools tables during indexing (depends on T036)
+- [x] T039 [US4] Handle memory-efficient streaming for large files (depends on T036)
 
 **Checkpoint**: US4 complete and independently testable
-- [ ] All US4 tests pass
+- [x] All US4 tests pass
 - [ ] Indexing 100MB completes in < 15 seconds
 - [ ] Memory stays under 100MB during indexing
 

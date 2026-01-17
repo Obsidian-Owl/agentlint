@@ -140,3 +140,16 @@ export {
 } from './metrics';
 
 export type { TokenUsageAggregate, BatchMetricsOptions } from './metrics';
+
+// =============================================================================
+// Indexer
+// =============================================================================
+
+export {
+  indexSessionFile,
+  indexSessions,
+  getIndexedFileInfo,
+  clearIndex,
+} from './indexer';
+
+export type { IndexFileOptions, IndexFileResult, BatchIndexOptions, ClearIndexOptions } from './indexer';

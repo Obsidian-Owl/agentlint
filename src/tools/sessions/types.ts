@@ -319,6 +319,7 @@ export interface GetSessionStatsOutput {
  */
 export interface IndexedFile {
   filePath: string;
+  projectPath: string;
   lastModified: number;
   entryCount: number;
   indexedAt: string;
