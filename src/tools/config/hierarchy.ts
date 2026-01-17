@@ -85,10 +85,7 @@ function extractEmphasisStatements(
 /**
  * Find potential conflicts between two configs.
  */
-function findConflicts(
-  config1: ParsedConfig,
-  config2: ParsedConfig
-): Conflict[] {
+function findConflicts(config1: ParsedConfig, config2: ParsedConfig): Conflict[] {
   const conflicts: Conflict[] = [];
 
   // Extract emphasis statements from both configs
@@ -119,10 +116,7 @@ function findConflicts(
         // If they share significant words, it might be a conflict
         if (commonWords.length >= 2) {
           conflicts.push({
-            id: generateConflictId('contradicting', [
-              config1.file.path,
-              config2.file.path,
-            ]),
+            id: generateConflictId('contradicting', [config1.file.path, config2.file.path]),
             type: 'contradicting',
             description: `Potential contradiction: "${s1.text.slice(0, 50)}..." vs "${s2.text.slice(0, 50)}..."`,
             files: [config1.file, config2.file],
@@ -153,8 +147,7 @@ function findConflicts(
           .split(/\s+/)
           .filter((w) => w.length > 3);
         const commonWords = words1.filter((w) => words2.includes(w));
-        const similarity =
-          commonWords.length / Math.max(words1.length, words2.length);
+        const similarity = commonWords.length / Math.max(words1.length, words2.length);
 
         if (similarity > 0.5) {
           conflicts.push({
@@ -230,10 +223,7 @@ function aggregateMetrics(configs: ParsedConfig[]): ConfigMetrics {
     aggregate.lineCount += m.lineCount;
     aggregate.tokenEstimate += m.tokenEstimate;
     aggregate.sectionCount += m.sectionCount;
-    aggregate.maxHeadingDepth = Math.max(
-      aggregate.maxHeadingDepth,
-      m.maxHeadingDepth
-    );
+    aggregate.maxHeadingDepth = Math.max(aggregate.maxHeadingDepth, m.maxHeadingDepth);
     aggregate.codeBlockCount += m.codeBlockCount;
     aggregate.linkCount += m.linkCount;
     aggregate.wordCount += m.wordCount;

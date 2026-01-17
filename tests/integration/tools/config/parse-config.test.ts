@@ -113,12 +113,8 @@ describe('parsing pipeline integration', () => {
         parsedConfigs.push(parsed);
       }
 
-      const claudeMdConfigs = parsedConfigs.filter(
-        (p) => p.file.type === 'claude-md'
-      );
-      const agentsMdConfigs = parsedConfigs.filter(
-        (p) => p.file.type === 'agents-md'
-      );
+      const claudeMdConfigs = parsedConfigs.filter((p) => p.file.type === 'claude-md');
+      const agentsMdConfigs = parsedConfigs.filter((p) => p.file.type === 'agents-md');
 
       expect(claudeMdConfigs.length).toBeGreaterThan(0);
       // monorepo has at least one AGENTS.md
@@ -139,9 +135,7 @@ describe('parsing pipeline integration', () => {
       const mdConfigs = parsedConfigs.filter(
         (p) => p.file.type === 'claude-md' || p.file.type === 'agents-md'
       );
-      const jsonConfigs = parsedConfigs.filter(
-        (p) => p.file.type === 'claude-settings'
-      );
+      const jsonConfigs = parsedConfigs.filter((p) => p.file.type === 'claude-settings');
 
       // Should have at least some markdown configs
       expect(mdConfigs.length).toBeGreaterThan(0);
@@ -155,10 +149,7 @@ describe('parsing pipeline integration', () => {
       for (const file of discoveryResult.files) {
         const parsed = await parseConfig(file.path);
 
-        if (
-          parsed.file.type === 'claude-md' ||
-          parsed.file.type === 'agents-md'
-        ) {
+        if (parsed.file.type === 'claude-md' || parsed.file.type === 'agents-md') {
           // Markdown files should have AST
           expect(parsed.ast).toBeDefined();
           expect(parsed.ast.type).toBe('root');
@@ -207,9 +198,7 @@ describe('parsing pipeline integration', () => {
   describe('error handling in pipeline', () => {
     it('should continue parsing after one file fails', async () => {
       // Create a directory with mixed valid and invalid files
-      const tempDir = fs.mkdtempSync(
-        path.join(FIXTURES_DIR, 'temp-mixed-')
-      );
+      const tempDir = fs.mkdtempSync(path.join(FIXTURES_DIR, 'temp-mixed-'));
       const validFile = path.join(tempDir, 'CLAUDE.md');
       const invalidFile = path.join(tempDir, 'sub', 'CLAUDE.md');
 
@@ -258,9 +247,7 @@ describe('parsing pipeline integration', () => {
       const discoveryResult = await discoverConfigs({ cwd: VALID_DIR });
 
       const startTime = Date.now();
-      const parsePromises = discoveryResult.files.map((file) =>
-        parseConfig(file.path)
-      );
+      const parsePromises = discoveryResult.files.map((file) => parseConfig(file.path));
       const results = await Promise.all(parsePromises);
       const duration = Date.now() - startTime;
 

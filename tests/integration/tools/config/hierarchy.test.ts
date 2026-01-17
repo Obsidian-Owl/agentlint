@@ -49,9 +49,7 @@ describe('Hierarchy Integration Tests', () => {
     });
 
     it('should build complete hierarchy from project with nested configs', async () => {
-      const tempDir = fs.mkdtempSync(
-        path.join(os.tmpdir(), 'agentlint-int-')
-      );
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agentlint-int-'));
 
       // Create a realistic project structure
       const structure = {
@@ -119,9 +117,7 @@ NEVER skip tests without a reason.
 
   describe('conflict detection integration', () => {
     it('should detect ALWAYS/NEVER conflicts about same topic', async () => {
-      const tempDir = fs.mkdtempSync(
-        path.join(os.tmpdir(), 'agentlint-conflict-')
-      );
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agentlint-conflict-'));
       fs.mkdirSync(path.join(tempDir, 'src'));
 
       fs.writeFileSync(
@@ -161,9 +157,7 @@ NEVER use semicolons at the end of statements.
     });
 
     it('should detect duplicate/overlapping sections', async () => {
-      const tempDir = fs.mkdtempSync(
-        path.join(os.tmpdir(), 'agentlint-overlap-')
-      );
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agentlint-overlap-'));
       fs.mkdirSync(path.join(tempDir, 'src'));
 
       const sharedContent = `
@@ -174,15 +168,9 @@ NEVER use semicolons at the end of statements.
 - Use descriptive test names
 `;
 
-      fs.writeFileSync(
-        path.join(tempDir, 'CLAUDE.md'),
-        `# Project\n${sharedContent}`
-      );
+      fs.writeFileSync(path.join(tempDir, 'CLAUDE.md'), `# Project\n${sharedContent}`);
 
-      fs.writeFileSync(
-        path.join(tempDir, 'src', 'CLAUDE.md'),
-        `# Src\n${sharedContent}`
-      );
+      fs.writeFileSync(path.join(tempDir, 'src', 'CLAUDE.md'), `# Src\n${sharedContent}`);
 
       try {
         const result = await analyzeHierarchy({
@@ -200,9 +188,7 @@ NEVER use semicolons at the end of statements.
     });
 
     it('should handle complex conflict scenarios', async () => {
-      const tempDir = fs.mkdtempSync(
-        path.join(os.tmpdir(), 'agentlint-complex-')
-      );
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agentlint-complex-'));
       fs.mkdirSync(path.join(tempDir, 'frontend'));
       fs.mkdirSync(path.join(tempDir, 'backend'));
 
@@ -262,16 +248,11 @@ NEVER use semicolons at the end of statements.
 
   describe('skills in hierarchy', () => {
     it('should include skills in hierarchy analysis', async () => {
-      const tempDir = fs.mkdtempSync(
-        path.join(os.tmpdir(), 'agentlint-skills-')
-      );
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agentlint-skills-'));
       const skillDir = path.join(tempDir, 'skills', 'deploy');
       fs.mkdirSync(skillDir, { recursive: true });
 
-      fs.writeFileSync(
-        path.join(tempDir, 'CLAUDE.md'),
-        '# Project\n\nMain config.'
-      );
+      fs.writeFileSync(path.join(tempDir, 'CLAUDE.md'), '# Project\n\nMain config.');
 
       fs.writeFileSync(
         path.join(skillDir, 'SKILL.md'),
@@ -304,9 +285,7 @@ Run deployment commands.
 
   describe('effective configuration merging', () => {
     it('should merge all sections into effective config', async () => {
-      const tempDir = fs.mkdtempSync(
-        path.join(os.tmpdir(), 'agentlint-merge-')
-      );
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agentlint-merge-'));
       fs.mkdirSync(path.join(tempDir, 'src'));
 
       fs.writeFileSync(
@@ -354,9 +333,7 @@ Testing info.
     });
 
     it('should aggregate code blocks from all configs', async () => {
-      const tempDir = fs.mkdtempSync(
-        path.join(os.tmpdir(), 'agentlint-blocks-')
-      );
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agentlint-blocks-'));
       fs.mkdirSync(path.join(tempDir, 'src'));
 
       fs.writeFileSync(
@@ -387,9 +364,7 @@ function test() {}
           includeGlobal: false,
         });
 
-        expect(
-          result.hierarchy.effectiveConfig.codeBlocks.length
-        ).toBeGreaterThanOrEqual(2);
+        expect(result.hierarchy.effectiveConfig.codeBlocks.length).toBeGreaterThanOrEqual(2);
       } finally {
         fs.rmSync(tempDir, { recursive: true });
       }
@@ -398,9 +373,7 @@ function test() {}
 
   describe('performance', () => {
     it('should analyze large hierarchy efficiently', async () => {
-      const tempDir = fs.mkdtempSync(
-        path.join(os.tmpdir(), 'agentlint-perf-')
-      );
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agentlint-perf-'));
 
       // Create a larger structure
       fs.writeFileSync(path.join(tempDir, 'CLAUDE.md'), '# Project\n\nRoot.');
@@ -408,10 +381,7 @@ function test() {}
       for (let i = 0; i < 10; i++) {
         const dir = path.join(tempDir, `module-${i}`);
         fs.mkdirSync(dir, { recursive: true });
-        fs.writeFileSync(
-          path.join(dir, 'CLAUDE.md'),
-          `# Module ${i}\n\nModule config.`
-        );
+        fs.writeFileSync(path.join(dir, 'CLAUDE.md'), `# Module ${i}\n\nModule config.`);
       }
 
       try {

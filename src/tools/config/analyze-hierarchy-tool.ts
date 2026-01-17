@@ -16,10 +16,7 @@ import { analyzeHierarchy } from './hierarchy';
  */
 const analyzeHierarchyInputSchema = {
   cwd: z.string().describe('Project root directory to analyze'),
-  includeGlobal: z
-    .boolean()
-    .optional()
-    .describe('Include global configs from ~/.claude/'),
+  includeGlobal: z.boolean().optional().describe('Include global configs from ~/.claude/'),
 };
 
 /**
@@ -85,12 +82,10 @@ function formatHierarchyOutput(result: AnalyzeHierarchyResult): string {
     lines.push('');
     for (const conflict of hierarchy.conflicts) {
       const severityEmoji =
-        conflict.severity === 'high'
-          ? '🔴'
-          : conflict.severity === 'medium'
-            ? '🟡'
-            : '🟢';
-      lines.push(`### ${severityEmoji} ${conflict.type.charAt(0).toUpperCase() + conflict.type.slice(1)} Conflict`);
+        conflict.severity === 'high' ? '🔴' : conflict.severity === 'medium' ? '🟡' : '🟢';
+      lines.push(
+        `### ${severityEmoji} ${conflict.type.charAt(0).toUpperCase() + conflict.type.slice(1)} Conflict`
+      );
       lines.push('');
       lines.push(`**Description**: ${conflict.description}`);
       lines.push('');
@@ -168,8 +163,7 @@ Use this tool to understand how configurations at different levels interact and 
         _rawData: result,
       };
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
       return {
         content: [
           {

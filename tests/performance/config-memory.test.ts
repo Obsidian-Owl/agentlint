@@ -116,7 +116,9 @@ const x = 1;
     expect(memoryUsed).toBeLessThan(5);
     expect(result.metrics.lineCount).toBeLessThan(100);
 
-    console.log(`Small config: ${result.metrics.lineCount} lines, ~${memoryUsed.toFixed(2)}MB memory`);
+    console.log(
+      `Small config: ${result.metrics.lineCount} lines, ~${memoryUsed.toFixed(2)}MB memory`
+    );
   });
 
   it('should parse medium config (300 lines) within 20MB', async () => {
@@ -134,7 +136,9 @@ const x = 1;
     expect(memoryUsed).toBeLessThan(20);
     expect(result.metrics.lineCount).toBeGreaterThanOrEqual(200);
 
-    console.log(`Medium config: ${result.metrics.lineCount} lines, ~${memoryUsed.toFixed(2)}MB memory`);
+    console.log(
+      `Medium config: ${result.metrics.lineCount} lines, ~${memoryUsed.toFixed(2)}MB memory`
+    );
   });
 
   it('should parse large config (1000 lines) within 50MB (NFR-004)', async () => {
@@ -152,7 +156,9 @@ const x = 1;
     expect(memoryUsed).toBeLessThan(50);
     expect(result.metrics.lineCount).toBeGreaterThanOrEqual(500);
 
-    console.log(`Large config: ${result.metrics.lineCount} lines, ~${memoryUsed.toFixed(2)}MB memory`);
+    console.log(
+      `Large config: ${result.metrics.lineCount} lines, ~${memoryUsed.toFixed(2)}MB memory`
+    );
   });
 
   it('should release memory after parsing completes', async () => {
@@ -226,10 +232,7 @@ const x = 1;
     for (const dir of dirs) {
       const fullDir = path.join(hierarchyDir, dir);
       fs.mkdirSync(fullDir, { recursive: true });
-      fs.writeFileSync(
-        path.join(fullDir, 'CLAUDE.md'),
-        `# ${dir}\n\nInstructions for ${dir}.`
-      );
+      fs.writeFileSync(path.join(fullDir, 'CLAUDE.md'), `# ${dir}\n\nInstructions for ${dir}.`);
     }
 
     const beforeMB = getHeapUsedMB();
@@ -246,6 +249,8 @@ const x = 1;
     expect(memoryUsed).toBeLessThan(20);
     expect(result.hierarchy.effectiveConfig.fileCount).toBeGreaterThanOrEqual(dirs.length);
 
-    console.log(`Hierarchy analysis: ${result.hierarchy.effectiveConfig.fileCount} configs, ~${memoryUsed.toFixed(2)}MB`);
+    console.log(
+      `Hierarchy analysis: ${result.hierarchy.effectiveConfig.fileCount} configs, ~${memoryUsed.toFixed(2)}MB`
+    );
   });
 });

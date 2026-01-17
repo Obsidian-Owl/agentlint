@@ -104,7 +104,10 @@ describe('parseConfig', () => {
       const result = await parseConfig(filePath);
 
       // Helper to find section recursively
-      function findSection(sections: typeof result.sections, title: string): typeof result.sections[0] | undefined {
+      function findSection(
+        sections: typeof result.sections,
+        title: string
+      ): (typeof result.sections)[0] | undefined {
         for (const s of sections) {
           if (s.title === title) return s;
           const found = findSection(s.children, title);
@@ -167,9 +170,7 @@ describe('parseConfig', () => {
         expect(section.position).toBeDefined();
         expect(section.position.start.line).toBeGreaterThan(0);
         expect(section.position.start.column).toBeGreaterThan(0);
-        expect(section.position.end.line).toBeGreaterThanOrEqual(
-          section.position.start.line
-        );
+        expect(section.position.end.line).toBeGreaterThanOrEqual(section.position.start.line);
       }
     });
 
@@ -188,9 +189,7 @@ describe('parseConfig', () => {
       const result = await parseConfig(filePath);
 
       // At least some positions should have offsets
-      const hasOffset = result.sections.some(
-        (s) => s.position.start.offset !== undefined
-      );
+      const hasOffset = result.sections.some((s) => s.position.start.offset !== undefined);
       expect(hasOffset).toBe(true);
     });
   });

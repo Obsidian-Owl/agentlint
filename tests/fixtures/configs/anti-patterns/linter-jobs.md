@@ -3,6 +3,7 @@
 ## ESLint Rules
 
 Always follow these ESLint rules:
+
 - no-unused-vars
 - no-console
 - prefer-const

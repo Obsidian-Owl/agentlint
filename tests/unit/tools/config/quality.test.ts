@@ -12,10 +12,7 @@ import * as path from 'node:path';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
 import { parseConfig } from '../../../../src/tools/config/parse-config';
-import type {
-  QualityAssessment,
-  ParsedConfig,
-} from '../../../../src/tools/config/types';
+import type { QualityAssessment, ParsedConfig } from '../../../../src/tools/config/types';
 
 // Import the function we're testing (will be implemented in T050)
 // For now, define a placeholder type for the test structure
@@ -47,9 +44,7 @@ describe('assessQuality', () => {
   beforeAll(async () => {
     // Dynamically import the quality module once it's implemented
     try {
-      const qualityModule = await import(
-        '../../../../src/tools/config/quality'
-      );
+      const qualityModule = await import('../../../../src/tools/config/quality');
       assessQuality = qualityModule.assessQuality;
     } catch {
       // Module not yet implemented - tests will be skipped
@@ -106,9 +101,7 @@ describe('assessQuality', () => {
       const after = new Date();
 
       expect(result.assessedAt).toBeDefined();
-      expect(result.assessedAt.getTime()).toBeGreaterThanOrEqual(
-        before.getTime()
-      );
+      expect(result.assessedAt.getTime()).toBeGreaterThanOrEqual(before.getTime());
       expect(result.assessedAt.getTime()).toBeLessThanOrEqual(after.getTime());
     });
   });

@@ -130,17 +130,12 @@ describe('parseSettingsConfig', () => {
     it('should warn on unknown model names', async () => {
       // Create a temp file with unknown model
       const tempPath = path.join(VALID_DIR, 'temp-unknown-model.json');
-      fs.writeFileSync(
-        tempPath,
-        JSON.stringify({ model: 'unknown-model-name' })
-      );
+      fs.writeFileSync(tempPath, JSON.stringify({ model: 'unknown-model-name' }));
 
       try {
         const result = await parseSettingsConfig(tempPath);
 
-        const hasModelWarning = result.warnings.some((w) =>
-          w.message.includes('model')
-        );
+        const hasModelWarning = result.warnings.some((w) => w.message.includes('model'));
         expect(hasModelWarning).toBe(true);
       } finally {
         fs.unlinkSync(tempPath);

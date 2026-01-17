@@ -1,0 +1,10 @@
+# Build outputs
+dist/
+build/
+out/
+
+# Dependencies
+node_modules/
+
+# Test fixtures with intentionally malformed content
+tests/fixtures/configs/malformed/

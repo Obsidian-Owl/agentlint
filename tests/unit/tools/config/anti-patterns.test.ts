@@ -52,9 +52,7 @@ describe('detectAntiPatterns', () => {
   beforeAll(async () => {
     // Dynamically import the quality module once it's implemented
     try {
-      const qualityModule = await import(
-        '../../../../src/tools/config/quality'
-      );
+      const qualityModule = await import('../../../../src/tools/config/quality');
       detectAntiPatterns = qualityModule.detectAntiPatterns;
     } catch {
       // Module not yet implemented - tests will be skipped
@@ -146,9 +144,7 @@ describe('detectAntiPatterns', () => {
         const config = await parseConfig(filePath);
         const issues = detectAntiPatterns(config);
 
-        const genericIssues = issues.filter(
-          (i) => i.type === 'generic-rule'
-        );
+        const genericIssues = issues.filter((i) => i.type === 'generic-rule');
         expect(genericIssues.length).toBe(0);
       } finally {
         cleanupTempFile(filePath);
@@ -204,9 +200,7 @@ Follow these rules:
         const config = await parseConfig(filePath);
         const issues = detectAntiPatterns(config);
 
-        const linterIssues = issues.filter(
-          (i) => i.type === 'linter-job'
-        );
+        const linterIssues = issues.filter((i) => i.type === 'linter-job');
         expect(linterIssues.length).toBeGreaterThan(0);
       } finally {
         cleanupTempFile(filePath);
@@ -218,13 +212,9 @@ Follow these rules:
       const config = await parseConfig(filePath);
       const issues = detectAntiPatterns(config);
 
-      const linterIssue = issues.find(
-        (i) => i.type === 'linter-job'
-      );
+      const linterIssue = issues.find((i) => i.type === 'linter-job');
       if (linterIssue) {
-        expect(linterIssue.suggestion.toLowerCase()).toMatch(
-          /eslint|prettier|linter|formatter/
-        );
+        expect(linterIssue.suggestion.toLowerCase()).toMatch(/eslint|prettier|linter|formatter/);
       }
     });
   });
@@ -246,9 +236,7 @@ Follow these rules:
       const config = await parseConfig(filePath);
       const issues = detectAntiPatterns(config);
 
-      const overloadIssue = issues.find(
-        (i) => i.type === 'instruction-overload'
-      );
+      const overloadIssue = issues.find((i) => i.type === 'instruction-overload');
       if (overloadIssue) {
         expect(['high', 'critical']).toContain(overloadIssue.severity);
       }
@@ -268,9 +256,7 @@ Follow these rules:
         const config = await parseConfig(filePath);
         const issues = detectAntiPatterns(config);
 
-        const overloadIssues = issues.filter(
-          (i) => i.type === 'instruction-overload'
-        );
+        const overloadIssues = issues.filter((i) => i.type === 'instruction-overload');
         expect(overloadIssues.length).toBe(0);
       } finally {
         cleanupTempFile(filePath);
@@ -282,9 +268,7 @@ Follow these rules:
       const config = await parseConfig(filePath);
       const issues = detectAntiPatterns(config);
 
-      const overloadIssue = issues.find(
-        (i) => i.type === 'instruction-overload'
-      );
+      const overloadIssue = issues.find((i) => i.type === 'instruction-overload');
       if (overloadIssue) {
         expect(overloadIssue.suggestion.length).toBeGreaterThan(0);
       }
@@ -326,9 +310,7 @@ DB_PASSWORD="mypassword"
         const config = await parseConfig(filePath);
         const issues = detectAntiPatterns(config);
 
-        const secretIssues = issues.filter(
-          (i) => i.type === 'embedded-secret'
-        );
+        const secretIssues = issues.filter((i) => i.type === 'embedded-secret');
         expect(secretIssues.length).toBeGreaterThan(0);
       } finally {
         cleanupTempFile(filePath);
@@ -351,9 +333,7 @@ MIIEowIBAAKCAQEA...
         const config = await parseConfig(filePath);
         const issues = detectAntiPatterns(config);
 
-        const secretIssues = issues.filter(
-          (i) => i.type === 'embedded-secret'
-        );
+        const secretIssues = issues.filter((i) => i.type === 'embedded-secret');
         expect(secretIssues.length).toBeGreaterThan(0);
       } finally {
         cleanupTempFile(filePath);
@@ -370,9 +350,7 @@ API_KEY=sk-test-1234567890
         const config = await parseConfig(filePath);
         const issues = detectAntiPatterns(config);
 
-        const secretIssue = issues.find(
-          (i) => i.type === 'embedded-secret'
-        );
+        const secretIssue = issues.find((i) => i.type === 'embedded-secret');
         if (secretIssue) {
           expect(secretIssue.severity).toBe('critical');
         }
@@ -393,9 +371,7 @@ Use \`$API_KEY\` or \`process.env.API_KEY\` for API access.
         const config = await parseConfig(filePath);
         const issues = detectAntiPatterns(config);
 
-        const secretIssues = issues.filter(
-          (i) => i.type === 'embedded-secret'
-        );
+        const secretIssues = issues.filter((i) => i.type === 'embedded-secret');
         expect(secretIssues.length).toBe(0);
       } finally {
         cleanupTempFile(filePath);
@@ -445,13 +421,9 @@ ${codeLines}
         const config = await parseConfig(filePath);
         const issues = detectAntiPatterns(config);
 
-        const snippetIssue = issues.find(
-          (i) => i.type === 'code-snippet'
-        );
+        const snippetIssue = issues.find((i) => i.type === 'code-snippet');
         if (snippetIssue) {
-          expect(snippetIssue.suggestion.toLowerCase()).toMatch(
-            /file|reference|link/
-          );
+          expect(snippetIssue.suggestion.toLowerCase()).toMatch(/file|reference|link/);
         }
       } finally {
         cleanupTempFile(filePath);
@@ -472,9 +444,7 @@ bun test
         const config = await parseConfig(filePath);
         const issues = detectAntiPatterns(config);
 
-        const snippetIssues = issues.filter(
-          (i) => i.type === 'code-snippet'
-        );
+        const snippetIssues = issues.filter((i) => i.type === 'code-snippet');
         expect(snippetIssues.length).toBe(0);
       } finally {
         cleanupTempFile(filePath);
@@ -491,9 +461,7 @@ Use \`bun test\` to run tests and \`bun run build\` to build.
         const config = await parseConfig(filePath);
         const issues = detectAntiPatterns(config);
 
-        const snippetIssues = issues.filter(
-          (i) => i.type === 'code-snippet'
-        );
+        const snippetIssues = issues.filter((i) => i.type === 'code-snippet');
         expect(snippetIssues.length).toBe(0);
       } finally {
         cleanupTempFile(filePath);
@@ -637,10 +605,7 @@ Run \`bun test\` for unit tests.
     it('should handle JSON configs', async () => {
       const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agentlint-test-'));
       const filePath = path.join(tempDir, 'settings.json');
-      fs.writeFileSync(
-        filePath,
-        JSON.stringify({ model: 'claude-sonnet-4-20250514' })
-      );
+      fs.writeFileSync(filePath, JSON.stringify({ model: 'claude-sonnet-4-20250514' }));
 
       try {
         const config = await parseConfig(filePath);

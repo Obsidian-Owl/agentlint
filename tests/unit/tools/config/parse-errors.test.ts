@@ -97,10 +97,9 @@ describe('parseConfig error handling', () => {
       const result = await parseConfig(filePath);
 
       // Frontmatter should be undefined or empty on error
-      expect(
-        result.frontmatter === undefined ||
-          Object.keys(result.frontmatter).length === 0
-      ).toBe(true);
+      expect(result.frontmatter === undefined || Object.keys(result.frontmatter).length === 0).toBe(
+        true
+      );
     });
 
     it('should still parse markdown content after invalid frontmatter', async () => {
@@ -221,8 +220,7 @@ describe('parseConfig error handling', () => {
       const largeFile = path.join(tempDir, 'CLAUDE.md');
 
       // Create a large file (1MB+)
-      const content =
-        '# Large File\n\n' + 'Lorem ipsum dolor sit amet.\n'.repeat(50000);
+      const content = '# Large File\n\n' + 'Lorem ipsum dolor sit amet.\n'.repeat(50000);
       fs.writeFileSync(largeFile, content);
 
       try {
@@ -325,9 +323,7 @@ const x = 1;
       const result = await parseConfig(filePath);
 
       // Some warnings should have position info
-      const warningsWithPosition = result.warnings.filter(
-        (w) => w.position !== undefined
-      );
+      const warningsWithPosition = result.warnings.filter((w) => w.position !== undefined);
       // At least some warnings should have positions
       expect(warningsWithPosition.length).toBeGreaterThanOrEqual(0);
     });

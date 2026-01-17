@@ -10,10 +10,7 @@ import { describe, it, expect, beforeAll, afterAll } from 'bun:test';
 import * as path from 'node:path';
 import * as fs from 'node:fs';
 import * as os from 'node:os';
-import {
-  discoverConfigs,
-  DEFAULT_EXCLUSIONS,
-} from '../../../../src/tools/config/discovery';
+import { discoverConfigs, DEFAULT_EXCLUSIONS } from '../../../../src/tools/config/discovery';
 
 describe('glob exclusions', () => {
   // Temporary directory for testing exclusions
@@ -70,9 +67,7 @@ describe('glob exclusions', () => {
         includeGlobal: false,
       });
 
-      const nodeModulesFiles = result.files.filter((f) =>
-        f.path.includes('node_modules')
-      );
+      const nodeModulesFiles = result.files.filter((f) => f.path.includes('node_modules'));
 
       expect(nodeModulesFiles.length).toBe(0);
       expect(result.directoriesExcluded).toBeGreaterThan(0);
@@ -96,10 +91,7 @@ describe('glob exclusions', () => {
       });
 
       const buildFiles = result.files.filter(
-        (f) =>
-          f.path.includes('/dist/') ||
-          f.path.includes('/build/') ||
-          f.path.includes('/out/')
+        (f) => f.path.includes('/dist/') || f.path.includes('/build/') || f.path.includes('/out/')
       );
 
       expect(buildFiles.length).toBe(0);
@@ -111,9 +103,7 @@ describe('glob exclusions', () => {
         includeGlobal: false,
       });
 
-      const claudeSettings = result.files.find(
-        (f) => f.type === 'claude-settings'
-      );
+      const claudeSettings = result.files.find((f) => f.type === 'claude-settings');
 
       expect(claudeSettings).toBeDefined();
     });
@@ -151,9 +141,7 @@ describe('glob exclusions', () => {
       });
 
       // node_modules should still be excluded (default)
-      const nodeModulesFiles = result.files.filter((f) =>
-        f.path.includes('node_modules')
-      );
+      const nodeModulesFiles = result.files.filter((f) => f.path.includes('node_modules'));
 
       expect(nodeModulesFiles.length).toBe(0);
     });
@@ -178,9 +166,7 @@ describe('glob exclusions', () => {
       });
 
       // Should still exclude node_modules by default
-      const nodeModulesFiles = result.files.filter((f) =>
-        f.path.includes('node_modules')
-      );
+      const nodeModulesFiles = result.files.filter((f) => f.path.includes('node_modules'));
 
       expect(nodeModulesFiles.length).toBe(0);
     });
@@ -195,14 +181,7 @@ describe('glob exclusions', () => {
 
     it('should handle deeply nested excluded directories', async () => {
       // Create deeply nested node_modules
-      const deepPath = path.join(
-        tempDir,
-        'a',
-        'b',
-        'node_modules',
-        'c',
-        'd'
-      );
+      const deepPath = path.join(tempDir, 'a', 'b', 'node_modules', 'c', 'd');
       fs.mkdirSync(deepPath, { recursive: true });
       fs.writeFileSync(path.join(deepPath, 'CLAUDE.md'), '# Deep Ignore\n');
 
@@ -211,9 +190,7 @@ describe('glob exclusions', () => {
         includeGlobal: false,
       });
 
-      const deepFiles = result.files.filter((f) =>
-        f.path.includes('a/b/node_modules')
-      );
+      const deepFiles = result.files.filter((f) => f.path.includes('a/b/node_modules'));
 
       expect(deepFiles.length).toBe(0);
     });
@@ -243,9 +220,7 @@ describe('glob exclusions', () => {
         includeGlobal: false,
       });
 
-      const venvFiles = result.files.filter((f) =>
-        f.path.includes('/venv/')
-      );
+      const venvFiles = result.files.filter((f) => f.path.includes('/venv/'));
 
       expect(venvFiles.length).toBe(0);
     });
@@ -278,11 +253,7 @@ describe('glob exclusions', () => {
       // Create a symlink pointing to node_modules
       const symlinkPath = path.join(tempDir, 'linked_modules');
       try {
-        fs.symlinkSync(
-          path.join(tempDir, 'node_modules'),
-          symlinkPath,
-          'junction'
-        );
+        fs.symlinkSync(path.join(tempDir, 'node_modules'), symlinkPath, 'junction');
       } catch {
         // Symlink creation may fail on some systems
         return;

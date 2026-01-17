@@ -35,9 +35,7 @@ describe('integration: config discovery', () => {
         includeGlobal: false,
       });
 
-      const rootConfig = result.files.find(
-        (f) => f.relativePath === 'CLAUDE.md'
-      );
+      const rootConfig = result.files.find((f) => f.relativePath === 'CLAUDE.md');
 
       expect(rootConfig).toBeDefined();
       expect(rootConfig?.level).toBe('project');
@@ -115,15 +113,9 @@ describe('integration: config discovery', () => {
         includeGlobal: false,
       });
 
-      const globalConfig = result.files.find((f) =>
-        f.relativePath.includes('global/')
-      );
-      const projectConfig = result.files.find((f) =>
-        f.relativePath.includes('project/')
-      );
-      const localConfig = result.files.find((f) =>
-        f.relativePath.includes('local/')
-      );
+      const globalConfig = result.files.find((f) => f.relativePath.includes('global/'));
+      const projectConfig = result.files.find((f) => f.relativePath.includes('project/'));
+      const localConfig = result.files.find((f) => f.relativePath.includes('local/'));
 
       // Should find all three hierarchy levels
       expect(globalConfig).toBeDefined();
@@ -152,9 +144,7 @@ describe('integration: config discovery', () => {
       });
 
       const claudeMdFiles = result.files.filter((f) => f.type === 'claude-md');
-      const settingsFiles = result.files.filter(
-        (f) => f.type === 'claude-settings'
-      );
+      const settingsFiles = result.files.filter((f) => f.type === 'claude-settings');
 
       expect(claudeMdFiles.length).toBeGreaterThan(0);
       expect(settingsFiles.length).toBeGreaterThan(0);
@@ -249,9 +239,7 @@ describe('integration: config discovery', () => {
         // Should not be in the future
         expect(file.lastModified.getTime()).toBeLessThanOrEqual(now.getTime());
         // Should not be too old (sanity check - fixtures created recently)
-        expect(file.lastModified.getTime()).toBeGreaterThan(
-          new Date('2020-01-01').getTime()
-        );
+        expect(file.lastModified.getTime()).toBeGreaterThan(new Date('2020-01-01').getTime());
       }
     });
   });

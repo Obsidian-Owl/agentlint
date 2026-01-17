@@ -55,12 +55,16 @@ export function example(): string {
 `,
 
       // Settings
-      '.claude/settings.json': JSON.stringify({
-        model: 'claude-sonnet-4-20250514',
-        permissions: {
-          allow_read: true,
+      '.claude/settings.json': JSON.stringify(
+        {
+          model: 'claude-sonnet-4-20250514',
+          permissions: {
+            allow_read: true,
+          },
         },
-      }, null, 2),
+        null,
+        2
+      ),
 
       // Source configs
       'src/CLAUDE.md': `# Source Config
@@ -165,9 +169,7 @@ Use this skill when deploying the application.
       expect(result.skills.length).toBeGreaterThan(0);
 
       // Should exclude node_modules
-      const nodeModulesFiles = result.files.filter((f) =>
-        f.path.includes('node_modules')
-      );
+      const nodeModulesFiles = result.files.filter((f) => f.path.includes('node_modules'));
       expect(nodeModulesFiles.length).toBe(0);
     });
 
@@ -332,9 +334,7 @@ ALWAYS disable linting.
       const discoveredMdFiles = discovery.files.filter(
         (f) => f.type === 'claude-md' || f.type === 'agents-md'
       );
-      expect(hierarchy.hierarchy.effectiveConfig.fileCount).toBe(
-        discoveredMdFiles.length
-      );
+      expect(hierarchy.hierarchy.effectiveConfig.fileCount).toBe(discoveredMdFiles.length);
 
       // - Parsed metrics should be included in effective metrics
       expect(hierarchy.hierarchy.effectiveConfig.aggregateMetrics.lineCount).toBeGreaterThanOrEqual(

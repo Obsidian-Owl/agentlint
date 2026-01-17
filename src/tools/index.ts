@@ -23,21 +23,13 @@ export * from './adapters';
 // =============================================================================
 
 // Re-export individual tool definitions for explicit registration
-export {
-  discoverConfigsTool,
-  parseConfigTool,
-  analyzeHierarchyTool,
-} from './config';
+export { discoverConfigsTool, parseConfigTool, analyzeHierarchyTool } from './config';
 
 // =============================================================================
 // Tool Registration Helpers (T072)
 // =============================================================================
 
-import {
-  discoverConfigsTool,
-  parseConfigTool,
-  analyzeHierarchyTool,
-} from './config';
+import { discoverConfigsTool, parseConfigTool, analyzeHierarchyTool } from './config';
 
 /**
  * All EP05 config analysis tools as an array for bulk registration.

@@ -150,10 +150,7 @@ export async function parseMarkdown(content: string): Promise<MarkdownParseResul
   warnings.push(...detectUnclosedCodeBlocks(content));
 
   // Create unified processor with plugins
-  const processor = unified()
-    .use(remarkParse)
-    .use(remarkFrontmatter, ['yaml'])
-    .use(remarkGfm);
+  const processor = unified().use(remarkParse).use(remarkFrontmatter, ['yaml']).use(remarkGfm);
 
   // Parse content
   const ast = processor.parse(content);
@@ -215,10 +212,7 @@ export function parseMarkdownSync(content: string): MarkdownParseResult {
 
   warnings.push(...detectUnclosedCodeBlocks(content));
 
-  const processor = unified()
-    .use(remarkParse)
-    .use(remarkFrontmatter, ['yaml'])
-    .use(remarkGfm);
+  const processor = unified().use(remarkParse).use(remarkFrontmatter, ['yaml']).use(remarkGfm);
 
   const ast = processor.parse(content);
 

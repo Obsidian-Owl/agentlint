@@ -52,9 +52,7 @@ describe('analyzeHierarchy', () => {
     });
 
     it('should detect project-level config', async () => {
-      const tempDir = fs.mkdtempSync(
-        path.join(os.tmpdir(), 'agentlint-hierarchy-')
-      );
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agentlint-hierarchy-'));
       fs.writeFileSync(
         path.join(tempDir, 'CLAUDE.md'),
         '# Project Config\n\nProject-level instructions.'
@@ -74,18 +72,10 @@ describe('analyzeHierarchy', () => {
     });
 
     it('should detect local (nested) configs', async () => {
-      const tempDir = fs.mkdtempSync(
-        path.join(os.tmpdir(), 'agentlint-hierarchy-')
-      );
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agentlint-hierarchy-'));
       fs.mkdirSync(path.join(tempDir, 'src'));
-      fs.writeFileSync(
-        path.join(tempDir, 'CLAUDE.md'),
-        '# Project Config\n\nRoot config.'
-      );
-      fs.writeFileSync(
-        path.join(tempDir, 'src', 'CLAUDE.md'),
-        '# Src Config\n\nNested config.'
-      );
+      fs.writeFileSync(path.join(tempDir, 'CLAUDE.md'), '# Project Config\n\nRoot config.');
+      fs.writeFileSync(path.join(tempDir, 'src', 'CLAUDE.md'), '# Src Config\n\nNested config.');
 
       try {
         const result = await analyzeHierarchy({
@@ -101,9 +91,7 @@ describe('analyzeHierarchy', () => {
     });
 
     it('should include skills in hierarchy', async () => {
-      const tempDir = fs.mkdtempSync(
-        path.join(os.tmpdir(), 'agentlint-hierarchy-')
-      );
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agentlint-hierarchy-'));
       const skillDir = path.join(tempDir, 'skills', 'my-skill');
       fs.mkdirSync(skillDir, { recursive: true });
       fs.writeFileSync(
@@ -127,9 +115,7 @@ describe('analyzeHierarchy', () => {
 
   describe('effective configuration', () => {
     it('should merge sections from all levels', async () => {
-      const tempDir = fs.mkdtempSync(
-        path.join(os.tmpdir(), 'agentlint-hierarchy-')
-      );
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agentlint-hierarchy-'));
       fs.mkdirSync(path.join(tempDir, 'src'));
       fs.writeFileSync(
         path.join(tempDir, 'CLAUDE.md'),
@@ -147,9 +133,7 @@ describe('analyzeHierarchy', () => {
         });
 
         // Effective config should have sections from both configs
-        expect(result.hierarchy.effectiveConfig.sections.length).toBeGreaterThan(
-          0
-        );
+        expect(result.hierarchy.effectiveConfig.sections.length).toBeGreaterThan(0);
         expect(result.hierarchy.effectiveConfig.fileCount).toBe(2);
       } finally {
         fs.rmSync(tempDir, { recursive: true });
@@ -157,18 +141,10 @@ describe('analyzeHierarchy', () => {
     });
 
     it('should aggregate metrics across all configs', async () => {
-      const tempDir = fs.mkdtempSync(
-        path.join(os.tmpdir(), 'agentlint-hierarchy-')
-      );
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agentlint-hierarchy-'));
       fs.mkdirSync(path.join(tempDir, 'src'));
-      fs.writeFileSync(
-        path.join(tempDir, 'CLAUDE.md'),
-        '# Project\n\nFirst config content.'
-      );
-      fs.writeFileSync(
-        path.join(tempDir, 'src', 'CLAUDE.md'),
-        '# Src\n\nSecond config content.'
-      );
+      fs.writeFileSync(path.join(tempDir, 'CLAUDE.md'), '# Project\n\nFirst config content.');
+      fs.writeFileSync(path.join(tempDir, 'src', 'CLAUDE.md'), '# Src\n\nSecond config content.');
 
       try {
         const result = await analyzeHierarchy({
@@ -185,9 +161,7 @@ describe('analyzeHierarchy', () => {
     });
 
     it('should combine code blocks from all configs', async () => {
-      const tempDir = fs.mkdtempSync(
-        path.join(os.tmpdir(), 'agentlint-hierarchy-')
-      );
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agentlint-hierarchy-'));
       fs.mkdirSync(path.join(tempDir, 'src'));
       fs.writeFileSync(
         path.join(tempDir, 'CLAUDE.md'),
@@ -204,9 +178,7 @@ describe('analyzeHierarchy', () => {
           includeGlobal: false,
         });
 
-        expect(
-          result.hierarchy.effectiveConfig.codeBlocks.length
-        ).toBeGreaterThanOrEqual(2);
+        expect(result.hierarchy.effectiveConfig.codeBlocks.length).toBeGreaterThanOrEqual(2);
       } finally {
         fs.rmSync(tempDir, { recursive: true });
       }
@@ -215,13 +187,8 @@ describe('analyzeHierarchy', () => {
 
   describe('summary generation', () => {
     it('should return summary with config existence flags', async () => {
-      const tempDir = fs.mkdtempSync(
-        path.join(os.tmpdir(), 'agentlint-hierarchy-')
-      );
-      fs.writeFileSync(
-        path.join(tempDir, 'CLAUDE.md'),
-        '# Project\n\nConfig content.'
-      );
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agentlint-hierarchy-'));
+      fs.writeFileSync(path.join(tempDir, 'CLAUDE.md'), '# Project\n\nConfig content.');
 
       try {
         const result = await analyzeHierarchy({
@@ -241,13 +208,8 @@ describe('analyzeHierarchy', () => {
     });
 
     it('should set projectConfigExists correctly', async () => {
-      const tempDir = fs.mkdtempSync(
-        path.join(os.tmpdir(), 'agentlint-hierarchy-')
-      );
-      fs.writeFileSync(
-        path.join(tempDir, 'CLAUDE.md'),
-        '# Project\n\nConfig content.'
-      );
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agentlint-hierarchy-'));
+      fs.writeFileSync(path.join(tempDir, 'CLAUDE.md'), '# Project\n\nConfig content.');
 
       try {
         const result = await analyzeHierarchy({
@@ -262,9 +224,7 @@ describe('analyzeHierarchy', () => {
     });
 
     it('should count local configs correctly', async () => {
-      const tempDir = fs.mkdtempSync(
-        path.join(os.tmpdir(), 'agentlint-hierarchy-')
-      );
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agentlint-hierarchy-'));
       fs.mkdirSync(path.join(tempDir, 'src'));
       fs.mkdirSync(path.join(tempDir, 'tests'));
       fs.writeFileSync(path.join(tempDir, 'CLAUDE.md'), '# Project');
@@ -286,9 +246,7 @@ describe('analyzeHierarchy', () => {
 
   describe('conflict detection', () => {
     it('should detect contradicting rules', async () => {
-      const tempDir = fs.mkdtempSync(
-        path.join(os.tmpdir(), 'agentlint-conflict-')
-      );
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agentlint-conflict-'));
       fs.mkdirSync(path.join(tempDir, 'src'));
 
       // Project says use semicolons, local says don't
@@ -316,9 +274,7 @@ describe('analyzeHierarchy', () => {
     });
 
     it('should identify overlapping guidance', async () => {
-      const tempDir = fs.mkdtempSync(
-        path.join(os.tmpdir(), 'agentlint-overlap-')
-      );
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agentlint-overlap-'));
       fs.mkdirSync(path.join(tempDir, 'src'));
 
       // Same instruction repeated at different levels
@@ -338,9 +294,7 @@ describe('analyzeHierarchy', () => {
         });
 
         // Should detect overlapping (redundant) guidance
-        const overlaps = result.hierarchy.conflicts.filter(
-          (c) => c.type === 'overlapping'
-        );
+        const overlaps = result.hierarchy.conflicts.filter((c) => c.type === 'overlapping');
         expect(overlaps.length).toBeGreaterThanOrEqual(0); // May or may not detect
       } finally {
         fs.rmSync(tempDir, { recursive: true });
@@ -348,9 +302,7 @@ describe('analyzeHierarchy', () => {
     });
 
     it('should return conflict with proper structure', async () => {
-      const tempDir = fs.mkdtempSync(
-        path.join(os.tmpdir(), 'agentlint-conflict-')
-      );
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agentlint-conflict-'));
       fs.mkdirSync(path.join(tempDir, 'src'));
       fs.writeFileSync(
         path.join(tempDir, 'CLAUDE.md'),
@@ -383,9 +335,7 @@ describe('analyzeHierarchy', () => {
 
   describe('global config handling', () => {
     it('should exclude global config when includeGlobal is false', async () => {
-      const tempDir = fs.mkdtempSync(
-        path.join(os.tmpdir(), 'agentlint-hierarchy-')
-      );
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agentlint-hierarchy-'));
       fs.writeFileSync(path.join(tempDir, 'CLAUDE.md'), '# Project');
 
       try {
@@ -403,9 +353,7 @@ describe('analyzeHierarchy', () => {
 
   describe('error handling', () => {
     it('should handle empty directory', async () => {
-      const tempDir = fs.mkdtempSync(
-        path.join(os.tmpdir(), 'agentlint-empty-')
-      );
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agentlint-empty-'));
 
       try {
         const result = await analyzeHierarchy({
@@ -432,9 +380,7 @@ describe('analyzeHierarchy', () => {
     });
 
     it('should handle malformed configs gracefully', async () => {
-      const tempDir = fs.mkdtempSync(
-        path.join(os.tmpdir(), 'agentlint-malformed-')
-      );
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agentlint-malformed-'));
       // Create a file that exists but might have unusual content
       fs.writeFileSync(path.join(tempDir, 'CLAUDE.md'), '');
 
@@ -454,9 +400,7 @@ describe('analyzeHierarchy', () => {
 
   describe('grade calculation', () => {
     it('should assign overall grade based on configs', async () => {
-      const tempDir = fs.mkdtempSync(
-        path.join(os.tmpdir(), 'agentlint-grade-')
-      );
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agentlint-grade-'));
       fs.writeFileSync(
         path.join(tempDir, 'CLAUDE.md'),
         `# Project Config

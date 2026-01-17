@@ -22,10 +22,7 @@ const parseConfigInputSchema = {
     .boolean()
     .optional()
     .describe('Include quality assessment in output (default: true)'),
-  includeRaw: z
-    .boolean()
-    .optional()
-    .describe('Include raw file content in output (default: true)'),
+  includeRaw: z.boolean().optional().describe('Include raw file content in output (default: true)'),
 };
 
 /**
@@ -52,9 +49,7 @@ function formatQualityOutput(quality: QualityAssessment): string {
   if (quality.issues.length > 0) {
     lines.push(`\n### Issues (${quality.issues.length})\n`);
     for (const issue of quality.issues) {
-      const pos = issue.position
-        ? ` (L${issue.position.start.line})`
-        : '';
+      const pos = issue.position ? ` (L${issue.position.start.line})` : '';
       const severityEmoji = getSeverityEmoji(issue.severity);
       lines.push(`- ${severityEmoji} **${issue.type}**${pos}: ${issue.message}`);
       if (issue.suggestion) {
@@ -95,7 +90,11 @@ function getSeverityEmoji(severity: string): string {
 /**
  * Format parse result for tool output.
  */
-function formatToolOutput(result: ParsedConfig, includeRaw: boolean, quality?: QualityAssessment): string {
+function formatToolOutput(
+  result: ParsedConfig,
+  includeRaw: boolean,
+  quality?: QualityAssessment
+): string {
   const lines: string[] = [];
 
   lines.push(`## Parse Results\n`);

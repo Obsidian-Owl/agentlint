@@ -114,12 +114,7 @@ const SECRET_PATTERNS = [
 ];
 
 /** Environment variable reference patterns (NOT secrets) */
-const ENV_VAR_PATTERNS = [
-  /\$[A-Z_]+/,
-  /process\.env\.[A-Z_]+/,
-  /\$\{[A-Z_]+\}/,
-  /\benv\.[A-Z_]+/,
-];
+const ENV_VAR_PATTERNS = [/\$[A-Z_]+/, /process\.env\.[A-Z_]+/, /\$\{[A-Z_]+\}/, /\benv\.[A-Z_]+/];
 
 /** Recommended section names (for completeness scoring) */
 const RECOMMENDED_SECTIONS = [
@@ -274,7 +269,8 @@ function scoreSize(config: ParsedConfig): number {
   if (tokenCount <= TOKENS_LIGHTWEIGHT) {
     tokenScore = 100;
   } else if (tokenCount <= TOKENS_MEDIUM) {
-    tokenScore = 80 - ((tokenCount - TOKENS_LIGHTWEIGHT) / (TOKENS_MEDIUM - TOKENS_LIGHTWEIGHT)) * 30;
+    tokenScore =
+      80 - ((tokenCount - TOKENS_LIGHTWEIGHT) / (TOKENS_MEDIUM - TOKENS_LIGHTWEIGHT)) * 30;
   } else if (tokenCount <= TOKENS_PROBLEMATIC) {
     tokenScore = 50 - ((tokenCount - TOKENS_MEDIUM) / (TOKENS_PROBLEMATIC - TOKENS_MEDIUM)) * 30;
   } else {
@@ -554,9 +550,7 @@ function detectEmbeddedSecrets(content: string): QualityIssue[] {
 /**
  * Detect large code snippets that should be file references.
  */
-function detectLargeCodeSnippets(
-  codeBlocks: ParsedConfig['codeBlocks']
-): QualityIssue[] {
+function detectLargeCodeSnippets(codeBlocks: ParsedConfig['codeBlocks']): QualityIssue[] {
   const issues: QualityIssue[] = [];
 
   for (const block of codeBlocks) {
@@ -677,9 +671,7 @@ function generateRecommendations(
   }
 
   if (highIssues.length > 0) {
-    recommendations.push(
-      `${highIssues.length} high-priority issue(s) should be addressed soon.`
-    );
+    recommendations.push(`${highIssues.length} high-priority issue(s) should be addressed soon.`);
   }
 
   // Limit recommendations to prevent information overload

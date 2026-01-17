@@ -61,7 +61,10 @@ describe('Config Discovery Performance', () => {
       fs.mkdirSync(path.dirname(fullPath), { recursive: true });
 
       if (relativePath.endsWith('.md')) {
-        fs.writeFileSync(fullPath, `# ${path.basename(relativePath)}\n\nContent for ${relativePath}`);
+        fs.writeFileSync(
+          fullPath,
+          `# ${path.basename(relativePath)}\n\nContent for ${relativePath}`
+        );
       } else if (relativePath.endsWith('.json')) {
         fs.writeFileSync(fullPath, '{}');
       } else {
@@ -71,7 +74,10 @@ describe('Config Discovery Performance', () => {
 
     // Create node_modules (should be excluded)
     fs.mkdirSync(path.join(tempDir, 'node_modules/@test/package'), { recursive: true });
-    fs.writeFileSync(path.join(tempDir, 'node_modules/@test/package/CLAUDE.md'), '# Should be excluded');
+    fs.writeFileSync(
+      path.join(tempDir, 'node_modules/@test/package/CLAUDE.md'),
+      '# Should be excluded'
+    );
   });
 
   afterAll(() => {
@@ -147,9 +153,7 @@ describe('Config Discovery Performance', () => {
     const elapsed = performance.now() - start;
 
     // Should not find any files from node_modules
-    const nodeModulesFiles = result.files.filter((f) =>
-      f.path.includes('node_modules')
-    );
+    const nodeModulesFiles = result.files.filter((f) => f.path.includes('node_modules'));
     expect(nodeModulesFiles.length).toBe(0);
 
     // Should still be fast
@@ -208,6 +212,8 @@ describe('Config Discovery Performance', () => {
 
     expect(actualRatio).toBeLessThan(maxAllowedRatio);
 
-    console.log(`Depth scaling: ${depths.map((d, i) => `${d}=${times[i]!.toFixed(2)}ms`).join(', ')}`);
+    console.log(
+      `Depth scaling: ${depths.map((d, i) => `${d}=${times[i]!.toFixed(2)}ms`).join(', ')}`
+    );
   });
 });

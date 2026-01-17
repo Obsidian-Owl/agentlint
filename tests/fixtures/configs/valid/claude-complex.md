@@ -42,7 +42,7 @@ bun run build
 
 ## Tables
 
-| Command | Description |
-|---------|-------------|
-| `bun test` | Run tests |
+| Command     | Description   |
+| ----------- | ------------- |
+| `bun test`  | Run tests     |
 | `bun build` | Build project |

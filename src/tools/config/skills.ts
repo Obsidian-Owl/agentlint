@@ -140,11 +140,7 @@ export async function parseSkill(skillDir: string): Promise<Skill> {
   const allowedTools = extractAllowedTools(frontmatter);
   const model = extractString(frontmatter, 'model');
   const userInvocable = extractBoolean(frontmatter, 'user_invocable', true);
-  const disableModelInvocation = extractBoolean(
-    frontmatter,
-    'disable_model_invocation',
-    false
-  );
+  const disableModelInvocation = extractBoolean(frontmatter, 'disable_model_invocation', false);
 
   // Parse content sections using parseConfig
   const contentSections = await extractContentSections(skillPath);
@@ -250,9 +246,7 @@ function extractDescription(frontmatter: Record<string, unknown>): {
 /**
  * Extract allowed_tools as array.
  */
-function extractAllowedTools(
-  frontmatter: Record<string, unknown>
-): string[] | undefined {
+function extractAllowedTools(frontmatter: Record<string, unknown>): string[] | undefined {
   const raw = frontmatter.allowed_tools || frontmatter.allowedTools;
 
   if (!raw) return undefined;
@@ -274,10 +268,7 @@ function extractAllowedTools(
 /**
  * Extract string field from frontmatter.
  */
-function extractString(
-  frontmatter: Record<string, unknown>,
-  key: string
-): string | undefined {
+function extractString(frontmatter: Record<string, unknown>, key: string): string | undefined {
   const raw = frontmatter[key];
   if (!raw || typeof raw !== 'string') return undefined;
   return raw.trim();

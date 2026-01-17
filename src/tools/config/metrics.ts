@@ -10,12 +10,7 @@
  */
 
 import type { Root, RootContent } from 'mdast';
-import type {
-  ConfigMetrics,
-  Section,
-  CodeBlock,
-  EmphasisCounts,
-} from './types';
+import type { ConfigMetrics, Section, CodeBlock, EmphasisCounts } from './types';
 
 // =============================================================================
 // Main Metrics Function (T042)
@@ -182,9 +177,7 @@ export function calculateMaxHeadingDepth(sections: Section[]): number {
  * @param codeBlocks - Array of code blocks
  * @returns Map of language to count
  */
-export function getCodeBlockLanguageDistribution(
-  codeBlocks: CodeBlock[]
-): Map<string, number> {
+export function getCodeBlockLanguageDistribution(codeBlocks: CodeBlock[]): Map<string, number> {
   const distribution = new Map<string, number>();
 
   for (const block of codeBlocks) {

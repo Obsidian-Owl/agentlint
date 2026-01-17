@@ -20,7 +20,10 @@ describe('parseJsonConfig', () => {
 
   beforeAll(async () => {
     _validSettings = await readFile(join(FIXTURES_DIR, 'valid/settings.json'), 'utf-8');
-    _invalidSettings = await readFile(join(FIXTURES_DIR, 'malformed/invalid-settings.json'), 'utf-8');
+    _invalidSettings = await readFile(
+      join(FIXTURES_DIR, 'malformed/invalid-settings.json'),
+      'utf-8'
+    );
     // Consume variables to prevent unused warnings (tests are skipped)
     void [_validSettings, _invalidSettings];
   });

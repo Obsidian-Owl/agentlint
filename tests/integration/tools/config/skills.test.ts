@@ -14,10 +14,7 @@ import * as os from 'node:os';
 import type { Skill } from '../../../../src/tools/config/types';
 
 // Lazy load to allow tests to be written first (TDD)
-type DiscoverSkillsFn = (options: {
-  cwd: string;
-  maxDepth?: number;
-}) => Promise<Skill[]>;
+type DiscoverSkillsFn = (options: { cwd: string; maxDepth?: number }) => Promise<Skill[]>;
 
 let discoverSkills: DiscoverSkillsFn;
 
@@ -51,12 +48,8 @@ describe('Skills Integration Tests', () => {
       expect(testSkill!.bundledFiles.length).toBeGreaterThanOrEqual(2);
 
       // Check for specific files
-      const scriptFile = testSkill!.bundledFiles.find(
-        (f) => f.path.includes('helper.sh')
-      );
-      const refFile = testSkill!.bundledFiles.find(
-        (f) => f.path.includes('example.md')
-      );
+      const scriptFile = testSkill!.bundledFiles.find((f) => f.path.includes('helper.sh'));
+      const refFile = testSkill!.bundledFiles.find((f) => f.path.includes('example.md'));
 
       expect(scriptFile).toBeDefined();
       expect(scriptFile?.type).toBe('script');
@@ -157,10 +150,7 @@ The references/ directory contains documentation.
         const fm = Object.entries(config)
           .map(([k, v]) => `${k}: ${v}`)
           .join('\n');
-        fs.writeFileSync(
-          path.join(skillDir, 'SKILL.md'),
-          `---\n${fm}\n---\n\n# ${config.name}\n`
-        );
+        fs.writeFileSync(path.join(skillDir, 'SKILL.md'), `---\n${fm}\n---\n\n# ${config.name}\n`);
       }
 
       try {
@@ -233,9 +223,7 @@ Use this skill when you need to process data.
         expect(skill.contentSections.length).toBeGreaterThan(0);
 
         // Find main section
-        const mainSection = skill.contentSections.find(
-          (s) => s.title === 'Content Skill'
-        );
+        const mainSection = skill.contentSections.find((s) => s.title === 'Content Skill');
         expect(mainSection).toBeDefined();
         expect(mainSection!.children.length).toBeGreaterThan(0);
 
@@ -284,10 +272,7 @@ Use this skill when you need to process data.
       // Create one invalid skill (bad YAML)
       const invalidDir = path.join(tempDir, 'invalid-skill');
       fs.mkdirSync(invalidDir, { recursive: true });
-      fs.writeFileSync(
-        path.join(invalidDir, 'SKILL.md'),
-        '---\nname: [broken\n---\n\n# Broken'
-      );
+      fs.writeFileSync(path.join(invalidDir, 'SKILL.md'), '---\nname: [broken\n---\n\n# Broken');
 
       try {
         const skills = await discoverSkills({ cwd: tempDir, maxDepth: 3 });

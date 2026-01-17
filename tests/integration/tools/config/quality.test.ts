@@ -15,10 +15,7 @@ import * as fs from 'node:fs';
 import * as os from 'node:os';
 import { discoverConfigs } from '../../../../src/tools/config/discovery';
 import { parseConfig } from '../../../../src/tools/config/parse-config';
-import type {
-  QualityAssessment,
-  ParsedConfig,
-} from '../../../../src/tools/config/types';
+import type { QualityAssessment, ParsedConfig } from '../../../../src/tools/config/types';
 
 // Lazy load quality module (TDD - not yet implemented)
 type AssessQualityFn = (config: ParsedConfig) => QualityAssessment;
@@ -33,9 +30,7 @@ const HIERARCHY_DIR = path.join(FIXTURES_DIR, 'hierarchy');
 describe('Quality Assessment Pipeline Integration', () => {
   beforeAll(async () => {
     try {
-      const qualityModule = await import(
-        '../../../../src/tools/config/quality'
-      );
+      const qualityModule = await import('../../../../src/tools/config/quality');
       assessQuality = qualityModule.assessQuality;
     } catch {
       assessQuality = () => {

@@ -28,11 +28,7 @@ import type {
   ACTType,
   WarningCode,
 } from './types';
-import {
-  extractMetrics,
-  createJsonMetrics,
-  createEmptyMetrics,
-} from './metrics';
+import { extractMetrics, createJsonMetrics, createEmptyMetrics } from './metrics';
 
 // =============================================================================
 // Main Parsing Functions
@@ -388,13 +384,15 @@ function buildSectionHierarchy(flatSections: Section[]): Section[] {
  * Generate a URL-safe section ID from heading text.
  */
 function generateSectionId(text: string): string {
-  return text
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '')
-    .replace(/\s+/g, '-')
-    .replace(/-+/g, '-')
-    .replace(/^-|-$/g, '')
-    .slice(0, 64) || 'section';
+  return (
+    text
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
+      .slice(0, 64) || 'section'
+  );
 }
 
 /**
@@ -403,7 +401,7 @@ function generateSectionId(text: string): string {
 function extractHeadingText(heading: Heading): string {
   return heading.children
     .map((child) => {
-      if (child.type === 'text') return (child).value;
+      if (child.type === 'text') return child.value;
       if (child.type === 'inlineCode') return child.value;
       return '';
     })
@@ -510,13 +508,7 @@ function calculateMetrics(
   sections: Section[],
   codeBlocks: CodeBlock[]
 ): ConfigMetrics {
-  return extractMetrics(
-    content,
-    markdownResult.ast,
-    markdownResult.headings,
-    sections,
-    codeBlocks
-  );
+  return extractMetrics(content, markdownResult.ast, markdownResult.headings, sections, codeBlocks);
 }
 
 // =============================================================================

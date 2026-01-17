@@ -14,10 +14,7 @@ import * as os from 'node:os';
 import type { Skill } from '../../../../src/tools/config/types';
 
 // Import functions we're testing (will be implemented in T060-T063)
-type DiscoverSkillsFn = (options: {
-  cwd: string;
-  maxDepth?: number;
-}) => Promise<Skill[]>;
+type DiscoverSkillsFn = (options: { cwd: string; maxDepth?: number }) => Promise<Skill[]>;
 
 type ParseSkillFn = (skillDir: string) => Promise<Skill>;
 
@@ -213,9 +210,7 @@ describe('parseSkill - frontmatter validation (T058)', () => {
         const skill = await parseSkill(skillDir);
 
         // Should have a warning about missing name
-        const nameWarning = skill.warnings.find(
-          (w) => w.message.toLowerCase().includes('name')
-        );
+        const nameWarning = skill.warnings.find((w) => w.message.toLowerCase().includes('name'));
         expect(nameWarning).toBeDefined();
       } finally {
         cleanupTempDir(skillDir);
@@ -230,8 +225,8 @@ describe('parseSkill - frontmatter validation (T058)', () => {
       try {
         const skill = await parseSkill(skillDir);
 
-        const descWarning = skill.warnings.find(
-          (w) => w.message.toLowerCase().includes('description')
+        const descWarning = skill.warnings.find((w) =>
+          w.message.toLowerCase().includes('description')
         );
         expect(descWarning).toBeDefined();
       } finally {
@@ -460,9 +455,7 @@ More details.
         const skill = await parseSkill(skillDir);
 
         // Should have main section with children
-        const mainSection = skill.contentSections.find(
-          (s) => s.title === 'Main Section'
-        );
+        const mainSection = skill.contentSections.find((s) => s.title === 'Main Section');
         expect(mainSection).toBeDefined();
         expect(mainSection?.children.length).toBeGreaterThan(0);
       } finally {
@@ -508,9 +501,7 @@ More details.
     it('should include file paths relative to skill directory', async () => {
       const skill = await parseSkill(SKILL_DIR);
 
-      const scriptFile = skill.bundledFiles.find(
-        (f) => f.path.includes('helper.sh')
-      );
+      const scriptFile = skill.bundledFiles.find((f) => f.path.includes('helper.sh'));
       expect(scriptFile).toBeDefined();
       expect(scriptFile?.path).toContain('scripts/');
     });

@@ -173,8 +173,7 @@ Returns structured information about discovered files including type, hierarchy 
         _rawData: result,
       };
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : String(error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
       return {
         content: [
           {

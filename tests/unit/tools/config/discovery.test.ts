@@ -55,15 +55,11 @@ describe('discoverConfigs', () => {
 
       const claudeFiles = result.files.filter((f) => f.type === 'claude-md');
       const agentsFiles = result.files.filter((f) => f.type === 'agents-md');
-      const settingsFiles = result.files.filter(
-        (f) => f.type === 'claude-settings'
-      );
+      const settingsFiles = result.files.filter((f) => f.type === 'claude-settings');
 
       expect(claudeFiles.length).toBeGreaterThan(0);
       // May have agents.md in fixtures
-      expect(agentsFiles.length + settingsFiles.length).toBeGreaterThanOrEqual(
-        0
-      );
+      expect(agentsFiles.length + settingsFiles.length).toBeGreaterThanOrEqual(0);
     });
 
     it('should calculate relative paths correctly', async () => {
@@ -113,9 +109,7 @@ describe('discoverConfigs', () => {
         includeGlobal: false,
       });
 
-      const localConfig = result.files.find((f) =>
-        f.relativePath.includes('local/')
-      );
+      const localConfig = result.files.find((f) => f.relativePath.includes('local/'));
 
       expect(localConfig).toBeDefined();
       expect(localConfig?.level).toBe('local');
@@ -129,9 +123,7 @@ describe('discoverConfigs', () => {
 
       // All configs in subdirectories should be 'local'
       // (project-level detection requires config at cwd root)
-      const projectConfig = result.files.find((f) =>
-        f.relativePath.includes('project/')
-      );
+      const projectConfig = result.files.find((f) => f.relativePath.includes('project/'));
 
       expect(projectConfig).toBeDefined();
       // Since project/ is a subdirectory, it gets 'local' level
@@ -186,9 +178,7 @@ describe('discoverConfigs', () => {
         includeGlobal: false,
       });
 
-      const settingsFile = result.files.find(
-        (f) => f.type === 'claude-settings'
-      );
+      const settingsFile = result.files.find((f) => f.type === 'claude-settings');
 
       expect(settingsFile).toBeDefined();
       expect(settingsFile?.relativePath).toBe('settings.json');
@@ -200,9 +190,7 @@ describe('discoverConfigs', () => {
         includeGlobal: false,
       });
 
-      const settingsFile = result.files.find(
-        (f) => f.type === 'claude-settings'
-      );
+      const settingsFile = result.files.find((f) => f.type === 'claude-settings');
 
       expect(settingsFile?.actType).toBe('claude-code');
     });
@@ -239,10 +227,7 @@ describe('discoverConfigs', () => {
       // Skip if no valid test environment
       tempGlobalDir = path.join(os.tmpdir(), '.agentlint-test-global');
       fs.mkdirSync(tempGlobalDir, { recursive: true });
-      fs.writeFileSync(
-        path.join(tempGlobalDir, 'CLAUDE.md'),
-        '# Global Config\n'
-      );
+      fs.writeFileSync(path.join(tempGlobalDir, 'CLAUDE.md'), '# Global Config\n');
     });
 
     afterAll(() => {
@@ -291,9 +276,7 @@ describe('discoverConfigs', () => {
       });
 
       // Shallow search should find fewer or equal files
-      expect(shallowResult.files.length).toBeLessThanOrEqual(
-        deepResult.files.length
-      );
+      expect(shallowResult.files.length).toBeLessThanOrEqual(deepResult.files.length);
     });
 
     it('should default to reasonable maxDepth', async () => {
@@ -400,10 +383,7 @@ describe('discoverConfigs', () => {
       const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agentlint-test-'));
       const skillDir = path.join(tempDir, 'bad-skill');
       fs.mkdirSync(skillDir, { recursive: true });
-      fs.writeFileSync(
-        path.join(skillDir, 'SKILL.md'),
-        '---\nname: [broken\n---\n\n# Broken'
-      );
+      fs.writeFileSync(path.join(skillDir, 'SKILL.md'), '---\nname: [broken\n---\n\n# Broken');
 
       try {
         const result = await discoverConfigs({

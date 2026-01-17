@@ -22,7 +22,10 @@ describe('parseMarkdown', () => {
   beforeAll(async () => {
     _simpleContent = await readFile(join(FIXTURES_DIR, 'valid/claude-simple.md'), 'utf-8');
     _complexContent = await readFile(join(FIXTURES_DIR, 'valid/claude-complex.md'), 'utf-8');
-    _unclosedCodeblock = await readFile(join(FIXTURES_DIR, 'malformed/unclosed-codeblock.md'), 'utf-8');
+    _unclosedCodeblock = await readFile(
+      join(FIXTURES_DIR, 'malformed/unclosed-codeblock.md'),
+      'utf-8'
+    );
     // Consume variables to prevent unused warnings (tests are skipped)
     void [_simpleContent, _complexContent, _unclosedCodeblock];
   });

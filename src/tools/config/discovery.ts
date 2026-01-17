@@ -108,11 +108,7 @@ function getACTType(configType: ConfigType): ACTType {
 /**
  * Determine hierarchy level from file path.
  */
-function getHierarchyLevel(
-  filePath: string,
-  cwd: string,
-  isGlobal: boolean
-): HierarchyLevel {
+function getHierarchyLevel(filePath: string, cwd: string, isGlobal: boolean): HierarchyLevel {
   if (isGlobal) {
     return 'global';
   }
@@ -140,9 +136,7 @@ function buildExclusionPatterns(customExclusions: string[] = []): string[] {
 /**
  * Get file metadata (size, lastModified).
  */
-function getFileMetadata(
-  filePath: string
-): { size: number; lastModified: Date } | null {
+function getFileMetadata(filePath: string): { size: number; lastModified: Date } | null {
   try {
     const stats = fs.statSync(filePath);
     return {
@@ -205,9 +199,7 @@ async function discoverGlobalConfigs(): Promise<ConfigFile[]> {
  * @param input - Discovery options
  * @returns Discovery results with files, skills, and metadata
  */
-export async function discoverConfigs(
-  input: DiscoverConfigsInput
-): Promise<DiscoverConfigsResult> {
+export async function discoverConfigs(input: DiscoverConfigsInput): Promise<DiscoverConfigsResult> {
   const startTime = Date.now();
   const {
     cwd,
@@ -349,16 +341,9 @@ export async function discoverConfigs(
 /**
  * Synchronous version of discoverConfigs for simpler use cases.
  */
-export function discoverConfigsSync(
-  input: DiscoverConfigsInput
-): DiscoverConfigsResult {
+export function discoverConfigsSync(input: DiscoverConfigsInput): DiscoverConfigsResult {
   const startTime = Date.now();
-  const {
-    cwd,
-    includeGlobal = false,
-    exclude = [],
-    maxDepth = 20,
-  } = input;
+  const { cwd, includeGlobal = false, exclude = [], maxDepth = 20 } = input;
 
   const results: ConfigFile[] = [];
   const skills: Array<{ path: string; type: 'skill-md' }> = [];
