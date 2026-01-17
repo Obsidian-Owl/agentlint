@@ -15,6 +15,7 @@ import {
   isSessionLogFile,
   categorizeToolByName,
   parseTimestamp,
+  validateTimestamp,
   isWithinDateRange,
   extractTextFromContent,
   truncateText,
@@ -304,6 +305,72 @@ describe('Timestamp Utilities', () => {
 
     it('should return false for invalid timestamp', () => {
       expect(isWithinDateRange('invalid')).toBe(false);
+    });
+  });
+
+  describe('validateTimestamp', () => {
+    it('should return valid for valid ISO-8601 timestamp', () => {
+      const result = validateTimestamp('2026-01-15T10:00:00.000Z', 'since');
+      expect(result.valid).toBe(true);
+    });
+
+    it('should return valid for date-only format', () => {
+      const result = validateTimestamp('2026-01-15', 'since');
+      expect(result.valid).toBe(true);
+    });
+
+    it('should return valid for timestamp without milliseconds', () => {
+      const result = validateTimestamp('2026-01-15T10:00:00Z', 'until');
+      expect(result.valid).toBe(true);
+    });
+
+    it('should return error for invalid timestamp string', () => {
+      const result = validateTimestamp('not-a-date', 'since');
+      expect(result.valid).toBe(false);
+      if (!result.valid) {
+        expect(result.error).toContain('Invalid since timestamp');
+        expect(result.error).toContain('not-a-date');
+        expect(result.error).toContain('ISO-8601');
+      }
+    });
+
+    it('should return error for empty string', () => {
+      const result = validateTimestamp('', 'until');
+      expect(result.valid).toBe(false);
+      if (!result.valid) {
+        expect(result.error).toContain('cannot be empty');
+      }
+    });
+
+    it('should return error for whitespace-only string', () => {
+      const result = validateTimestamp('   ', 'since');
+      expect(result.valid).toBe(false);
+      if (!result.valid) {
+        expect(result.error).toContain('cannot be empty');
+      }
+    });
+
+    it('should return error for invalid date values', () => {
+      const result = validateTimestamp('2026-13-45', 'since');
+      expect(result.valid).toBe(false);
+      if (!result.valid) {
+        expect(result.error).toContain('Invalid since timestamp');
+      }
+    });
+
+    it('should include field name in error message', () => {
+      const sinceResult = validateTimestamp('invalid', 'since');
+      const untilResult = validateTimestamp('invalid', 'until');
+
+      expect(sinceResult.valid).toBe(false);
+      expect(untilResult.valid).toBe(false);
+
+      if (!sinceResult.valid) {
+        expect(sinceResult.error).toContain('since');
+      }
+      if (!untilResult.valid) {
+        expect(untilResult.error).toContain('until');
+      }
     });
   });
 });

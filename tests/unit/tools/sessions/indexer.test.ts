@@ -16,7 +16,11 @@ import {
   getIndexedFileInfo,
   clearIndex,
 } from '../../../../src/tools/sessions/indexer';
-import { initDatabase, openDatabase, closeDatabase } from '../../../../src/persistence/sessions/fts';
+import {
+  initDatabase,
+  openDatabase,
+  closeDatabase,
+} from '../../../../src/persistence/sessions/fts';
 
 // Test fixture paths
 const FIXTURES_DIR = path.join(__dirname, '../../../fixtures/sessions');
@@ -114,9 +118,10 @@ describe('Session Indexing', () => {
       const db = openDatabase(TEST_DB_PATH);
       try {
         const session = db
-          .query<{ session_id: string; project_path: string }, []>(
-            'SELECT session_id, project_path FROM sessions LIMIT 1'
-          )
+          .query<
+            { session_id: string; project_path: string },
+            []
+          >('SELECT session_id, project_path FROM sessions LIMIT 1')
           .get();
         expect(session).not.toBeNull();
         expect(session?.project_path).toBe('/test/project');
@@ -135,9 +140,10 @@ describe('Session Indexing', () => {
       const db = openDatabase(TEST_DB_PATH);
       try {
         const tools = db
-          .query<{ tool_name: string; category: string; call_count: number }, []>(
-            'SELECT tool_name, category, call_count FROM session_tools'
-          )
+          .query<
+            { tool_name: string; category: string; call_count: number },
+            []
+          >('SELECT tool_name, category, call_count FROM session_tools')
           .all();
         expect(tools.length).toBeGreaterThan(0);
 
@@ -160,9 +166,10 @@ describe('Session Indexing', () => {
       const db = openDatabase(TEST_DB_PATH);
       try {
         const session = db
-          .query<{ compression_count: number }, []>(
-            'SELECT compression_count FROM sessions LIMIT 1'
-          )
+          .query<
+            { compression_count: number },
+            []
+          >('SELECT compression_count FROM sessions LIMIT 1')
           .get();
         expect(session?.compression_count).toBe(1);
       } finally {
@@ -181,9 +188,10 @@ describe('Session Indexing', () => {
       try {
         // Search for content we know exists
         const results = db
-          .query<{ content: string }, [string]>(
-            "SELECT content FROM session_entries WHERE session_entries MATCH ?"
-          )
+          .query<
+            { content: string },
+            [string]
+          >('SELECT content FROM session_entries WHERE session_entries MATCH ?')
           .all('user OR assistant');
         expect(results.length).toBeGreaterThan(0);
       } finally {
@@ -445,6 +453,78 @@ describe('Session Indexing', () => {
         if (existsSync(emptyFile)) {
           await fs.unlink(emptyFile);
         }
+      }
+    });
+  });
+
+  describe('Model/Version Extraction (T062)', () => {
+    const WITH_MODEL_FILE = path.join(FIXTURES_DIR, 'sample-with-model.jsonl');
+
+    it('should extract and store model from assistant messages', async () => {
+      await initDatabase({ dbPath: TEST_DB_PATH });
+
+      await indexSessionFile(WITH_MODEL_FILE, '/test/model-project', {
+        dbPath: TEST_DB_PATH,
+      });
+
+      // Query sessions table to check model was stored
+      const db = openDatabase(TEST_DB_PATH);
+      try {
+        const session = db
+          .query<{ model: string | null }, []>('SELECT model FROM sessions LIMIT 1')
+          .get();
+
+        expect(session).toBeDefined();
+        expect(session?.model).toBe('claude-opus-4-5-20251101');
+      } finally {
+        closeDatabase(db);
+      }
+    });
+
+    it('should extract and store CLI version from entries', async () => {
+      await initDatabase({ dbPath: TEST_DB_PATH });
+
+      await indexSessionFile(WITH_MODEL_FILE, '/test/model-project', {
+        dbPath: TEST_DB_PATH,
+      });
+
+      // Query sessions table to check CLI version was stored
+      const db = openDatabase(TEST_DB_PATH);
+      try {
+        const session = db
+          .query<{ cli_version: string | null }, []>('SELECT cli_version FROM sessions LIMIT 1')
+          .get();
+
+        expect(session).toBeDefined();
+        expect(session?.cli_version).toBe('1.0.62');
+      } finally {
+        closeDatabase(db);
+      }
+    });
+
+    it('should handle sessions without model data', async () => {
+      await initDatabase({ dbPath: TEST_DB_PATH });
+
+      // Use a fixture without model data
+      await indexSessionFile(VALID_FILE, '/test/project', {
+        dbPath: TEST_DB_PATH,
+      });
+
+      // Query sessions table
+      const db = openDatabase(TEST_DB_PATH);
+      try {
+        const session = db
+          .query<
+            { model: string | null; cli_version: string | null },
+            []
+          >('SELECT model, cli_version FROM sessions LIMIT 1')
+          .get();
+
+        expect(session).toBeDefined();
+        // Model should be null for fixtures without model data
+        expect(session?.model).toBeNull();
+      } finally {
+        closeDatabase(db);
       }
     });
   });

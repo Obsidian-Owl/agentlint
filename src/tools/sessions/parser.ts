@@ -110,6 +110,11 @@ export function parseSessionLine(line: string, lineNumber: number): ParseLineRes
       entry.sessionId = raw.sessionId;
     }
 
+    // Add optional version if present (CLI version)
+    if (typeof raw.version === 'string') {
+      entry.version = raw.version;
+    }
+
     // Extract message if present
     if (raw.message && typeof raw.message === 'object') {
       const msg = raw.message as Record<string, unknown>;
@@ -123,6 +128,9 @@ export function parseSessionLine(line: string, lineNumber: number): ParseLineRes
       }
       if (parsedUsage) {
         entry.message.usage = parsedUsage;
+      }
+      if (typeof msg.model === 'string') {
+        entry.message.model = msg.model;
       }
     }
 

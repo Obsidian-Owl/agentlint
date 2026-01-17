@@ -73,7 +73,9 @@ const CREATE_SESSIONS_SQL = `
     input_tokens INTEGER DEFAULT 0,
     output_tokens INTEGER DEFAULT 0,
     cache_tokens INTEGER DEFAULT 0,
-    compression_count INTEGER DEFAULT 0
+    compression_count INTEGER DEFAULT 0,
+    model TEXT,
+    cli_version TEXT
   );
 `;
 

@@ -1,0 +1,4 @@
+{"type":"user","uuid":"msg-001","timestamp":"2026-01-15T10:00:00.000Z","sessionId":"model-test-session-1","version":"1.0.62","message":{"role":"user","content":"Hello"}}
+{"type":"assistant","uuid":"msg-002","timestamp":"2026-01-15T10:00:05.000Z","sessionId":"model-test-session-1","version":"1.0.62","message":{"role":"assistant","model":"claude-opus-4-5-20251101","content":[{"type":"text","text":"Hello! How can I help you?"}],"usage":{"input_tokens":10,"output_tokens":12}}}
+{"type":"user","uuid":"msg-003","timestamp":"2026-01-15T10:01:00.000Z","sessionId":"model-test-session-1","version":"1.0.62","message":{"role":"user","content":"What's 2+2?"}}
+{"type":"assistant","uuid":"msg-004","timestamp":"2026-01-15T10:01:05.000Z","sessionId":"model-test-session-1","version":"1.0.62","message":{"role":"assistant","model":"claude-opus-4-5-20251101","content":[{"type":"text","text":"2+2 equals 4."}],"usage":{"input_tokens":15,"output_tokens":8}}}

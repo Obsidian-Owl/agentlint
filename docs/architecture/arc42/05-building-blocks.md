@@ -169,7 +169,8 @@ src/cli/
 | Category | Tools |
 |----------|-------|
 | **Config Analysis (EP05)** | `discover_configs`, `parse_config`, `analyze_hierarchy` |
-| **Analysis** | `search_sessions`, `get_session_stats`, `query_git` |
+| **Session Analysis (EP06)** | `search_sessions`, `get_session_stats` |
+| **Git Analysis** | `query_git` |
 | **Baseline** | `store_baseline`, `query_baseline`, `list_baselines` |
 | **Recommendation** | `store_recommendation`, `list_recommendations`, `update_recommendation` |
 | **Learning** | `store_learning`, `list_learnings`, `promote_learning` |
@@ -275,6 +276,100 @@ interface Skill {
 | Discovery time | <5s typical projects | fast-glob with early exclusion |
 | Parse memory | <50MB for 1000-line configs | Streaming parser, no caching |
 | Quality scoring | <100ms per file | In-memory analysis |
+
+---
+
+## Level 3: Session Analysis Tools (EP06)
+
+```
+src/tools/sessions/
+├── index.ts                    Public exports + SDK tool registration
+├── types.ts                    Entity interfaces (SessionEntry, SearchResult, etc.)
+├── schemas.ts                  Zod validation schemas with input limits
+│
+├── discovery.ts                Session file discovery in ~/.claude/projects/
+├── parser.ts                   JSONL parsing with streaming support
+├── utils.ts                    Path encoding, tool categorization, timestamps
+│
+├── indexer.ts                  FTS5 indexing with incremental updates
+├── search.ts                   Full-text search with BM25 ranking
+├── stats.ts                    Metrics aggregation with filtering
+├── metrics.ts                  Token usage and tool distribution extraction
+│
+├── search-sessions-tool.ts     SDK tool definition: search_sessions
+└── get-session-stats-tool.ts   SDK tool definition: get_session_stats
+```
+
+| Module | Responsibility |
+|--------|----------------|
+| `discovery.ts` | Discovers session JSONL files, decodes project paths from directory names |
+| `parser.ts` | Parses JSONL session logs with streaming, handles malformed lines gracefully |
+| `utils.ts` | Path encoding/decoding, tool categorization (read/write/bash/search), timestamp validation |
+| `indexer.ts` | Indexes session entries into FTS5 table, tracks file metadata for incremental updates |
+| `search.ts` | Full-text search with BM25 ranking, date range filtering, project filtering |
+| `stats.ts` | Aggregates session statistics: token usage, tool distribution, model usage |
+| `metrics.ts` | Extracts per-session metrics: turns, tokens, compressions, errors |
+
+### EP06 Tool Definitions
+
+| Tool | Description |
+|------|-------------|
+| `search_sessions` | Searches session logs with FTS5 query syntax, returns ranked results with snippets |
+| `get_session_stats` | Returns aggregated statistics across sessions with project/date/model filtering |
+
+### Persistence Layer Integration
+
+Session analysis uses SQLite FTS5 via the persistence layer:
+
+```
+src/persistence/sessions/
+└── fts.ts                      FTS5 database initialization and schema management
+```
+
+Database stored at `.agentlint/sessions.db` per [ADR-0006](../adr/0006-session-log-processing-architecture.md).
+
+### Key Entity Types
+
+```typescript
+interface SessionEntry {
+  type: EntryType;              // 'user' | 'assistant' | 'summary' | 'system'
+  sessionId: string;
+  timestamp: string;
+  message?: Message;            // Role, content blocks, token usage
+  toolUseResult?: ToolResult;   // Tool execution result
+  filePath: string;             // Source file (for causal tracing)
+  lineNumber: number;           // Line number (for causal tracing)
+}
+
+interface SearchResult {
+  sessionId: string;
+  timestamp: string;
+  contentSnippet: string;       // Highlighted match context
+  relevanceScore: number;       // BM25 score (lower = more relevant)
+  filePath: string;             // Source location for tracing
+  lineNumber: number;
+  projectPath: string;
+}
+
+interface SessionStats {
+  sessionCount: number;
+  totalInputTokens: number;
+  totalOutputTokens: number;
+  avgTurnsPerSession: number;
+  toolDistribution: ToolDistribution;
+  modelDistribution: ModelDistribution;
+  topCliVersion?: string;
+}
+```
+
+### Performance Characteristics (NFR)
+
+| Metric | Target | Implementation |
+|--------|--------|----------------|
+| Search query time | <2s on 500MB corpus | FTS5 with BM25 ranking |
+| Indexing throughput | <60s for 500MB | Incremental indexing, mtime checks |
+| Memory during indexing | <100MB peak | Streaming parser |
+| Index storage overhead | <20% of log size | FTS5 compression |
 
 ---
 

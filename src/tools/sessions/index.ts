@@ -29,6 +29,7 @@ export type {
   SessionEntry,
   // Metrics
   ToolDistribution,
+  ModelDistribution,
   SessionMetrics,
   // Search tool
   TimeRange,
@@ -68,6 +69,7 @@ export {
   RawSessionEntrySchema,
   // Distribution schemas
   ToolDistributionSchema,
+  ModelDistributionSchema,
   // Search schemas
   TimeRangeSchema,
   SearchSessionsInputSchema,
@@ -102,6 +104,7 @@ export {
   categorizeToolByName,
   // Timestamp utilities
   parseTimestamp,
+  validateTimestamp,
   isWithinDateRange,
   // Content extraction
   extractTextFromContent,
@@ -145,14 +148,14 @@ export type { TokenUsageAggregate, BatchMetricsOptions } from './metrics';
 // Indexer
 // =============================================================================
 
-export {
-  indexSessionFile,
-  indexSessions,
-  getIndexedFileInfo,
-  clearIndex,
-} from './indexer';
+export { indexSessionFile, indexSessions, getIndexedFileInfo, clearIndex } from './indexer';
 
-export type { IndexFileOptions, IndexFileResult, BatchIndexOptions, ClearIndexOptions } from './indexer';
+export type {
+  IndexFileOptions,
+  IndexFileResult,
+  BatchIndexOptions,
+  ClearIndexOptions,
+} from './indexer';
 
 // =============================================================================
 // Search
@@ -161,3 +164,18 @@ export type { IndexFileOptions, IndexFileResult, BatchIndexOptions, ClearIndexOp
 export { searchSessions, toSearchOutput } from './search';
 
 export type { SearchOptions, SearchSessionsResult } from './search';
+
+// =============================================================================
+// Stats
+// =============================================================================
+
+export { getSessionStats } from './stats';
+
+export type { StatsOptions, GetSessionStatsResult } from './stats';
+
+// =============================================================================
+// SDK Tools
+// =============================================================================
+
+export { searchSessionsTool } from './search-sessions-tool';
+export { getSessionStatsTool } from './get-session-stats-tool';

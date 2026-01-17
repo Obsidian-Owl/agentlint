@@ -112,9 +112,10 @@ export async function indexSessionFile(
     // Check if file is already indexed and unchanged
     if (!force) {
       const existing = db
-        .query<{ last_modified: number }, [string]>(
-          'SELECT last_modified FROM indexed_files WHERE file_path = ?'
-        )
+        .query<
+          { last_modified: number },
+          [string]
+        >('SELECT last_modified FROM indexed_files WHERE file_path = ?')
         .get(filePath);
 
       if (existing && existing.last_modified >= lastModified) {
@@ -135,7 +136,13 @@ export async function indexSessionFile(
     clearFileEntries(db, filePath, sessionId);
 
     // Index entries in a transaction
-    const result = indexEntriesTransaction(db, parseResult.entries, sessionId, projectPath, filePath);
+    const result = indexEntriesTransaction(
+      db,
+      parseResult.entries,
+      sessionId,
+      projectPath,
+      filePath
+    );
 
     // Update indexed_files metadata
     updateIndexedFileMetadata(db, filePath, projectPath, lastModified, result.entriesIndexed);
@@ -315,6 +322,32 @@ function updateIndexedFileMetadata(
 }
 
 /**
+ * Extract model from session entries.
+ * Looks for the model field in assistant message entries.
+ */
+function extractModel(entries: SessionEntry[]): string | null {
+  for (const entry of entries) {
+    if (entry.type === 'assistant' && entry.message?.model) {
+      return entry.message.model;
+    }
+  }
+  return null;
+}
+
+/**
+ * Extract CLI version from session entries.
+ * Looks for the version field on any entry.
+ */
+function extractCliVersion(entries: SessionEntry[]): string | null {
+  for (const entry of entries) {
+    if (entry.version) {
+      return entry.version;
+    }
+  }
+  return null;
+}
+
+/**
  * Update sessions summary table.
  */
 function updateSessionSummary(
@@ -324,12 +357,15 @@ function updateSessionSummary(
   entries: SessionEntry[]
 ): void {
   const metrics = extractMetrics(entries, sessionId, projectPath);
+  const model = extractModel(entries);
+  const cliVersion = extractCliVersion(entries);
 
   db.run(
     `INSERT OR REPLACE INTO sessions
      (session_id, project_path, first_timestamp, last_timestamp,
-      entry_count, input_tokens, output_tokens, cache_tokens, compression_count)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      entry_count, input_tokens, output_tokens, cache_tokens, compression_count,
+      model, cli_version)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       sessionId,
       projectPath,
@@ -340,6 +376,8 @@ function updateSessionSummary(
       metrics.outputTokens,
       metrics.cacheReadTokens + metrics.cacheCreationTokens,
       metrics.compressionCount,
+      model,
+      cliVersion,
     ]
   );
 }

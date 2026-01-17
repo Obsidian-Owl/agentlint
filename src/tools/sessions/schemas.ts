@@ -67,6 +67,7 @@ export const MessageSchema = z.object({
   role: MessageRoleSchema,
   content: z.array(ContentBlockSchema),
   usage: TokenUsageSchema.optional(),
+  model: z.string().optional(),
 });
 
 /**
@@ -145,15 +146,56 @@ export const TimeRangeSchema = z.object({
   until: z.string().optional(),
 });
 
+// =============================================================================
+// Input Validation Constants
+// =============================================================================
+
+/** Maximum length for search query strings */
+const MAX_QUERY_LENGTH = 1000;
+
+/** Maximum length for timestamp strings (ISO-8601 with timezone) */
+const MAX_TIMESTAMP_LENGTH = 30;
+
+/** Maximum length for project path strings */
+const MAX_PROJECT_PATH_LENGTH = 500;
+
+/** Maximum length for session ID strings (UUID format) */
+const MAX_SESSION_ID_LENGTH = 50;
+
+/** Maximum length for model name strings */
+const MAX_MODEL_LENGTH = 100;
+
+// =============================================================================
+// Search Tool Schemas
+// =============================================================================
+
 /**
  * Input for search_sessions tool.
  */
 export const SearchSessionsInputSchema = z.object({
-  query: z.string().min(1, 'Query cannot be empty'),
-  since: z.string().optional(),
-  until: z.string().optional(),
-  project: z.string().optional(),
-  sessionId: z.string().optional(),
+  query: z
+    .string()
+    .min(1, 'Query cannot be empty')
+    .max(MAX_QUERY_LENGTH, `Query cannot exceed ${MAX_QUERY_LENGTH} characters`),
+  since: z
+    .string()
+    .max(MAX_TIMESTAMP_LENGTH, `Timestamp cannot exceed ${MAX_TIMESTAMP_LENGTH} characters`)
+    .optional(),
+  until: z
+    .string()
+    .max(MAX_TIMESTAMP_LENGTH, `Timestamp cannot exceed ${MAX_TIMESTAMP_LENGTH} characters`)
+    .optional(),
+  project: z
+    .string()
+    .max(
+      MAX_PROJECT_PATH_LENGTH,
+      `Project path cannot exceed ${MAX_PROJECT_PATH_LENGTH} characters`
+    )
+    .optional(),
+  sessionId: z
+    .string()
+    .max(MAX_SESSION_ID_LENGTH, `Session ID cannot exceed ${MAX_SESSION_ID_LENGTH} characters`)
+    .optional(),
   limit: z.number().int().positive().max(500).default(50),
   offset: z.number().int().nonnegative().default(0),
 });
@@ -196,10 +238,31 @@ export const SearchSessionsOutputSchema = z.object({
  * Input for get_session_stats tool.
  */
 export const GetSessionStatsInputSchema = z.object({
-  since: z.string().optional(),
-  until: z.string().optional(),
-  project: z.string().optional(),
+  since: z
+    .string()
+    .max(MAX_TIMESTAMP_LENGTH, `Timestamp cannot exceed ${MAX_TIMESTAMP_LENGTH} characters`)
+    .optional(),
+  until: z
+    .string()
+    .max(MAX_TIMESTAMP_LENGTH, `Timestamp cannot exceed ${MAX_TIMESTAMP_LENGTH} characters`)
+    .optional(),
+  project: z
+    .string()
+    .max(
+      MAX_PROJECT_PATH_LENGTH,
+      `Project path cannot exceed ${MAX_PROJECT_PATH_LENGTH} characters`
+    )
+    .optional(),
+  model: z
+    .string()
+    .max(MAX_MODEL_LENGTH, `Model name cannot exceed ${MAX_MODEL_LENGTH} characters`)
+    .optional(),
 });
+
+/**
+ * Model usage distribution.
+ */
+export const ModelDistributionSchema = z.record(z.string(), z.number().int().nonnegative());
 
 /**
  * Aggregated statistics across sessions.
@@ -207,6 +270,7 @@ export const GetSessionStatsInputSchema = z.object({
 export const SessionStatsSchema = z.object({
   timeRange: TimeRangeSchema,
   projectFilter: z.string().optional(),
+  modelFilter: z.string().optional(),
   sessionCount: z.number().int().nonnegative(),
   totalInputTokens: z.number().int().nonnegative(),
   totalOutputTokens: z.number().int().nonnegative(),
@@ -217,6 +281,8 @@ export const SessionStatsSchema = z.object({
   compressionCount: z.number().int().nonnegative(),
   avgTokensPerTurn: z.number().nonnegative(),
   toolDistribution: ToolDistributionSchema,
+  modelDistribution: ModelDistributionSchema,
+  topCliVersion: z.string().optional(),
 });
 
 /**

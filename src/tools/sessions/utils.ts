@@ -263,6 +263,32 @@ export function parseTimestamp(timestamp: string): Date | null {
 }
 
 /**
+ * Validate an ISO-8601 timestamp string.
+ *
+ * @param timestamp - Timestamp string to validate
+ * @param fieldName - Name of the field for error messages
+ * @returns Validation result with error message if invalid
+ */
+export function validateTimestamp(
+  timestamp: string,
+  fieldName: string
+): { valid: true } | { valid: false; error: string } {
+  if (!timestamp || timestamp.trim() === '') {
+    return { valid: false, error: `${fieldName} cannot be empty` };
+  }
+
+  const date = parseTimestamp(timestamp);
+  if (!date) {
+    return {
+      valid: false,
+      error: `Invalid ${fieldName} timestamp: "${timestamp}". Expected ISO-8601 format (e.g., "2026-01-17" or "2026-01-17T10:30:00Z")`,
+    };
+  }
+
+  return { valid: true };
+}
+
+/**
  * Check if a timestamp falls within a date range.
  *
  * @param timestamp - ISO-8601 timestamp to check

@@ -119,6 +119,8 @@ export interface Message {
   role: MessageRole;
   content?: ContentBlock[];
   usage?: TokenUsage;
+  /** Model used for this message (for assistant messages) */
+  model?: string;
 }
 
 /**
@@ -281,6 +283,16 @@ export interface GetSessionStatsInput {
   until?: string;
   /** Filter by project path */
   project?: string;
+  /** Filter by model (e.g., "claude-opus-4-5-20251101") */
+  model?: string;
+}
+
+/**
+ * Model usage distribution.
+ */
+export interface ModelDistribution {
+  /** Model name -> session count */
+  [model: string]: number;
 }
 
 /**
@@ -289,6 +301,7 @@ export interface GetSessionStatsInput {
 export interface SessionStats {
   timeRange: TimeRange;
   projectFilter?: string;
+  modelFilter?: string;
   sessionCount: number;
   totalInputTokens: number;
   totalOutputTokens: number;
@@ -299,6 +312,10 @@ export interface SessionStats {
   compressionCount: number;
   avgTokensPerTurn: number;
   toolDistribution: ToolDistribution;
+  /** Distribution of sessions by model */
+  modelDistribution: ModelDistribution;
+  /** Most common CLI version */
+  topCliVersion?: string;
 }
 
 /**

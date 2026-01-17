@@ -67,10 +67,7 @@ describe('Session Search', () => {
     });
 
     it('should return empty results for no matches', () => {
-      const result = searchSessions(
-        { query: 'xyznonexistentterm123' },
-        { dbPath: TEST_DB_PATH }
-      );
+      const result = searchSessions({ query: 'xyznonexistentterm123' }, { dbPath: TEST_DB_PATH });
 
       expect(result.success).toBe(true);
       expect(result.results).toHaveLength(0);
@@ -109,20 +106,14 @@ describe('Session Search', () => {
     });
 
     it('should respect limit parameter', () => {
-      const result = searchSessions(
-        { query: 'user', limit: 1 },
-        { dbPath: TEST_DB_PATH }
-      );
+      const result = searchSessions({ query: 'user', limit: 1 }, { dbPath: TEST_DB_PATH });
 
       expect(result.success).toBe(true);
       expect(result.results.length).toBeLessThanOrEqual(1);
     });
 
     it('should support offset for pagination', () => {
-      const result1 = searchSessions(
-        { query: 'user', limit: 2 },
-        { dbPath: TEST_DB_PATH }
-      );
+      const result1 = searchSessions({ query: 'user', limit: 2 }, { dbPath: TEST_DB_PATH });
 
       const result2 = searchSessions(
         { query: 'user', limit: 2, offset: 1 },
@@ -147,10 +138,7 @@ describe('Session Search', () => {
     });
 
     it('should return total matches count', () => {
-      const result = searchSessions(
-        { query: 'user', limit: 1 },
-        { dbPath: TEST_DB_PATH }
-      );
+      const result = searchSessions({ query: 'user', limit: 1 }, { dbPath: TEST_DB_PATH });
 
       expect(result.success).toBe(true);
       expect(result.totalMatches).toBeGreaterThanOrEqual(result.results.length);
@@ -160,20 +148,14 @@ describe('Session Search', () => {
   describe('Phrase and Prefix Search (T041)', () => {
     it('should support phrase search with quotes', () => {
       // Search for exact phrase
-      const result = searchSessions(
-        { query: '"Hello from user"' },
-        { dbPath: TEST_DB_PATH }
-      );
+      const result = searchSessions({ query: '"Hello from user"' }, { dbPath: TEST_DB_PATH });
 
       expect(result.success).toBe(true);
       // May or may not find exact phrase depending on fixture content
     });
 
     it('should support prefix search with asterisk', () => {
-      const result = searchSessions(
-        { query: 'use*' },
-        { dbPath: TEST_DB_PATH }
-      );
+      const result = searchSessions({ query: 'use*' }, { dbPath: TEST_DB_PATH });
 
       expect(result.success).toBe(true);
       // Should match 'user', 'usage', etc.
@@ -181,47 +163,32 @@ describe('Session Search', () => {
 
     it('should support field-specific search', () => {
       // Search specifically in role field
-      const result = searchSessions(
-        { query: 'role:assistant' },
-        { dbPath: TEST_DB_PATH }
-      );
+      const result = searchSessions({ query: 'role:assistant' }, { dbPath: TEST_DB_PATH });
 
       expect(result.success).toBe(true);
     });
 
     it('should support tool name search', () => {
-      const result = searchSessions(
-        { query: 'tool_name:Bash' },
-        { dbPath: TEST_DB_PATH }
-      );
+      const result = searchSessions({ query: 'tool_name:Bash' }, { dbPath: TEST_DB_PATH });
 
       expect(result.success).toBe(true);
     });
 
     it('should support boolean OR queries', () => {
-      const result = searchSessions(
-        { query: 'user OR assistant' },
-        { dbPath: TEST_DB_PATH }
-      );
+      const result = searchSessions({ query: 'user OR assistant' }, { dbPath: TEST_DB_PATH });
 
       expect(result.success).toBe(true);
       expect(result.results.length).toBeGreaterThan(0);
     });
 
     it('should support boolean AND queries', () => {
-      const result = searchSessions(
-        { query: 'user AND message' },
-        { dbPath: TEST_DB_PATH }
-      );
+      const result = searchSessions({ query: 'user AND message' }, { dbPath: TEST_DB_PATH });
 
       expect(result.success).toBe(true);
     });
 
     it('should support NOT queries', () => {
-      const result = searchSessions(
-        { query: 'user NOT error' },
-        { dbPath: TEST_DB_PATH }
-      );
+      const result = searchSessions({ query: 'user NOT error' }, { dbPath: TEST_DB_PATH });
 
       expect(result.success).toBe(true);
     });
@@ -332,10 +299,7 @@ describe('Session Search', () => {
   describe('Session ID Filtering', () => {
     it('should filter by session ID', () => {
       // First get a session ID from results
-      const allResults = searchSessions(
-        { query: 'user', limit: 1 },
-        { dbPath: TEST_DB_PATH }
-      );
+      const allResults = searchSessions({ query: 'user', limit: 1 }, { dbPath: TEST_DB_PATH });
 
       if (allResults.results.length > 0) {
         const sessionId = allResults.results[0]?.sessionId;
@@ -364,10 +328,7 @@ describe('Session Search', () => {
 
   describe('BM25 Ranking', () => {
     it('should rank results by relevance', () => {
-      const result = searchSessions(
-        { query: 'user', limit: 10 },
-        { dbPath: TEST_DB_PATH }
-      );
+      const result = searchSessions({ query: 'user', limit: 10 }, { dbPath: TEST_DB_PATH });
 
       expect(result.success).toBe(true);
 
@@ -397,10 +358,7 @@ describe('Session Search', () => {
     });
 
     it('should include contentSnippet field in all results', () => {
-      const result = searchSessions(
-        { query: 'user' },
-        { dbPath: TEST_DB_PATH }
-      );
+      const result = searchSessions({ query: 'user' }, { dbPath: TEST_DB_PATH });
 
       expect(result.success).toBe(true);
 
@@ -413,10 +371,7 @@ describe('Session Search', () => {
 
   describe('Error Handling', () => {
     it('should handle empty query', () => {
-      const result = searchSessions(
-        { query: '' },
-        { dbPath: TEST_DB_PATH }
-      );
+      const result = searchSessions({ query: '' }, { dbPath: TEST_DB_PATH });
 
       // Should return error or empty results for empty query
       if (result.success) {
@@ -427,13 +382,84 @@ describe('Session Search', () => {
     });
 
     it('should handle invalid FTS5 syntax gracefully', () => {
-      const result = searchSessions(
-        { query: '(((' },
-        { dbPath: TEST_DB_PATH }
-      );
+      const result = searchSessions({ query: '(((' }, { dbPath: TEST_DB_PATH });
 
       // Should handle gracefully - either return empty or error
       expect(result).toBeDefined();
+    });
+  });
+
+  describe('Timestamp Validation', () => {
+    it('should return error for invalid since timestamp', () => {
+      const result = searchSessions(
+        {
+          query: 'user',
+          since: 'not-a-valid-date',
+        },
+        { dbPath: TEST_DB_PATH }
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
+      expect(result.error?.message).toContain('Invalid since timestamp');
+      expect(result.error?.message).toContain('not-a-valid-date');
+      expect(result.error?.suggestion).toContain('ISO-8601');
+    });
+
+    it('should return error for invalid until timestamp', () => {
+      const result = searchSessions(
+        {
+          query: 'user',
+          until: 'invalid-timestamp',
+        },
+        { dbPath: TEST_DB_PATH }
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.error).toBeDefined();
+      expect(result.error?.message).toContain('Invalid until timestamp');
+      expect(result.error?.message).toContain('invalid-timestamp');
+    });
+
+    it('should skip empty since timestamp (treat as undefined)', () => {
+      const result = searchSessions(
+        {
+          query: 'user',
+          since: '',
+        },
+        { dbPath: TEST_DB_PATH }
+      );
+
+      // Empty string is falsy, so filter is skipped - should succeed
+      expect(result.success).toBe(true);
+      expect(result.error).toBeUndefined();
+    });
+
+    it('should accept valid ISO-8601 timestamps', () => {
+      const result = searchSessions(
+        {
+          query: 'user',
+          since: '2026-01-01T00:00:00Z',
+          until: '2026-12-31T23:59:59Z',
+        },
+        { dbPath: TEST_DB_PATH }
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.error).toBeUndefined();
+    });
+
+    it('should accept date-only format', () => {
+      const result = searchSessions(
+        {
+          query: 'user',
+          since: '2026-01-01',
+        },
+        { dbPath: TEST_DB_PATH }
+      );
+
+      expect(result.success).toBe(true);
+      expect(result.error).toBeUndefined();
     });
   });
 });

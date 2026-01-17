@@ -14,7 +14,7 @@ import type {
   SessionError,
 } from './types';
 import { openDatabase, closeDatabase } from '../../persistence/sessions/fts';
-import { DEFAULT_SESSIONS_DB_PATH, truncateText } from './utils';
+import { DEFAULT_SESSIONS_DB_PATH, truncateText, validateTimestamp } from './utils';
 
 // =============================================================================
 // Types
@@ -76,15 +76,7 @@ export function searchSessions(
   const startTime = Date.now();
   const dbPath = options.dbPath ?? DEFAULT_SESSIONS_DB_PATH;
 
-  const {
-    query,
-    since,
-    until,
-    project,
-    sessionId,
-    limit = 50,
-    offset = 0,
-  } = input;
+  const { query, since, until, project, sessionId, limit = 50, offset = 0 } = input;
 
   // Build result filters for response
   const filters: SearchSessionsResult['filters'] = {
@@ -115,6 +107,43 @@ export function searchSessions(
     };
   }
 
+  // Validate timestamps before querying
+  if (since) {
+    const sinceValidation = validateTimestamp(since, 'since');
+    if (!sinceValidation.valid) {
+      return {
+        success: false,
+        results: [],
+        totalMatches: 0,
+        queryTimeMs: Date.now() - startTime,
+        filters,
+        error: {
+          code: 'QUERY_SYNTAX_ERROR',
+          message: sinceValidation.error,
+          suggestion: 'Use ISO-8601 format: "2026-01-17" or "2026-01-17T10:30:00Z"',
+        },
+      };
+    }
+  }
+
+  if (until) {
+    const untilValidation = validateTimestamp(until, 'until');
+    if (!untilValidation.valid) {
+      return {
+        success: false,
+        results: [],
+        totalMatches: 0,
+        queryTimeMs: Date.now() - startTime,
+        filters,
+        error: {
+          code: 'QUERY_SYNTAX_ERROR',
+          message: untilValidation.error,
+          suggestion: 'Use ISO-8601 format: "2026-01-17" or "2026-01-17T10:30:00Z"',
+        },
+      };
+    }
+  }
+
   const db = openDatabase(dbPath);
   try {
     // Build WHERE clause for additional filters
@@ -141,8 +170,7 @@ export function searchSessions(
       whereParams.push(sessionId);
     }
 
-    const whereClause =
-      whereConditions.length > 0 ? ` AND ${whereConditions.join(' AND ')}` : '';
+    const whereClause = whereConditions.length > 0 ? ` AND ${whereConditions.join(' AND ')}` : '';
 
     // First get total count
     const countSql = `
