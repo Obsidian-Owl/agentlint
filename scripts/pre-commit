@@ -1,0 +1,79 @@
+#!/bin/bash
+# Pre-commit hook: Runs quick quality checks before committing
+# Catches TypeScript and ESLint errors early in the workflow
+#
+# To skip (use sparingly): git commit --no-verify
+
+set -e
+
+echo "🔍 Running pre-commit quality checks..."
+echo ""
+
+# Colors for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+NC='\033[0m' # No Color
+
+# Track failures
+FAILED=0
+
+# 1. Type check - CRITICAL: Type safety is non-negotiable
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "🔷 Running TypeScript type check..."
+if bun run typecheck; then
+  echo -e "${GREEN}✓ Type check passed${NC}"
+else
+  echo -e "${RED}✗ Type check failed${NC}"
+  echo ""
+  echo -e "${RED}TYPE SAFETY IS CRITICAL - This is why we use TypeScript.${NC}"
+  echo -e "${RED}All type errors MUST be fixed before committing.${NC}"
+  FAILED=1
+fi
+echo ""
+
+# 2. Lint check - CRITICAL: Code quality standards
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "📝 Running ESLint..."
+if bun run lint; then
+  echo -e "${GREEN}✓ Lint passed${NC}"
+else
+  echo -e "${RED}✗ Lint failed${NC}"
+  echo ""
+  echo -e "${RED}All lint errors MUST be fixed before committing.${NC}"
+  echo -e "${YELLOW}We do not pass issues to CI - we fix them locally.${NC}"
+  FAILED=1
+fi
+echo ""
+
+# 3. Format check - Code consistency
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+echo "🎨 Checking formatting (Prettier)..."
+if bun run format:check; then
+  echo -e "${GREEN}✓ Format check passed${NC}"
+else
+  echo -e "${RED}✗ Format check failed${NC}"
+  echo -e "${YELLOW}  Run 'bun run format' to fix${NC}"
+  FAILED=1
+fi
+echo ""
+
+# Summary
+echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+if [ $FAILED -eq 0 ]; then
+  echo -e "${GREEN}✅ All pre-commit checks passed!${NC}"
+  exit 0
+else
+  echo -e "${RED}❌ Pre-commit checks failed. Commit aborted.${NC}"
+  echo ""
+  echo "Fix the issues above and try again."
+  echo ""
+  echo -e "${YELLOW}Quality Bar Reminder:${NC}"
+  echo "  • Type safety is critical - no TypeScript errors allowed"
+  echo "  • No ESLint errors allowed"
+  echo "  • Proper formatting required"
+  echo "  • We do not pass issues - we fix all identified issues"
+  echo ""
+  echo "To bypass (NOT RECOMMENDED): git commit --no-verify"
+  exit 1
+fi

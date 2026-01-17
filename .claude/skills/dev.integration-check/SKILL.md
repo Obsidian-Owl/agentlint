@@ -57,32 +57,49 @@ Status: 44/45 tasks complete
 
 If incomplete tasks exist, list them and their Linear status.
 
-### Phase 3: Code Quality Checks
+### Phase 3: Code Quality Checks (ZERO TOLERANCE)
 
-Run project validation tools:
+**CRITICAL: The quality bar is absolute. No exceptions.**
+
+Run ALL project validation tools - ALL MUST PASS WITH ZERO ERRORS:
 
 ```bash
-# Type checking (if TypeScript)
-npx tsc --noEmit
+# Type checking - ZERO errors allowed
+bun run typecheck
 
-# Linting
-npm run lint
+# Linting - ZERO errors allowed
+bun run lint
 
-# Tests
-npm test
+# Format check - MUST pass
+bun run format:check
 
-# Build
-npm run build
+# Tests - ZERO failures allowed
+bun test
+
+# Build - MUST succeed
+bun run build
 ```
 
-Report results:
+Report results (ALL must show ✓):
 ```markdown
-Code Quality:
-  ✓ Types pass
-  ✓ Lint pass (0 errors, 2 warnings)
-  ✓ Tests pass (45/45)
-  ✓ Build succeeds
+Code Quality (ZERO TOLERANCE):
+  ✓ Types: 0 errors (REQUIRED)
+  ✓ Lint: 0 errors (REQUIRED)
+  ✓ Format: Pass (REQUIRED)
+  ✓ Tests: X/X pass, 0 fail (REQUIRED)
+  ✓ Build: Pass (REQUIRED)
 ```
+
+**FAILURE RESPONSE:**
+- If ANY check shows errors → FAIL the integration check
+- Do NOT proceed to Phase 4 until all errors are fixed
+- Do NOT accept "warnings only" - all errors must be zero
+- Pre-existing issues are NOT acceptable - fix all identified issues
+
+**Type safety is CRITICAL** - this is why we chose TypeScript:
+- TypeScript errors are NOT optional to fix
+- ESLint errors are NOT optional to fix
+- The quality bar is absolute
 
 ### Phase 4: Acceptance Criteria Validation
 
@@ -152,16 +169,19 @@ Create comprehensive integration report:
 
 | Category | Status | Details |
 |----------|--------|---------|
-| Tasks | ⚠️ | 44/45 complete |
-| Types | ✓ | Pass |
-| Lint | ✓ | Pass |
-| Tests | ✓ | 45/45 pass |
+| Tasks | ✓ | XX/XX complete (ALL required) |
+| Types | ✓ | 0 errors (ZERO tolerance) |
+| Lint | ✓ | 0 errors (ZERO tolerance) |
+| Tests | ✓ | XX/XX pass, 0 fail |
 | Build | ✓ | Pass |
-| Acceptance | ⚠️ | 8/9 criteria met |
+| Acceptance | ✓ | X/X criteria met |
 | Constitution | ✓ | All principles pass |
 | Linear Sync | ✓ | All synced |
 
-**Overall Status**: READY WITH WARNINGS
+**Overall Status**: READY FOR MERGE (or BLOCKED if ANY errors)
+
+**NOTE**: Any status showing ⚠️ or ✗ for Types, Lint, or Tests = BLOCKED.
+The quality bar is absolute - we do NOT accept issues into main.
 
 ## Blockers
 

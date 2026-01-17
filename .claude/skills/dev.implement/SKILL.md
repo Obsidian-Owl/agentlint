@@ -137,16 +137,40 @@ During implementation, the agent MUST:
    - Use file paths from task description
    - Follow project conventions
 
-3. **Validate work (REQUIRED before closure)**
-   - Run tests: `bun test` (must pass)
-   - Check types: `bun run typecheck` (must pass)
+3. **Validate work (REQUIRED before closure - ALL MUST PASS)**
+   - Run tests: `bun test` (must pass - **zero failures**)
+   - Check types: `bun run typecheck` (must pass - **zero errors**)
+   - Check lint: `bun run lint` (must pass - **zero errors**)
+   - Check format: `bun run format:check` (must pass)
    - Verify acceptance criteria from task description
 
 4. **Constitution compliance**
    - Ensure implementation follows project principles
    - Document any necessary complexity
 
-**GATE**: Cannot proceed to Phase 4 until validation passes
+---
+
+## ⚠️ QUALITY BAR - NON-NEGOTIABLE
+
+**Type safety is CRITICAL** - this is why we chose TypeScript:
+- Zero TypeScript errors allowed
+- Zero ESLint errors allowed
+- All tests must pass
+
+**We do NOT pass issues to CI - we fix them locally:**
+- Pre-existing issues are NOT acceptable - fix all identified issues
+- Issues discovered during implementation MUST be fixed before closure
+- The pre-commit hook runs `typecheck`, `lint`, and `format:check`
+- The pre-push hook runs the full CI suite
+
+**The quality bar is absolute:**
+- No exceptions for "minor" issues
+- No deferring type errors to later
+- No "it works locally" without passing all checks
+
+---
+
+**GATE**: Cannot proceed to Phase 4 until ALL validation checks pass with ZERO errors
 
 ---
 
