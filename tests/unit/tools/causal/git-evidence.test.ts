@@ -220,9 +220,11 @@ describe('GitEvidenceCollector', () => {
       // Use actual project root so we're in a git repo
       const collector = createGitEvidenceCollector(process.cwd());
 
-      const result = await collector.collectPickaxeEvidence(
-        'this-string-definitely-does-not-exist-anywhere-xyz123'
-      );
+      // Construct the search string dynamically to avoid it appearing literally in git history
+      const searchParts = ['nonexistent', 'string', 'abc', Date.now().toString(36)];
+      const searchString = searchParts.join('-');
+
+      const result = await collector.collectPickaxeEvidence(searchString);
 
       expect(result.evidence).toHaveLength(0);
       // Should not have errors, just no results (when in valid git repo)
