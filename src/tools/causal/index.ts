@@ -52,6 +52,15 @@ export {
   type GetPatternsOutput,
 } from './types.js';
 
-// Tools will be exported here as they are implemented:
-// export { traceIssueOriginTool } from './trace-issue-tool.js';
+// Evidence Collector
+export {
+  EvidenceCollector,
+  createEvidenceCollector,
+  type CollectSessionEvidenceOptions,
+  type CollectLocationEvidenceOptions,
+  type CollectEvidenceResult,
+} from './evidence-collector.js';
+
+// SDK Tools
+export { traceIssueOriginTool } from './trace-issue-tool.js';
 // export { getIssuePatternsTool } from './get-patterns-tool.js';

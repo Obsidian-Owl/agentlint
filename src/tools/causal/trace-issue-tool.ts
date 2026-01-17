@@ -1,0 +1,529 @@
+/**
+ * EP07 Causal Tracing Engine - trace_issue_origin SDK Tool
+ *
+ * SDK tool definition for tracing issues to their origin.
+ * Uses the Claude Agent SDK's tool() pattern for MCP integration.
+ *
+ * @module tools/causal/trace-issue-tool
+ */
+
+import { tool } from '@anthropic-ai/claude-agent-sdk';
+import { z } from 'zod';
+import { v4 as uuidv4 } from 'uuid';
+
+import type {
+  CausalChain,
+  EvidenceItem,
+  TracedIssue,
+  TraceIssueOutput,
+  ConfidenceScore,
+  Gap,
+} from './types';
+import { computeConfidenceLevel } from './types';
+import { EvidenceCollector } from './evidence-collector';
+import { insertChain, getPatternsByProject } from '../../persistence/causal';
+import { openDatabase, closeDatabase } from '../../persistence/sessions/fts';
+import { DEFAULT_SESSIONS_DB_PATH } from '../sessions/utils';
+
+// =============================================================================
+// Input Schema
+// =============================================================================
+
+/**
+ * Input schema for trace_issue_origin tool.
+ */
+const traceIssueInputSchema = {
+  issueDescription: z
+    .string()
+    .min(1)
+    .describe('Description of the issue to trace (what went wrong)'),
+  filePath: z
+    .string()
+    .optional()
+    .describe('File path where the issue was detected'),
+  lineNumber: z
+    .number()
+    .int()
+    .positive()
+    .optional()
+    .describe('Line number where the issue was detected'),
+  keywords: z
+    .array(z.string())
+    .optional()
+    .describe('Keywords to search for in session logs'),
+  since: z
+    .string()
+    .optional()
+    .describe('Only search sessions after this ISO-8601 timestamp'),
+  until: z
+    .string()
+    .optional()
+    .describe('Only search sessions before this ISO-8601 timestamp'),
+  projectPath: z
+    .string()
+    .optional()
+    .describe('Project path to scope the search'),
+  maxDepth: z
+    .number()
+    .int()
+    .min(1)
+    .max(5)
+    .optional()
+    .describe('Maximum trace depth (default: 5)'),
+};
+
+// =============================================================================
+// Output Formatting
+// =============================================================================
+
+/**
+ * Format evidence items for display.
+ */
+function formatEvidence(evidence: EvidenceItem[]): string {
+  if (evidence.length === 0) {
+    return 'No evidence collected.';
+  }
+
+  const lines: string[] = [];
+  for (let i = 0; i < evidence.length; i++) {
+    const e = evidence[i]!;
+    lines.push(`#### Evidence ${i + 1}: ${e.type}`);
+    lines.push(`- **Source**: ${e.source}`);
+    if (e.timestamp) {
+      lines.push(`- **Time**: ${e.timestamp}`);
+    }
+    if (e.position) {
+      lines.push(`- **Location**: ${e.position.filePath}${e.position.line ? `:${e.position.line}` : ''}`);
+    }
+    if (e.content) {
+      lines.push(`- **Content**: ${e.content.substring(0, 200)}${e.content.length > 200 ? '...' : ''}`);
+    }
+    lines.push('');
+  }
+  return lines.join('\n');
+}
+
+/**
+ * Format confidence score for display.
+ */
+function formatConfidence(confidence: ConfidenceScore): string {
+  const factors = [
+    ['Specificity', confidence.specificity],
+    ['Temporal', confidence.temporal],
+    ['Mechanistic', confidence.mechanistic],
+    ['Evidence Quality', confidence.evidenceQuality],
+    ['Reproducibility', confidence.reproducibility],
+    ['Alternatives Considered', confidence.alternatives],
+  ] as const;
+
+  const lines: string[] = [];
+  lines.push(`**Overall**: ${confidence.overall.toUpperCase()}`);
+  lines.push('');
+  for (const [name, value] of factors) {
+    lines.push(`- ${name}: ${value ? '✓' : '✗'}`);
+  }
+  return lines.join('\n');
+}
+
+/**
+ * Format gap analysis for display.
+ */
+function formatGap(gap: Gap | undefined): string {
+  if (!gap) {
+    return 'No configuration gap identified.';
+  }
+
+  const lines: string[] = [];
+  lines.push(`**Type**: ${gap.type}`);
+  lines.push(`**Location**: ${gap.location}`);
+  lines.push(`**Expected Guidance**: ${gap.expectedGuidance}`);
+  lines.push(`**Counterfactual**: ${gap.counterfactual}`);
+  return lines.join('\n');
+}
+
+/**
+ * Format traced issue for tool output.
+ */
+function formatTracedIssue(result: TracedIssue): string {
+  const lines: string[] = [];
+  const { chain } = result;
+
+  lines.push('## Causal Trace Analysis\n');
+
+  // Summary
+  lines.push('### Summary\n');
+  lines.push(`**Issue ID**: ${result.issueId}`);
+  lines.push(`**Trace Completeness**: ${result.traceCompleteness}`);
+  lines.push(`**Chain Depth**: ${chain.depth}`);
+  if (chain.depthLimitReached) {
+    lines.push('⚠️ Maximum trace depth reached');
+  }
+  lines.push('');
+
+  // Trigger
+  lines.push('### Trigger (Origin)\n');
+  lines.push(`**Type**: ${chain.trigger.type}`);
+  lines.push(`**Source**: ${chain.trigger.source}`);
+  if (chain.trigger.timestamp) {
+    lines.push(`**Time**: ${chain.trigger.timestamp}`);
+  }
+  if (chain.trigger.content) {
+    lines.push(`**Content**:\n\`\`\`\n${chain.trigger.content}\n\`\`\``);
+  }
+  lines.push('');
+
+  // Mechanism
+  lines.push('### Causal Mechanism\n');
+  lines.push(chain.mechanism);
+  lines.push('');
+
+  // Effect
+  lines.push('### Effect (Issue)\n');
+  lines.push(chain.effect);
+  lines.push('');
+
+  // Gap Analysis
+  lines.push('### Configuration Gap\n');
+  lines.push(formatGap(chain.gap));
+  lines.push('');
+
+  // Counterfactual
+  if (result.counterfactual) {
+    lines.push('### Counterfactual Analysis\n');
+    lines.push(`*"${result.counterfactual}"*`);
+    lines.push('');
+  }
+
+  // Confidence
+  lines.push('### Confidence Assessment\n');
+  lines.push(formatConfidence(chain.confidence));
+  lines.push('');
+
+  // Evidence Chain
+  lines.push('### Evidence Chain\n');
+  lines.push(formatEvidence(chain.evidence));
+
+  // Pattern Link
+  if (result.patternId) {
+    lines.push('### Recurring Pattern\n');
+    lines.push(`This issue is linked to pattern: \`${result.patternId}\``);
+    lines.push('');
+  }
+
+  // Limitations
+  if (result.limitations && result.limitations.length > 0) {
+    lines.push('### Limitations\n');
+    for (const limitation of result.limitations) {
+      lines.push(`- ${limitation}`);
+    }
+    lines.push('');
+  }
+
+  return lines.join('\n');
+}
+
+// =============================================================================
+// Chain Building
+// =============================================================================
+
+/**
+ * Build a causal chain from collected evidence.
+ */
+function buildCausalChain(
+  issueId: string,
+  issueDescription: string,
+  evidence: EvidenceItem[],
+  projectPath: string,
+  maxDepth: number
+): CausalChain {
+  const now = new Date().toISOString();
+
+  // Find the trigger (earliest evidence)
+  const sortedEvidence = [...evidence].sort((a, b) => {
+    const timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
+    const timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
+    return timeA - timeB;
+  });
+
+  const trigger = sortedEvidence[0] ?? {
+    id: uuidv4(),
+    type: 'TemporalMarker' as const,
+    source: 'unknown',
+    content: 'Origin could not be determined',
+  };
+
+  // Compute confidence based on evidence quality
+  const hasMultipleEvidence = evidence.length >= 2;
+  const hasTimestamps = evidence.some((e) => e.timestamp);
+  const hasPositions = evidence.some((e) => e.position);
+  const hasContent = evidence.some((e) => e.content && e.content.length > 50);
+
+  const confidenceFactors = {
+    specificity: hasPositions && hasContent,
+    temporal: hasTimestamps && hasMultipleEvidence,
+    mechanistic: evidence.length >= 1,
+    evidenceQuality: hasContent,
+    reproducibility: false, // Would need pattern matching
+    alternatives: evidence.length >= 2,
+  };
+
+  const confidence: ConfidenceScore = {
+    ...confidenceFactors,
+    overall: computeConfidenceLevel(confidenceFactors),
+  };
+
+  // Infer mechanism from evidence
+  const mechanism = evidence.length > 0
+    ? `Issue originated from session activity. First evidence: ${trigger.content?.substring(0, 100) ?? 'unknown'}`
+    : 'Unable to determine causal mechanism from available evidence.';
+
+  // Build the chain
+  return {
+    id: uuidv4(),
+    issueId,
+    trigger,
+    gap: undefined, // Gap detection done separately in US2
+    mechanism,
+    effect: issueDescription,
+    confidence,
+    evidence: sortedEvidence.length > 0 ? sortedEvidence : [trigger],
+    depth: Math.min(evidence.length, maxDepth),
+    depthLimitReached: evidence.length > maxDepth,
+    projectPath,
+    createdAt: now,
+    counterfactual: undefined,
+    patternId: undefined,
+  };
+}
+
+// =============================================================================
+// Tool Definition
+// =============================================================================
+
+/**
+ * trace_issue_origin tool definition.
+ *
+ * Traces a detected issue back to its origin in session logs.
+ * Builds a causal chain with evidence and confidence assessment.
+ *
+ * @example
+ * ```typescript
+ * import { traceIssueOriginTool } from './tools/causal/trace-issue-tool';
+ * import { ToolRegistry } from './orchestration/tool-registry';
+ *
+ * const registry = new ToolRegistry();
+ * registry.register(traceIssueOriginTool);
+ * ```
+ */
+export const traceIssueOriginTool = tool(
+  'trace_issue_origin',
+  `Trace a detected issue back to its origin in session logs.
+
+Searches through session history to find when and how an issue was introduced.
+Builds a causal chain from trigger (origin) to effect (detected issue).
+
+The tool will:
+1. Search session logs for related content using keywords
+2. Correlate file/line locations with tool calls
+3. Build temporal evidence chain
+4. Assess confidence in the causal relationship
+5. Return structured analysis for recommendations
+
+Use this tool when you detect an issue and need to understand:
+- When it was introduced
+- What session prompt or action caused it
+- What configuration gap may have enabled it
+
+Returns a TracedIssue with causal chain, evidence, and confidence score.`,
+  traceIssueInputSchema,
+  async (args) => {
+    const issueId = `issue-${Date.now()}-${uuidv4().substring(0, 8)}`;
+    const projectPath = args.projectPath ?? process.cwd();
+    const maxDepth = args.maxDepth ?? 5;
+    const dbPath = DEFAULT_SESSIONS_DB_PATH;
+
+    try {
+      const collector = new EvidenceCollector(dbPath);
+      const allEvidence: EvidenceItem[] = [];
+      const limitations: string[] = [];
+
+      // Collect evidence by keywords
+      const keywords = args.keywords ?? extractKeywords(args.issueDescription);
+      if (keywords.length > 0) {
+        const keywordOptions: Parameters<typeof collector.collectSessionEvidence>[0] = {
+          keywords,
+          limit: 20,
+        };
+        if (args.projectPath) keywordOptions.projectPath = args.projectPath;
+        if (args.since) keywordOptions.since = args.since;
+        if (args.until) keywordOptions.until = args.until;
+
+        const keywordResult = collector.collectSessionEvidence(keywordOptions);
+
+        if (keywordResult.warnings) {
+          limitations.push(...keywordResult.warnings);
+        }
+        allEvidence.push(...keywordResult.evidence);
+      }
+
+      // Collect evidence by file location
+      if (args.filePath) {
+        const locationOptions: Parameters<typeof collector.collectLocationEvidence>[0] = {
+          filePath: args.filePath,
+        };
+        if (args.lineNumber) locationOptions.lineNumber = args.lineNumber;
+        if (args.projectPath) locationOptions.projectPath = args.projectPath;
+
+        const locationResult = collector.collectLocationEvidence(locationOptions);
+
+        if (locationResult.warnings) {
+          limitations.push(...locationResult.warnings);
+        }
+        allEvidence.push(...locationResult.evidence);
+      }
+
+      // Check if we found any evidence
+      if (allEvidence.length === 0) {
+        const output: TraceIssueOutput = {
+          success: false,
+          error: 'No matching sessions found for the issue. Try different keywords or check if sessions are indexed.',
+        };
+
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: `## Trace Failed\n\n${output.error}\n\n**Tips:**\n- Ensure sessions are indexed with the indexer\n- Try more specific keywords from the issue\n- Check the date range filters`,
+            },
+          ],
+          isError: true,
+          _rawData: output,
+        };
+      }
+
+      // Deduplicate evidence by source
+      const seenSources = new Set<string>();
+      const uniqueEvidence = allEvidence.filter((e) => {
+        const key = `${e.source}-${e.timestamp ?? ''}`;
+        if (seenSources.has(key)) return false;
+        seenSources.add(key);
+        return true;
+      });
+
+      // Build causal chain
+      const chain = buildCausalChain(
+        issueId,
+        args.issueDescription,
+        uniqueEvidence,
+        projectPath,
+        maxDepth
+      );
+
+      // Check for existing patterns
+      let patternId: string | undefined;
+      try {
+        const db = openDatabase(dbPath);
+        try {
+          const patterns = getPatternsByProject(db, projectPath);
+          if (patterns.length > 0) {
+            // Link to most recent pattern (simplistic for now)
+            patternId = patterns[0]!.id;
+            chain.patternId = patternId;
+          }
+        } finally {
+          closeDatabase(db);
+        }
+      } catch {
+        // Pattern lookup failed, continue without
+        limitations.push('Could not check for recurring patterns');
+      }
+
+      // Persist the chain
+      try {
+        const db = openDatabase(dbPath);
+        try {
+          insertChain(db, chain);
+        } finally {
+          closeDatabase(db);
+        }
+      } catch {
+        limitations.push('Could not persist chain to database');
+      }
+
+      // Build result
+      const tracedIssue: TracedIssue = {
+        issueId,
+        chain,
+        counterfactual: chain.counterfactual,
+        patternId,
+        traceCompleteness: chain.depthLimitReached ? 'partial' : 'full',
+        limitations: limitations.length > 0 ? limitations : undefined,
+      };
+
+      const output: TraceIssueOutput = {
+        success: true,
+        result: tracedIssue,
+      };
+
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: formatTracedIssue(tracedIssue),
+          },
+        ],
+        _rawData: output,
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+
+      const output: TraceIssueOutput = {
+        success: false,
+        error: errorMessage,
+      };
+
+      return {
+        content: [
+          {
+            type: 'text' as const,
+            text: `## Trace Error\n\n${errorMessage}`,
+          },
+        ],
+        isError: true,
+        _rawData: output,
+      };
+    }
+  }
+);
+
+// =============================================================================
+// Helper Functions
+// =============================================================================
+
+/**
+ * Extract keywords from issue description.
+ */
+function extractKeywords(description: string): string[] {
+  // Remove common words and split into keywords
+  const stopWords = new Set([
+    'a', 'an', 'the', 'is', 'are', 'was', 'were', 'be', 'been', 'being',
+    'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could',
+    'should', 'may', 'might', 'must', 'can', 'to', 'of', 'in', 'for',
+    'on', 'with', 'at', 'by', 'from', 'as', 'into', 'through', 'during',
+    'before', 'after', 'above', 'below', 'up', 'down', 'out', 'off', 'over',
+    'under', 'again', 'further', 'then', 'once', 'here', 'there', 'when',
+    'where', 'why', 'how', 'all', 'each', 'every', 'both', 'few', 'more',
+    'most', 'other', 'some', 'such', 'no', 'nor', 'not', 'only', 'own',
+    'same', 'so', 'than', 'too', 'very', 'and', 'but', 'if', 'or', 'because',
+    'until', 'while', 'this', 'that', 'these', 'those', 'it', 'its',
+  ]);
+
+  const words = description
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
+    .filter((word) => word.length >= 3 && !stopWords.has(word));
+
+  // Return unique keywords, max 5
+  return [...new Set(words)].slice(0, 5);
+}
