@@ -153,3 +153,11 @@ export {
 } from './indexer';
 
 export type { IndexFileOptions, IndexFileResult, BatchIndexOptions, ClearIndexOptions } from './indexer';
+
+// =============================================================================
+// Search
+// =============================================================================
+
+export { searchSessions, toSearchOutput } from './search';
+
+export type { SearchOptions, SearchSessionsResult } from './search';

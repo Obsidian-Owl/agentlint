@@ -161,21 +161,21 @@
 
 ### Tests (write first)
 
-- [ ] T040 [P] [US5] Unit test for basic search in `tests/unit/tools/sessions/search.test.ts`
-- [ ] T041 [P] [US5] Unit test for phrase/prefix/field search in `tests/unit/tools/sessions/search.test.ts`
-- [ ] T042 [P] [US5] Unit test for date range filtering in `tests/unit/tools/sessions/search.test.ts`
+- [x] T040 [P] [US5] Unit test for basic search in `tests/unit/tools/sessions/search.test.ts`
+- [x] T041 [P] [US5] Unit test for phrase/prefix/field search in `tests/unit/tools/sessions/search.test.ts`
+- [x] T042 [P] [US5] Unit test for date range filtering in `tests/unit/tools/sessions/search.test.ts`
 
 ### Implementation
 
-- [ ] T043 [US5] Implement `searchSessions()` function in `src/tools/sessions/search.ts`
-- [ ] T044 [US5] Implement BM25 ranking and snippet generation in `src/tools/sessions/search.ts` (depends on T043)
-- [ ] T045 [US5] Implement date range filtering (--since, --until) in `src/tools/sessions/search.ts` (depends on T043)
+- [x] T043 [US5] Implement `searchSessions()` function in `src/tools/sessions/search.ts`
+- [x] T044 [US5] Implement BM25 ranking and snippet generation in `src/tools/sessions/search.ts` (depends on T043)
+- [x] T045 [US5] Implement date range filtering (--since, --until) in `src/tools/sessions/search.ts` (depends on T043)
 - [ ] T046 [US5] Create `search_sessions` SDK tool in `src/tools/sessions/search-sessions-tool.ts` (depends on T043)
 - [ ] T047 [US5] Register tool with orchestration layer in `src/tools/sessions/index.ts` (depends on T046)
 
 **Checkpoint**: US5 complete and independently testable
-- [ ] All US5 tests pass
-- [ ] Search returns ranked results with snippets
+- [x] All US5 tests pass
+- [x] Search returns ranked results with snippets
 - [ ] Tool integrates with SDK
 
 ---
