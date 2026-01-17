@@ -5,12 +5,12 @@
  * that may have enabled issues.
  */
 
-import { describe, it, expect, beforeEach, afterEach, mock } from 'bun:test';
+import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
 import { existsSync, rmSync, mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
-import type { Gap, GapType, GapLocation, EvidenceItem } from '../../../../src/tools/causal/types';
+import type { Gap, GapType, GapLocation } from '../../../../src/tools/causal/types';
 
 // =============================================================================
 // Test Fixtures
@@ -76,19 +76,6 @@ Follow best practices.
   }
 
   return projectDir;
-}
-
-/**
- * Create a test evidence item.
- */
-function createTestEvidence(content: string): EvidenceItem {
-  return {
-    id: 'test-evidence-id',
-    type: 'SessionMatch',
-    source: 'session-123',
-    timestamp: new Date().toISOString(),
-    content,
-  };
 }
 
 // =============================================================================
@@ -203,11 +190,6 @@ describe('GapAnalyzer', () => {
         hasMcpConfig: false,
       });
 
-      // Evidence suggests MCP tool was attempted
-      const evidence = createTestEvidence(
-        'Tried to use custom MCP tool but failed'
-      );
-
       const mcpPath = join(projectDir, '.mcp.json');
       const exists = existsSync(mcpPath);
 
@@ -233,7 +215,7 @@ describe('GapAnalyzer', () => {
       const exists = existsSync(skillsDir);
 
       // Skills directory might not exist at all
-      const hasSkills = exists && existsSync(skillsDir);
+      expect(exists).toBe(false);
 
       const gap: Gap = {
         type: 'missing_config',
@@ -356,8 +338,6 @@ TODO: Add error handling guidelines
 
     it('should categorize as terminology_gap for undefined terms', () => {
       // Issue mentions domain-specific term not in CLAUDE.md
-      const issueContent =
-        'Agent used wrong FooBar pattern instead of BazQux pattern';
       const claudeMdContent = '# CLAUDE.md\n\nGeneral guidelines.';
 
       const termsInIssue = ['FooBar', 'BazQux'];
@@ -380,13 +360,6 @@ TODO: Add error handling guidelines
 
     it('should categorize as context_loss for cross-session issues', () => {
       // Evidence from multiple sessions showing context was lost
-      const evidence1 = createTestEvidence(
-        'Session 1: User explained the architecture'
-      );
-      const evidence2 = createTestEvidence(
-        'Session 2: Agent asked about the architecture again'
-      );
-
       // Pattern suggests context was not preserved
       const gap: Gap = {
         type: 'context_loss',

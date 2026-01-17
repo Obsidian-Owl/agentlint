@@ -12,16 +12,15 @@ import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 
 import type {
-  CausalChain,
   EvidenceItem,
   TracedIssue,
   TraceIssueOutput,
   ConfidenceScore,
   Gap,
 } from './types';
-import { computeConfidenceLevel } from './types';
 import { EvidenceCollector } from './evidence-collector';
 import { GapAnalyzer } from './gap-analyzer';
+import { ChainBuilder } from './chain-builder';
 import { insertChain, getPatternsByProject } from '../../persistence/causal';
 import { openDatabase, closeDatabase } from '../../persistence/sessions/fts';
 import { DEFAULT_SESSIONS_DB_PATH } from '../sessions/utils';
@@ -224,81 +223,6 @@ function formatTracedIssue(result: TracedIssue): string {
 }
 
 // =============================================================================
-// Chain Building
-// =============================================================================
-
-/**
- * Build a causal chain from collected evidence.
- */
-function buildCausalChain(
-  issueId: string,
-  issueDescription: string,
-  evidence: EvidenceItem[],
-  projectPath: string,
-  maxDepth: number,
-  gap?: Gap
-): CausalChain {
-  const now = new Date().toISOString();
-
-  // Find the trigger (earliest evidence)
-  const sortedEvidence = [...evidence].sort((a, b) => {
-    const timeA = a.timestamp ? new Date(a.timestamp).getTime() : 0;
-    const timeB = b.timestamp ? new Date(b.timestamp).getTime() : 0;
-    return timeA - timeB;
-  });
-
-  const trigger = sortedEvidence[0] ?? {
-    id: uuidv4(),
-    type: 'TemporalMarker' as const,
-    source: 'unknown',
-    content: 'Origin could not be determined',
-  };
-
-  // Compute confidence based on evidence quality
-  const hasMultipleEvidence = evidence.length >= 2;
-  const hasTimestamps = evidence.some((e) => e.timestamp);
-  const hasPositions = evidence.some((e) => e.position);
-  const hasContent = evidence.some((e) => e.content && e.content.length > 50);
-
-  const confidenceFactors = {
-    specificity: hasPositions && hasContent,
-    temporal: hasTimestamps && hasMultipleEvidence,
-    mechanistic: evidence.length >= 1,
-    evidenceQuality: hasContent,
-    reproducibility: false, // Would need pattern matching
-    alternatives: evidence.length >= 2,
-  };
-
-  const confidence: ConfidenceScore = {
-    ...confidenceFactors,
-    overall: computeConfidenceLevel(confidenceFactors),
-  };
-
-  // Infer mechanism from evidence
-  const mechanism = evidence.length > 0
-    ? `Issue originated from session activity. First evidence: ${trigger.content?.substring(0, 100) ?? 'unknown'}`
-    : 'Unable to determine causal mechanism from available evidence.';
-
-  // Build the chain
-  return {
-    id: uuidv4(),
-    issueId,
-    trigger,
-    gap, // Gap detection via GapAnalyzer
-    mechanism,
-    effect: issueDescription,
-    confidence,
-    evidence: sortedEvidence.length > 0 ? sortedEvidence : [trigger],
-    depth: Math.min(evidence.length, maxDepth),
-    depthLimitReached: evidence.length > maxDepth,
-    projectPath,
-    createdAt: now,
-    counterfactual: undefined,
-    patternId: undefined,
-  };
-}
-
-// =============================================================================
 // Tool Definition
 // =============================================================================
 
@@ -430,15 +354,23 @@ Returns a TracedIssue with causal chain, evidence, and confidence score.`,
         limitations.push('Could not analyze configuration gaps');
       }
 
-      // Build causal chain with gap analysis
-      const chain = buildCausalChain(
+      // Build causal chain using ChainBuilder
+      const chainBuilder = new ChainBuilder();
+      const chainBuildOptions: Parameters<typeof chainBuilder.build>[0] = {
         issueId,
-        args.issueDescription,
-        uniqueEvidence,
+        issueDescription: args.issueDescription,
+        evidence: uniqueEvidence,
         projectPath,
         maxDepth,
-        gap
-      );
+      };
+      if (gap) chainBuildOptions.gap = gap;
+      const chainResult = chainBuilder.build(chainBuildOptions);
+      const chain = chainResult.chain;
+
+      // Add chain builder warnings to limitations
+      if (chainResult.warnings) {
+        limitations.push(...chainResult.warnings);
+      }
 
       // Check for existing patterns
       let patternId: string | undefined;
@@ -479,7 +411,7 @@ Returns a TracedIssue with causal chain, evidence, and confidence score.`,
         chain,
         counterfactual,
         patternId,
-        traceCompleteness: chain.depthLimitReached ? 'partial' : 'full',
+        traceCompleteness: chainResult.traceCompleteness,
         limitations: limitations.length > 0 ? limitations : undefined,
       };
 

@@ -69,6 +69,16 @@ export {
   type GapAnalysisResult,
 } from './gap-analyzer.js';
 
+// Chain Builder
+export {
+  ChainBuilder,
+  createChainBuilder,
+  buildCausalChain,
+  DEFAULT_MAX_DEPTH,
+  type ChainBuilderOptions,
+  type ChainBuilderResult,
+} from './chain-builder.js';
+
 // SDK Tools
 export { traceIssueOriginTool } from './trace-issue-tool.js';
 // export { getIssuePatternsTool } from './get-patterns-tool.js';

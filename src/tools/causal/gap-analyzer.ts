@@ -223,10 +223,12 @@ export class GapAnalyzer {
     const sortedGaps = this.sortGapsBySeverity(filteredGaps);
 
     const result: GapAnalysisResult = {
-      gap: sortedGaps[0],
       allGaps: sortedGaps,
       filesChecked,
     };
+    if (sortedGaps[0]) {
+      result.gap = sortedGaps[0];
+    }
     if (warnings.length > 0) {
       result.warnings = warnings;
     }

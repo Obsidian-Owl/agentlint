@@ -13,7 +13,6 @@ import { v4 as uuidv4 } from 'uuid';
 
 import {
   createCausalTables,
-  dropCausalTables,
   insertChain,
   getChainById,
 } from '../../../src/persistence/causal';
