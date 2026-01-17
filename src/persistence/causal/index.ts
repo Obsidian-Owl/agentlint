@@ -17,6 +17,18 @@ export {
   initCausalSchema,
 } from './schema.js';
 
-// Queries will be exported here as implemented:
-// export { insertChain, getChainById, getChainsByProject } from './queries.js';
-// export { insertPattern, getPatternsByProject } from './queries.js';
+// Query exports
+export {
+  // Chain operations
+  insertChain,
+  getChainById,
+  getChainsByProject,
+  countChainsByProject,
+  deleteChain,
+  // Pattern operations
+  insertPattern,
+  getPatternById,
+  getPatternsByProject,
+  addChainToPattern,
+  deletePattern,
+} from './queries.js';
