@@ -56,6 +56,8 @@ export {
 export {
   EvidenceCollector,
   createEvidenceCollector,
+  FTS_ERROR_MESSAGES,
+  classifySearchError,
   type CollectSessionEvidenceOptions,
   type CollectLocationEvidenceOptions,
   type CollectEvidenceResult,

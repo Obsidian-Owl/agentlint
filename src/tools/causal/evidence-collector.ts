@@ -8,11 +8,77 @@
  */
 
 import type { Database } from 'bun:sqlite';
+import { existsSync } from 'node:fs';
 import { v4 as uuidv4 } from 'uuid';
 
 import type { EvidenceItem, Position } from './types';
 import { searchSessions } from '../sessions/search';
 import { DEFAULT_SESSIONS_DB_PATH } from '../sessions/utils';
+
+// =============================================================================
+// Error Message Constants (T049-T050)
+// =============================================================================
+
+/**
+ * User-friendly error messages for common FTS index issues.
+ */
+export const FTS_ERROR_MESSAGES = {
+  /** Error message when database file doesn't exist */
+  DATABASE_NOT_FOUND:
+    'Sessions database not found. Run `agentlint sessions --index` to create the index.',
+  /** Error message when schema version mismatch */
+  SCHEMA_MISMATCH:
+    'Sessions database has incompatible schema. Run `agentlint sessions --index --force` to rebuild.',
+  /** Error message for FTS5 table missing */
+  FTS_NOT_INITIALIZED:
+    'FTS5 search index not initialized. Run `agentlint sessions --index` to create it.',
+  /** Error message for stale index */
+  INDEX_STALE:
+    'Sessions index may be stale. Consider running `agentlint sessions --index` to refresh.',
+  /** Generic search failure */
+  SEARCH_FAILED: 'Session search failed. Check database integrity and try again.',
+} as const;
+
+/**
+ * Classify a search error into a user-friendly message.
+ *
+ * @param errorMessage - The raw error message
+ * @param dbPath - Path to the database
+ * @returns User-friendly error message
+ */
+export function classifySearchError(
+  errorMessage: string,
+  dbPath: string
+): string {
+  const lower = errorMessage.toLowerCase();
+
+  // Check for database file issues
+  if (!existsSync(dbPath)) {
+    return FTS_ERROR_MESSAGES.DATABASE_NOT_FOUND;
+  }
+
+  // Check for schema mismatch
+  if (lower.includes('schema version mismatch') || lower.includes('recreate')) {
+    return FTS_ERROR_MESSAGES.SCHEMA_MISMATCH;
+  }
+
+  // Check for FTS table issues
+  if (
+    lower.includes('no such table') ||
+    lower.includes('session_entries') ||
+    lower.includes('fts5')
+  ) {
+    return FTS_ERROR_MESSAGES.FTS_NOT_INITIALIZED;
+  }
+
+  // Check for query syntax errors (usually user's fault, not our error)
+  if (lower.includes('syntax error') || lower.includes('fts5')) {
+    return `Search query error: ${errorMessage}. Try simplifying your search terms.`;
+  }
+
+  // Default to generic message
+  return FTS_ERROR_MESSAGES.SEARCH_FAILED;
+}
 
 // =============================================================================
 // Types
@@ -154,11 +220,13 @@ export class EvidenceCollector {
     const searchResult = searchSessions(searchInput, { dbPath });
 
     if (!searchResult.success) {
+      const errorMsg = searchResult.error?.message ?? 'Search failed';
+      const userFriendlyMsg = classifySearchError(errorMsg, dbPath);
       return {
         evidence: [],
         totalMatches: 0,
         queryTimeMs: Date.now() - startTime,
-        warnings: [searchResult.error?.message ?? 'Search failed'],
+        warnings: [userFriendlyMsg],
       };
     }
 
@@ -210,11 +278,13 @@ export class EvidenceCollector {
     const searchResult = searchSessions(searchInput, { dbPath });
 
     if (!searchResult.success) {
+      const errorMsg = searchResult.error?.message ?? 'Search failed';
+      const userFriendlyMsg = classifySearchError(errorMsg, dbPath);
       return {
         evidence: [],
         totalMatches: 0,
         queryTimeMs: Date.now() - startTime,
-        warnings: [searchResult.error?.message ?? 'Search failed'],
+        warnings: [userFriendlyMsg],
       };
     }
 
