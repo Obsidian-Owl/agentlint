@@ -205,7 +205,7 @@ export function getCausalSchemaVersion(db: Database): number {
  */
 function setCausalSchemaVersion(db: Database, version: number): void {
   db.run(
-    'INSERT INTO causal_schema_version (version, applied_at) VALUES (?, ?)',
+    'INSERT OR IGNORE INTO causal_schema_version (version, applied_at) VALUES (?, ?)',
     [version, new Date().toISOString()]
   );
 }
