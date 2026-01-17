@@ -1,0 +1,2 @@
+{"type":"user","uuid":"msg-101","timestamp":"2026-01-16T14:00:00.000Z","message":{"role":"user","content":[{"type":"text","text":"Let's continue working on the feature"}]}}
+{"type":"assistant","uuid":"msg-102","timestamp":"2026-01-16T14:00:10.000Z","message":{"role":"assistant","content":[{"type":"text","text":"Sure, let me check the current state of the code."}],"usage":{"input_tokens":12,"output_tokens":15}}}

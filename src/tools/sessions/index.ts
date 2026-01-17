@@ -107,3 +107,22 @@ export {
   extractTextFromContent,
   truncateText,
 } from './utils';
+
+// =============================================================================
+// Discovery
+// =============================================================================
+
+export { discoverSessions, getDefaultProjectsDir, isValidProjectsDir } from './discovery';
+
+// =============================================================================
+// Parser
+// =============================================================================
+
+export {
+  parseSessionLine,
+  parseSessionFile,
+  createSessionParser,
+  parseSessionFileStreaming,
+} from './parser';
+
+export type { ParseLineResult, ParseSessionResult, ParserStats, SessionParser } from './parser';

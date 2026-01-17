@@ -13,8 +13,10 @@
 
 /**
  * Session log entry types.
+ * Core types: 'user', 'assistant', 'summary', 'system', 'tool_result'
+ * Also supports other types like 'file-history-snapshot' for forward compatibility.
  */
-export type EntryType = 'user' | 'assistant' | 'summary' | 'system';
+export type EntryType = string;
 
 /**
  * Message role in conversation.
@@ -115,7 +117,7 @@ export interface ContentBlock {
  */
 export interface Message {
   role: MessageRole;
-  content: ContentBlock[];
+  content?: ContentBlock[];
   usage?: TokenUsage;
 }
 
@@ -133,23 +135,29 @@ export interface ToolResult {
  */
 export interface SessionEntry {
   type: EntryType;
-  sessionId: string;
+  sessionId?: string;
   uuid: string;
-  parentUuid: string;
+  parentUuid?: string;
   timestamp: string;
   cwd?: string;
   gitBranch?: string;
   version?: string;
   message?: Message;
   toolUseResult?: ToolResult;
+  /** Tool result (for type='tool_result') */
+  toolResult?: {
+    toolUseId: string;
+    content?: string;
+    isError?: boolean;
+  };
   /** Summary text (for type='summary') */
   summary?: string;
   /** Last message before compression (for type='summary') */
   leafUuid?: string;
   /** Source file path (added during parsing) */
-  filePath: string;
+  filePath?: string;
   /** Line number in source file (1-indexed) */
-  lineNumber: number;
+  lineNumber?: number;
 }
 
 // =============================================================================

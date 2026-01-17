@@ -66,19 +66,19 @@
 
 ### Tests (write first)
 
-- [ ] T014 [P] [US1] Unit test for path decoding in `tests/unit/tools/sessions/utils.test.ts`
-- [ ] T015 [P] [US1] Unit test for session discovery in `tests/unit/tools/sessions/discovery.test.ts`
-- [ ] T016 [P] [US1] Create test fixture: mock `~/.claude/projects/` structure in `tests/fixtures/sessions/projects/`
+- [x] T014 [P] [US1] Unit test for path decoding in `tests/unit/tools/sessions/utils.test.ts`
+- [x] T015 [P] [US1] Unit test for session discovery in `tests/unit/tools/sessions/discovery.test.ts`
+- [x] T016 [P] [US1] Create test fixture: mock `~/.claude/projects/` structure in `tests/fixtures/sessions/projects/`
 
 ### Implementation
 
-- [ ] T017 [US1] Implement `discoverSessions()` function in `src/tools/sessions/discovery.ts`
-- [ ] T018 [US1] Handle edge cases: missing directory, empty directory, permission denied (depends on T017)
-- [ ] T019 [US1] Handle symlinks and corrupted directory structures (depends on T017)
+- [x] T017 [US1] Implement `discoverSessions()` function in `src/tools/sessions/discovery.ts`
+- [x] T018 [US1] Handle edge cases: missing directory, empty directory, permission denied (depends on T017)
+- [x] T019 [US1] Handle symlinks and corrupted directory structures (depends on T017)
 
 **Checkpoint**: US1 complete and independently testable
-- [ ] All US1 tests pass
-- [ ] Discovery works on real `~/.claude/projects/` directory
+- [x] All US1 tests pass
+- [x] Discovery works on real `~/.claude/projects/` directory
 
 ---
 
@@ -89,20 +89,20 @@
 
 ### Tests (write first)
 
-- [ ] T020 [P] [US2] Create test fixture: sample JSONL files in `tests/fixtures/sessions/`
-- [ ] T021 [P] [US2] Unit test for JSONL parsing in `tests/unit/tools/sessions/parser.test.ts`
-- [ ] T022 [P] [US2] Unit test for malformed JSONL handling in `tests/unit/tools/sessions/parser.test.ts`
+- [x] T020 [P] [US2] Create test fixture: sample JSONL files in `tests/fixtures/sessions/`
+- [x] T021 [P] [US2] Unit test for JSONL parsing in `tests/unit/tools/sessions/parser.test.ts`
+- [x] T022 [P] [US2] Unit test for malformed JSONL handling in `tests/unit/tools/sessions/parser.test.ts`
 
 ### Implementation
 
-- [ ] T023 [US2] Implement streaming JSONL parser in `src/tools/sessions/parser.ts`
-- [ ] T024 [US2] Implement `parseSessionEntry()` with position tracking in `src/tools/sessions/parser.ts` (depends on T023)
-- [ ] T025 [US2] Handle malformed lines, binary data, large content gracefully (depends on T024)
-- [ ] T026 [US2] Implement compression event detection (type='summary') in `src/tools/sessions/parser.ts` (depends on T024)
+- [x] T023 [US2] Implement streaming JSONL parser in `src/tools/sessions/parser.ts`
+- [x] T024 [US2] Implement `parseSessionEntry()` with position tracking in `src/tools/sessions/parser.ts` (depends on T023)
+- [x] T025 [US2] Handle malformed lines, binary data, large content gracefully (depends on T024)
+- [x] T026 [US2] Implement compression event detection (type='summary') in `src/tools/sessions/parser.ts` (depends on T024)
 
 **Checkpoint**: US2 complete and independently testable
-- [ ] All US2 tests pass
-- [ ] Parser handles real session logs correctly
+- [x] All US2 tests pass
+- [x] Parser handles real session logs correctly
 
 ---
 

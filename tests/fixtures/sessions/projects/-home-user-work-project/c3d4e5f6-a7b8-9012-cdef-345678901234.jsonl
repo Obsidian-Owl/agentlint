@@ -1,0 +1,4 @@
+{"type":"user","uuid":"msg-301","timestamp":"2026-01-17T08:00:00.000Z","message":{"role":"user","content":[{"type":"text","text":"Create a new component"}]}}
+{"type":"assistant","uuid":"msg-302","timestamp":"2026-01-17T08:00:20.000Z","message":{"role":"assistant","content":[{"type":"tool_use","id":"tool-301","name":"Write","input":{"file_path":"/home/user/work/project/src/Component.tsx","content":"export const Component = () => <div>Hello</div>;"}}],"usage":{"input_tokens":8,"output_tokens":25}}}
+{"type":"tool_result","uuid":"msg-303","timestamp":"2026-01-17T08:00:21.000Z","tool_result":{"tool_use_id":"tool-301","content":"File written successfully"}}
+{"type":"summary","uuid":"msg-304","timestamp":"2026-01-17T08:30:00.000Z","summary":"Created a new React component in Component.tsx"}
