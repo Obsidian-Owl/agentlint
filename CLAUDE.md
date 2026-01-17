@@ -25,13 +25,28 @@ All work must align with the 9-principle Constitution at `.specify/memory/consti
 
 **Decision test**: Does the feature support continuous improvement? Trace to root cause? Maintain local-first? Preserve user agency (recommend, don't automate)?
 
+## Epic Auto-Mode Recovery
+
+**At session start, check for `.agent/epic-auto-mode`**. If this file exists, an epic implementation was interrupted (by compaction or session end) and should be resumed automatically.
+
+**Recovery protocol:**
+1. Read `.agent/epic-auto-mode` for state (feature_dir, last_task, etc.)
+2. **IMMEDIATELY re-read ALL spec artifacts** - spec.md, plan.md, tasks.md, constitution.md
+3. Query Linear for current task statuses
+4. Find next ready task
+5. **Resume implementation automatically** - do NOT ask "should I continue?"
+
+The existence of the state file IS the user's instruction to continue. Remove the file only when the epic completes or is explicitly cancelled.
+
 ## Development Workflow
 
 Use the dev.* skills in `.claude/skills/` for structured feature development:
 
 ```
-/dev.specify → /dev.clarify → /dev.plan → /dev.tasks → /dev.taskstolinear → /dev.implement → /dev.integration-check → /dev.pr
+/dev.specify → /dev.clarify → /dev.plan → /dev.tasks → /dev.taskstolinear → /dev.implement-epic → /dev.integration-check → /dev.pr
 ```
+
+For single-task implementation with confirmation between tasks, use `/dev.implement` instead of `/dev.implement-epic`.
 
 - **Branch naming**: `ep##-feature-name` (e.g., `ep01-project-setup`) matching epic IDs from `docs/planning/epic-catalogue.md`
 - **Feature specs**: Created in `specs/ep##-feature-name/` with spec.md, plan.md, tasks.md
@@ -94,6 +109,6 @@ ADRs describe tool capabilities and data structures, NOT agent orchestration:
 
 Architecture: `adr`, `arc42-architecture-design`, `arc42-epic-decomposer`, `arch-review`
 
-Dev workflow: `dev.specify`, `dev.clarify`, `dev.plan`, `dev.tasks`, `dev.taskstolinear`, `dev.implement`, `dev.pr`, `dev.integration-check`
+Dev workflow: `dev.specify`, `dev.clarify`, `dev.plan`, `dev.tasks`, `dev.taskstolinear`, `dev.implement`, `dev.implement-epic`, `dev.pr`, `dev.integration-check`
 
 Quality: `dev.analyze`, `dev.checklist`, `dev.constitution`
