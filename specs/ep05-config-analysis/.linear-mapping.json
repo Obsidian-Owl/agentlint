@@ -1,0 +1,558 @@
+{
+  "metadata": {
+    "feature": "ep05-config-analysis",
+    "project": "EP05: Config Analysis Tools",
+    "project_id": "81d77389-d2c9-430f-b052-ff97f8fb0c0a",
+    "epic_label": "epic:EP05",
+    "created_at": "2026-01-17T00:08:00.000Z",
+    "last_sync": "2026-01-17T00:14:30.000Z"
+  },
+  "mappings": {
+    "T001": {
+      "linear_id": "24a5168e-9e3a-4ef4-ab4c-b6d5ba636fd8",
+      "linear_identifier": "AGE-226",
+      "title": "T001: Create directory structure for tools",
+      "url": "https://linear.app/obsidianowl/issue/AGE-226/t001-create-directory-structure-for-tools",
+      "status": "Backlog"
+    },
+    "T002": {
+      "linear_id": "40d2b5b4-50dc-4ed3-9d0d-b513653d27e8",
+      "linear_identifier": "AGE-227",
+      "title": "T002: Create test directory structure",
+      "url": "https://linear.app/obsidianowl/issue/AGE-227/t002-create-test-directory-structure",
+      "status": "Backlog"
+    },
+    "T003": {
+      "linear_id": "65efd5ec-4c76-4205-bc99-1c061f7ba5cc",
+      "linear_identifier": "AGE-228",
+      "title": "T003: Create test fixtures directory with sample configs",
+      "url": "https://linear.app/obsidianowl/issue/AGE-228/t003-create-test-fixtures-directory-with-sample-configs",
+      "status": "Backlog"
+    },
+    "T004": {
+      "linear_id": "7ff1458e-a03e-4166-8374-cb79e3fa1c84",
+      "linear_identifier": "AGE-229",
+      "title": "T004: Install parsing dependencies",
+      "url": "https://linear.app/obsidianowl/issue/AGE-229/t004-install-parsing-dependencies",
+      "status": "Backlog"
+    },
+    "T005": {
+      "linear_id": "d99cc55e-47b3-4432-b05d-7492ce6c78fb",
+      "linear_identifier": "AGE-230",
+      "title": "T005: Install dev dependencies for mdast types",
+      "url": "https://linear.app/obsidianowl/issue/AGE-230/t005-install-dev-dependencies-for-mdast-types",
+      "status": "Backlog"
+    },
+    "T006": {
+      "linear_id": "8f8eaae3-f88f-4a95-ac42-0fb085f8f8e6",
+      "linear_identifier": "AGE-231",
+      "title": "T006: Update tsconfig.json for new dependencies",
+      "url": "https://linear.app/obsidianowl/issue/AGE-231/t006-update-tsconfigjson-for-new-dependencies",
+      "status": "Backlog"
+    },
+    "T007": {
+      "linear_id": "ba1f5949-aeb7-424a-8128-4162235370f5",
+      "linear_identifier": "AGE-232",
+      "title": "T007: Create src/tools/types.ts with enumerations",
+      "url": "https://linear.app/obsidianowl/issue/AGE-232/t007-create-srctoolstypests-with-enumerations",
+      "status": "Backlog"
+    },
+    "T008": {
+      "linear_id": "75d43f9a-ea36-41e2-9dab-c84cfb3e6669",
+      "linear_identifier": "AGE-233",
+      "title": "T008: Create src/tools/config/types.ts with entity interfaces",
+      "url": "https://linear.app/obsidianowl/issue/AGE-233/t008-create-srctoolsconfigtypests-with-entity-interfaces",
+      "status": "Backlog"
+    },
+    "T009": {
+      "linear_id": "e4a1e7f4-70ff-45fd-ac26-504821854330",
+      "linear_identifier": "AGE-234",
+      "title": "T009: Create src/tools/adapters/types.ts with IConfigAdapter interface",
+      "url": "https://linear.app/obsidianowl/issue/AGE-234/t009-create-srctoolsadapterstypests-with-iconfigadapter-interface",
+      "status": "Backlog"
+    },
+    "T010": {
+      "linear_id": "8aaea807-7735-4eec-8d2a-0126857de024",
+      "linear_identifier": "AGE-235",
+      "title": "T010: Create src/errors/config.ts with config-specific errors",
+      "url": "https://linear.app/obsidianowl/issue/AGE-235/t010-create-srcerrorsconfigts-with-config-specific-errors",
+      "status": "Backlog"
+    },
+    "T011": {
+      "linear_id": "4f80bfe0-c165-4c81-97bb-94e677419c4f",
+      "linear_identifier": "AGE-236",
+      "title": "T011: Update src/errors/index.ts to export config errors",
+      "url": "https://linear.app/obsidianowl/issue/AGE-236/t011-update-srcerrorsindexts-to-export-config-errors",
+      "status": "Backlog"
+    },
+    "T012": {
+      "linear_id": "6b656307-dc14-4150-9a60-09de47d7a94f",
+      "linear_identifier": "AGE-237",
+      "title": "T012: Unit test for markdown parser",
+      "url": "https://linear.app/obsidianowl/issue/AGE-237/t012-unit-test-for-markdown-parser",
+      "status": "Backlog"
+    },
+    "T013": {
+      "linear_id": "e5f6da38-df70-4b71-b156-c67b2e1fbfaa",
+      "linear_identifier": "AGE-238",
+      "title": "T013: Create src/parsers/markdown.ts with remark/unified wrapper",
+      "url": "https://linear.app/obsidianowl/issue/AGE-238/t013-create-srcparsersmarkdownts-with-remarkunified-wrapper",
+      "status": "Backlog"
+    },
+    "T014": {
+      "linear_id": "b6c84ca2-d7b3-439d-bd8f-a2da2f4436b1",
+      "linear_identifier": "AGE-239",
+      "title": "T014: Unit test for frontmatter parser",
+      "url": "https://linear.app/obsidianowl/issue/AGE-239/t014-unit-test-for-frontmatter-parser",
+      "status": "Backlog"
+    },
+    "T015": {
+      "linear_id": "4161ee77-fae8-4a90-b451-457d3428b123",
+      "linear_identifier": "AGE-240",
+      "title": "T015: Create src/parsers/frontmatter.ts with YAML frontmatter extraction",
+      "url": "https://linear.app/obsidianowl/issue/AGE-240/t015-create-srcparsersfrontmatterts-with-yaml-frontmatter-extraction",
+      "status": "Backlog"
+    },
+    "T016": {
+      "linear_id": "155b3c60-cdaf-4234-8c00-4faff107db63",
+      "linear_identifier": "AGE-241",
+      "title": "T016: Unit test for JSON config parser",
+      "url": "https://linear.app/obsidianowl/issue/AGE-241/t016-unit-test-for-json-config-parser",
+      "status": "Backlog"
+    },
+    "T017": {
+      "linear_id": "3b7f2e9b-33b5-44bc-ab15-3fd81dde394c",
+      "linear_identifier": "AGE-242",
+      "title": "T017: Create src/parsers/json-config.ts with settings.json schema validation",
+      "url": "https://linear.app/obsidianowl/issue/AGE-242/t017-create-srcparsersjson-configts-with-settingsjson-schema",
+      "status": "Backlog"
+    },
+    "T018": {
+      "linear_id": "a241e270-3c32-474a-96be-efa60f970132",
+      "linear_identifier": "AGE-243",
+      "title": "T018: Create src/parsers/index.ts to export all parsers",
+      "url": "https://linear.app/obsidianowl/issue/AGE-243/t018-create-srcparsersindexts-to-export-all-parsers",
+      "status": "Backlog"
+    },
+    "T019": {
+      "linear_id": "3491e48c-f267-448c-88e1-957d5611caca",
+      "linear_identifier": "AGE-244",
+      "title": "T019: Unit test for config discovery",
+      "url": "https://linear.app/obsidianowl/issue/AGE-244/t019-unit-test-for-config-discovery",
+      "status": "Backlog"
+    },
+    "T020": {
+      "linear_id": "2baa8fc4-53e0-422f-84a3-02b40741607e",
+      "linear_identifier": "AGE-245",
+      "title": "T020: Unit test for glob exclusions",
+      "url": "https://linear.app/obsidianowl/issue/AGE-245/t020-unit-test-for-glob-exclusions",
+      "status": "Backlog"
+    },
+    "T021": {
+      "linear_id": "f7f64cad-06d6-4423-a70f-46512fa57e90",
+      "linear_identifier": "AGE-246",
+      "title": "T021: Integration test for discovery in monorepo fixture",
+      "url": "https://linear.app/obsidianowl/issue/AGE-246/t021-integration-test-for-discovery-in-monorepo-fixture",
+      "status": "Backlog"
+    },
+    "T022": {
+      "linear_id": "bc4342cf-51d1-422c-9a26-e20a65c16330",
+      "linear_identifier": "AGE-247",
+      "title": "T022: Create src/tools/config/discovery.ts with discoverConfigs()",
+      "url": "https://linear.app/obsidianowl/issue/AGE-247/t022-create-srctoolsconfigdiscoveryts-with-discoverconfigs",
+      "status": "Backlog"
+    },
+    "T023": {
+      "linear_id": "f5590337-c524-43ee-bb6d-5930eb9001c3",
+      "linear_identifier": "AGE-248",
+      "title": "T023: Implement CLAUDE.md detection at root, nested dirs, ~/.claude/",
+      "url": "https://linear.app/obsidianowl/issue/AGE-248/t023-implement-claudemd-detection-at-root-nested-dirs-claude",
+      "status": "Backlog"
+    },
+    "T024": {
+      "linear_id": "9e27e99f-2397-4eb5-8fd0-9093b123e43f",
+      "linear_identifier": "AGE-249",
+      "title": "T024: Implement AGENTS.md detection",
+      "url": "https://linear.app/obsidianowl/issue/AGE-249/t024-implement-agentsmd-detection",
+      "status": "Backlog"
+    },
+    "T025": {
+      "linear_id": "86193a5c-62ee-4043-95ab-af41b8c5d67f",
+      "linear_identifier": "AGE-250",
+      "title": "T025: Implement .claude/ directory structure detection",
+      "url": "https://linear.app/obsidianowl/issue/AGE-250/t025-implement-claude-directory-structure-detection",
+      "status": "Backlog"
+    },
+    "T026": {
+      "linear_id": "65f38475-23af-495b-8df3-3feba3b85df6",
+      "linear_identifier": "AGE-251",
+      "title": "T026: Implement configurable exclusion patterns",
+      "url": "https://linear.app/obsidianowl/issue/AGE-251/t026-implement-configurable-exclusion-patterns",
+      "status": "Backlog"
+    },
+    "T027": {
+      "linear_id": "95386a95-0e58-48fa-8503-6bd9336d7fde",
+      "linear_identifier": "AGE-252",
+      "title": "T027: Create src/tools/config/index.ts to export discovery functions",
+      "url": "https://linear.app/obsidianowl/issue/AGE-252/t027-create-srctoolsconfigindexts-to-export-discovery-functions",
+      "status": "Backlog"
+    },
+    "T028": {
+      "linear_id": "3a72f527-f81b-4ada-a386-4644459404ef",
+      "linear_identifier": "AGE-253",
+      "title": "T028: Create discover_configs tool definition using SDK tool() pattern",
+      "url": "https://linear.app/obsidianowl/issue/AGE-253/t028-create-discover-configs-tool-definition-using-sdk-tool-pattern",
+      "status": "Backlog"
+    },
+    "T029": {
+      "linear_id": "115eca45-ead2-4464-b2a3-a85ecc1fefd9",
+      "linear_identifier": "AGE-254",
+      "title": "T029: Unit test for CLAUDE.md parsing",
+      "url": "https://linear.app/obsidianowl/issue/AGE-254/t029-unit-test-for-claudemd-parsing",
+      "status": "Backlog"
+    },
+    "T030": {
+      "linear_id": "d7939964-d8dc-414e-a98f-f9ba0c620d27",
+      "linear_identifier": "AGE-255",
+      "title": "T030: Unit test for settings.json parsing",
+      "url": "https://linear.app/obsidianowl/issue/AGE-255/t030-unit-test-for-settingsjson-parsing",
+      "status": "Backlog"
+    },
+    "T031": {
+      "linear_id": "172c18ba-fa6d-48bd-b40d-0f81177bca2b",
+      "linear_identifier": "AGE-256",
+      "title": "T031: Unit test for malformed config handling",
+      "url": "https://linear.app/obsidianowl/issue/AGE-256/t031-unit-test-for-malformed-config-handling",
+      "status": "Backlog"
+    },
+    "T032": {
+      "linear_id": "3c9189f1-8d87-4ffa-89da-11a69f72ede0",
+      "linear_identifier": "AGE-257",
+      "title": "T032: Integration test for parsing pipeline",
+      "url": "https://linear.app/obsidianowl/issue/AGE-257/t032-integration-test-for-parsing-pipeline",
+      "status": "Backlog"
+    },
+    "T033": {
+      "linear_id": "a940922d-4174-4333-9b1d-533a1f4da27f",
+      "linear_identifier": "AGE-258",
+      "title": "T033: Create src/tools/config/parse-config.ts with main parsing logic",
+      "url": "https://linear.app/obsidianowl/issue/AGE-258/t033-create-srctoolsconfigparse-configts-with-main-parsing-logic",
+      "status": "Backlog"
+    },
+    "T034": {
+      "linear_id": "391c601a-2bb3-4146-a585-3b12aef56b5c",
+      "linear_identifier": "AGE-259",
+      "title": "T034: Implement section extraction from AST",
+      "url": "https://linear.app/obsidianowl/issue/AGE-259/t034-implement-section-extraction-from-ast",
+      "status": "Backlog"
+    },
+    "T035": {
+      "linear_id": "29ed62d8-2813-4f29-abe3-f3cbf95ff466",
+      "linear_identifier": "AGE-260",
+      "title": "T035: Implement code block extraction",
+      "url": "https://linear.app/obsidianowl/issue/AGE-260/t035-implement-code-block-extraction",
+      "status": "Backlog"
+    },
+    "T036": {
+      "linear_id": "b3c1623d-8508-4452-8a08-c330a9399d55",
+      "linear_identifier": "AGE-261",
+      "title": "T036: Implement position tracking (line, column) preservation",
+      "url": "https://linear.app/obsidianowl/issue/AGE-261/t036-implement-position-tracking-line-column-preservation",
+      "status": "Backlog"
+    },
+    "T037": {
+      "linear_id": "b96aac77-a3c0-4318-b1be-604b512ac05b",
+      "linear_identifier": "AGE-262",
+      "title": "T037: Implement partial parsing on errors (NFR-005)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-262/t037-implement-partial-parsing-on-errors-nfr-005",
+      "status": "Backlog"
+    },
+    "T038": {
+      "linear_id": "d5de2585-158b-4248-8208-513b1743b5d4",
+      "linear_identifier": "AGE-263",
+      "title": "T038: Create parse_config tool definition using SDK tool() pattern",
+      "url": "https://linear.app/obsidianowl/issue/AGE-263/t038-create-parse-config-tool-definition-using-sdk-tool-pattern",
+      "status": "Backlog"
+    },
+    "T039": {
+      "linear_id": "821e125d-16c5-47f2-a3ad-42e3c33d4206",
+      "linear_identifier": "AGE-264",
+      "title": "T039: Unit test for token estimation",
+      "url": "https://linear.app/obsidianowl/issue/AGE-264/t039-unit-test-for-token-estimation",
+      "status": "Backlog"
+    },
+    "T040": {
+      "linear_id": "39346416-a822-4f60-b6e2-f4d739a614d3",
+      "linear_identifier": "AGE-265",
+      "title": "T040: Unit test for section/depth metrics",
+      "url": "https://linear.app/obsidianowl/issue/AGE-265/t040-unit-test-for-sectiondepth-metrics",
+      "status": "Backlog"
+    },
+    "T041": {
+      "linear_id": "30a7f10e-458f-4f6c-8538-5e7af7ccf051",
+      "linear_identifier": "AGE-266",
+      "title": "T041: Unit test for emphasis marker counting",
+      "url": "https://linear.app/obsidianowl/issue/AGE-266/t041-unit-test-for-emphasis-marker-counting",
+      "status": "Backlog"
+    },
+    "T042": {
+      "linear_id": "8c152b9d-10e1-4841-9997-6931acbbe3c3",
+      "linear_identifier": "AGE-267",
+      "title": "T042: Create src/tools/config/metrics.ts with extractMetrics()",
+      "url": "https://linear.app/obsidianowl/issue/AGE-267/t042-create-srctoolsconfigmetricsts-with-extractmetrics",
+      "status": "Backlog"
+    },
+    "T043": {
+      "linear_id": "248f990b-5efa-4906-a25d-2976761ee8a6",
+      "linear_identifier": "AGE-268",
+      "title": "T043: Implement token count estimation (char/4 ratio)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-268/t043-implement-token-count-estimation-char4-ratio",
+      "status": "Backlog"
+    },
+    "T044": {
+      "linear_id": "b5279bef-dc8a-440d-b855-a48053e2a30e",
+      "linear_identifier": "AGE-269",
+      "title": "T044: Implement section count, heading depth, code block metrics",
+      "url": "https://linear.app/obsidianowl/issue/AGE-269/t044-implement-section-count-heading-depth-code-block-metrics",
+      "status": "Backlog"
+    },
+    "T045": {
+      "linear_id": "8ad840fa-17f7-4d1c-8a6d-086e57d2994e",
+      "linear_identifier": "AGE-270",
+      "title": "T045: Implement emphasis marker counting (MUST, IMPORTANT, CRITICAL)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-270/t045-implement-emphasis-marker-counting-must-important-critical",
+      "status": "Backlog"
+    },
+    "T046": {
+      "linear_id": "7a98afb2-88ca-4be1-bc32-10019b4848c8",
+      "linear_identifier": "AGE-271",
+      "title": "T046: Integrate metrics extraction into parse_config tool output",
+      "url": "https://linear.app/obsidianowl/issue/AGE-271/t046-integrate-metrics-extraction-into-parse-config-tool-output",
+      "status": "Backlog"
+    },
+    "T047": {
+      "linear_id": "7c5613f5-cd90-4b01-b751-12d12b68318f",
+      "linear_identifier": "AGE-272",
+      "title": "T047: Unit test for quality scoring",
+      "url": "https://linear.app/obsidianowl/issue/AGE-272/t047-unit-test-for-quality-scoring",
+      "status": "Backlog"
+    },
+    "T048": {
+      "linear_id": "6bb09237-619f-4264-b08e-ad6913fb9e8d",
+      "linear_identifier": "AGE-273",
+      "title": "T048: Unit test for anti-pattern detection",
+      "url": "https://linear.app/obsidianowl/issue/AGE-273/t048-unit-test-for-anti-pattern-detection",
+      "status": "Backlog"
+    },
+    "T049": {
+      "linear_id": "2c14533f-0a08-4145-891c-f67bfa197697",
+      "linear_identifier": "AGE-274",
+      "title": "T049: Integration test for quality assessment pipeline",
+      "url": "https://linear.app/obsidianowl/issue/AGE-274/t049-integration-test-for-quality-assessment-pipeline",
+      "status": "Backlog"
+    },
+    "T050": {
+      "linear_id": "b9560543-d51d-47f5-bdd7-bc47bc9cd0dd",
+      "linear_identifier": "AGE-275",
+      "title": "T050: Create src/tools/config/quality.ts with assessQuality()",
+      "url": "https://linear.app/obsidianowl/issue/AGE-275/t050-create-srctoolsconfigqualityts-with-assessquality",
+      "status": "Backlog"
+    },
+    "T051": {
+      "linear_id": "2fac9b40-ce03-4319-aee2-048468f13b1f",
+      "linear_identifier": "AGE-276",
+      "title": "T051: Implement structure scoring (0-100) per ADR-0007 thresholds",
+      "url": "https://linear.app/obsidianowl/issue/AGE-276/t051-implement-structure-scoring-0-100-per-adr-0007-thresholds",
+      "status": "Backlog"
+    },
+    "T052": {
+      "linear_id": "c46cf14d-a48d-435c-ab41-cc4325b58658",
+      "linear_identifier": "AGE-277",
+      "title": "T052: Implement size scoring based on research thresholds",
+      "url": "https://linear.app/obsidianowl/issue/AGE-277/t052-implement-size-scoring-based-on-research-thresholds",
+      "status": "Backlog"
+    },
+    "T053": {
+      "linear_id": "bd0aa908-09ed-4e7f-bec1-3e1d6fd2e554",
+      "linear_identifier": "AGE-278",
+      "title": "T053: Implement completeness scoring (recommended sections)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-278/t053-implement-completeness-scoring-recommended-sections",
+      "status": "Backlog"
+    },
+    "T054": {
+      "linear_id": "3e7763f2-e131-47b3-8208-6a32efc53ff5",
+      "linear_identifier": "AGE-279",
+      "title": "T054: Implement anti-pattern detection (generic rules, linter jobs, overload)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-279/t054-implement-anti-pattern-detection-generic-rules-linter-jobs",
+      "status": "Backlog"
+    },
+    "T055": {
+      "linear_id": "0832dcc7-488c-4c43-932b-d37ead8b779c",
+      "linear_identifier": "AGE-280",
+      "title": "T055: Implement weighted score calculation and grade assignment",
+      "url": "https://linear.app/obsidianowl/issue/AGE-280/t055-implement-weighted-score-calculation-and-grade-assignment",
+      "status": "Backlog"
+    },
+    "T056": {
+      "linear_id": "ea3302ee-8fff-4573-b0b2-26b013a51e61",
+      "linear_identifier": "AGE-281",
+      "title": "T056: Add includeQuality option to parse_config tool",
+      "url": "https://linear.app/obsidianowl/issue/AGE-281/t056-add-includequality-option-to-parse-config-tool",
+      "status": "Backlog"
+    },
+    "T057": {
+      "linear_id": "97893b6a-70bf-4093-88b8-968af80e0edc",
+      "linear_identifier": "AGE-282",
+      "title": "T057: Unit test for skill discovery",
+      "url": "https://linear.app/obsidianowl/issue/AGE-282/t057-unit-test-for-skill-discovery",
+      "status": "Backlog"
+    },
+    "T058": {
+      "linear_id": "00072f49-f29c-4c64-9c4b-7997aef50e43",
+      "linear_identifier": "AGE-283",
+      "title": "T058: Unit test for SKILL.md frontmatter parsing",
+      "url": "https://linear.app/obsidianowl/issue/AGE-283/t058-unit-test-for-skillmd-frontmatter-parsing",
+      "status": "Backlog"
+    },
+    "T059": {
+      "linear_id": "3b02d010-c109-48f3-8f76-617a31072687",
+      "linear_identifier": "AGE-284",
+      "title": "T059: Integration test for skill bundled files",
+      "url": "https://linear.app/obsidianowl/issue/AGE-284/t059-integration-test-for-skill-bundled-files",
+      "status": "Backlog"
+    },
+    "T060": {
+      "linear_id": "5ef11d65-755a-48f0-9a49-8a1a25957518",
+      "linear_identifier": "AGE-285",
+      "title": "T060: Create src/tools/config/skills.ts with discoverSkills()",
+      "url": "https://linear.app/obsidianowl/issue/AGE-285/t060-create-srctoolsconfigskillsts-with-discoverskills",
+      "status": "Backlog"
+    },
+    "T061": {
+      "linear_id": "8737f48c-5019-44b4-9f51-6faea0a02c7c",
+      "linear_identifier": "AGE-286",
+      "title": "T061: Implement SKILL.md frontmatter validation (name, description required)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-286/t061-implement-skillmd-frontmatter-validation-name-description",
+      "status": "Backlog"
+    },
+    "T062": {
+      "linear_id": "ac3a370e-0e2b-4dc9-aa26-55e78aac2d39",
+      "linear_identifier": "AGE-287",
+      "title": "T062: Implement bundled files detection (scripts/, references/, assets/)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-287/t062-implement-bundled-files-detection-scripts-references-assets",
+      "status": "Backlog"
+    },
+    "T063": {
+      "linear_id": "80c6e883-f779-42bf-96aa-4ec87480170e",
+      "linear_identifier": "AGE-288",
+      "title": "T063: Implement skill content section extraction",
+      "url": "https://linear.app/obsidianowl/issue/AGE-288/t063-implement-skill-content-section-extraction",
+      "status": "Backlog"
+    },
+    "T064": {
+      "linear_id": "1a708131-aa0e-4605-a25a-83fce8303ed0",
+      "linear_identifier": "AGE-289",
+      "title": "T064: Integrate skills into discover_configs and ConfigHierarchy",
+      "url": "https://linear.app/obsidianowl/issue/AGE-289/t064-integrate-skills-into-discover-configs-and-confighierarchy",
+      "status": "Backlog"
+    },
+    "T065": {
+      "linear_id": "936e928d-8186-4c65-9b85-fef4f16a25f5",
+      "linear_identifier": "AGE-290",
+      "title": "T065: Unit test for hierarchy mapping",
+      "url": "https://linear.app/obsidianowl/issue/AGE-290/t065-unit-test-for-hierarchy-mapping",
+      "status": "Backlog"
+    },
+    "T066": {
+      "linear_id": "05fd034c-3665-4be7-906d-d05a0ca99433",
+      "linear_identifier": "AGE-291",
+      "title": "T066: Integration test for conflict detection",
+      "url": "https://linear.app/obsidianowl/issue/AGE-291/t066-integration-test-for-conflict-detection",
+      "status": "Backlog"
+    },
+    "T067": {
+      "linear_id": "a246a669-531f-4ce6-bf6d-d95d6fe0af90",
+      "linear_identifier": "AGE-292",
+      "title": "T067: Create src/tools/config/hierarchy.ts with analyzeHierarchy()",
+      "url": "https://linear.app/obsidianowl/issue/AGE-292/t067-create-srctoolsconfighierarchyts-with-analyzehierarchy",
+      "status": "Backlog"
+    },
+    "T068": {
+      "linear_id": "16a2703d-bb82-4edc-804a-c8996e0ef3cd",
+      "linear_identifier": "AGE-293",
+      "title": "T068: Implement global → project → local hierarchy mapping",
+      "url": "https://linear.app/obsidianowl/issue/AGE-293/t068-implement-global-→-project-→-local-hierarchy-mapping",
+      "status": "Backlog"
+    },
+    "T069": {
+      "linear_id": "99377dfc-bdd1-41a4-9f3a-7fb4dabf17d5",
+      "linear_identifier": "AGE-294",
+      "title": "T069: Implement conflict detection (contradicting, overlapping)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-294/t069-implement-conflict-detection-contradicting-overlapping",
+      "status": "Backlog"
+    },
+    "T070": {
+      "linear_id": "d86caee6-c287-403c-aa55-b97c831ff66e",
+      "linear_identifier": "AGE-295",
+      "title": "T070: Create analyze_hierarchy tool definition",
+      "url": "https://linear.app/obsidianowl/issue/AGE-295/t070-create-analyze-hierarchy-tool-definition",
+      "status": "Backlog"
+    },
+    "T071": {
+      "linear_id": "131d6f33-8efb-4834-a4dc-100ac595050f",
+      "linear_identifier": "AGE-296",
+      "title": "T071: Create src/tools/index.ts exporting all config analysis tools",
+      "url": "https://linear.app/obsidianowl/issue/AGE-296/t071-create-srctoolsindexts-exporting-all-config-analysis-tools",
+      "status": "Backlog"
+    },
+    "T072": {
+      "linear_id": "57c786a1-b382-4fce-8f52-3aca8cccf267",
+      "linear_identifier": "AGE-297",
+      "title": "T072: Register EP05 tools in orchestration layer",
+      "url": "https://linear.app/obsidianowl/issue/AGE-297/t072-register-ep05-tools-in-orchestration-layer",
+      "status": "Backlog"
+    },
+    "T073": {
+      "linear_id": "22c8647a-a84c-4f76-8c91-a5b26da06dd7",
+      "linear_identifier": "AGE-298",
+      "title": "T073: Performance test for discovery (<5s)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-298/t073-performance-test-for-discovery-5s",
+      "status": "Backlog"
+    },
+    "T074": {
+      "linear_id": "b960a8a7-7a57-431e-b101-ab914fefd3c6",
+      "linear_identifier": "AGE-299",
+      "title": "T074: Performance test for parsing memory (<50MB)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-299/t074-performance-test-for-parsing-memory-50mb",
+      "status": "Backlog"
+    },
+    "T075": {
+      "linear_id": "01ba2902-be97-45e4-a42a-8a06190059ce",
+      "linear_identifier": "AGE-300",
+      "title": "T075: End-to-end integration test with real project structure",
+      "url": "https://linear.app/obsidianowl/issue/AGE-300/t075-end-to-end-integration-test-with-real-project-structure",
+      "status": "Backlog"
+    },
+    "T076": {
+      "linear_id": "371e8f4d-f563-4cda-83c3-10058df2d224",
+      "linear_identifier": "AGE-301",
+      "title": "T076: Test tool integration with ToolRegistry",
+      "url": "https://linear.app/obsidianowl/issue/AGE-301/t076-test-tool-integration-with-toolregistry",
+      "status": "Backlog"
+    },
+    "T077": {
+      "linear_id": "9e90d40e-b384-4076-a92b-7fe4a3678cc3",
+      "linear_identifier": "AGE-302",
+      "title": "T077: Update Arc42 §5 Building Blocks with EP05 tool layer details",
+      "url": "https://linear.app/obsidianowl/issue/AGE-302/t077-update-arc42-§5-building-blocks-with-ep05-tool-layer-details",
+      "status": "Backlog"
+    },
+    "T078": {
+      "linear_id": "cadd276b-dfac-4d64-bb99-b00b547fa4de",
+      "linear_identifier": "AGE-303",
+      "title": "T078: Add inline JSDoc comments to all public exports",
+      "url": "https://linear.app/obsidianowl/issue/AGE-303/t078-add-inline-jsdoc-comments-to-all-public-exports",
+      "status": "Backlog"
+    }
+  }
+}

@@ -1,6 +1,6 @@
 # dev.implement
 
-> Execute tasks from Linear with proper claiming, implementation, and closure
+> Execute Linear tasks with mandatory claiming, implementation validation, and closure documentation. Use when tasks exist in Linear (via /dev.taskstolinear) and you're ready to implement. Ensures full traceability through closure comments, status updates, and linked commits.
 
 ## When to Use
 
@@ -8,6 +8,7 @@ Use this skill when:
 - Linear issues have been created via `/dev.taskstolinear`
 - You're ready to implement a specific task
 - You need to claim, work on, and close a task properly
+- **CRITICAL**: After implementing ANY task, you MUST complete Phase 4 closure
 
 ## Invocation
 
@@ -27,6 +28,8 @@ Use this skill when:
 - `.linear-mapping.json` must exist (run `/dev.taskstolinear` first)
 - Linear MCP server must be configured
 
+---
+
 ## Workflow
 
 ### Phase 0: Load Context
@@ -43,6 +46,10 @@ if [[ ! -f "$MAPPING_FILE" ]]; then
     exit 1
 fi
 ```
+
+**GATE**: Cannot proceed without valid `.linear-mapping.json`
+
+---
 
 ### Phase 1: Find Ready Tasks
 
@@ -70,6 +77,8 @@ Ready Tasks for EP01:
 Enter task number, Task ID (T001), or Linear ID (AGT-123):
 ```
 
+---
+
 ### Phase 2: Claim Task
 
 **Step 2.1: Validate Selection**
@@ -77,11 +86,14 @@ Enter task number, Task ID (T001), or Linear ID (AGT-123):
 - Find in mapping
 - Check not blocked via `mcp__linear__get_issue({id, includeRelations: true})`
 
-**Step 2.2: Update Linear Status**
+**Step 2.2: Update Linear Status (REQUIRED)**
+
+You MUST update Linear status before proceeding:
+
 ```
 mcp__linear__update_issue({
   id: linear_id,
-  state: "In Progress",  // Use actual status name from type mapping
+  state: "In Progress",
   assignee: "me"
 })
 ```
@@ -106,9 +118,13 @@ Related Files:
 Ready to implement. Use /dev.implement close when done.
 ```
 
+**GATE**: Cannot proceed to Phase 3 until Linear shows "In Progress"
+
+---
+
 ### Phase 3: Implementation
 
-During implementation, the agent should:
+During implementation, the agent MUST:
 
 1. **Reference design artifacts**
    - Read `spec.md` for requirements
@@ -121,58 +137,105 @@ During implementation, the agent should:
    - Use file paths from task description
    - Follow project conventions
 
-3. **Validate work**
-   - Run tests if applicable
-   - Check types/lint
-   - Verify acceptance criteria
+3. **Validate work (REQUIRED before closure - ALL MUST PASS)**
+   - Run tests: `bun test` (must pass - **zero failures**)
+   - Check types: `bun run typecheck` (must pass - **zero errors**)
+   - Check lint: `bun run lint` (must pass - **zero errors**)
+   - Check format: `bun run format:check` (must pass)
+   - Verify acceptance criteria from task description
 
 4. **Constitution compliance**
    - Ensure implementation follows project principles
    - Document any necessary complexity
 
-### Phase 4: Close Task
+---
 
-**Step 4.1: Validate Completion**
-- Verify implementation is complete
-- Run validation checks (tests, lint, types)
-- Confirm with user if needed
+## ⚠️ QUALITY BAR - NON-NEGOTIABLE
 
-**Step 4.2: Create Closure Comment (MANDATORY)**
+**Type safety is CRITICAL** - this is why we chose TypeScript:
+- Zero TypeScript errors allowed
+- Zero ESLint errors allowed
+- All tests must pass
+
+**We do NOT pass issues to CI - we fix them locally:**
+- Pre-existing issues are NOT acceptable - fix all identified issues
+- Issues discovered during implementation MUST be fixed before closure
+- The pre-commit hook runs `typecheck`, `lint`, and `format:check`
+- The pre-push hook runs the full CI suite
+
+**The quality bar is absolute:**
+- No exceptions for "minor" issues
+- No deferring type errors to later
+- No "it works locally" without passing all checks
+
+---
+
+**GATE**: Cannot proceed to Phase 4 until ALL validation checks pass with ZERO errors
+
+---
+
+### Phase 4: Close Task (MANDATORY - ALL STEPS REQUIRED)
+
+**CRITICAL**: You MUST complete ALL steps below for EVERY task. DO NOT skip any step. Incomplete closure breaks traceability and audit trails.
+
+#### Step 4.1: Validate Completion
+
+Before closing, verify:
+- [ ] Implementation matches task description
+- [ ] Tests pass
+- [ ] Types/lint pass
+- [ ] Code is committed
+
+#### Step 4.2: Create Closure Comment (MANDATORY - NON-NEGOTIABLE)
+
+**You MUST create a closure comment on the Linear issue.** This is REQUIRED for:
+- Audit trail of implementation
+- Traceability per Constitution Principle VI
+- Future reference on what was changed
+
 ```
 mcp__linear__create_comment({
   issueId: linear_id,
-  body: `
-**Completed**: T001
-**Summary**: Created project directory structure with src/, tests/, docs/ folders
+  body: `**Completed**: T001
+
+**Summary**: [1-2 sentence description of what was implemented]
 
 **Files Changed**:
-- src/index.ts (new)
-- src/types/index.ts (new)
-- tests/setup.ts (new)
+- path/to/file.ts (new|modified|deleted)
+- path/to/other.ts (new|modified|deleted)
 
-**Commit**: abc123 (or "See latest commit")
+**Validation**:
+- Tests: Pass (X tests)
+- Types: Pass
+- Lint: Pass
 
 ---
-*Closed via /dev.implement*
-  `
+*Closed via /dev.implement*`
 })
 ```
 
-**Step 4.3: Update Linear Status**
+**DO NOT proceed to Step 4.3 until closure comment is created.**
+
+#### Step 4.3: Update Linear Status (MANDATORY)
+
 ```
 mcp__linear__update_issue({
   id: linear_id,
-  state: "Done"  // Use actual status name from type mapping
+  state: "Done"
 })
 ```
 
-**Step 4.4: Update tasks.md**
+**Verify** the issue now shows "Done" status.
+
+#### Step 4.4: Update tasks.md (MANDATORY)
+
 ```
 Change: - [ ] T001 ...
 To:     - [x] T001 ...
 ```
 
-**Step 4.5: Update Mapping**
+#### Step 4.5: Update Mapping (MANDATORY)
+
 ```json
 "T001": {
   ...
@@ -180,6 +243,24 @@ To:     - [x] T001 ...
   "completed_at": "2026-01-15T12:00:00Z"
 }
 ```
+
+---
+
+## Completion Verification Checklist
+
+After closing a task, verify ALL items:
+
+| Step | Action | Verified |
+|------|--------|----------|
+| 4.2 | Closure comment created in Linear | [ ] |
+| 4.3 | Linear status = "Done" | [ ] |
+| 4.4 | tasks.md checkbox = [x] | [ ] |
+| 4.5 | .linear-mapping.json updated | [ ] |
+| — | Commit includes (TaskID, LinearID) | [ ] |
+
+**If ANY item is unchecked, the task is NOT complete. Go back and complete it.**
+
+---
 
 ## Commit Message Format
 
@@ -204,6 +285,8 @@ test(core): add unit tests for TypeResolver (T020, AGT-142)
 - `refactor` - Code restructuring
 - `chore` - Maintenance
 
+---
+
 ## Output
 
 On task claim:
@@ -224,9 +307,11 @@ On task close:
 ```
 Completed: T001 [AGT-123]
 
-  Status:     Done
-  Comment:    Added closure summary
-  tasks.md:   Updated checkbox
+  Closure Steps:
+  [x] Comment added to Linear
+  [x] Status updated to Done
+  [x] tasks.md checkbox updated
+  [x] Mapping file updated
 
   Next ready tasks:
     1. T002 [AGT-124] Initialize configuration files
@@ -235,29 +320,51 @@ Completed: T001 [AGT-123]
 Run /dev.implement to claim next task.
 ```
 
+---
+
+## Error Handling
+
+| Scenario | Recovery |
+|----------|----------|
+| Task is blocked | Select a different unblocked task |
+| Validation fails | Fix issues, re-run validation, then proceed |
+| Acceptance criteria unclear | Ask user via AskUserQuestion before implementing |
+| Linear MCP unavailable | Check network, verify MCP config, retry |
+| Closure comment fails | Verify Linear auth, check issue ID, retry |
+| Status update fails | Check issue ID, verify permissions, retry |
+
+---
+
 ## Linear MCP Functions Used
 
-| Function | Purpose |
-|----------|---------|
-| `mcp__linear__list_issue_statuses` | Get status type mapping |
-| `mcp__linear__list_issues` | Find ready tasks |
-| `mcp__linear__get_issue` | Check blockedBy relations |
-| `mcp__linear__update_issue` | Claim task, close task |
-| `mcp__linear__create_comment` | Mandatory closure comment |
+| Function | Purpose | When |
+|----------|---------|------|
+| `mcp__linear__list_issue_statuses` | Get status type mapping | Phase 1 |
+| `mcp__linear__list_issues` | Find ready tasks | Phase 1 |
+| `mcp__linear__get_issue` | Check blockedBy relations | Phase 2 |
+| `mcp__linear__update_issue` | Claim task (In Progress) | Phase 2 |
+| `mcp__linear__create_comment` | **MANDATORY** closure comment | Phase 4.2 |
+| `mcp__linear__update_issue` | Close task (Done) | Phase 4.3 |
+
+---
 
 ## Constitution Alignment
 
 This skill supports:
 - **III. Causal-First**: Implementation traces to task and requirements
 - **V. Debuggable**: Closure comments provide audit trail
-- **VI. Traceable**: Task ID in commit messages
+- **VI. Traceable**: Task ID in commit messages, Linear comments
 - **IX. Agent-Aware**: Structured workflow for agent execution
+
+---
 
 ## Files
 
 - `scripts/common.sh` - Shared utilities
 - `.linear-mapping.json` - Read for task lookup, updated on close
 - `tasks.md` - Updated checkbox on close
+
+---
 
 ## Handoff
 

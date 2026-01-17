@@ -1,0 +1,10 @@
+{
+  "model": "claude-sonnet-4-20250514",
+  "permissions": {
+    "allow_file_write": true,
+    "allow_shell_commands": true
+  },
+  "context": {
+    "max_tokens": 100000
+  }
+}

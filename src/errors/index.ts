@@ -124,7 +124,7 @@ export {
   OutputError,
   UserCancelledError,
   FindingsPresentError,
-  ConfigNotFoundError,
+  ConfigNotFoundError as CLIConfigNotFoundError,
   BaselineNotFoundError,
   FindingNotFoundError,
   isCLIError,
@@ -137,3 +137,21 @@ export {
   isBaselineNotFoundError,
   isFindingNotFoundError,
 } from './cli';
+
+// =============================================================================
+// Config Analysis Errors (EP05)
+// =============================================================================
+
+export {
+  ConfigError,
+  ConfigExitCode,
+  ConfigNotFoundError,
+  ConfigParseError,
+  ConfigValidationError,
+  ConfigDiscoveryError,
+  isConfigError,
+  isConfigNotFoundError,
+  isConfigParseError,
+  isConfigValidationError,
+  isConfigDiscoveryError,
+} from './config';
