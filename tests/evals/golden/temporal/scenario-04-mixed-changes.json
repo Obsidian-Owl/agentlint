@@ -1,0 +1,95 @@
+{
+  "id": "temporal-04-mixed-changes",
+  "version": "1.0",
+  "source": "synthetic",
+  "description": "Mixed changes - some metrics improved, others regressed",
+  "difficulty": "medium",
+  "tags": ["delta", "mixed", "nuanced"],
+
+  "baseline_data": {
+    "from": {
+      "id": "baseline-007",
+      "createdAt": "2026-01-01T10:00:00.000Z",
+      "projectPath": "/test/project",
+      "metrics": {
+        "findingsCount": 15,
+        "criticalCount": 2,
+        "highCount": 5,
+        "mediumCount": 5,
+        "lowCount": 3,
+        "infoCount": 0,
+        "avgTokensPerSession": 2000,
+        "avgSessionDuration": 150,
+        "warningCount": 8,
+        "errorCount": 3
+      }
+    },
+    "to": {
+      "id": "baseline-008",
+      "createdAt": "2026-01-15T10:00:00.000Z",
+      "projectPath": "/test/project",
+      "metrics": {
+        "findingsCount": 12,
+        "criticalCount": 0,
+        "highCount": 3,
+        "mediumCount": 5,
+        "lowCount": 4,
+        "infoCount": 0,
+        "avgTokensPerSession": 2800,
+        "avgSessionDuration": 200,
+        "warningCount": 5,
+        "errorCount": 6
+      }
+    }
+  },
+
+  "expected_properties": {
+    "delta_type": "mixed",
+    "metrics_changed": [
+      {"name": "findingsCount", "from": 15, "to": 12, "direction": "↓"},
+      {"name": "criticalCount", "from": 2, "to": 0, "direction": "↓"},
+      {"name": "highCount", "from": 5, "to": 3, "direction": "↓"},
+      {"name": "lowCount", "from": 3, "to": 4, "direction": "↑"},
+      {"name": "avgTokensPerSession", "from": 2000, "to": 2800, "direction": "↑"},
+      {"name": "avgSessionDuration", "from": 150, "to": 200, "direction": "↑"},
+      {"name": "warningCount", "from": 8, "to": 5, "direction": "↓"},
+      {"name": "errorCount", "from": 3, "to": 6, "direction": "↑"}
+    ],
+    "change_counts": {
+      "increased": 4,
+      "decreased": 4,
+      "unchanged": 2
+    }
+  },
+
+  "trend_analysis": {
+    "slope": -0.15,
+    "rSquared": 0.45,
+    "volatility": 0.35,
+    "interpretation": "Findings severity improved (critical/high reduced) but efficiency declined (token usage, session duration increased). Error count doubled, requiring investigation."
+  },
+
+  "recommendations": [
+    {
+      "id": "rec-004",
+      "type": "investigation",
+      "summary": "Investigate increased error count",
+      "action": "Review error logs and identify new error patterns",
+      "evidence": ["errorCount doubled from 3 to 6", "Occurred alongside other improvements"]
+    },
+    {
+      "id": "rec-005",
+      "type": "observation",
+      "summary": "Severity distribution improved",
+      "action": "Document changes that eliminated critical findings",
+      "evidence": ["criticalCount reduced to 0", "highCount reduced 40%"]
+    }
+  ],
+
+  "rubric_weights": {
+    "trend_accuracy": 0.35,
+    "causal_accuracy": 0.25,
+    "recommendation_actionability": 0.25,
+    "review_quality": 0.15
+  }
+}

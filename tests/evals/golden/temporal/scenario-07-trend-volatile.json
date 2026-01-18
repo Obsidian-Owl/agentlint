@@ -1,0 +1,85 @@
+{
+  "id": "temporal-07-trend-volatile",
+  "version": "1.0",
+  "source": "synthetic",
+  "description": "Multi-baseline trend with high volatility - no clear direction",
+  "difficulty": "hard",
+  "tags": ["trend", "volatile", "uncertain", "edge-case"],
+
+  "baseline_data": {
+    "baselines": [
+      {
+        "id": "baseline-v01",
+        "createdAt": "2026-01-01T10:00:00.000Z",
+        "metrics": { "findingsCount": 15, "avgSessionDuration": 120 }
+      },
+      {
+        "id": "baseline-v02",
+        "createdAt": "2026-01-08T10:00:00.000Z",
+        "metrics": { "findingsCount": 28, "avgSessionDuration": 85 }
+      },
+      {
+        "id": "baseline-v03",
+        "createdAt": "2026-01-15T10:00:00.000Z",
+        "metrics": { "findingsCount": 10, "avgSessionDuration": 150 }
+      },
+      {
+        "id": "baseline-v04",
+        "createdAt": "2026-01-22T10:00:00.000Z",
+        "metrics": { "findingsCount": 32, "avgSessionDuration": 70 }
+      },
+      {
+        "id": "baseline-v05",
+        "createdAt": "2026-01-29T10:00:00.000Z",
+        "metrics": { "findingsCount": 12, "avgSessionDuration": 140 }
+      }
+    ]
+  },
+
+  "trend_analysis": {
+    "findingsCount": {
+      "slope": 0.5,
+      "rSquared": 0.02,
+      "volatility": 0.62,
+      "meanValue": 19.4,
+      "percentChange": -20.0
+    },
+    "avgSessionDuration": {
+      "slope": 2.5,
+      "rSquared": 0.08,
+      "volatility": 0.38,
+      "meanValue": 113,
+      "percentChange": 16.7
+    }
+  },
+
+  "expected_properties": {
+    "trend_type": "volatile",
+    "trend_reliability": "low",
+    "trend_summary": "Both metrics show high volatility with very low R² values (<0.10), indicating no reliable trend. Week-to-week swings of 50%+ suggest unstable conditions or measurement inconsistency."
+  },
+
+  "recommendations": [
+    {
+      "id": "rec-009",
+      "type": "investigation",
+      "summary": "Investigate source of volatility",
+      "action": "Analyze what differs between high and low measurement periods",
+      "evidence": ["findingsCount swings from 10 to 32", "R² < 0.10 indicates no linear relationship", "Pattern may be cyclical or tied to external factors"]
+    },
+    {
+      "id": "rec-010",
+      "type": "process",
+      "summary": "Increase measurement frequency",
+      "action": "Consider daily baselines to identify volatility patterns",
+      "evidence": ["Weekly measurements may miss important variations"]
+    }
+  ],
+
+  "rubric_weights": {
+    "trend_accuracy": 0.45,
+    "causal_accuracy": 0.25,
+    "recommendation_actionability": 0.20,
+    "review_quality": 0.10
+  }
+}

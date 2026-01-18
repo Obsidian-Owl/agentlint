@@ -1,0 +1,128 @@
+{
+  "version": "1.0",
+  "description": "Golden dataset for EP09 Temporal Analysis TruLens evaluations",
+  "created_at": "2026-01-19T13:45:00.000Z",
+  "adr_references": ["ADR-0011", "ADR-0012", "ADR-0019"],
+
+  "scenarios": [
+    {
+      "file": "scenario-01-no-change.json",
+      "id": "temporal-01-no-change",
+      "category": "delta",
+      "difficulty": "easy",
+      "tests": ["trend_accuracy"],
+      "description": "Baseline pair with identical metrics"
+    },
+    {
+      "file": "scenario-02-major-improvement.json",
+      "id": "temporal-02-major-improvement",
+      "category": "delta",
+      "difficulty": "easy",
+      "tests": ["trend_accuracy", "recommendation_actionability"],
+      "description": "Significant improvement across all metrics"
+    },
+    {
+      "file": "scenario-03-major-regression.json",
+      "id": "temporal-03-major-regression",
+      "category": "delta",
+      "difficulty": "easy",
+      "tests": ["trend_accuracy", "causal_accuracy", "recommendation_actionability"],
+      "description": "Significant regression with new critical issues"
+    },
+    {
+      "file": "scenario-04-mixed-changes.json",
+      "id": "temporal-04-mixed-changes",
+      "category": "delta",
+      "difficulty": "medium",
+      "tests": ["trend_accuracy", "recommendation_actionability"],
+      "description": "Some metrics improved, others regressed"
+    },
+    {
+      "file": "scenario-05-trend-improving.json",
+      "id": "temporal-05-trend-improving",
+      "category": "trend",
+      "difficulty": "medium",
+      "tests": ["trend_accuracy", "recommendation_actionability"],
+      "description": "Multi-baseline trend showing consistent improvement"
+    },
+    {
+      "file": "scenario-06-trend-degrading.json",
+      "id": "temporal-06-trend-degrading",
+      "category": "trend",
+      "difficulty": "medium",
+      "tests": ["trend_accuracy", "causal_accuracy", "recommendation_actionability"],
+      "description": "Multi-baseline trend showing consistent degradation"
+    },
+    {
+      "file": "scenario-07-trend-volatile.json",
+      "id": "temporal-07-trend-volatile",
+      "category": "trend",
+      "difficulty": "hard",
+      "tests": ["trend_accuracy", "recommendation_actionability"],
+      "description": "High volatility with no clear trend direction"
+    },
+    {
+      "file": "scenario-08-qualitative-review.json",
+      "id": "temporal-08-qualitative-review",
+      "category": "review",
+      "difficulty": "medium",
+      "tests": ["review_quality", "recommendation_actionability"],
+      "description": "Qualitative review with mixed sentiment"
+    },
+    {
+      "file": "scenario-09-quant-qual-aligned.json",
+      "id": "temporal-09-quant-qual-aligned",
+      "category": "mixed-methods",
+      "difficulty": "medium",
+      "tests": ["mixed_methods_alignment", "recommendation_actionability"],
+      "description": "Quantitative and qualitative data show alignment"
+    },
+    {
+      "file": "scenario-10-quant-qual-divergent.json",
+      "id": "temporal-10-quant-qual-divergent",
+      "category": "mixed-methods",
+      "difficulty": "hard",
+      "tests": ["mixed_methods_alignment", "causal_accuracy", "recommendation_actionability"],
+      "description": "Quantitative improvement but qualitative decline - CRITICAL"
+    },
+    {
+      "file": "scenario-11-inflection-point.json",
+      "id": "temporal-11-inflection-point",
+      "category": "trend",
+      "difficulty": "hard",
+      "tests": ["trend_accuracy", "causal_accuracy", "recommendation_actionability"],
+      "description": "Trend with clear inflection point and git correlation"
+    },
+    {
+      "file": "scenario-12-minimal-data.json",
+      "id": "temporal-12-minimal-data",
+      "category": "edge-case",
+      "difficulty": "hard",
+      "tests": ["trend_accuracy", "recommendation_actionability"],
+      "description": "Only 2 baselines - insufficient for trend analysis"
+    }
+  ],
+
+  "coverage": {
+    "delta": 4,
+    "trend": 4,
+    "review": 1,
+    "mixed-methods": 2,
+    "edge-case": 1,
+    "total": 12
+  },
+
+  "difficulty_distribution": {
+    "easy": 3,
+    "medium": 5,
+    "hard": 4
+  },
+
+  "feedback_function_coverage": {
+    "trend_accuracy": 10,
+    "review_quality": 1,
+    "recommendation_actionability": 12,
+    "causal_accuracy": 5,
+    "mixed_methods_alignment": 2
+  }
+}

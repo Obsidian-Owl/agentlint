@@ -1,0 +1,101 @@
+{
+  "id": "temporal-06-trend-degrading",
+  "version": "1.0",
+  "source": "synthetic",
+  "description": "Multi-baseline trend showing consistent degradation over time",
+  "difficulty": "medium",
+  "tags": ["trend", "regression", "multi-baseline"],
+
+  "baseline_data": {
+    "baselines": [
+      {
+        "id": "baseline-d01",
+        "createdAt": "2026-01-01T10:00:00.000Z",
+        "metrics": { "findingsCount": 5, "errorCount": 1, "warningCount": 3 }
+      },
+      {
+        "id": "baseline-d02",
+        "createdAt": "2026-01-08T10:00:00.000Z",
+        "metrics": { "findingsCount": 9, "errorCount": 3, "warningCount": 6 }
+      },
+      {
+        "id": "baseline-d03",
+        "createdAt": "2026-01-15T10:00:00.000Z",
+        "metrics": { "findingsCount": 14, "errorCount": 5, "warningCount": 10 }
+      },
+      {
+        "id": "baseline-d04",
+        "createdAt": "2026-01-22T10:00:00.000Z",
+        "metrics": { "findingsCount": 22, "errorCount": 9, "warningCount": 15 }
+      },
+      {
+        "id": "baseline-d05",
+        "createdAt": "2026-01-29T10:00:00.000Z",
+        "metrics": { "findingsCount": 31, "errorCount": 14, "warningCount": 22 }
+      }
+    ]
+  },
+
+  "trend_analysis": {
+    "findingsCount": {
+      "slope": 6.5,
+      "rSquared": 0.99,
+      "volatility": 0.08,
+      "meanValue": 16.2,
+      "percentChange": 520.0
+    },
+    "errorCount": {
+      "slope": 3.25,
+      "rSquared": 0.99,
+      "volatility": 0.10,
+      "meanValue": 6.4,
+      "percentChange": 1300.0
+    },
+    "warningCount": {
+      "slope": 4.75,
+      "rSquared": 0.99,
+      "volatility": 0.09,
+      "meanValue": 11.2,
+      "percentChange": 633.3
+    }
+  },
+
+  "expected_properties": {
+    "trend_type": "degrading",
+    "trend_reliability": "high",
+    "trend_summary": "All tracked metrics show strong, consistent upward trends with very high R² values (>0.98), indicating accelerating quality degradation requiring immediate attention."
+  },
+
+  "causal_chains": [
+    {
+      "symptom": "Exponential growth in findings and errors",
+      "traced_cause": "Systematic quality degradation",
+      "evidence": ["R² > 0.98 for all metrics", "Growth accelerating week over week"],
+      "mechanism": "Likely accumulation of technical debt or configuration drift"
+    }
+  ],
+
+  "recommendations": [
+    {
+      "id": "rec-007",
+      "type": "urgent",
+      "summary": "Immediate investigation required",
+      "action": "Review all changes since baseline-d01; identify root cause of degradation",
+      "evidence": ["520% increase in findings", "1300% increase in errors", "Trend is consistent and accelerating"]
+    },
+    {
+      "id": "rec-008",
+      "type": "preventive",
+      "summary": "Implement regression alerts",
+      "action": "Configure alerts for >20% week-over-week regression on key metrics",
+      "evidence": ["Early detection would have caught this at baseline-d02"]
+    }
+  ],
+
+  "rubric_weights": {
+    "trend_accuracy": 0.40,
+    "causal_accuracy": 0.30,
+    "recommendation_actionability": 0.20,
+    "review_quality": 0.10
+  }
+}

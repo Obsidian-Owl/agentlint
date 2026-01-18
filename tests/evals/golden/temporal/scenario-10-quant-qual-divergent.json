@@ -1,0 +1,121 @@
+{
+  "id": "temporal-10-quant-qual-divergent",
+  "version": "1.0",
+  "source": "synthetic",
+  "description": "Quantitative improvement but qualitative sentiment worsens - divergence detected",
+  "difficulty": "hard",
+  "tags": ["mixed-methods", "divergent", "critical"],
+
+  "quantitative_data": {
+    "from_baseline": {
+      "id": "baseline-d01",
+      "createdAt": "2026-01-01T10:00:00.000Z",
+      "metrics": {
+        "findingsCount": 18,
+        "criticalCount": 2,
+        "avgTokensPerSession": 2800,
+        "avgSessionDuration": 180
+      }
+    },
+    "to_baseline": {
+      "id": "baseline-d02",
+      "createdAt": "2026-01-15T10:00:00.000Z",
+      "metrics": {
+        "findingsCount": 6,
+        "criticalCount": 0,
+        "avgTokensPerSession": 900,
+        "avgSessionDuration": 45
+      }
+    },
+    "delta": {
+      "findingsCount": { "from": 18, "to": 6, "percentChange": -66.7 },
+      "criticalCount": { "from": 2, "to": 0, "percentChange": -100 },
+      "avgTokensPerSession": { "from": 2800, "to": 900, "percentChange": -67.9 },
+      "avgSessionDuration": { "from": 180, "to": 45, "percentChange": -75 }
+    }
+  },
+
+  "qualitative_data": {
+    "from_review": {
+      "id": "review-d01",
+      "baselineId": "baseline-d01",
+      "createdAt": "2026-01-01T15:00:00.000Z",
+      "overallSentiment": 0.62,
+      "dimensions": [
+        { "name": "perceivedFriction", "sentiment": 0.55 },
+        { "name": "taskFit", "sentiment": 0.70 },
+        { "name": "workflowSatisfaction", "sentiment": 0.68 }
+      ]
+    },
+    "to_review": {
+      "id": "review-d02",
+      "baselineId": "baseline-d02",
+      "createdAt": "2026-01-15T15:00:00.000Z",
+      "overallSentiment": 0.28,
+      "dimensions": [
+        { "name": "perceivedFriction", "sentiment": 0.30 },
+        { "name": "taskFit", "sentiment": 0.22 },
+        { "name": "workflowSatisfaction", "sentiment": 0.35 }
+      ]
+    },
+    "sentiment_change": {
+      "overall": { "from": 0.62, "to": 0.28, "change": -0.34 },
+      "perceivedFriction": { "from": 0.55, "to": 0.30, "change": -0.25 },
+      "taskFit": { "from": 0.70, "to": 0.22, "change": -0.48 },
+      "workflowSatisfaction": { "from": 0.68, "to": 0.35, "change": -0.33 }
+    }
+  },
+
+  "agent_interpretation": "CRITICAL DIVERGENCE DETECTED: Quantitative metrics show significant improvement (findings -67%, critical eliminated, efficiency +68%), but qualitative sentiment has degraded substantially (-0.34 overall). This divergence suggests the metric improvements may not reflect actual workflow quality. Possible causes: (1) Overly restrictive configuration that blocks legitimate use cases; (2) Metrics measuring the wrong things; (3) User workflow changed in ways metrics don't capture. The dramatic drop in taskFit (-0.48) is particularly concerning. Investigation required before concluding the changes were beneficial.",
+
+  "expected_properties": {
+    "alignment_type": "divergent",
+    "correlation": "negative",
+    "divergence_severity": "high",
+    "requires_investigation": true
+  },
+
+  "causal_chains": [
+    {
+      "symptom": "Quantitative improvement but qualitative decline",
+      "traced_cause": "Configuration may be overly restrictive",
+      "evidence": [
+        "Session duration dropped 75% (180→45 min)",
+        "taskFit sentiment dropped 0.48 points",
+        "User may be abandoning sessions early due to restrictions"
+      ],
+      "mechanism": "Tighter configuration reduced findings but also reduced usefulness"
+    }
+  ],
+
+  "recommendations": [
+    {
+      "id": "rec-014",
+      "type": "urgent",
+      "summary": "Investigate metric-sentiment divergence",
+      "action": "Interview users about workflow changes; compare session patterns before/after",
+      "evidence": ["67% metric improvement", "34% sentiment decline", "Correlation is negative"]
+    },
+    {
+      "id": "rec-015",
+      "type": "caution",
+      "summary": "Do not celebrate metric improvements yet",
+      "action": "Hold on promoting recent configuration changes as improvements",
+      "evidence": ["Divergence suggests metrics may be misleading", "User satisfaction actually decreased"]
+    },
+    {
+      "id": "rec-016",
+      "type": "process",
+      "summary": "Always validate with qualitative review",
+      "action": "Make qualitative review mandatory after significant config changes",
+      "evidence": ["Divergence would have been missed without qualitative data"]
+    }
+  ],
+
+  "rubric_weights": {
+    "trend_accuracy": 0.15,
+    "causal_accuracy": 0.30,
+    "recommendation_actionability": 0.20,
+    "mixed_methods_alignment": 0.35
+  }
+}

@@ -1,0 +1,79 @@
+{
+  "id": "temporal-02-major-improvement",
+  "version": "1.0",
+  "source": "synthetic",
+  "description": "Significant improvement across all metrics - findings reduced, efficiency improved",
+  "difficulty": "easy",
+  "tags": ["delta", "improvement", "positive"],
+
+  "baseline_data": {
+    "from": {
+      "id": "baseline-003",
+      "createdAt": "2026-01-01T10:00:00.000Z",
+      "projectPath": "/test/project",
+      "metrics": {
+        "findingsCount": 25,
+        "criticalCount": 3,
+        "highCount": 7,
+        "mediumCount": 10,
+        "lowCount": 5,
+        "infoCount": 0,
+        "avgTokensPerSession": 3500,
+        "avgSessionDuration": 300,
+        "warningCount": 15,
+        "errorCount": 8
+      }
+    },
+    "to": {
+      "id": "baseline-004",
+      "createdAt": "2026-01-15T10:00:00.000Z",
+      "projectPath": "/test/project",
+      "metrics": {
+        "findingsCount": 8,
+        "criticalCount": 0,
+        "highCount": 1,
+        "mediumCount": 4,
+        "lowCount": 3,
+        "infoCount": 0,
+        "avgTokensPerSession": 1200,
+        "avgSessionDuration": 90,
+        "warningCount": 2,
+        "errorCount": 1
+      }
+    }
+  },
+
+  "expected_properties": {
+    "delta_type": "improvement",
+    "metrics_changed": [
+      {"name": "findingsCount", "from": 25, "to": 8, "direction": "↓"},
+      {"name": "criticalCount", "from": 3, "to": 0, "direction": "↓"},
+      {"name": "highCount", "from": 7, "to": 1, "direction": "↓"},
+      {"name": "avgTokensPerSession", "from": 3500, "to": 1200, "direction": "↓"},
+      {"name": "warningCount", "from": 15, "to": 2, "direction": "↓"},
+      {"name": "errorCount", "from": 8, "to": 1, "direction": "↓"}
+    ],
+    "change_counts": {
+      "increased": 0,
+      "decreased": 9,
+      "unchanged": 1
+    }
+  },
+
+  "recommendations": [
+    {
+      "id": "rec-001",
+      "type": "observation",
+      "summary": "Configuration changes significantly reduced findings",
+      "action": "Document the changes that led to this improvement",
+      "evidence": ["findingsCount dropped 68%", "criticalCount eliminated", "Warnings reduced 87%"]
+    }
+  ],
+
+  "rubric_weights": {
+    "trend_accuracy": 0.3,
+    "causal_accuracy": 0.3,
+    "recommendation_actionability": 0.2,
+    "review_quality": 0.2
+  }
+}

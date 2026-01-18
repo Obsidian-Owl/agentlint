@@ -1,0 +1,62 @@
+{
+  "id": "temporal-01-no-change",
+  "version": "1.0",
+  "source": "synthetic",
+  "description": "Baseline pair with identical metrics - no change scenario",
+  "difficulty": "easy",
+  "tags": ["delta", "no-change", "edge-case"],
+
+  "baseline_data": {
+    "from": {
+      "id": "baseline-001",
+      "createdAt": "2026-01-01T10:00:00.000Z",
+      "projectPath": "/test/project",
+      "metrics": {
+        "findingsCount": 10,
+        "criticalCount": 0,
+        "highCount": 2,
+        "mediumCount": 5,
+        "lowCount": 3,
+        "infoCount": 0,
+        "avgTokensPerSession": 1500,
+        "avgSessionDuration": 120,
+        "warningCount": 3,
+        "errorCount": 1
+      }
+    },
+    "to": {
+      "id": "baseline-002",
+      "createdAt": "2026-01-08T10:00:00.000Z",
+      "projectPath": "/test/project",
+      "metrics": {
+        "findingsCount": 10,
+        "criticalCount": 0,
+        "highCount": 2,
+        "mediumCount": 5,
+        "lowCount": 3,
+        "infoCount": 0,
+        "avgTokensPerSession": 1500,
+        "avgSessionDuration": 120,
+        "warningCount": 3,
+        "errorCount": 1
+      }
+    }
+  },
+
+  "expected_properties": {
+    "delta_type": "no_change",
+    "metrics_changed": [],
+    "change_counts": {
+      "increased": 0,
+      "decreased": 0,
+      "unchanged": 10
+    }
+  },
+
+  "rubric_weights": {
+    "trend_accuracy": 0.4,
+    "causal_accuracy": 0.2,
+    "recommendation_actionability": 0.2,
+    "review_quality": 0.2
+  }
+}

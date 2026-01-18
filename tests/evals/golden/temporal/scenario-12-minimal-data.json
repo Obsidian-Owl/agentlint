@@ -1,0 +1,60 @@
+{
+  "id": "temporal-12-minimal-data",
+  "version": "1.0",
+  "source": "synthetic",
+  "description": "Edge case with minimal data - only 2 baselines, limited metrics",
+  "difficulty": "hard",
+  "tags": ["edge-case", "minimal", "insufficient-data"],
+
+  "baseline_data": {
+    "from": {
+      "id": "baseline-m01",
+      "createdAt": "2026-01-01T10:00:00.000Z",
+      "projectPath": "/test/project",
+      "metrics": {
+        "findingsCount": 12,
+        "criticalCount": 1
+      }
+    },
+    "to": {
+      "id": "baseline-m02",
+      "createdAt": "2026-01-08T10:00:00.000Z",
+      "projectPath": "/test/project",
+      "metrics": {
+        "findingsCount": 8,
+        "criticalCount": 0
+      }
+    }
+  },
+
+  "expected_properties": {
+    "trend_available": false,
+    "delta_available": true,
+    "confidence_level": "low",
+    "warning": "Insufficient data for trend analysis (minimum 3 baselines recommended)"
+  },
+
+  "recommendations": [
+    {
+      "id": "rec-019",
+      "type": "process",
+      "summary": "Collect more baseline data",
+      "action": "Continue capturing weekly baselines to enable trend analysis",
+      "evidence": ["Only 2 baselines available", "Cannot determine if change is part of a pattern"]
+    },
+    {
+      "id": "rec-020",
+      "type": "caution",
+      "summary": "Interpret changes with care",
+      "action": "Avoid strong conclusions from single delta comparison",
+      "evidence": ["Single comparison may be noise rather than signal", "No trend context available"]
+    }
+  ],
+
+  "rubric_weights": {
+    "trend_accuracy": 0.40,
+    "causal_accuracy": 0.20,
+    "recommendation_actionability": 0.25,
+    "review_quality": 0.15
+  }
+}
