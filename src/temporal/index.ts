@@ -77,3 +77,63 @@ export {
   isSignificantChange,
   isImprovement,
 } from './config';
+
+// =============================================================================
+// Delta Calculation
+// =============================================================================
+
+export { calculateDelta, calculateMetricsDelta } from './delta/calculator';
+export { createDeltaSummary } from './delta/summarizer';
+
+// =============================================================================
+// Trend Analysis
+// =============================================================================
+
+export {
+  // Metric aggregation
+  aggregateMetrics,
+  getAvailableMetrics,
+  calculateMetricCoverage,
+  isCoreMetric,
+  // Linear regression
+  calculateSlope,
+  linearRegression,
+  timeSeriestoPoints,
+  predict,
+  classifyTrend,
+  calculateStats,
+  // Metric trends
+  getMetricTrend,
+  detectInflectionPoints,
+  isLowerBetterMetric,
+  summarizeTrends,
+  // Analysis builder
+  buildTrendAnalysis,
+  hasSufficientBaselines,
+  getTrendSummary,
+  getSignificantTrends,
+  getTrendsByDirection,
+} from './trends';
+
+export type {
+  AggregatedMetric,
+  AggregationResult,
+  AggregationOptions,
+  RegressionResult,
+  Point,
+  MetricTrendOptions,
+  TrendAnalysisOptions,
+} from './trends';
+
+// =============================================================================
+// Tools
+// =============================================================================
+
+export {
+  TOOL_DESCRIPTIONS,
+  storeBaselineTool,
+  queryBaselineTool,
+  listBaselinesTool,
+  calculateDeltaTool,
+  queryTrendsTool,
+} from './tools';
