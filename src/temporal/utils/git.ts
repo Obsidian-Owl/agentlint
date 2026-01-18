@@ -352,3 +352,147 @@ export async function getCommitsBetweenDates(
     return [];
   }
 }
+
+/**
+ * Get commits between two git hashes.
+ *
+ * Returns commit messages (short format) for commits between the two hashes.
+ * Uses exclusive start (fromHash is not included) and inclusive end (toHash is included).
+ *
+ * Per ADR-0019, returns raw commit data for agent interpretation.
+ *
+ * @param fromHash - Start commit hash (exclusive - not included in results)
+ * @param toHash - End commit hash (inclusive - included in results)
+ * @param options - Git options
+ * @returns Array of commit messages (shortHash: subject)
+ *
+ * @example
+ * ```typescript
+ * const commits = await getCommitsBetweenHashes('abc123', 'def456');
+ * console.log(`${commits.length} commits between hashes`);
+ * ```
+ */
+export async function getCommitsBetweenHashes(
+  fromHash: string,
+  toHash: string,
+  options: GitOptions = {}
+): Promise<string[]> {
+  const cwd = options.cwd ?? process.cwd();
+
+  try {
+    // Use git log with range: fromHash..toHash (exclusive start, inclusive end)
+    const proc = Bun.spawn(['git', 'log', `${fromHash}..${toHash}`, '--format=%h: %s', '--reverse'], {
+      cwd,
+      stdout: 'pipe',
+      stderr: 'pipe',
+    });
+
+    // Handle timeout
+    const timeoutMs = options.timeout ?? DEFAULT_TIMEOUT;
+    const timeoutPromise = new Promise<string[]>((resolve) => {
+      setTimeout(() => {
+        proc.kill();
+        resolve([]);
+      }, timeoutMs);
+    });
+
+    const resultPromise = (async (): Promise<string[]> => {
+      const output = await new Response(proc.stdout).text();
+      const exitCode = await proc.exited;
+
+      if (exitCode !== 0) {
+        return [];
+      }
+
+      return output
+        .trim()
+        .split('\n')
+        .filter((line) => line.length > 0);
+    })();
+
+    return await Promise.race([resultPromise, timeoutPromise]);
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Get detailed commit metadata between two hashes.
+ *
+ * Returns full commit information for commits between the two hashes.
+ * Per ADR-0019, returns raw metadata for agent interpretation - does NOT
+ * categorize impact (agent determines relevance).
+ *
+ * @param fromHash - Start commit hash (exclusive)
+ * @param toHash - End commit hash (inclusive)
+ * @param options - Git options
+ * @returns Array of commit info objects
+ *
+ * @example
+ * ```typescript
+ * const commits = await getCommitDetailsBetweenHashes('abc123', 'def456');
+ * for (const commit of commits) {
+ *   console.log(`${commit.shortHash}: ${commit.subject} by ${commit.author}`);
+ * }
+ * ```
+ */
+export async function getCommitDetailsBetweenHashes(
+  fromHash: string,
+  toHash: string,
+  options: GitOptions = {}
+): Promise<GitCommitInfo[]> {
+  const cwd = options.cwd ?? process.cwd();
+
+  try {
+    // Format: hash|shortHash|author|date|subject
+    const format = '%H|%h|%an|%aI|%s';
+    const proc = Bun.spawn(['git', 'log', `${fromHash}..${toHash}`, `--format=${format}`, '--reverse'], {
+      cwd,
+      stdout: 'pipe',
+      stderr: 'pipe',
+    });
+
+    // Handle timeout
+    const timeoutMs = options.timeout ?? DEFAULT_TIMEOUT;
+    const timeoutPromise = new Promise<GitCommitInfo[]>((resolve) => {
+      setTimeout(() => {
+        proc.kill();
+        resolve([]);
+      }, timeoutMs);
+    });
+
+    const resultPromise = (async (): Promise<GitCommitInfo[]> => {
+      const output = await new Response(proc.stdout).text();
+      const exitCode = await proc.exited;
+
+      if (exitCode !== 0) {
+        return [];
+      }
+
+      const lines = output
+        .trim()
+        .split('\n')
+        .filter((line) => line.length > 0);
+
+      return lines.map((line) => {
+        const [hash, shortHash, author, date, ...subjectParts] = line.split('|');
+        const subject = subjectParts.join('|');
+
+        const result: GitCommitInfo = {
+          hash: hash ?? '',
+          shortHash: shortHash ?? '',
+        };
+
+        if (author) result.author = author;
+        if (date) result.date = date;
+        if (subject) result.subject = subject;
+
+        return result;
+      });
+    })();
+
+    return await Promise.race([resultPromise, timeoutPromise]);
+  } catch {
+    return [];
+  }
+}

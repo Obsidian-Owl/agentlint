@@ -15,7 +15,7 @@ import type { Baseline } from '../../persistence/types';
 import type { BaselineDelta, DeltaSummary } from '../types';
 import { calculateDelta } from '../delta/calculator';
 import { createDeltaSummary, formatDeltaSummary } from '../delta/summarizer';
-import { getCommitsBetweenDates } from '../utils/git';
+import { getCommitsBetweenDates, getCommitsBetweenHashes } from '../utils/git';
 import { TOOL_DESCRIPTIONS } from './descriptions';
 
 // =============================================================================
@@ -193,7 +193,16 @@ export const calculateDeltaTool = tool(
       // Add git commits if requested
       const includeGitCommits = args.includeGitCommits ?? true;
       if (includeGitCommits) {
-        const commits = await getCommitsBetweenDates(fromBaseline.createdAt, toBaseline.createdAt);
+        let commits: string[] = [];
+
+        // Prefer git hashes when both baselines have them (more accurate)
+        if (fromBaseline.gitCommit && toBaseline.gitCommit) {
+          commits = await getCommitsBetweenHashes(fromBaseline.gitCommit, toBaseline.gitCommit);
+        } else {
+          // Fall back to date-based query if hashes not available
+          commits = await getCommitsBetweenDates(fromBaseline.createdAt, toBaseline.createdAt);
+        }
+
         if (commits.length > 0) {
           baselineDelta.gitCommitsInRange = commits;
         }

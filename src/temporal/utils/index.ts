@@ -13,6 +13,8 @@ export {
   getRepositoryRoot,
   getCurrentBranch,
   getCommitsBetweenDates,
+  getCommitsBetweenHashes,
+  getCommitDetailsBetweenHashes,
 } from './git';
 
 export type { GitCommitInfo, GitOptions } from './git';

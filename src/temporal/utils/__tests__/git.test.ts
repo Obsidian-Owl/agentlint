@@ -15,6 +15,8 @@ import {
   isGitRepository,
   getRepositoryRoot,
   getCurrentBranch,
+  getCommitsBetweenHashes,
+  getCommitDetailsBetweenHashes,
 } from '../git';
 
 describe('temporal/utils/git', () => {
@@ -159,6 +161,101 @@ describe('temporal/utils/git', () => {
       const branch = await getCurrentBranch({ cwd: nonGitDir });
 
       expect(branch).toBeNull();
+    });
+  });
+
+  describe('getCommitsBetweenHashes', () => {
+    it('should return commits between two valid hashes', async () => {
+      // Get current commit and a parent to test with
+      const currentCommit = await getCurrentCommit({ cwd: projectDir });
+
+      if (currentCommit) {
+        // Get the parent commit (HEAD~1)
+        const proc = Bun.spawn(['git', 'rev-parse', 'HEAD~5'], {
+          cwd: projectDir,
+          stdout: 'pipe',
+          stderr: 'pipe',
+        });
+        const parentOutput = await new Response(proc.stdout).text();
+        const parentCommit = parentOutput.trim();
+
+        if (parentCommit && parentCommit !== currentCommit) {
+          const commits = await getCommitsBetweenHashes(parentCommit, currentCommit, {
+            cwd: projectDir,
+          });
+
+          // Should return some commits between parent and current
+          expect(commits.length).toBeGreaterThan(0);
+          // Each commit should have the format "hash: message"
+          for (const commit of commits) {
+            expect(commit).toMatch(/^[a-f0-9]+: .+/);
+          }
+        }
+      }
+    });
+
+    it('should return empty array for invalid hashes', async () => {
+      const commits = await getCommitsBetweenHashes('invalidhash123', 'invalidhash456', {
+        cwd: projectDir,
+      });
+
+      expect(commits).toEqual([]);
+    });
+
+    it('should return empty array for non-git directory', async () => {
+      const commits = await getCommitsBetweenHashes('abc123', 'def456', { cwd: nonGitDir });
+
+      expect(commits).toEqual([]);
+    });
+  });
+
+  describe('getCommitDetailsBetweenHashes', () => {
+    it('should return detailed commit info between two valid hashes', async () => {
+      // Get current commit and a parent to test with
+      const currentCommit = await getCurrentCommit({ cwd: projectDir });
+
+      if (currentCommit) {
+        // Get a parent commit (HEAD~5)
+        const proc = Bun.spawn(['git', 'rev-parse', 'HEAD~5'], {
+          cwd: projectDir,
+          stdout: 'pipe',
+          stderr: 'pipe',
+        });
+        const parentOutput = await new Response(proc.stdout).text();
+        const parentCommit = parentOutput.trim();
+
+        if (parentCommit && parentCommit !== currentCommit) {
+          const commits = await getCommitDetailsBetweenHashes(parentCommit, currentCommit, {
+            cwd: projectDir,
+          });
+
+          // Should return some commits between parent and current
+          expect(commits.length).toBeGreaterThan(0);
+
+          // Each commit should have full info
+          for (const commit of commits) {
+            expect(commit.hash).toMatch(/^[a-f0-9]{40}$/);
+            expect(commit.shortHash).toMatch(/^[a-f0-9]{7}$/);
+            expect(commit.author).toBeTruthy();
+            expect(commit.date).toBeTruthy();
+            expect(commit.subject).toBeTruthy();
+          }
+        }
+      }
+    });
+
+    it('should return empty array for invalid hashes', async () => {
+      const commits = await getCommitDetailsBetweenHashes('invalidhash123', 'invalidhash456', {
+        cwd: projectDir,
+      });
+
+      expect(commits).toEqual([]);
+    });
+
+    it('should return empty array for non-git directory', async () => {
+      const commits = await getCommitDetailsBetweenHashes('abc123', 'def456', { cwd: nonGitDir });
+
+      expect(commits).toEqual([]);
     });
   });
 });
