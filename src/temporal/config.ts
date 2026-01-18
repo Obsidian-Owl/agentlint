@@ -30,8 +30,8 @@ export const DEFAULT_THRESHOLD_CONFIG: ThresholdConfig = {
     criticalCount: { absolute: 1, inverted: true },
     highCount: { absolute: 1, inverted: true },
     // Higher tolerance for token metrics (naturally volatile)
-    avgTokensPerSession: { percentage: 0.10, inverted: true },
-    configTokens: { percentage: 0.10, inverted: false },
+    avgTokensPerSession: { percentage: 0.1, inverted: true },
+    configTokens: { percentage: 0.1, inverted: false },
     // Coverage score uses absolute threshold
     coverageScore: { absolute: 5, inverted: false },
   },

@@ -224,8 +224,7 @@ export function queryReviews(db: Database, options: ReviewQueryOptions = {}): Re
   }
 
   // Build ORDER BY
-  const orderColumn =
-    options.orderBy === 'overallSentiment' ? 'overall_sentiment' : 'created_at';
+  const orderColumn = options.orderBy === 'overallSentiment' ? 'overall_sentiment' : 'created_at';
   const orderDir = options.order === 'asc' ? 'ASC' : 'DESC';
 
   // Build query
@@ -251,11 +250,9 @@ export function queryReviews(db: Database, options: ReviewQueryOptions = {}): Re
  * @returns Review summary or null if not found
  */
 export function getIndexedReviewById(db: Database, id: string): ReviewSummary | null {
-  const row = queryOne<ReviewRow>(
-    db,
-    'SELECT * FROM qualitative_reviews WHERE id = $id',
-    { $id: id }
-  );
+  const row = queryOne<ReviewRow>(db, 'SELECT * FROM qualitative_reviews WHERE id = $id', {
+    $id: id,
+  });
   if (!row) {
     return null;
   }
@@ -280,7 +277,10 @@ export function getReviewsByBaseline(db: Database, baselineId: string): ReviewSu
  * @param options - Query options (limit is ignored)
  * @returns Count of matching reviews
  */
-export function countReviews(db: Database, options: Omit<ReviewQueryOptions, 'limit'> = {}): number {
+export function countReviews(
+  db: Database,
+  options: Omit<ReviewQueryOptions, 'limit'> = {}
+): number {
   const conditions: string[] = [];
   const params: Record<string, string | number | null> = {};
 
