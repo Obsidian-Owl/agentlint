@@ -78,10 +78,15 @@ const CREATE_BASELINES_TABLE = `
 `;
 
 const CREATE_INDEXES = [
+  // Single-column indexes for direct lookups
   'CREATE INDEX IF NOT EXISTS idx_baselines_created_at ON baselines(created_at)',
   'CREATE INDEX IF NOT EXISTS idx_baselines_label ON baselines(label)',
   'CREATE INDEX IF NOT EXISTS idx_baselines_git_commit ON baselines(git_commit)',
   'CREATE INDEX IF NOT EXISTS idx_baselines_findings_count ON baselines(findings_count)',
+  // Composite indexes for common query patterns (T062 optimization)
+  'CREATE INDEX IF NOT EXISTS idx_baselines_project_created ON baselines(project_path, created_at DESC)',
+  'CREATE INDEX IF NOT EXISTS idx_baselines_act_created ON baselines(act_type, created_at DESC)',
+  'CREATE INDEX IF NOT EXISTS idx_baselines_date_range ON baselines(created_at, project_path)',
 ];
 
 // =============================================================================

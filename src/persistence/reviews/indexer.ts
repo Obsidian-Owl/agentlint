@@ -100,10 +100,15 @@ const CREATE_REVIEWS_TABLE = `
 `;
 
 const CREATE_INDEXES = [
+  // Single-column indexes for direct lookups
   'CREATE INDEX IF NOT EXISTS idx_reviews_baseline_id ON qualitative_reviews(baseline_id)',
   'CREATE INDEX IF NOT EXISTS idx_reviews_created_at ON qualitative_reviews(created_at)',
   'CREATE INDEX IF NOT EXISTS idx_reviews_sentiment ON qualitative_reviews(overall_sentiment)',
   'CREATE INDEX IF NOT EXISTS idx_reviews_trigger_reason ON qualitative_reviews(trigger_reason)',
+  // Composite indexes for common query patterns (T062 optimization)
+  'CREATE INDEX IF NOT EXISTS idx_reviews_baseline_created ON qualitative_reviews(baseline_id, created_at DESC)',
+  'CREATE INDEX IF NOT EXISTS idx_reviews_date_sentiment ON qualitative_reviews(created_at, overall_sentiment)',
+  'CREATE INDEX IF NOT EXISTS idx_reviews_trigger_created ON qualitative_reviews(trigger_reason, created_at DESC)',
 ];
 
 // =============================================================================
