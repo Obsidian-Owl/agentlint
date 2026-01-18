@@ -141,6 +141,25 @@ export {
 
 export type { SignalType, DimensionDefinition } from './qualitative/dimensions';
 
+export {
+  calculateOverallSentiment,
+  isValidSentiment,
+  clampSentiment,
+  getSentimentLabel,
+  getSentimentEmoji,
+  analyzeSentimentIndicators,
+  calculateSentimentTrend,
+  compareSentiment,
+  createEmptyDimension,
+  aggregateSentimentStats,
+} from './qualitative/sentiment';
+
+export type {
+  SentimentValue,
+  SentimentOptions,
+  SentimentIndicatorAnalysis,
+} from './qualitative/sentiment';
+
 // =============================================================================
 // Tools
 // =============================================================================

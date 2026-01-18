@@ -53,8 +53,7 @@ export const REVIEW_DIMENSIONS: readonly DimensionDefinition[] = [
     displayName: 'Perceived Friction',
     promptText:
       'Where do you experience friction in your AI-assisted development workflow? What slows you down or feels awkward?',
-    probeText:
-      'Can you give a specific example of a recent situation where you felt friction?',
+    probeText: 'Can you give a specific example of a recent situation where you felt friction?',
     signalType: 'leading',
     description:
       'Identifies pain points and friction in the AI-assisted workflow that may predict future issues or improvement opportunities.',
@@ -78,14 +77,7 @@ export const REVIEW_DIMENSIONS: readonly DimensionDefinition[] = [
     signalType: 'qualitative',
     description:
       'Measures the calibration of trust in AI outputs - both over-trust (blind acceptance) and under-trust (excessive verification) indicate suboptimal workflows.',
-    positiveIndicators: [
-      'confident',
-      'trust',
-      'reliable',
-      'accurate',
-      'consistent',
-      'improved',
-    ],
+    positiveIndicators: ['confident', 'trust', 'reliable', 'accurate', 'consistent', 'improved'],
     negativeIndicators: [
       'verify',
       'check',
@@ -101,8 +93,7 @@ export const REVIEW_DIMENSIONS: readonly DimensionDefinition[] = [
     displayName: 'Task Fit',
     promptText:
       'What types of tasks work well with AI assistance? What types work poorly or feel forced?',
-    probeText:
-      'What patterns have you noticed about when AI assistance is most or least helpful?',
+    probeText: 'What patterns have you noticed about when AI assistance is most or least helpful?',
     signalType: 'causal',
     description:
       'Identifies which task categories benefit from AI assistance and which do not, enabling causal understanding of workflow effectiveness.',
@@ -114,15 +105,7 @@ export const REVIEW_DIMENSIONS: readonly DimensionDefinition[] = [
       'automates',
       'excellent',
     ],
-    negativeIndicators: [
-      'struggles',
-      'fails',
-      'poor',
-      'worse',
-      'avoid',
-      'skip',
-      'manually',
-    ],
+    negativeIndicators: ['struggles', 'fails', 'poor', 'worse', 'avoid', 'skip', 'manually'],
   },
   {
     name: 'configurationConfidence',
@@ -141,60 +124,31 @@ export const REVIEW_DIMENSIONS: readonly DimensionDefinition[] = [
       'up-to-date',
       'covers',
     ],
-    negativeIndicators: [
-      'unsure',
-      'incomplete',
-      'outdated',
-      'missing',
-      'unclear',
-      'needs work',
-    ],
+    negativeIndicators: ['unsure', 'incomplete', 'outdated', 'missing', 'unclear', 'needs work'],
   },
   {
     name: 'improvementAttribution',
     displayName: 'Improvement Attribution',
     promptText:
       'What changes have made the biggest difference in your AI workflow recently? What do you attribute improvements (or regressions) to?',
-    probeText:
-      'Can you point to a specific change that had a noticeable impact on your workflow?',
+    probeText: 'Can you point to a specific change that had a noticeable impact on your workflow?',
     signalType: 'causal',
     description:
       'Captures user attribution of workflow changes - enables causal tracing between actions and outcomes.',
-    positiveIndicators: [
-      'improved',
-      'better',
-      'helped',
-      'fixed',
-      'solved',
-      'updated',
-      'added',
-    ],
-    negativeIndicators: [
-      'worse',
-      'regressed',
-      'broke',
-      'removed',
-      'stopped',
-      'downgraded',
-    ],
+    positiveIndicators: ['improved', 'better', 'helped', 'fixed', 'solved', 'updated', 'added'],
+    negativeIndicators: ['worse', 'regressed', 'broke', 'removed', 'stopped', 'downgraded'],
   },
   {
     name: 'workflowSatisfaction',
     displayName: 'Workflow Satisfaction',
     promptText:
       'Overall, how satisfied are you with your AI-assisted development workflow? What would make it better?',
-    probeText: 'On a scale from very unsatisfied to very satisfied, where would you place yourself?',
+    probeText:
+      'On a scale from very unsatisfied to very satisfied, where would you place yourself?',
     signalType: 'lagging',
     description:
       'Overall satisfaction metric - lagging indicator that reflects cumulative workflow effectiveness.',
-    positiveIndicators: [
-      'satisfied',
-      'happy',
-      'pleased',
-      'productive',
-      'effective',
-      'efficient',
-    ],
+    positiveIndicators: ['satisfied', 'happy', 'pleased', 'productive', 'effective', 'efficient'],
     negativeIndicators: [
       'unsatisfied',
       'frustrated',
@@ -208,8 +162,9 @@ export const REVIEW_DIMENSIONS: readonly DimensionDefinition[] = [
 /**
  * Map for quick lookup of dimension by name.
  */
-export const DIMENSION_BY_NAME: ReadonlyMap<ReviewDimensionName, DimensionDefinition> =
-  new Map(REVIEW_DIMENSIONS.map((d) => [d.name, d]));
+export const DIMENSION_BY_NAME: ReadonlyMap<ReviewDimensionName, DimensionDefinition> = new Map(
+  REVIEW_DIMENSIONS.map((d) => [d.name, d])
+);
 
 /**
  * Get a dimension definition by name.
@@ -236,9 +191,7 @@ export function getDimensionNames(): readonly ReviewDimensionName[] {
  * @param signalType - The signal type to filter by
  * @returns Array of dimensions matching the signal type
  */
-export function getDimensionsBySignalType(
-  signalType: SignalType
-): readonly DimensionDefinition[] {
+export function getDimensionsBySignalType(signalType: SignalType): readonly DimensionDefinition[] {
   return REVIEW_DIMENSIONS.filter((d) => d.signalType === signalType);
 }
 
