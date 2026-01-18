@@ -1,0 +1,474 @@
+{
+  "version": "1.0.0",
+  "name": "tests/integration/recordings/qualitative-review.json",
+  "createdAt": "2026-01-18T09:00:00.000Z",
+  "description": "VCR recordings for conduct_review and get_review_history tool scenarios",
+  "recordings": [
+    {
+      "request": {
+        "url": "agentlint://conduct_review",
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "baselineId": "baseline-after-refactor",
+          "mode": "initiate"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "success": true,
+          "mode": "initiate",
+          "baselineId": "baseline-after-refactor",
+          "dimensions": [
+            {
+              "name": "perceivedFriction",
+              "displayName": "Perceived Friction",
+              "promptText": "Where do you experience friction in your AI-assisted development workflow?",
+              "probeText": "Can you give a specific example of a recent situation where you felt friction?"
+            },
+            {
+              "name": "trustCalibration",
+              "displayName": "Trust Calibration",
+              "promptText": "How well calibrated is your trust in the AI's suggestions and outputs?",
+              "probeText": "When was the last time the AI surprised you, either positively or negatively?"
+            },
+            {
+              "name": "taskFit",
+              "displayName": "Task Fit",
+              "promptText": "How well does the AI fit the types of tasks you're working on?",
+              "probeText": "What types of tasks work best? Which ones don't work well?"
+            },
+            {
+              "name": "configurationConfidence",
+              "displayName": "Configuration Confidence",
+              "promptText": "How confident are you that your AI configuration is optimized for your needs?",
+              "probeText": "What aspects of the configuration are you most uncertain about?"
+            },
+            {
+              "name": "improvementAttribution",
+              "displayName": "Improvement Attribution",
+              "promptText": "When things improve, can you tell what caused the improvement?",
+              "probeText": "Think of a recent improvement - what do you attribute it to?"
+            },
+            {
+              "name": "workflowSatisfaction",
+              "displayName": "Workflow Satisfaction",
+              "promptText": "Overall, how satisfied are you with your AI-assisted development workflow?",
+              "probeText": "What one thing would make the biggest difference in your satisfaction?"
+            }
+          ],
+          "sentimentScale": {
+            "-2": "Very Negative",
+            "-1": "Negative",
+            "0": "Neutral",
+            "1": "Positive",
+            "2": "Very Positive"
+          }
+        }
+      },
+      "timestamp": "2026-01-18T09:00:00.000Z"
+    },
+    {
+      "request": {
+        "url": "agentlint://conduct_review",
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "baselineId": "baseline-after-refactor",
+          "mode": "complete",
+          "responses": [
+            {
+              "name": "perceivedFriction",
+              "response": "The workflow feels much smoother after the config cleanup. Occasional hiccups when switching between projects, but overall minimal friction.",
+              "sentiment": 1,
+              "confidence": "high"
+            },
+            {
+              "name": "trustCalibration",
+              "response": "Trust is well calibrated now. The AI rarely surprises me negatively since I added better testing guidance to the config.",
+              "sentiment": 2,
+              "confidence": "high"
+            },
+            {
+              "name": "taskFit",
+              "response": "Works great for code generation and refactoring. Still needs improvement for complex architectural decisions.",
+              "sentiment": 1,
+              "confidence": "medium"
+            },
+            {
+              "name": "configurationConfidence",
+              "response": "Much more confident after the recent restructuring. The config is well-organized and I understand each section's purpose.",
+              "sentiment": 2,
+              "confidence": "high"
+            },
+            {
+              "name": "improvementAttribution",
+              "response": "Yes, the recent improvements clearly came from adding specific testing guidance and removing generic rules.",
+              "sentiment": 1,
+              "confidence": "high"
+            },
+            {
+              "name": "workflowSatisfaction",
+              "response": "Very satisfied overall. The iteration count has dropped significantly and I spend less time correcting AI outputs.",
+              "sentiment": 2,
+              "confidence": "high"
+            }
+          ],
+          "themes": ["smooth workflow", "improved trust", "better config"],
+          "triggerReason": "post-refactor"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "success": true,
+          "mode": "complete",
+          "reviewId": "review-001",
+          "baselineId": "baseline-after-refactor",
+          "overallSentiment": 1.5,
+          "sentimentLabel": "Positive",
+          "dimensionSummary": {
+            "perceivedFriction": 1,
+            "trustCalibration": 2,
+            "taskFit": 1,
+            "configurationConfidence": 2,
+            "improvementAttribution": 1,
+            "workflowSatisfaction": 2
+          },
+          "themes": ["smooth workflow", "improved trust", "better config"],
+          "createdAt": "2026-01-18T09:00:00.000Z"
+        }
+      },
+      "timestamp": "2026-01-18T09:00:01.000Z"
+    },
+    {
+      "request": {
+        "url": "agentlint://conduct_review",
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "baselineId": "baseline-regression",
+          "mode": "initiate",
+          "dimensions": ["perceivedFriction", "workflowSatisfaction"]
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "success": true,
+          "mode": "initiate",
+          "baselineId": "baseline-regression",
+          "dimensions": [
+            {
+              "name": "perceivedFriction",
+              "displayName": "Perceived Friction",
+              "promptText": "Where do you experience friction in your AI-assisted development workflow?",
+              "probeText": "Can you give a specific example of a recent situation where you felt friction?"
+            },
+            {
+              "name": "workflowSatisfaction",
+              "displayName": "Workflow Satisfaction",
+              "promptText": "Overall, how satisfied are you with your AI-assisted development workflow?",
+              "probeText": "What one thing would make the biggest difference in your satisfaction?"
+            }
+          ],
+          "sentimentScale": {
+            "-2": "Very Negative",
+            "-1": "Negative",
+            "0": "Neutral",
+            "1": "Positive",
+            "2": "Very Positive"
+          }
+        }
+      },
+      "timestamp": "2026-01-18T09:00:02.000Z"
+    },
+    {
+      "request": {
+        "url": "agentlint://conduct_review",
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "baselineId": "baseline-regression",
+          "mode": "complete",
+          "responses": [
+            {
+              "name": "perceivedFriction",
+              "response": "Significant friction since the emergency patches. Lots of back-and-forth and corrections needed.",
+              "sentiment": -1,
+              "confidence": "high"
+            },
+            {
+              "name": "workflowSatisfaction",
+              "response": "Frustrated. The rushed changes broke the smooth flow we had before.",
+              "sentiment": -2,
+              "confidence": "high"
+            }
+          ],
+          "themes": ["regression", "rushed changes"],
+          "triggerReason": "regression-detected"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "success": true,
+          "mode": "complete",
+          "reviewId": "review-002",
+          "baselineId": "baseline-regression",
+          "overallSentiment": -1.5,
+          "sentimentLabel": "Negative",
+          "dimensionSummary": {
+            "perceivedFriction": -1,
+            "workflowSatisfaction": -2
+          },
+          "themes": ["regression", "rushed changes"],
+          "createdAt": "2026-01-18T10:00:00.000Z"
+        }
+      },
+      "timestamp": "2026-01-18T09:00:03.000Z"
+    },
+    {
+      "request": {
+        "url": "agentlint://get_review_history",
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "limit": 10
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "success": true,
+          "reviews": [
+            {
+              "id": "review-002",
+              "baselineId": "baseline-regression",
+              "createdAt": "2026-01-18T10:00:00.000Z",
+              "overallSentiment": -1.5,
+              "themes": ["regression", "rushed changes"],
+              "triggerReason": "regression-detected"
+            },
+            {
+              "id": "review-001",
+              "baselineId": "baseline-after-refactor",
+              "createdAt": "2026-01-18T09:00:00.000Z",
+              "overallSentiment": 1.5,
+              "themes": ["smooth workflow", "improved trust", "better config"],
+              "triggerReason": "post-refactor"
+            }
+          ],
+          "total": 2,
+          "hasMore": false
+        }
+      },
+      "timestamp": "2026-01-18T09:00:04.000Z"
+    },
+    {
+      "request": {
+        "url": "agentlint://get_review_history",
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "baselineId": "baseline-after-refactor",
+          "limit": 5
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "success": true,
+          "reviews": [
+            {
+              "id": "review-001",
+              "baselineId": "baseline-after-refactor",
+              "createdAt": "2026-01-18T09:00:00.000Z",
+              "overallSentiment": 1.5,
+              "themes": ["smooth workflow", "improved trust", "better config"],
+              "triggerReason": "post-refactor"
+            }
+          ],
+          "total": 1,
+          "hasMore": false,
+          "filter": {
+            "baselineId": "baseline-after-refactor"
+          }
+        }
+      },
+      "timestamp": "2026-01-18T09:00:05.000Z"
+    },
+    {
+      "request": {
+        "url": "agentlint://get_review_history",
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "dimension": "perceivedFriction",
+          "includeResponses": true,
+          "limit": 10
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "success": true,
+          "reviews": [
+            {
+              "id": "review-002",
+              "baselineId": "baseline-regression",
+              "createdAt": "2026-01-18T10:00:00.000Z",
+              "overallSentiment": -1.5,
+              "themes": ["regression", "rushed changes"],
+              "dimensionSentiments": {
+                "perceivedFriction": -1,
+                "workflowSatisfaction": -2
+              },
+              "responses": [
+                {
+                  "dimension": "perceivedFriction",
+                  "response": "Significant friction since the emergency patches. Lots of back-and-forth and corrections needed.",
+                  "sentiment": -1
+                },
+                {
+                  "dimension": "workflowSatisfaction",
+                  "response": "Frustrated. The rushed changes broke the smooth flow we had before.",
+                  "sentiment": -2
+                }
+              ]
+            },
+            {
+              "id": "review-001",
+              "baselineId": "baseline-after-refactor",
+              "createdAt": "2026-01-18T09:00:00.000Z",
+              "overallSentiment": 1.5,
+              "themes": ["smooth workflow", "improved trust", "better config"],
+              "dimensionSentiments": {
+                "perceivedFriction": 1,
+                "trustCalibration": 2,
+                "taskFit": 1,
+                "configurationConfidence": 2,
+                "improvementAttribution": 1,
+                "workflowSatisfaction": 2
+              },
+              "responses": [
+                {
+                  "dimension": "perceivedFriction",
+                  "response": "The workflow feels much smoother after the config cleanup. Occasional hiccups when switching between projects, but overall minimal friction.",
+                  "sentiment": 1
+                },
+                {
+                  "dimension": "trustCalibration",
+                  "response": "Trust is well calibrated now. The AI rarely surprises me negatively since I added better testing guidance to the config.",
+                  "sentiment": 2
+                },
+                {
+                  "dimension": "taskFit",
+                  "response": "Works great for code generation and refactoring. Still needs improvement for complex architectural decisions.",
+                  "sentiment": 1
+                },
+                {
+                  "dimension": "configurationConfidence",
+                  "response": "Much more confident after the recent restructuring. The config is well-organized and I understand each section's purpose.",
+                  "sentiment": 2
+                },
+                {
+                  "dimension": "improvementAttribution",
+                  "response": "Yes, the recent improvements clearly came from adding specific testing guidance and removing generic rules.",
+                  "sentiment": 1
+                },
+                {
+                  "dimension": "workflowSatisfaction",
+                  "response": "Very satisfied overall. The iteration count has dropped significantly and I spend less time correcting AI outputs.",
+                  "sentiment": 2
+                }
+              ]
+            }
+          ],
+          "total": 2,
+          "hasMore": false,
+          "filter": {
+            "dimension": "perceivedFriction"
+          }
+        }
+      },
+      "timestamp": "2026-01-18T09:00:06.000Z"
+    },
+    {
+      "request": {
+        "url": "agentlint://get_review_history",
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "afterDate": "2026-01-18T09:30:00.000Z",
+          "beforeDate": "2026-01-18T10:30:00.000Z",
+          "limit": 10
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "success": true,
+          "reviews": [
+            {
+              "id": "review-002",
+              "baselineId": "baseline-regression",
+              "createdAt": "2026-01-18T10:00:00.000Z",
+              "overallSentiment": -1.5,
+              "themes": ["regression", "rushed changes"],
+              "triggerReason": "regression-detected"
+            }
+          ],
+          "total": 1,
+          "hasMore": false,
+          "filter": {
+            "afterDate": "2026-01-18T09:30:00.000Z",
+            "beforeDate": "2026-01-18T10:30:00.000Z"
+          }
+        }
+      },
+      "timestamp": "2026-01-18T09:00:07.000Z"
+    }
+  ]
+}

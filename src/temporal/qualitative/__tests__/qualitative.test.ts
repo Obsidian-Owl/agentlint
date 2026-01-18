@@ -18,8 +18,6 @@ import {
   getDimensionsBySignalType,
   getPromptText,
   getProbeText,
-  type DimensionDefinition,
-  type SignalType,
 } from '../dimensions';
 
 import {
@@ -135,13 +133,13 @@ describe('Review Dimensions', () => {
     test('should filter by qualitative signal type', () => {
       const qualitative = getDimensionsBySignalType('qualitative');
       expect(qualitative.length).toBe(1);
-      expect(qualitative[0].name).toBe('trustCalibration');
+      expect(qualitative[0]?.name).toBe('trustCalibration');
     });
 
     test('should filter by lagging signal type', () => {
       const lagging = getDimensionsBySignalType('lagging');
       expect(lagging.length).toBe(1);
-      expect(lagging[0].name).toBe('workflowSatisfaction');
+      expect(lagging[0]?.name).toBe('workflowSatisfaction');
     });
   });
 
@@ -310,9 +308,7 @@ describe('Sentiment Indicator Analysis', () => {
     });
 
     test('should find negative indicators in text', () => {
-      const analysis = analyzeSentimentIndicators(
-        'I find it frustrating and confusing at times'
-      );
+      const analysis = analyzeSentimentIndicators('I find it frustrating and confusing at times');
 
       expect(analysis.negativeMatches).toContain('frustrating');
       expect(analysis.negativeMatches).toContain('confusing');
