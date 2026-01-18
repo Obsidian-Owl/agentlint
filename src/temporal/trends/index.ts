@@ -49,3 +49,17 @@ export {
   getTrendsByDirection,
 } from './analysis';
 export type { TrendAnalysisOptions } from './analysis';
+
+// Inflection point detection (ADR-0019 compliant)
+export {
+  detectInflectionPoints as detectInflectionPointsStatistical,
+  detectInflectionPointsFromSeries,
+  findMostSignificantInflection,
+  filterBySignificance,
+  categorizeInflections,
+} from './inflection';
+export type {
+  InflectionPointData,
+  InflectionDetectionResult,
+  InflectionDetectionOptions,
+} from './inflection';
