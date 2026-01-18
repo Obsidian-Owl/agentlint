@@ -82,16 +82,25 @@ describe('temporal/correlation/git-history', () => {
       const currentHash = await getCurrentCommit({ cwd: projectDir });
 
       if (currentHash) {
-        // Get parent hash
-        const proc = Bun.spawn(['git', 'rev-parse', 'HEAD~5'], {
+        // Get parent hash - use HEAD~1 for reliability in shallow clones
+        const proc = Bun.spawn(['git', 'rev-parse', 'HEAD~1'], {
           cwd: projectDir,
           stdout: 'pipe',
           stderr: 'pipe',
         });
+        await proc.exited;
+
+        // Skip if git history is too shallow (common in CI)
+        if (proc.exitCode !== 0) {
+          console.log('Skipping: git history too shallow');
+          return;
+        }
+
         const parentOutput = await new Response(proc.stdout).text();
         const parentHash = parentOutput.trim();
 
-        if (parentHash && parentHash !== currentHash) {
+        // Validate we got a valid hash
+        if (parentHash && /^[a-f0-9]{7,40}$/.test(parentHash) && parentHash !== currentHash) {
           const commits = await getCommitMetadataBetweenHashes(parentHash, currentHash, {
             cwd: projectDir,
           });

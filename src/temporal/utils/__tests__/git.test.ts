@@ -188,7 +188,11 @@ describe('temporal/utils/git', () => {
         const parentCommit = parentOutput.trim();
 
         // Validate we got a valid hash
-        if (parentCommit && /^[a-f0-9]{7,40}$/.test(parentCommit) && parentCommit !== currentCommit) {
+        if (
+          parentCommit &&
+          /^[a-f0-9]{7,40}$/.test(parentCommit) &&
+          parentCommit !== currentCommit
+        ) {
           const commits = await getCommitsBetweenHashes(parentCommit, currentCommit, {
             cwd: projectDir,
           });
@@ -224,16 +228,29 @@ describe('temporal/utils/git', () => {
       const currentCommit = await getCurrentCommit({ cwd: projectDir });
 
       if (currentCommit) {
-        // Get a parent commit (HEAD~5)
-        const proc = Bun.spawn(['git', 'rev-parse', 'HEAD~5'], {
+        // Get a parent commit - use HEAD~1 for reliability in shallow clones
+        const proc = Bun.spawn(['git', 'rev-parse', 'HEAD~1'], {
           cwd: projectDir,
           stdout: 'pipe',
           stderr: 'pipe',
         });
+        await proc.exited;
+
+        // Skip if git history is too shallow (common in CI)
+        if (proc.exitCode !== 0) {
+          console.log('Skipping: git history too shallow');
+          return;
+        }
+
         const parentOutput = await new Response(proc.stdout).text();
         const parentCommit = parentOutput.trim();
 
-        if (parentCommit && parentCommit !== currentCommit) {
+        // Validate we got a valid hash
+        if (
+          parentCommit &&
+          /^[a-f0-9]{7,40}$/.test(parentCommit) &&
+          parentCommit !== currentCommit
+        ) {
           const commits = await getCommitDetailsBetweenHashes(parentCommit, currentCommit, {
             cwd: projectDir,
           });

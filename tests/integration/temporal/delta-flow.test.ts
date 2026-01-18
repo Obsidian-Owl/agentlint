@@ -323,7 +323,11 @@ describe('Temporal Delta Flow Integration', () => {
         const parentCommit = parentOutput.trim();
 
         // Validate we got a valid hash
-        if (parentCommit && /^[a-f0-9]{7,40}$/.test(parentCommit) && parentCommit !== currentCommit) {
+        if (
+          parentCommit &&
+          /^[a-f0-9]{7,40}$/.test(parentCommit) &&
+          parentCommit !== currentCommit
+        ) {
           const commits = await getCommitsBetweenHashes(parentCommit, currentCommit);
 
           // Should return commits between the two hashes
