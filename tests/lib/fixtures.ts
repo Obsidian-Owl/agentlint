@@ -24,7 +24,7 @@ import type { DeltaSummary, MetricChange } from '../../src/temporal/types';
 export function createTestBaseline(overrides: Partial<Baseline> = {}): Baseline {
   const now = new Date().toISOString();
   return {
-    id: overrides.id ?? 'test-baseline-' + Math.random().toString(36).slice(2, 10),
+    id: overrides.id ?? crypto.randomUUID(),
     version: '1.0.0',
     createdAt: now,
     projectPath: '/test/project',
