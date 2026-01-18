@@ -44,3 +44,15 @@ export {
   type TrendCalculationOptions,
   type ExtendedQualitativeTrend,
 } from './trend';
+
+// Divergence / Alignment analysis
+export {
+  calculateDivergenceMetrics,
+  analyzeDivergence,
+  findMostDivergentPair,
+  calculateDivergenceScore,
+  type DivergenceMetrics,
+  type DivergenceOptions,
+  type DivergenceAnalysis,
+  type DivergencePair,
+} from './alignment';
