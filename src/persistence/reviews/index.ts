@@ -17,6 +17,7 @@ export {
   listReviewIds,
   loadReviewsByBaseline,
   reviewExists,
+  getLastReview,
 } from './storage';
 
 export type { ReviewStorageOptions } from './storage';

@@ -11,11 +11,15 @@ import { tool } from '@anthropic-ai/claude-agent-sdk';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
 
-import { saveBaseline } from '../../persistence/baselines/storage';
+import { saveBaseline, getLatestBaseline } from '../../persistence/baselines/storage';
 import { initBaselineSchema, indexBaseline } from '../../persistence/baselines/indexer';
 import type { Baseline, BaselineMetrics } from '../../persistence/types';
 import { getCurrentCommit } from '../utils/git';
 import { TOOL_DESCRIPTIONS } from './descriptions';
+import { checkAllTriggers, type TriggerCheckResult } from '../reminders';
+import { calculateDelta } from '../delta/calculator';
+import { createDeltaSummary } from '../delta/summarizer';
+import { getLastReview } from '../../persistence/reviews';
 
 // =============================================================================
 // Input Schema
@@ -56,6 +60,8 @@ interface StoreBaselineResult {
     avgTokensPerSession?: number;
   };
   message: string;
+  /** Trigger check result for potential review prompt (informational) */
+  triggerCheck?: TriggerCheckResult;
 }
 
 // =============================================================================
@@ -100,6 +106,19 @@ function formatToolOutput(result: StoreBaselineResult): string {
 
   if (result.metrics.avgTokensPerSession !== undefined) {
     lines.push(`- Avg Tokens/Session: ${result.metrics.avgTokensPerSession}`);
+  }
+
+  // Include trigger check information if present
+  if (result.triggerCheck) {
+    lines.push(`\n### Review Triggers`);
+    if (result.triggerCheck.shouldTrigger) {
+      lines.push(`**${result.triggerCheck.summary}**`);
+      for (const reason of result.triggerCheck.reasons) {
+        lines.push(`- [${reason.severity.toUpperCase()}] ${reason.description}`);
+      }
+    } else {
+      lines.push(result.triggerCheck.summary);
+    }
   }
 
   lines.push(`\n${result.message}`);
@@ -179,6 +198,35 @@ export const storeBaselineTool = tool(
         resultMetrics.avgTokensPerSession = metrics.avgTokensPerSession;
       }
 
+      // Check for review triggers (non-blocking, informational)
+      let triggerCheck: TriggerCheckResult | undefined;
+      try {
+        // Get previous baseline for delta comparison
+        const previousBaseline = await getLatestBaseline();
+
+        // Get last review for time trigger
+        const lastReview = await getLastReview(process.cwd());
+
+        // Calculate delta if we have a previous baseline
+        const triggerParams: Parameters<typeof checkAllTriggers>[0] = {};
+
+        if (lastReview !== null) {
+          triggerParams.lastReview = lastReview;
+        }
+
+        if (previousBaseline && previousBaseline.id !== baseline.id) {
+          const { metricsDelta } = calculateDelta(previousBaseline, baseline);
+          const deltaSummary = createDeltaSummary(metricsDelta, previousBaseline, baseline);
+          triggerParams.deltaSummary = deltaSummary;
+        }
+
+        // Check all triggers
+        triggerCheck = checkAllTriggers(triggerParams);
+      } catch {
+        // Non-blocking: if trigger check fails, continue without it
+        triggerCheck = undefined;
+      }
+
       // Build result with proper optional handling for exactOptionalPropertyTypes
       const result: StoreBaselineResult = {
         success: true,
@@ -191,6 +239,11 @@ export const storeBaselineTool = tool(
       // Only include label if provided
       if (args.label !== undefined) {
         result.label = args.label;
+      }
+
+      // Include trigger check if available
+      if (triggerCheck !== undefined) {
+        result.triggerCheck = triggerCheck;
       }
 
       return {

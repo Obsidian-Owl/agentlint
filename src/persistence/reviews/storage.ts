@@ -234,3 +234,37 @@ export function reviewExists(id: string, options: ReviewStorageOptions = {}): bo
   const filePath = join(baseDir, `${id}.json`);
   return existsSync(filePath);
 }
+
+/**
+ * Get the most recent review for a project.
+ *
+ * @param projectPath - Project path to search for reviews
+ * @returns Most recent review or null if none exist
+ */
+export async function getLastReview(
+  projectPath: string = process.cwd()
+): Promise<QualitativeReview | null> {
+  const baseDir = getReviewsDir(projectPath);
+  const reviewIds = listReviewIds({ baseDir });
+
+  if (reviewIds.length === 0) {
+    return null;
+  }
+
+  // Load all reviews to find most recent
+  const reviews: QualitativeReview[] = [];
+  for (const id of reviewIds) {
+    const review = await loadReview(id, { baseDir });
+    if (review) {
+      reviews.push(review);
+    }
+  }
+
+  if (reviews.length === 0) {
+    return null;
+  }
+
+  // Sort by createdAt descending and return first
+  reviews.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return reviews[0] ?? null;
+}

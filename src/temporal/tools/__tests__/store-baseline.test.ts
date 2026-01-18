@@ -11,6 +11,7 @@ import { tmpdir } from 'node:os';
 
 import { storeBaselineTool } from '../store-baseline';
 import { loadBaseline, listBaselineIds } from '../../../persistence/baselines/storage';
+import { checkAllTriggers } from '../../reminders/triggers';
 
 describe('temporal/tools/store-baseline', () => {
   const testBaseDir = join(tmpdir(), 'agentlint-test-store-baseline');
@@ -226,6 +227,54 @@ describe('temporal/tools/store-baseline', () => {
       expect(ids.length).toBe(2);
       expect(ids).toContain(baseline1.id);
       expect(ids).toContain(baseline2.id);
+    });
+  });
+
+  describe('trigger check integration (T053)', () => {
+    it('should include triggerCheck type in StoreBaselineResult', () => {
+      // This test verifies the result type includes triggerCheck
+      // The actual trigger check is performed during tool execution
+      // which we test through integration tests
+
+      // Verify the checkAllTriggers function returns expected shape
+      const result = checkAllTriggers({});
+
+      expect(result).toHaveProperty('shouldTrigger');
+      expect(result).toHaveProperty('reasons');
+      expect(result).toHaveProperty('summary');
+      expect(typeof result.shouldTrigger).toBe('boolean');
+      expect(Array.isArray(result.reasons)).toBe(true);
+      expect(typeof result.summary).toBe('string');
+    });
+
+    it('should trigger on time when no previous reviews', () => {
+      const result = checkAllTriggers({
+        lastReview: null,
+      });
+
+      expect(result.shouldTrigger).toBe(true);
+      expect(result.reasons.length).toBeGreaterThan(0);
+      expect(result.reasons[0]?.type).toBe('time');
+    });
+
+    it('should not trigger when recent review exists', () => {
+      // Create a mock recent review
+      const recentReview = {
+        id: 'test-review',
+        baselineId: 'test-baseline',
+        createdAt: new Date().toISOString(), // Today
+        dimensions: [],
+        overallSentiment: 1,
+        themes: [],
+      };
+
+      const result = checkAllTriggers({
+        lastReview: recentReview,
+      });
+
+      // Should not trigger time-based when review is recent
+      const timeReasons = result.reasons.filter((r) => r.type === 'time');
+      expect(timeReasons.length).toBe(0);
     });
   });
 });
