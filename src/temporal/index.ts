@@ -126,6 +126,22 @@ export type {
 } from './trends';
 
 // =============================================================================
+// Qualitative Reviews
+// =============================================================================
+
+export {
+  REVIEW_DIMENSIONS,
+  DIMENSION_BY_NAME,
+  getDimension,
+  getDimensionNames,
+  getDimensionsBySignalType,
+  getPromptText,
+  getProbeText,
+} from './qualitative/dimensions';
+
+export type { SignalType, DimensionDefinition } from './qualitative/dimensions';
+
+// =============================================================================
 // Tools
 // =============================================================================
 
