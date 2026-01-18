@@ -1,11 +1,13 @@
 /**
  * Unit tests for qualitative review functionality.
  *
+ * Per ADR-0019, sentiment functions return raw data.
+ * Agent interprets whether trends are positive or negative.
+ *
  * Tests cover:
  * - Review dimensions definitions
  * - Sentiment calculation
- * - Sentiment trend analysis
- * - Sentiment indicator analysis
+ * - Sentiment trend analysis (slope-based)
  */
 
 import { describe, test, expect } from 'bun:test';
@@ -24,9 +26,6 @@ import {
   calculateOverallSentiment,
   isValidSentiment,
   clampSentiment,
-  getSentimentLabel,
-  getSentimentEmoji,
-  analyzeSentimentIndicators,
   calculateSentimentTrend,
   compareSentiment,
   createEmptyDimension,
@@ -64,10 +63,7 @@ describe('Review Dimensions', () => {
         expect(dim.probeText).toBeDefined();
         expect(dim.signalType).toBeDefined();
         expect(dim.description).toBeDefined();
-        expect(dim.positiveIndicators).toBeDefined();
-        expect(dim.negativeIndicators).toBeDefined();
-        expect(dim.positiveIndicators.length).toBeGreaterThan(0);
-        expect(dim.negativeIndicators.length).toBeGreaterThan(0);
+        // Per ADR-0019, indicator arrays were removed
       }
     });
 
@@ -265,74 +261,6 @@ describe('Sentiment Calculation', () => {
       expect(clampSentiment(-0.6)).toBe(-1);
     });
   });
-
-  describe('getSentimentLabel', () => {
-    test('should return correct labels for Likert values', () => {
-      expect(getSentimentLabel(-2)).toBe('Very Negative');
-      expect(getSentimentLabel(-1)).toBe('Negative');
-      expect(getSentimentLabel(0)).toBe('Neutral');
-      expect(getSentimentLabel(1)).toBe('Positive');
-      expect(getSentimentLabel(2)).toBe('Very Positive');
-    });
-
-    test('should handle intermediate values', () => {
-      expect(getSentimentLabel(-1.7)).toBe('Very Negative');
-      expect(getSentimentLabel(0.3)).toBe('Neutral');
-      expect(getSentimentLabel(1.8)).toBe('Very Positive');
-    });
-  });
-
-  describe('getSentimentEmoji', () => {
-    test('should return correct emojis', () => {
-      expect(getSentimentEmoji(-2)).toBe('😢');
-      expect(getSentimentEmoji(-1)).toBe('😕');
-      expect(getSentimentEmoji(0)).toBe('😐');
-      expect(getSentimentEmoji(1)).toBe('🙂');
-      expect(getSentimentEmoji(2)).toBe('😊');
-    });
-  });
-});
-
-// =============================================================================
-// Sentiment Indicator Analysis Tests
-// =============================================================================
-
-describe('Sentiment Indicator Analysis', () => {
-  describe('analyzeSentimentIndicators', () => {
-    test('should find positive indicators in text', () => {
-      const analysis = analyzeSentimentIndicators('The workflow is smooth and easy to use');
-
-      expect(analysis.positiveMatches).toContain('smooth');
-      expect(analysis.positiveMatches).toContain('easy');
-      expect(analysis.indicatorScore).toBeGreaterThan(0);
-    });
-
-    test('should find negative indicators in text', () => {
-      const analysis = analyzeSentimentIndicators('I find it frustrating and confusing at times');
-
-      expect(analysis.negativeMatches).toContain('frustrating');
-      expect(analysis.negativeMatches).toContain('confusing');
-      expect(analysis.indicatorScore).toBeLessThan(0);
-    });
-
-    test('should suggest sentiment based on balance', () => {
-      const positive = analyzeSentimentIndicators('Everything is smooth, easy, and intuitive');
-      expect(positive.suggestedSentiment).toBeGreaterThan(0);
-
-      const negative = analyzeSentimentIndicators('It is slow, frustrating, and tedious');
-      expect(negative.suggestedSentiment).toBeLessThan(0);
-
-      const neutral = analyzeSentimentIndicators('No particular feelings about it');
-      expect(neutral.suggestedSentiment).toBe(0);
-    });
-
-    test('should use dimension-specific indicators when provided', () => {
-      const dimension = getDimension('perceivedFriction');
-      const analysis = analyzeSentimentIndicators('The process is seamless', dimension);
-
-      expect(analysis.positiveMatches).toContain('seamless');
-    });
-  });
 });
 
 // =============================================================================
@@ -347,7 +275,7 @@ describe('Sentiment Trends', () => {
       expect(trend).toBeNull();
     });
 
-    test('should detect improving trend', () => {
+    test('should detect positive slope trend', () => {
       const reviews: QualitativeReview[] = [
         createTestReview(-1, '2024-01-01T00:00:00Z'),
         createTestReview(0, '2024-01-15T00:00:00Z'),
@@ -356,11 +284,12 @@ describe('Sentiment Trends', () => {
 
       const trend = calculateSentimentTrend(reviews);
       expect(trend).not.toBeNull();
-      expect(trend?.direction).toBe('improving');
       expect(trend?.slope).toBeGreaterThan(0);
+      // Per ADR-0019, slopeSignificant indicates if slope is meaningful
+      expect(trend?.slopeSignificant).toBe(true);
     });
 
-    test('should detect degrading trend', () => {
+    test('should detect negative slope trend', () => {
       const reviews: QualitativeReview[] = [
         createTestReview(2, '2024-01-01T00:00:00Z'),
         createTestReview(1, '2024-01-15T00:00:00Z'),
@@ -369,11 +298,11 @@ describe('Sentiment Trends', () => {
 
       const trend = calculateSentimentTrend(reviews);
       expect(trend).not.toBeNull();
-      expect(trend?.direction).toBe('degrading');
       expect(trend?.slope).toBeLessThan(0);
+      expect(trend?.slopeSignificant).toBe(true);
     });
 
-    test('should detect stable trend', () => {
+    test('should detect near-zero slope for stable trend', () => {
       const reviews: QualitativeReview[] = [
         createTestReview(1, '2024-01-01T00:00:00Z'),
         createTestReview(1, '2024-01-15T00:00:00Z'),
@@ -382,7 +311,8 @@ describe('Sentiment Trends', () => {
 
       const trend = calculateSentimentTrend(reviews);
       expect(trend).not.toBeNull();
-      expect(trend?.direction).toBe('stable');
+      expect(Math.abs(trend?.slope ?? 1)).toBeLessThan(0.1);
+      expect(trend?.slopeSignificant).toBe(false);
     });
 
     test('should analyze specific dimension', () => {
@@ -395,35 +325,42 @@ describe('Sentiment Trends', () => {
       const trend = calculateSentimentTrend(reviews, 'perceivedFriction');
       expect(trend).not.toBeNull();
       expect(trend?.dimension).toBe('perceivedFriction');
-      expect(trend?.direction).toBe('improving');
+      expect(trend?.slope).toBeGreaterThan(0);
     });
   });
 
   describe('compareSentiment', () => {
-    test('should detect improvement between reviews', () => {
+    test('should return positive change between reviews', () => {
       const before = createTestReview(-1);
       const after = createTestReview(1);
 
       const comparison = compareSentiment(before, after);
-      expect(comparison.direction).toBe('improved');
       expect(comparison.change).toBe(2);
     });
 
-    test('should detect degradation between reviews', () => {
+    test('should return negative change between reviews', () => {
       const before = createTestReview(2);
       const after = createTestReview(0);
 
       const comparison = compareSentiment(before, after);
-      expect(comparison.direction).toBe('degraded');
       expect(comparison.change).toBe(-2);
     });
 
-    test('should detect no change', () => {
+    test('should return zero change for same sentiment', () => {
       const before = createTestReview(1);
       const after = createTestReview(1);
 
       const comparison = compareSentiment(before, after);
-      expect(comparison.direction).toBe('unchanged');
+      expect(comparison.change).toBe(0);
+    });
+
+    test('should include dimension-level changes', () => {
+      const before = createTestReviewWithDimensions(-1, 0, '2024-01-01T00:00:00Z');
+      const after = createTestReviewWithDimensions(1, 0, '2024-02-01T00:00:00Z');
+
+      const comparison = compareSentiment(before, after);
+      expect(comparison.dimensionChanges).toBeDefined();
+      expect(comparison.dimensionChanges.length).toBeGreaterThan(0);
     });
   });
 });

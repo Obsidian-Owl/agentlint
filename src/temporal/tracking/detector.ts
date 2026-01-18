@@ -1,13 +1,16 @@
 /**
  * EP09 Temporal Analysis - Recommendation Implementation Detector
  *
- * Detects potential implementation of recommendations by analyzing
+ * Extracts evidence of potential recommendation implementation by analyzing
  * configuration diffs and matching against known recommendation patterns.
+ *
+ * Per ADR-0019, this module returns raw evidence. The agent interprets
+ * whether the evidence indicates implementation and what status to assign.
  *
  * @module temporal/tracking/detector
  */
 
-import type { RecommendationStatus } from '../types';
+import type { DetectionEvidence, MatchEvidence } from '../types';
 
 // =============================================================================
 // Types
@@ -47,42 +50,9 @@ export interface ConfigDiff {
   linesRemoved: string[];
 }
 
-/**
- * Result of detecting a potential implementation.
- */
-export interface DetectionResult {
-  /** Was a potential implementation detected? */
-  detected: boolean;
-  /** Confidence level (0-100) */
-  confidence: number;
-  /** Status to assign if detected */
-  suggestedStatus: RecommendationStatus;
-  /** Evidence for the detection */
-  evidence: DetectionEvidence[];
-  /** Explanation of the detection */
-  explanation: string;
-}
-
-/**
- * Evidence supporting a detection.
- */
-export interface DetectionEvidence {
-  /** Type of evidence */
-  type: 'keyword' | 'file' | 'pattern';
-  /** What was matched */
-  match: string;
-  /** Where it was found */
-  location: string;
-  /** How strong is this evidence (0-100) */
-  weight: number;
-}
-
 // =============================================================================
 // Constants
 // =============================================================================
-
-/** Minimum confidence for a detection to be considered valid */
-const MIN_CONFIDENCE_THRESHOLD = 30;
 
 /** Weight for keyword matches */
 const KEYWORD_WEIGHT = 20;
@@ -93,24 +63,25 @@ const FILE_WEIGHT = 30;
 /** Weight for regex pattern matches */
 const PATTERN_WEIGHT = 40;
 
-/** Maximum confidence score */
-const MAX_CONFIDENCE = 100;
+// Note: MIN_CONFIDENCE_THRESHOLD was removed per ADR-0019.
+// The agent determines confidence significance, not tool code.
 
 // =============================================================================
 // Public API
 // =============================================================================
 
 /**
- * Detect if a recommendation has been implemented based on config diff.
+ * Extract evidence of a recommendation's potential implementation.
  *
- * Uses multiple signals to determine if a recommendation was likely implemented:
- * - Keyword matches in added lines
- * - Target file modifications
- * - Regex pattern matches
+ * Per ADR-0019, returns raw evidence for agent interpretation.
+ * The agent determines:
+ * - Whether evidence indicates implementation
+ * - What status to assign (pending, implemented, partial)
+ * - Whether to prompt for user confirmation
  *
  * @param recommendation - The recommendation to check
  * @param configDiff - The diff between config states
- * @returns Detection result with confidence and evidence
+ * @returns Evidence with weights and matches
  *
  * @example
  * ```typescript
@@ -129,17 +100,19 @@ const MAX_CONFIDENCE = 100;
  *   filesDeleted: [],
  * };
  *
- * const result = detectImplementation(recommendation, diff);
- * if (result.detected) {
- *   console.log(`Detected with ${result.confidence}% confidence`);
- * }
+ * const evidence = extractMatchEvidence(recommendation, diff);
+ * // Agent interprets: totalWeight=50, 1 keyword match, 1 file match
+ * // Agent decides: "High confidence, recommend marking as implemented"
  * ```
  */
-export function detectImplementation(
+export function extractMatchEvidence(
   recommendation: Recommendation,
   configDiff: ConfigDiff
-): DetectionResult {
+): MatchEvidence {
   const evidence: DetectionEvidence[] = [];
+  const keywordMatches: string[] = [];
+  const fileMatches: string[] = [];
+  const patternMatches: string[] = [];
   let totalWeight = 0;
 
   // Check keyword matches in added lines
@@ -153,6 +126,7 @@ export function detectImplementation(
           location: truncateLine(line),
           weight: KEYWORD_WEIGHT,
         });
+        keywordMatches.push(keyword);
         totalWeight += KEYWORD_WEIGHT;
         break; // Only count each keyword once
       }
@@ -172,6 +146,7 @@ export function detectImplementation(
             location: modifiedFile,
             weight: FILE_WEIGHT,
           });
+          fileMatches.push(modifiedFile);
           totalWeight += FILE_WEIGHT;
           break; // Only count each target file once
         }
@@ -192,6 +167,7 @@ export function detectImplementation(
               location: truncateLine(line),
               weight: PATTERN_WEIGHT,
             });
+            patternMatches.push(patternStr);
             totalWeight += PATTERN_WEIGHT;
             break; // Only count each pattern once
           }
@@ -203,45 +179,31 @@ export function detectImplementation(
     }
   }
 
-  // Calculate confidence (capped at 100)
-  const confidence = Math.min(totalWeight, MAX_CONFIDENCE);
-
-  // Determine if detected
-  const detected = confidence >= MIN_CONFIDENCE_THRESHOLD;
-
-  // Determine suggested status
-  const suggestedStatus = getSuggestedStatus(confidence);
-
-  // Generate explanation
-  const explanation = generateExplanation(recommendation, evidence, confidence);
-
   return {
-    detected,
-    confidence,
-    suggestedStatus,
     evidence,
-    explanation,
+    totalWeight,
+    keywordMatches,
+    fileMatches,
+    patternMatches,
   };
 }
 
 /**
- * Check if any recommendations from a list were implemented.
+ * Extract evidence for multiple recommendations.
  *
  * @param recommendations - List of recommendations to check
  * @param configDiff - The diff between config states
- * @returns Map of recommendation ID to detection result (only detected ones)
+ * @returns Map of recommendation ID to match evidence
  */
-export function detectImplementations(
+export function extractAllMatchEvidence(
   recommendations: Recommendation[],
   configDiff: ConfigDiff
-): Map<string, DetectionResult> {
-  const results = new Map<string, DetectionResult>();
+): Map<string, MatchEvidence> {
+  const results = new Map<string, MatchEvidence>();
 
   for (const recommendation of recommendations) {
-    const result = detectImplementation(recommendation, configDiff);
-    if (result.detected) {
-      results.set(recommendation.id, result);
-    }
+    const evidence = extractMatchEvidence(recommendation, configDiff);
+    results.set(recommendation.id, evidence);
   }
 
   return results;
@@ -323,57 +285,16 @@ export function mergeConfigDiffs(diffs: ConfigDiff[]): ConfigDiff {
 // Internal Helpers
 // =============================================================================
 
-/**
- * Get suggested status based on confidence level.
- */
-function getSuggestedStatus(confidence: number): RecommendationStatus {
-  if (confidence >= 80) {
-    return 'detected_pending_confirm';
-  } else if (confidence >= 50) {
-    return 'partial';
-  } else if (confidence >= MIN_CONFIDENCE_THRESHOLD) {
-    return 'detected_pending_confirm';
-  }
-  return 'pending';
-}
-
-/**
- * Generate human-readable explanation of detection.
- */
-function generateExplanation(
-  recommendation: Recommendation,
-  evidence: DetectionEvidence[],
-  confidence: number
-): string {
-  if (evidence.length === 0) {
-    return `No evidence found for implementation of "${recommendation.summary}"`;
-  }
-
-  const evidenceTypes = evidence.map((e) => e.type);
-  const hasKeyword = evidenceTypes.includes('keyword');
-  const hasFile = evidenceTypes.includes('file');
-  const hasPattern = evidenceTypes.includes('pattern');
-
-  const parts: string[] = [];
-
-  if (hasKeyword) {
-    const keywords = evidence.filter((e) => e.type === 'keyword').map((e) => e.match);
-    parts.push(`found keywords: ${keywords.join(', ')}`);
-  }
-
-  if (hasFile) {
-    const files = evidence.filter((e) => e.type === 'file').map((e) => e.location);
-    parts.push(`modified files: ${files.join(', ')}`);
-  }
-
-  if (hasPattern) {
-    parts.push(`matched ${evidence.filter((e) => e.type === 'pattern').length} pattern(s)`);
-  }
-
-  const confidenceLevel = confidence >= 80 ? 'high' : confidence >= 50 ? 'moderate' : 'low';
-
-  return `Detected potential implementation of "${recommendation.summary}" with ${confidenceLevel} confidence (${confidence}%): ${parts.join('; ')}`;
-}
+// Note: getSuggestedStatus() and generateExplanation() were removed per ADR-0019.
+// Status determination and explanation generation are judgment calls
+// that should be made by the agent, not tool code.
+//
+// The agent interprets evidence based on:
+// - totalWeight: Higher = stronger signal
+// - evidence types: keyword, file, pattern matches
+// - Project context and user preferences
+//
+// See ADR-0019: Tool/Agent Boundary for Temporal Analysis
 
 /**
  * Truncate a line for display in evidence.

@@ -1,18 +1,27 @@
 /**
  * EP09 Temporal Analysis - Recommendation Tracking
  *
- * This module provides recommendation implementation detection and tracking.
+ * This module provides recommendation implementation evidence extraction and tracking.
+ * Per ADR-0019, returns raw evidence for agent interpretation.
  *
  * @module temporal/tracking
  */
 
 export {
-  detectImplementation,
-  detectImplementations,
+  extractMatchEvidence,
+  extractAllMatchEvidence,
   createConfigDiff,
   mergeConfigDiffs,
   type Recommendation,
   type ConfigDiff,
-  type DetectionResult,
-  type DetectionEvidence,
 } from './detector';
+
+export {
+  getEffectivenessData,
+  getEffectivenessStats,
+  type EffectivenessData,
+  type EffectivenessOptions,
+} from './effectiveness';
+
+// Re-export evidence types from types.ts
+export type { DetectionEvidence, MatchEvidence } from '../types';

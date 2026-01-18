@@ -253,13 +253,9 @@ export const SAMPLE_BASELINE_REGRESSION: Baseline = {
 
 /**
  * Create a MetricChange object with all required fields.
+ * Per ADR-0019, isImprovement was removed - agent interprets meaning.
  */
-function createMetricChange(
-  name: string,
-  from: number,
-  to: number,
-  isImprovement: boolean
-): MetricChange {
+function createMetricChange(name: string, from: number, to: number): MetricChange {
   const change = to - from;
   const percentChange = from === 0 ? (to === 0 ? 0 : 100) : ((to - from) / from) * 100;
   let direction: '↑' | '↓' | '→';
@@ -270,23 +266,23 @@ function createMetricChange(
   } else {
     direction = '→';
   }
-  return { name, from, to, change, percentChange, direction, isImprovement };
+  return { name, from, to, change, percentChange, direction };
 }
 
 /**
  * Expected delta summary when comparing BEFORE → AFTER baselines.
- * Should show improvement (decreasing findings, better metrics).
+ * Shows metric changes (agent interprets meaning per ADR-0019).
  */
 export const EXPECTED_DELTA_BEFORE_TO_AFTER: DeltaSummary = {
-  overallTrend: 'improved',
+  changeCounts: { increased: 1, decreased: 6, unchanged: 0 },
   metricsChanged: [
-    createMetricChange('findingsCount', 25, 8, true),
-    createMetricChange('criticalCount', 3, 0, true),
-    createMetricChange('highCount', 7, 2, true),
-    createMetricChange('avgTokensPerSession', 5000, 3500, true),
-    createMetricChange('avgIterationsPerSession', 8, 5, true),
-    createMetricChange('errorRate', 0.12, 0.05, true),
-    createMetricChange('coverageScore', 65, 85, true),
+    createMetricChange('findingsCount', 25, 8),
+    createMetricChange('criticalCount', 3, 0),
+    createMetricChange('highCount', 7, 2),
+    createMetricChange('avgTokensPerSession', 5000, 3500),
+    createMetricChange('avgIterationsPerSession', 8, 5),
+    createMetricChange('errorRate', 0.12, 0.05),
+    createMetricChange('coverageScore', 65, 85),
   ],
   warningsAdded: [],
   warningsResolved: ['Generic rule with no context'],
@@ -303,13 +299,13 @@ export const EXPECTED_DELTA_BEFORE_TO_AFTER: DeltaSummary = {
  * Should show regression (increasing findings, worse metrics).
  */
 export const EXPECTED_DELTA_AFTER_TO_REGRESSION: DeltaSummary = {
-  overallTrend: 'regressed',
+  changeCounts: { increased: 4, decreased: 1, unchanged: 0 },
   metricsChanged: [
-    createMetricChange('findingsCount', 8, 15, false),
-    createMetricChange('criticalCount', 0, 2, false),
-    createMetricChange('avgTokensPerSession', 3500, 4200, false),
-    createMetricChange('errorRate', 0.05, 0.08, false),
-    createMetricChange('coverageScore', 85, 72, false),
+    createMetricChange('findingsCount', 8, 15),
+    createMetricChange('criticalCount', 0, 2),
+    createMetricChange('avgTokensPerSession', 3500, 4200),
+    createMetricChange('errorRate', 0.05, 0.08),
+    createMetricChange('coverageScore', 85, 72),
   ],
   warningsAdded: ['New critical issues detected'],
   warningsResolved: [],
@@ -503,9 +499,16 @@ export function isValidDeltaSummary(summary: unknown): summary is DeltaSummary {
 
   const s = summary as Record<string, unknown>;
 
+  // Per ADR-0019, uses changeCounts instead of overallTrend
+  const hasValidChangeCounts =
+    typeof s.changeCounts === 'object' &&
+    s.changeCounts !== null &&
+    typeof (s.changeCounts as Record<string, unknown>).increased === 'number' &&
+    typeof (s.changeCounts as Record<string, unknown>).decreased === 'number' &&
+    typeof (s.changeCounts as Record<string, unknown>).unchanged === 'number';
+
   return (
-    typeof s.overallTrend === 'string' &&
-    ['improved', 'regressed', 'unchanged'].includes(s.overallTrend) &&
+    hasValidChangeCounts &&
     Array.isArray(s.metricsChanged) &&
     Array.isArray(s.warningsAdded) &&
     Array.isArray(s.warningsResolved) &&

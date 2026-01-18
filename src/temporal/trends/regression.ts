@@ -203,35 +203,23 @@ export function predict(x: number, result: RegressionResult): number {
   return result.slope * x + result.intercept;
 }
 
-/**
- * Classify the trend direction based on slope and R².
- *
- * @param slope - The regression slope
- * @param rSquared - The R² coefficient
- * @param slopeThreshold - Minimum slope to consider as trend (default: 0.01)
- * @param rSquaredThreshold - Minimum R² for reliable trend (default: 0.5)
- * @returns Trend classification
- */
-export function classifyTrend(
-  slope: number,
-  rSquared: number,
-  slopeThreshold: number = 0.01,
-  rSquaredThreshold: number = 0.5
-): 'improving' | 'degrading' | 'volatile' | 'stable' {
-  // If R² is too low, trend is volatile/noisy
-  if (rSquared < rSquaredThreshold) {
-    return 'volatile';
-  }
-
-  // Classify based on slope
-  if (Math.abs(slope) < slopeThreshold) {
-    return 'stable';
-  }
-
-  // Note: For many metrics, negative slope is improving (fewer findings)
-  // The caller should interpret based on metric semantics
-  return slope > 0 ? 'degrading' : 'improving';
-}
+// =============================================================================
+// Note: classifyTrend() was removed per ADR-0019
+// =============================================================================
+//
+// The classifyTrend() function was removed because trend classification
+// is a JUDGMENT call that should be made by the agent, not tool code.
+//
+// The agent interprets trend direction based on:
+// - slope: Positive slope = values increasing over time
+// - rSquared: Higher R² = more reliable linear fit
+// - Metric semantics: For some metrics, decreasing is good
+// - Project context: What matters for this specific project
+//
+// Tools should return raw statistics (slope, rSquared) and let the
+// agent determine whether the trend is "improving" or "degrading".
+//
+// See ADR-0019: Tool/Agent Boundary for Temporal Analysis
 
 /**
  * Calculate statistics for a set of values.

@@ -1,6 +1,9 @@
 /**
  * Unit Tests for Trend Analysis Module
  *
+ * Per ADR-0019, tests verify statistical calculations without judgment.
+ * Agent interprets whether trends are positive or negative.
+ *
  * Tests linear regression, metric trends, inflection detection,
  * and trend analysis building.
  *
@@ -16,12 +19,10 @@ import {
   timeSeriestoPoints,
   timeSeriestoTimeWeightedPoints,
   predict,
-  classifyTrend,
   calculateStats,
   // Metric trends
   getMetricTrend,
   detectInflectionPoints,
-  isLowerBetterMetric,
   summarizeTrends,
   // Aggregation
   aggregateMetrics,
@@ -216,26 +217,6 @@ describe('Linear Regression', () => {
     });
   });
 
-  describe('classifyTrend', () => {
-    it('should classify as volatile when R² is low', () => {
-      expect(classifyTrend(1, 0.3, 0.01, 0.5)).toBe('volatile');
-      expect(classifyTrend(-1, 0.1, 0.01, 0.5)).toBe('volatile');
-    });
-
-    it('should classify as stable when slope is near zero', () => {
-      expect(classifyTrend(0.005, 0.9, 0.01, 0.5)).toBe('stable');
-      expect(classifyTrend(-0.005, 0.8, 0.01, 0.5)).toBe('stable');
-    });
-
-    it('should classify as degrading for positive slope', () => {
-      expect(classifyTrend(0.5, 0.9, 0.01, 0.5)).toBe('degrading');
-    });
-
-    it('should classify as improving for negative slope', () => {
-      expect(classifyTrend(-0.5, 0.9, 0.01, 0.5)).toBe('improving');
-    });
-  });
-
   describe('calculateStats', () => {
     it('should return zeros for empty array', () => {
       const stats = calculateStats([]);
@@ -273,53 +254,54 @@ describe('Linear Regression', () => {
 
 describe('Metric Trends', () => {
   describe('getMetricTrend', () => {
-    it('should return stable trend for insufficient data', () => {
+    it('should return near-zero slope for insufficient data', () => {
       const trend = getMetricTrend('findingsCount', []);
-      expect(trend.direction).toBe('stable');
-      expect(trend.slope).toBe(0);
+      expect(Math.abs(trend.slope)).toBeLessThan(0.01);
     });
 
-    it('should return stable trend for single point', () => {
+    it('should return stable values for single point', () => {
       const points = createTimeSeriesPoints([10]);
       const trend = getMetricTrend('findingsCount', points);
 
-      expect(trend.direction).toBe('stable');
       expect(trend.firstValue).toBe(10);
       expect(trend.lastValue).toBe(10);
+      expect(trend.slope).toBe(0);
     });
 
-    it('should detect improving trend for decreasing findings', () => {
+    it('should detect negative slope for decreasing findings', () => {
       const points = createTimeSeriesPoints([20, 15, 10, 5]);
       const trend = getMetricTrend('findingsCount', points);
 
-      expect(trend.direction).toBe('improving');
       expect(trend.slope).toBeLessThan(0);
       expect(trend.percentChange).toBeLessThan(0);
+      expect(trend.rSquared).toBeGreaterThan(0.5);
     });
 
-    it('should detect degrading trend for increasing findings', () => {
+    it('should detect positive slope for increasing findings', () => {
       const points = createTimeSeriesPoints([5, 10, 15, 20]);
       const trend = getMetricTrend('findingsCount', points);
 
-      expect(trend.direction).toBe('degrading');
       expect(trend.slope).toBeGreaterThan(0);
       expect(trend.percentChange).toBeGreaterThan(0);
+      expect(trend.rSquared).toBeGreaterThan(0.5);
     });
 
-    it('should detect stable trend for constant values', () => {
+    it('should detect near-zero slope for constant values', () => {
       const points = createTimeSeriesPoints([10, 10, 10, 10]);
       const trend = getMetricTrend('findingsCount', points);
 
-      expect(trend.direction).toBe('stable');
-      expect(trend.slope).toBeCloseTo(0, 5);
+      expect(Math.abs(trend.slope)).toBeLessThan(0.01);
+      expect(trend.volatility).toBe(0);
     });
 
-    it('should handle lowerIsBetter option override', () => {
+    it('should include rSquared and volatility stats', () => {
       const points = createTimeSeriesPoints([5, 10, 15, 20]);
-      // For a metric where higher is better, increasing is improving
-      const trend = getMetricTrend('coverageScore', points, { lowerIsBetter: false });
+      const trend = getMetricTrend('findingsCount', points);
 
-      expect(trend.direction).toBe('degrading'); // Default regression slope classification
+      expect(typeof trend.rSquared).toBe('number');
+      expect(typeof trend.volatility).toBe('number');
+      expect(trend.rSquared).toBeGreaterThanOrEqual(0);
+      expect(trend.rSquared).toBeLessThanOrEqual(1);
     });
   });
 
@@ -361,78 +343,61 @@ describe('Metric Trends', () => {
     });
   });
 
-  describe('isLowerBetterMetric', () => {
-    it('should return true for finding-related metrics', () => {
-      expect(isLowerBetterMetric('findingsCount')).toBe(true);
-      expect(isLowerBetterMetric('criticalCount')).toBe(true);
-      expect(isLowerBetterMetric('highCount')).toBe(true);
-      expect(isLowerBetterMetric('mediumCount')).toBe(true);
-      expect(isLowerBetterMetric('lowCount')).toBe(true);
-    });
-
-    it('should return true for efficiency metrics', () => {
-      expect(isLowerBetterMetric('avgTokensPerSession')).toBe(true);
-      expect(isLowerBetterMetric('avgIterationsPerSession')).toBe(true);
-      expect(isLowerBetterMetric('errorRate')).toBe(true);
-    });
-
-    it('should return false for unknown metrics', () => {
-      expect(isLowerBetterMetric('coverageScore')).toBe(false);
-      expect(isLowerBetterMetric('unknownMetric')).toBe(false);
-    });
-  });
-
   describe('summarizeTrends', () => {
     it('should return zeros for empty array', () => {
       const summary = summarizeTrends([]);
 
-      expect(summary.improving).toBe(0);
-      expect(summary.degrading).toBe(0);
-      expect(summary.stable).toBe(0);
-      expect(summary.volatile).toBe(0);
+      expect(summary.slopePositiveCount).toBe(0);
+      expect(summary.slopeNegativeCount).toBe(0);
+      expect(summary.slopeNearZeroCount).toBe(0);
+      expect(summary.highVolatilityCount).toBe(0);
     });
 
-    it('should count trends by direction', () => {
+    it('should count trends by slope direction', () => {
       const trends: MetricTrend[] = [
         {
           metricName: 'm1',
-          direction: 'improving',
           values: [],
-          slope: -1,
-          meanValue: 0,
-          standardDeviation: 0,
+          slope: -0.5,
+          rSquared: 0.9,
+          volatility: 0.1,
+          meanValue: 7.5,
+          standardDeviation: 2,
           firstValue: 10,
           lastValue: 5,
           percentChange: -50,
         },
         {
           metricName: 'm2',
-          direction: 'improving',
           values: [],
-          slope: -1,
-          meanValue: 0,
-          standardDeviation: 0,
+          slope: -0.3,
+          rSquared: 0.8,
+          volatility: 0.2,
+          meanValue: 7.5,
+          standardDeviation: 2,
           firstValue: 10,
           lastValue: 5,
           percentChange: -50,
         },
         {
           metricName: 'm3',
-          direction: 'degrading',
           values: [],
-          slope: 1,
-          meanValue: 0,
-          standardDeviation: 0,
+          slope: 0.5,
+          rSquared: 0.9,
+          volatility: 0.1,
+          meanValue: 7.5,
+          standardDeviation: 2,
           firstValue: 5,
           lastValue: 10,
           percentChange: 100,
         },
         {
           metricName: 'm4',
-          direction: 'stable',
           values: [],
-          slope: 0,
-          meanValue: 0,
+          slope: 0.001,
+          rSquared: 0.9,
+          volatility: 0.1,
+          meanValue: 5,
           standardDeviation: 0,
           firstValue: 5,
           lastValue: 5,
@@ -442,52 +407,41 @@ describe('Metric Trends', () => {
 
       const summary = summarizeTrends(trends);
 
-      expect(summary.improving).toBe(2);
-      expect(summary.degrading).toBe(1);
-      expect(summary.stable).toBe(1);
-      expect(summary.volatile).toBe(0);
-      expect(summary.overall).toBe('improving');
+      expect(summary.slopeNegativeCount).toBe(2);
+      expect(summary.slopePositiveCount).toBe(1);
+      expect(summary.slopeNearZeroCount).toBe(1);
     });
 
-    it('should classify overall as mixed when no clear majority', () => {
+    it('should count high volatility trends', () => {
       const trends: MetricTrend[] = [
         {
           metricName: 'm1',
-          direction: 'improving',
           values: [],
-          slope: -1,
-          meanValue: 0,
-          standardDeviation: 0,
-          firstValue: 10,
-          lastValue: 5,
-          percentChange: -50,
-        },
-        {
-          metricName: 'm2',
-          direction: 'degrading',
-          values: [],
-          slope: 1,
-          meanValue: 0,
-          standardDeviation: 0,
+          slope: 0.1,
+          rSquared: 0.3,
+          volatility: 0.8, // High volatility
+          meanValue: 10,
+          standardDeviation: 5,
           firstValue: 5,
-          lastValue: 10,
+          lastValue: 15,
           percentChange: 100,
         },
         {
-          metricName: 'm3',
-          direction: 'stable',
+          metricName: 'm2',
           values: [],
-          slope: 0,
-          meanValue: 0,
-          standardDeviation: 0,
-          firstValue: 5,
-          lastValue: 5,
-          percentChange: 0,
+          slope: 0.1,
+          rSquared: 0.9,
+          volatility: 0.1, // Low volatility
+          meanValue: 10,
+          standardDeviation: 1,
+          firstValue: 8,
+          lastValue: 12,
+          percentChange: 50,
         },
       ];
 
       const summary = summarizeTrends(trends);
-      expect(summary.overall).toBe('mixed');
+      expect(summary.highVolatilityCount).toBe(1);
     });
   });
 });
@@ -784,7 +738,7 @@ describe('Trend Analysis Builder', () => {
       expect(analysis.dateRange.end).toBe('2026-01-03T00:00:00Z');
     });
 
-    it('should detect improving trends for decreasing findings', () => {
+    it('should detect negative slope for decreasing findings', () => {
       const baselines = [
         createTestBaseline({
           createdAt: '2026-01-01T00:00:00Z',
@@ -824,7 +778,7 @@ describe('Trend Analysis Builder', () => {
       const analysis = buildTrendAnalysis(baselines);
       const findingsTrend = analysis.metricTrends.find((t) => t.metricName === 'findingsCount');
 
-      expect(findingsTrend?.direction).toBe('improving');
+      expect(findingsTrend?.slope).toBeLessThan(0);
     });
 
     it('should respect includeMetrics option', () => {
@@ -871,7 +825,7 @@ describe('Trend Analysis Builder', () => {
   });
 
   describe('getTrendSummary', () => {
-    it('should summarize trends correctly', () => {
+    it('should return slope-based summary', () => {
       const baselines = [
         createTestBaseline({
           createdAt: '2026-01-01T00:00:00Z',
@@ -911,8 +865,11 @@ describe('Trend Analysis Builder', () => {
       const analysis = buildTrendAnalysis(baselines);
       const summary = getTrendSummary(analysis);
 
-      expect(summary.improving).toBeGreaterThan(0);
-      expect(typeof summary.overall).toBe('string');
+      expect(typeof summary.slopePositiveCount).toBe('number');
+      expect(typeof summary.slopeNegativeCount).toBe('number');
+      expect(typeof summary.slopeNearZeroCount).toBe('number');
+      expect(typeof summary.highVolatilityCount).toBe('number');
+      expect(typeof summary.averageRSquared).toBe('number');
     });
   });
 
@@ -957,13 +914,13 @@ describe('Trend Analysis Builder', () => {
   });
 
   describe('getTrendsByDirection', () => {
-    it('should filter by direction', () => {
+    it('should filter by slope direction', () => {
       const baselines = [
         createTestBaseline({
           createdAt: '2026-01-01T00:00:00Z',
           metrics: {
             findingsCount: 20,
-            criticalCount: 0,
+            criticalCount: 5,
             highCount: 0,
             mediumCount: 0,
             lowCount: 0,
@@ -974,7 +931,7 @@ describe('Trend Analysis Builder', () => {
           createdAt: '2026-01-02T00:00:00Z',
           metrics: {
             findingsCount: 10,
-            criticalCount: 0,
+            criticalCount: 10,
             highCount: 0,
             mediumCount: 0,
             lowCount: 0,
@@ -985,14 +942,15 @@ describe('Trend Analysis Builder', () => {
 
       const analysis = buildTrendAnalysis(baselines);
 
-      const improving = getTrendsByDirection(analysis, 'improving');
-      const degrading = getTrendsByDirection(analysis, 'degrading');
+      // Per ADR-0019, use slope direction instead of judgment
+      const negative = getTrendsByDirection(analysis, 'negative');
+      const positive = getTrendsByDirection(analysis, 'positive');
 
-      for (const trend of improving) {
-        expect(trend.direction).toBe('improving');
+      for (const trend of negative) {
+        expect(trend.slope).toBeLessThan(0);
       }
-      for (const trend of degrading) {
-        expect(trend.direction).toBe('degrading');
+      for (const trend of positive) {
+        expect(trend.slope).toBeGreaterThan(0);
       }
     });
   });

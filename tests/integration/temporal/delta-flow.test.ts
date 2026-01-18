@@ -199,11 +199,12 @@ describe('Temporal Delta Flow Integration', () => {
       );
 
       expect(isValidDeltaSummary(summary)).toBe(true);
-      expect(summary.overallTrend).toBe('improved');
+      // Per ADR-0019, use changeCounts instead of overallTrend
+      expect(summary.changeCounts.decreased).toBeGreaterThan(0);
       expect(summary.metricsChanged.length).toBeGreaterThan(0);
     });
 
-    it('should indicate regression when metrics worsen', () => {
+    it('should show increased counts when metrics worsen', () => {
       const { metricsDelta } = calculateDelta(SAMPLE_BASELINE_AFTER, SAMPLE_BASELINE_REGRESSION);
       const summary = createDeltaSummary(
         metricsDelta,
@@ -211,15 +212,22 @@ describe('Temporal Delta Flow Integration', () => {
         SAMPLE_BASELINE_REGRESSION
       );
 
-      expect(summary.overallTrend).toBe('regressed');
+      // Per ADR-0019, use changeCounts instead of overallTrend
+      expect(summary.changeCounts.increased).toBeGreaterThan(0);
     });
 
-    it('should indicate unchanged when metrics are stable', () => {
+    it('should show zero change counts when comparing identical baselines', () => {
       const baseline = createTestBaseline();
       const { metricsDelta } = calculateDelta(baseline, baseline);
       const summary = createDeltaSummary(metricsDelta, baseline, baseline);
 
-      expect(summary.overallTrend).toBe('unchanged');
+      // Per ADR-0019, use changeCounts instead of overallTrend
+      // When comparing identical baselines, metricsDelta is null (no changes)
+      // so all counts are zero
+      expect(summary.changeCounts.increased).toBe(0);
+      expect(summary.changeCounts.decreased).toBe(0);
+      expect(summary.changeCounts.unchanged).toBe(0);
+      expect(summary.metricsChanged.length).toBe(0);
     });
   });
 
@@ -270,18 +278,19 @@ describe('Temporal Delta Flow Integration', () => {
         loadedImproved as Baseline
       );
 
-      expect(summary.overallTrend).toBe('improved');
+      // Per ADR-0019, use changeCounts instead of overallTrend
+      expect(summary.changeCounts.decreased).toBeGreaterThan(0);
 
-      // Verify specific improvements
+      // Verify specific changes (agent interprets whether improvement)
       const findingsChange = summary.metricsChanged.find((c) => c.name === 'findingsCount');
       expect(findingsChange?.from).toBe(20);
       expect(findingsChange?.to).toBe(8);
-      expect(findingsChange?.isImprovement).toBe(true);
+      expect(findingsChange?.direction).toBe('↓');
 
       const criticalChange = summary.metricsChanged.find((c) => c.name === 'criticalCount');
       expect(criticalChange?.from).toBe(5);
       expect(criticalChange?.to).toBe(0);
-      expect(criticalChange?.isImprovement).toBe(true);
+      expect(criticalChange?.direction).toBe('↓');
     });
   });
 });

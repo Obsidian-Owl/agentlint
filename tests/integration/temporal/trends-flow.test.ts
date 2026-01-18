@@ -86,33 +86,35 @@ describe('Temporal Trends Flow Integration', () => {
   });
 
   describe('Trend Detection', () => {
-    it('should detect improving trend when findings decrease', () => {
+    it('should detect negative slope when findings decrease', () => {
       const baselines = createBaselineSeries(5, 'improving');
       const analysis = buildTrendAnalysis(baselines);
       const findingsTrend = analysis.metricTrends.find((t) => t.metricName === 'findingsCount');
 
       expect(findingsTrend).toBeDefined();
-      expect(findingsTrend?.direction).toBe('improving');
+      // Per ADR-0019: tools return slope, agent interprets meaning
+      expect(findingsTrend?.slope).toBeLessThan(0);
       expect(findingsTrend?.percentChange).toBeLessThan(0);
     });
 
-    it('should detect degrading trend when findings increase', () => {
+    it('should detect positive slope when findings increase', () => {
       const baselines = createBaselineSeries(5, 'regressing');
       const analysis = buildTrendAnalysis(baselines);
       const findingsTrend = analysis.metricTrends.find((t) => t.metricName === 'findingsCount');
 
       expect(findingsTrend).toBeDefined();
-      expect(findingsTrend?.direction).toBe('degrading');
+      // Per ADR-0019: tools return slope, agent interprets meaning
+      expect(findingsTrend?.slope).toBeGreaterThan(0);
       expect(findingsTrend?.percentChange).toBeGreaterThan(0);
     });
 
-    it('should detect stable trend for consistent metrics', () => {
+    it('should detect near-zero slope for consistent metrics', () => {
       const baselines = createBaselineSeries(5, 'stable');
       const analysis = buildTrendAnalysis(baselines);
       const findingsTrend = analysis.metricTrends.find((t) => t.metricName === 'findingsCount');
 
       expect(findingsTrend).toBeDefined();
-      // Stable trends have small percent change
+      // Stable trends have small percent change and low slope magnitude
       expect(Math.abs(findingsTrend?.percentChange ?? 100)).toBeLessThan(30);
     });
   });
@@ -129,27 +131,32 @@ describe('Temporal Trends Flow Integration', () => {
       expect(analysis.metricTrends.length).toBeGreaterThan(0);
     });
 
-    it('should provide trend summary with counts', () => {
+    it('should provide trend summary with slope counts', () => {
       const baselines = createBaselineSeries(5, 'improving');
       const analysis = buildTrendAnalysis(baselines);
       const summary = getTrendSummary(analysis);
 
-      expect(summary.improving).toBeGreaterThanOrEqual(0);
-      expect(summary.degrading).toBeGreaterThanOrEqual(0);
-      expect(summary.stable).toBeGreaterThanOrEqual(0);
-      expect(summary.volatile).toBeGreaterThanOrEqual(0);
-      expect(['improving', 'degrading', 'stable', 'mixed']).toContain(summary.overall);
+      // Per ADR-0019: summary returns raw slope statistics
+      expect(summary.slopePositiveCount).toBeGreaterThanOrEqual(0);
+      expect(summary.slopeNegativeCount).toBeGreaterThanOrEqual(0);
+      expect(summary.slopeNearZeroCount).toBeGreaterThanOrEqual(0);
+      expect(summary.highVolatilityCount).toBeGreaterThanOrEqual(0);
+      expect(summary.averageRSquared).toBeGreaterThanOrEqual(0);
     });
 
-    it('should filter trends by direction', () => {
+    it('should filter trends by slope direction', () => {
       const baselines = createBaselineSeries(5, 'improving');
       const analysis = buildTrendAnalysis(baselines);
 
-      const improving = getTrendsByDirection(analysis, 'improving');
-      const degrading = getTrendsByDirection(analysis, 'degrading');
+      // Per ADR-0019: filter by slope direction, agent interprets meaning
+      const negativeSlope = getTrendsByDirection(analysis, 'negative');
+      const positiveSlope = getTrendsByDirection(analysis, 'positive');
+      const nearZeroSlope = getTrendsByDirection(analysis, 'near_zero');
 
-      // All trends should be one of these categories
-      expect(improving.length + degrading.length).toBeLessThanOrEqual(analysis.metricTrends.length);
+      // All trends should be categorized by slope direction
+      expect(negativeSlope.length + positiveSlope.length + nearZeroSlope.length).toBe(
+        analysis.metricTrends.length
+      );
     });
   });
 
@@ -244,16 +251,19 @@ describe('Temporal Trends Flow Integration', () => {
 
       // Step 6: Get summary
       const summary = getTrendSummary(analysis);
-      expect(summary.overall).toBeDefined();
+      // Per ADR-0019: summary returns raw slope statistics
+      expect(summary.slopeNegativeCount).toBeGreaterThanOrEqual(0);
+      expect(summary.averageRSquared).toBeGreaterThanOrEqual(0);
 
       // Step 7: Get significant trends
       const significant = getSignificantTrends(analysis, 10);
       expect(Array.isArray(significant)).toBe(true);
 
-      // The findings trend should be improving since we decreased findings
+      // The findings trend should have negative slope since we decreased findings
       const findingsTrend = analysis.metricTrends.find((t) => t.metricName === 'findingsCount');
       expect(findingsTrend).toBeDefined();
-      expect(findingsTrend?.direction).toBe('improving');
+      // Per ADR-0019: tools return slope, agent interprets whether this is improvement
+      expect(findingsTrend?.slope).toBeLessThan(0);
     });
 
     it('should handle edge case with exactly minimum baselines', async () => {
@@ -311,12 +321,14 @@ describe('Temporal Trends Flow Integration', () => {
       // Should have mixed trends - verify with summary
       const summary = getTrendSummary(analysis);
       expect(summary).toBeDefined();
-      const improving = getTrendsByDirection(analysis, 'improving');
-      const degrading = getTrendsByDirection(analysis, 'degrading');
+      // Per ADR-0019: filter by slope direction, agent interprets meaning
+      // Findings decrease = negative slope; highCount increase = positive slope
+      const negativeSlope = getTrendsByDirection(analysis, 'negative');
+      const positiveSlope = getTrendsByDirection(analysis, 'positive');
 
-      // At least one improving (findings) and one degrading (highCount)
-      expect(improving.length).toBeGreaterThan(0);
-      expect(degrading.length).toBeGreaterThan(0);
+      // At least one with negative slope (findings) and one with positive slope (highCount)
+      expect(negativeSlope.length).toBeGreaterThan(0);
+      expect(positiveSlope.length).toBeGreaterThan(0);
     });
   });
 });

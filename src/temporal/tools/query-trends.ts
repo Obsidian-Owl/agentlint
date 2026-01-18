@@ -57,16 +57,23 @@ const queryTrendsInputSchema = {
 
 /**
  * Result from query_trends tool.
+ *
+ * Per ADR-0019, summary returns raw statistics. Agent interprets meaning.
  */
 interface QueryTrendsResult {
   success: boolean;
   analysis?: TrendAnalysis;
   summary?: {
-    improving: number;
-    degrading: number;
-    stable: number;
-    volatile: number;
-    overall: 'improving' | 'degrading' | 'stable' | 'mixed';
+    /** Number of metrics with positive slope (values increasing) */
+    slopePositiveCount: number;
+    /** Number of metrics with negative slope (values decreasing) */
+    slopeNegativeCount: number;
+    /** Number of metrics with near-zero slope (stable) */
+    slopeNearZeroCount: number;
+    /** Number of metrics with high volatility */
+    highVolatilityCount: number;
+    /** Average R² across all trends (higher = more reliable) */
+    averageRSquared: number;
   };
   error?: string;
   insufficientData?: {
@@ -137,34 +144,36 @@ function formatToolOutput(result: QueryTrendsResult): string {
 
   // Summary
   if (result.summary) {
+    // Per ADR-0019, present raw statistics. Agent interprets meaning.
     lines.push('\n### Summary');
-    lines.push(`**Overall Trend**: ${result.summary.overall.toUpperCase()}`);
-    lines.push(`- Improving: ${result.summary.improving}`);
-    lines.push(`- Degrading: ${result.summary.degrading}`);
-    lines.push(`- Stable: ${result.summary.stable}`);
-    lines.push(`- Volatile: ${result.summary.volatile}`);
+    lines.push(`**Trends**: ${result.summary.slopePositiveCount} increasing, ${result.summary.slopeNegativeCount} decreasing, ${result.summary.slopeNearZeroCount} stable`);
+    lines.push(`- High volatility: ${result.summary.highVolatilityCount}`);
+    lines.push(`- Average R²: ${result.summary.averageRSquared.toFixed(2)}`);
   }
 
-  // Metric Trends
+  // Metric Trends - group by slope direction
   if (analysis.metricTrends.length > 0) {
+    const SLOPE_THRESHOLD = 0.01;
+    const VOLATILITY_THRESHOLD = 0.5;
+
     lines.push('\n### Metric Trends');
 
-    // Group by direction
-    const improving = analysis.metricTrends.filter((t) => t.direction === 'improving');
-    const degrading = analysis.metricTrends.filter((t) => t.direction === 'degrading');
-    const stable = analysis.metricTrends.filter((t) => t.direction === 'stable');
-    const volatile = analysis.metricTrends.filter((t) => t.direction === 'volatile');
+    // Group by slope direction
+    const increasing = analysis.metricTrends.filter((t) => t.slope > SLOPE_THRESHOLD);
+    const decreasing = analysis.metricTrends.filter((t) => t.slope < -SLOPE_THRESHOLD);
+    const stable = analysis.metricTrends.filter((t) => Math.abs(t.slope) <= SLOPE_THRESHOLD);
+    const volatile = analysis.metricTrends.filter((t) => t.volatility > VOLATILITY_THRESHOLD);
 
-    if (improving.length > 0) {
-      lines.push('\n**Improving** ✓');
-      for (const trend of improving) {
+    if (increasing.length > 0) {
+      lines.push('\n**Increasing** ↑');
+      for (const trend of increasing) {
         lines.push(formatMetricTrend(trend));
       }
     }
 
-    if (degrading.length > 0) {
-      lines.push('\n**Degrading** ✗');
-      for (const trend of degrading) {
+    if (decreasing.length > 0) {
+      lines.push('\n**Decreasing** ↓');
+      for (const trend of decreasing) {
         lines.push(formatMetricTrend(trend));
       }
     }
@@ -177,7 +186,7 @@ function formatToolOutput(result: QueryTrendsResult): string {
     }
 
     if (volatile.length > 0) {
-      lines.push('\n**Volatile** ~');
+      lines.push('\n**High Volatility** ~');
       for (const trend of volatile) {
         lines.push(formatMetricTrend(trend));
       }

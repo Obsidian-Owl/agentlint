@@ -23,6 +23,10 @@ export type SignalType = 'leading' | 'lagging' | 'qualitative' | 'causal';
 
 /**
  * Definition of a review dimension with its prompt and metadata.
+ *
+ * Note: Per ADR-0019, positiveIndicators and negativeIndicators were removed.
+ * Sentiment analysis is a judgment call that the agent performs based on
+ * semantic understanding of responses, not keyword matching in tool code.
  */
 export interface DimensionDefinition {
   /** Dimension identifier matching ReviewDimensionName */
@@ -37,15 +41,15 @@ export interface DimensionDefinition {
   signalType: SignalType;
   /** Brief description of what this dimension measures */
   description: string;
-  /** Keywords that may appear in positive responses */
-  positiveIndicators: string[];
-  /** Keywords that may appear in negative responses */
-  negativeIndicators: string[];
 }
 
 /**
  * The 6 core review dimensions for qualitative assessment.
  * Order reflects a logical flow from friction → satisfaction.
+ *
+ * Note: Per ADR-0019, positiveIndicators and negativeIndicators were removed.
+ * The agent analyzes response sentiment through semantic understanding,
+ * not keyword matching.
  */
 export const REVIEW_DIMENSIONS: readonly DimensionDefinition[] = [
   {
@@ -57,16 +61,6 @@ export const REVIEW_DIMENSIONS: readonly DimensionDefinition[] = [
     signalType: 'leading',
     description:
       'Identifies pain points and friction in the AI-assisted workflow that may predict future issues or improvement opportunities.',
-    positiveIndicators: ['smooth', 'seamless', 'easy', 'quick', 'natural', 'intuitive'],
-    negativeIndicators: [
-      'frustrating',
-      'slow',
-      'awkward',
-      'confusing',
-      'repetitive',
-      'manual',
-      'tedious',
-    ],
   },
   {
     name: 'trustCalibration',
@@ -77,16 +71,6 @@ export const REVIEW_DIMENSIONS: readonly DimensionDefinition[] = [
     signalType: 'qualitative',
     description:
       'Measures the calibration of trust in AI outputs - both over-trust (blind acceptance) and under-trust (excessive verification) indicate suboptimal workflows.',
-    positiveIndicators: ['confident', 'trust', 'reliable', 'accurate', 'consistent', 'improved'],
-    negativeIndicators: [
-      'verify',
-      'check',
-      'doubt',
-      'unreliable',
-      'inconsistent',
-      'cautious',
-      'careful',
-    ],
   },
   {
     name: 'taskFit',
@@ -97,15 +81,6 @@ export const REVIEW_DIMENSIONS: readonly DimensionDefinition[] = [
     signalType: 'causal',
     description:
       'Identifies which task categories benefit from AI assistance and which do not, enabling causal understanding of workflow effectiveness.',
-    positiveIndicators: [
-      'helpful',
-      'works well',
-      'great for',
-      'speeds up',
-      'automates',
-      'excellent',
-    ],
-    negativeIndicators: ['struggles', 'fails', 'poor', 'worse', 'avoid', 'skip', 'manually'],
   },
   {
     name: 'configurationConfidence',
@@ -116,15 +91,6 @@ export const REVIEW_DIMENSIONS: readonly DimensionDefinition[] = [
     signalType: 'leading',
     description:
       'Measures confidence in AI configuration quality - low confidence predicts suboptimal AI assistance and potential improvement opportunities.',
-    positiveIndicators: [
-      'confident',
-      'complete',
-      'comprehensive',
-      'accurate',
-      'up-to-date',
-      'covers',
-    ],
-    negativeIndicators: ['unsure', 'incomplete', 'outdated', 'missing', 'unclear', 'needs work'],
   },
   {
     name: 'improvementAttribution',
@@ -135,8 +101,6 @@ export const REVIEW_DIMENSIONS: readonly DimensionDefinition[] = [
     signalType: 'causal',
     description:
       'Captures user attribution of workflow changes - enables causal tracing between actions and outcomes.',
-    positiveIndicators: ['improved', 'better', 'helped', 'fixed', 'solved', 'updated', 'added'],
-    negativeIndicators: ['worse', 'regressed', 'broke', 'removed', 'stopped', 'downgraded'],
   },
   {
     name: 'workflowSatisfaction',
@@ -148,14 +112,6 @@ export const REVIEW_DIMENSIONS: readonly DimensionDefinition[] = [
     signalType: 'lagging',
     description:
       'Overall satisfaction metric - lagging indicator that reflects cumulative workflow effectiveness.',
-    positiveIndicators: ['satisfied', 'happy', 'pleased', 'productive', 'effective', 'efficient'],
-    negativeIndicators: [
-      'unsatisfied',
-      'frustrated',
-      'disappointed',
-      'unproductive',
-      'inefficient',
-    ],
   },
 ] as const;
 

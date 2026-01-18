@@ -125,6 +125,7 @@ src/
 | Recommendation tracking | Auto-detect + confirm | Best accuracy with reasonable effort | spec.md Q3 |
 | Trend thresholds | Configurable (5% default) | Per-metric tuning, sensible defaults | spec.md Q4 |
 | Tool architecture | SDK `tool()` with Zod | Type-safe, rich descriptions, ADR-0005 compliant | ADR-0005 |
+| Tool/Agent Boundary | Tools return data, agent judges | Constitution IV (Mixed-Methods), VII (Intelligent Tooling) | ADR-0019 |
 | Subagent pattern | Optional temporal-analyzer | Context isolation per SDK best practices | spec.md SDK Validation |
 
 ---

@@ -55,6 +55,32 @@ The agent orchestrates temporal analysis, combining tool results with its reason
 - **Real-time monitoring**: Post-hoc analysis only (consistent with MVP non-goals)
 - **Automated remediation**: agentlint recommends; developer decides
 
+### 1.5 Tool/Agent Boundary (ADR-0019)
+
+Per ADR-0019 and Constitution Principles IV (Mixed-Methods) and VII (Intelligent Tooling), EP09 maintains a strict boundary between tool-provided data and agent-provided judgment:
+
+| Layer | Responsibility | Examples |
+|-------|---------------|----------|
+| **Tools** | Data extraction, statistical calculation | Config diffs, metric deltas, regression slopes, R² values |
+| **Agent** | Quality judgment, semantic understanding | "Is this improvement?", "What caused this regression?" |
+
+**What Tools Provide (Data)**:
+- Config diff (lines added/removed, files modified)
+- Metric delta (from → to values, percent change)
+- Slope and R² statistics from regression
+- Sentiment numeric values (-2 to +2)
+- Evidence arrays with weights for pattern matching
+- Time series data points
+
+**What Agent Determines (Judgment)**:
+- Whether a change represents "improvement" or "regression"
+- What caused observed changes
+- Which metrics matter most in context
+- Confidence interpretation for recommendations
+- Overall trend assessment across mixed signals
+
+**Principle**: Tools extract WHAT happened. Agent interprets WHY it matters.
+
 ---
 
 ## 2. User Scenarios & Testing

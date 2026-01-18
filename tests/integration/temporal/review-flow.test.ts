@@ -24,9 +24,6 @@ import {
   calculateOverallSentiment,
   isValidSentiment,
   clampSentiment,
-  getSentimentLabel,
-  getSentimentEmoji,
-  analyzeSentimentIndicators,
   calculateSentimentTrend,
   compareSentiment,
   aggregateSentimentStats,
@@ -203,28 +200,9 @@ describe('Qualitative Review Flow Integration', () => {
       expect(clampSentiment(1)).toBe(1);
     });
 
-    it('should provide sentiment labels and emojis', () => {
-      expect(getSentimentLabel(-2)).toBe('Very Negative');
-      expect(getSentimentLabel(-1)).toBe('Negative');
-      expect(getSentimentLabel(0)).toBe('Neutral');
-      expect(getSentimentLabel(1)).toBe('Positive');
-      expect(getSentimentLabel(2)).toBe('Very Positive');
-
-      expect(getSentimentEmoji(-2)).toBe('😢');
-      expect(getSentimentEmoji(0)).toBe('😐');
-      expect(getSentimentEmoji(2)).toBe('😊');
-    });
-
-    it('should analyze sentiment indicators in text', () => {
-      const positiveText = 'The workflow is smooth and intuitive, really seamless experience';
-      const negativeText = 'Very frustrating and confusing, lots of friction';
-
-      const positiveAnalysis = analyzeSentimentIndicators(positiveText);
-      const negativeAnalysis = analyzeSentimentIndicators(negativeText);
-
-      expect(positiveAnalysis.positiveMatches.length).toBeGreaterThan(0);
-      expect(negativeAnalysis.negativeMatches.length).toBeGreaterThan(0);
-    });
+    // Note: getSentimentLabel, getSentimentEmoji, and analyzeSentimentIndicators
+    // were removed per ADR-0019 (tool/agent boundary). Sentiment interpretation
+    // is now agent responsibility.
   });
 
   describe('Review Storage', () => {
@@ -374,11 +352,12 @@ describe('Qualitative Review Flow Integration', () => {
         }),
       ];
 
-      // Should show improving trend
+      // Should show positive slope trend (per ADR-0019, agent interprets meaning)
       const trend = calculateSentimentTrend(reviews);
 
       expect(trend).not.toBeNull();
-      expect(trend?.direction).toBe('improving');
+      expect(trend?.slope).toBeGreaterThan(0);
+      expect(trend?.slopeSignificant).toBe(true);
       expect(trend?.values.length).toBe(3);
     });
 
@@ -403,8 +382,8 @@ describe('Qualitative Review Flow Integration', () => {
 
       const comparison = compareSentiment(before, after);
 
+      // Per ADR-0019, check change value (agent interprets if improvement)
       expect(comparison.change).toBeGreaterThan(0);
-      expect(comparison.direction).toBe('improved');
     });
 
     it('should aggregate sentiment statistics', () => {
@@ -530,12 +509,12 @@ describe('Qualitative Review Flow Integration', () => {
         reviews.push(review);
       }
 
-      // Calculate trend
+      // Calculate trend (per ADR-0019, agent interprets positive slope as improvement)
       const trend = calculateSentimentTrend(reviews);
 
       expect(trend).not.toBeNull();
-      expect(trend?.direction).toBe('improving');
       expect(trend?.slope).toBeGreaterThan(0);
+      expect(trend?.slopeSignificant).toBe(true);
     });
   });
 });

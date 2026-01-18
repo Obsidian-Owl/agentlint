@@ -9,7 +9,7 @@
 
 import type { Baseline } from '../../persistence/types';
 import type { DeltaSummary, MetricChange, TrendIndicator, ThresholdConfig } from '../types';
-import { isSignificantChange, isImprovement } from '../config';
+import { isSignificantChange } from '../config';
 import type { MetricsDelta } from './calculator';
 
 // =============================================================================
@@ -33,17 +33,20 @@ export interface SummarizerOptions {
 /**
  * Create a human-readable summary from a metrics delta.
  *
+ * Per ADR-0019, returns raw change counts. The agent interprets
+ * whether the overall trend is "improved" or "regressed".
+ *
  * @param metricsDelta - The metrics delta from calculateDelta
  * @param from - Original baseline
  * @param to - Target baseline
  * @param options - Summarizer options
- * @returns Structured delta summary
+ * @returns Structured delta summary with change counts
  *
  * @example
  * ```typescript
  * const { delta, metricsDelta } = calculateDelta(from, to);
  * const summary = createDeltaSummary(metricsDelta, from, to);
- * console.log(summary.overallTrend); // 'improved' | 'regressed' | 'unchanged'
+ * // Agent interprets: "3 increased, 2 decreased, 1 unchanged"
  * ```
  */
 export function createDeltaSummary(
@@ -55,16 +58,25 @@ export function createDeltaSummary(
   const metricsChanged: MetricChange[] = [];
   const trendIndicators: TrendIndicator[] = [];
 
+  // Count changes by direction
+  let increased = 0;
+  let decreased = 0;
+  let unchanged = 0;
+
   // Process metrics changes
   if (metricsDelta !== null) {
     for (const change of metricsDelta.changed) {
-      const metricChange = createMetricChange(
-        change.name,
-        change.from,
-        change.to,
-        options.thresholds
-      );
+      const metricChange = createMetricChange(change.name, change.from, change.to);
       metricsChanged.push(metricChange);
+
+      // Count by direction
+      if (metricChange.direction === '↑') {
+        increased++;
+      } else if (metricChange.direction === '↓') {
+        decreased++;
+      } else {
+        unchanged++;
+      }
 
       // Add trend indicator for significant changes
       if (isSignificantChange(change.from, change.to, change.name, options.thresholds)) {
@@ -81,9 +93,6 @@ export function createDeltaSummary(
   const { warningsAdded, warningsResolved } = extractWarningChanges(from, to);
   const { recommendationsAdded, recommendationsResolved } = extractRecommendationChanges(from, to);
 
-  // Determine overall trend
-  const overallTrend = determineOverallTrend(metricsChanged, warningsAdded, warningsResolved);
-
   return {
     metricsChanged,
     warningsAdded,
@@ -91,12 +100,15 @@ export function createDeltaSummary(
     recommendationsAdded,
     recommendationsResolved,
     trendIndicators,
-    overallTrend,
+    changeCounts: { increased, decreased, unchanged },
   };
 }
 
 /**
  * Format a delta summary as human-readable text.
+ *
+ * Per ADR-0019, presents data without judgment. The agent interprets
+ * whether the overall trend is positive or negative.
  *
  * @param summary - The delta summary
  * @returns Formatted text
@@ -104,11 +116,10 @@ export function createDeltaSummary(
 export function formatDeltaSummary(summary: DeltaSummary): string {
   const lines: string[] = [];
 
-  // Overall trend header
-  const trendEmoji =
-    summary.overallTrend === 'improved' ? '📈' : summary.overallTrend === 'regressed' ? '📉' : '➡️';
-  lines.push(`## Delta Summary ${trendEmoji}\n`);
-  lines.push(`**Overall Trend**: ${capitalize(summary.overallTrend)}\n`);
+  // Change counts header
+  const { increased, decreased, unchanged } = summary.changeCounts;
+  lines.push(`## Delta Summary\n`);
+  lines.push(`**Changes**: ${increased} ↑ increased, ${decreased} ↓ decreased, ${unchanged} → unchanged\n`);
 
   // Metrics changes
   if (summary.metricsChanged.length > 0) {
@@ -118,9 +129,8 @@ export function formatDeltaSummary(summary: DeltaSummary): string {
         change.percentChange >= 0
           ? `+${change.percentChange.toFixed(1)}%`
           : `${change.percentChange.toFixed(1)}%`;
-      const status = change.isImprovement ? '✓' : '⚠';
       lines.push(
-        `- ${status} **${change.name}**: ${change.from} → ${change.to} (${change.direction} ${changeStr})`
+        `- **${change.name}**: ${change.from} → ${change.to} (${change.direction} ${changeStr})`
       );
     }
     lines.push('');
@@ -169,17 +179,15 @@ export function formatDeltaSummary(summary: DeltaSummary): string {
 
 /**
  * Create a MetricChange object with trend information.
+ *
+ * Per ADR-0019, returns raw direction without judgment about
+ * whether it's an improvement. Agent interprets based on context.
  */
-function createMetricChange(
-  name: string,
-  from: number,
-  to: number,
-  thresholds?: ThresholdConfig
-): MetricChange {
+function createMetricChange(name: string, from: number, to: number): MetricChange {
   const change = to - from;
   const percentChange = from !== 0 ? ((to - from) / from) * 100 : to !== 0 ? 100 : 0;
 
-  // Determine direction
+  // Determine direction (raw change direction, not interpretation)
   let direction: '↑' | '↓' | '→';
   if (Math.abs(change) < 0.001) {
     direction = '→';
@@ -189,9 +197,6 @@ function createMetricChange(
     direction = '↓';
   }
 
-  // Check if this is an improvement
-  const improvement = isImprovement(from, to, name, thresholds);
-
   return {
     name,
     from,
@@ -199,7 +204,6 @@ function createMetricChange(
     change,
     percentChange,
     direction,
-    isImprovement: improvement,
   };
 }
 
@@ -268,42 +272,17 @@ function extractRecommendationChanges(
   return { recommendationsAdded, recommendationsResolved };
 }
 
-/**
- * Determine the overall trend based on all changes.
- */
-function determineOverallTrend(
-  metricsChanged: MetricChange[],
-  warningsAdded: string[],
-  warningsResolved: string[]
-): 'improved' | 'regressed' | 'unchanged' {
-  // Count improvements and regressions
-  let improvements = 0;
-  let regressions = 0;
-
-  for (const change of metricsChanged) {
-    if (change.isImprovement) {
-      improvements++;
-    } else if (change.direction !== '→') {
-      regressions++;
-    }
-  }
-
-  // Factor in warnings
-  improvements += warningsResolved.length;
-  regressions += warningsAdded.length;
-
-  // Determine overall trend
-  if (improvements > regressions) {
-    return 'improved';
-  } else if (regressions > improvements) {
-    return 'regressed';
-  }
-  return 'unchanged';
-}
-
-/**
- * Capitalize first letter of a string.
- */
-function capitalize(str: string): string {
-  return str.charAt(0).toUpperCase() + str.slice(1);
-}
+// =============================================================================
+// Note: determineOverallTrend() was removed per ADR-0019
+// =============================================================================
+//
+// The determineOverallTrend() function was removed because determining
+// whether changes represent overall "improvement" or "regression" is
+// a JUDGMENT call that should be made by the agent, not tool code.
+//
+// The agent interprets change counts based on:
+// - Metric semantics (which metrics matter most)
+// - Project context (current goals)
+// - User preferences
+//
+// See ADR-0019: Tool/Agent Boundary for Temporal Analysis

@@ -19,8 +19,10 @@ import {
 import { loadReview } from '../../persistence/reviews/storage';
 import type { ReviewDimensionName } from '../types';
 import { getDimension } from '../qualitative/dimensions';
-import { getSentimentLabel } from '../qualitative/sentiment';
 import { TOOL_DESCRIPTIONS } from './descriptions';
+
+// Note: getSentimentLabel was removed per ADR-0019.
+// The agent interprets sentiment values directly.
 
 // =============================================================================
 // Input Schema
@@ -140,8 +142,10 @@ function formatToolOutput(result: GetReviewHistoryResult): string {
     lines.push('\n### Reviews\n');
 
     for (const review of result.reviews) {
+      // Per ADR-0019, return raw sentiment value. Agent interprets meaning.
+      const sentimentValue = review.overallSentiment >= 0 ? `+${review.overallSentiment}` : `${review.overallSentiment}`;
       lines.push(
-        `**${formatDate(review.createdAt)}** - ${getSentimentLabel(review.overallSentiment)}`
+        `**${formatDate(review.createdAt)}** - Sentiment: ${sentimentValue}`
       );
       lines.push(`- ID: ${review.id.slice(0, 8)}...`);
       lines.push(`- Baseline: ${review.baselineId.slice(0, 8)}...`);

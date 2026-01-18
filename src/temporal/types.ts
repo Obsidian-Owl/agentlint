@@ -50,6 +50,10 @@ export interface BaselineDelta {
 
 /**
  * Human-readable interpretation of a delta.
+ *
+ * Note: Per ADR-0019, tools return data; agent interprets meaning.
+ * The `changeCounts` field replaces `overallTrend` - the agent
+ * determines whether changes represent improvement or regression.
  */
 export interface DeltaSummary {
   /** List of changed metrics */
@@ -64,12 +68,23 @@ export interface DeltaSummary {
   recommendationsResolved: string[];
   /** Visual trend indicators */
   trendIndicators: TrendIndicator[];
-  /** Aggregate trend direction */
-  overallTrend: 'improved' | 'regressed' | 'unchanged';
+  /** Counts of metric changes by direction (agent interprets meaning) */
+  changeCounts: {
+    /** Number of metrics that increased in value */
+    increased: number;
+    /** Number of metrics that decreased in value */
+    decreased: number;
+    /** Number of metrics that stayed the same */
+    unchanged: number;
+  };
 }
 
 /**
  * Single metric change between baselines.
+ *
+ * Note: Per ADR-0019, `isImprovement` was removed. The agent determines
+ * whether a change is an improvement based on context (metric semantics,
+ * project goals, etc.). The `direction` field shows raw change direction.
  */
 export interface MetricChange {
   /** Metric name */
@@ -82,10 +97,8 @@ export interface MetricChange {
   change: number;
   /** Percentage change */
   percentChange: number;
-  /** Visual indicator */
+  /** Visual indicator showing raw change direction */
   direction: '↑' | '↓' | '→';
-  /** Whether change is positive */
-  isImprovement: boolean;
 }
 
 /**
@@ -138,16 +151,22 @@ export interface DateRange {
 
 /**
  * Single metric trend over time.
+ *
+ * Note: Per ADR-0019, `direction` was removed. The agent interprets
+ * the trend based on slope, rSquared, and volatility. Use rSquared
+ * to determine trend reliability and volatility to detect noise.
  */
 export interface MetricTrend {
   /** Name of the metric */
   metricName: string;
-  /** Trend classification */
-  direction: 'improving' | 'degrading' | 'volatile' | 'stable';
   /** Time series data */
   values: TimeSeriesPoint[];
-  /** Linear regression slope */
+  /** Linear regression slope (positive = increasing, negative = decreasing) */
   slope: number;
+  /** R² coefficient of determination (0-1, higher = more linear/reliable) */
+  rSquared: number;
+  /** Coefficient of variation (stdDev/mean, higher = more volatile) */
+  volatility: number;
   /** Average value */
   meanValue: number;
   /** Standard deviation */
@@ -259,16 +278,20 @@ export interface ReviewDimension {
 
 /**
  * Sentiment trend from qualitative reviews.
+ *
+ * Note: Per ADR-0019, `direction` was removed. The agent interprets
+ * the trend based on slope and slopeSignificant. Positive slope
+ * indicates sentiment increasing over time; agent determines meaning.
  */
 export interface QualitativeTrend {
   /** Which dimension */
   dimension: ReviewDimensionName;
-  /** Trend direction */
-  direction: 'improving' | 'degrading' | 'stable';
   /** Time series of sentiment */
   values: SentimentPoint[];
-  /** Linear regression slope */
+  /** Linear regression slope (positive = sentiment increasing) */
   slope: number;
+  /** Whether slope exceeds significance threshold */
+  slopeSignificant: boolean;
   /** Whether aligned with quantitative metrics */
   alignedWithQuantitative?: boolean;
   /** Explanation if diverging */
@@ -376,4 +399,43 @@ export interface RecommendationTrackingFile {
   version: string;
   /** The tracking data */
   tracking: RecommendationTracking;
+}
+
+// =============================================================================
+// Detection Evidence Types (ADR-0019)
+// =============================================================================
+
+/**
+ * Evidence for a single match during detection.
+ */
+export interface DetectionEvidence {
+  /** Type of evidence */
+  type: 'keyword' | 'file' | 'pattern';
+  /** What was matched */
+  match: string;
+  /** Where it was found */
+  location: string;
+  /** How strong is this evidence (0-100) */
+  weight: number;
+}
+
+/**
+ * Raw evidence extracted from config diff matching.
+ *
+ * Per ADR-0019, tools return evidence; agent interprets.
+ * The agent determines whether this evidence indicates
+ * implementation, what status to assign, and whether to
+ * prompt for user confirmation.
+ */
+export interface MatchEvidence {
+  /** All evidence found during matching */
+  evidence: DetectionEvidence[];
+  /** Sum of all evidence weights (higher = stronger signal) */
+  totalWeight: number;
+  /** Keywords that matched in added lines */
+  keywordMatches: string[];
+  /** Target files that were modified */
+  fileMatches: string[];
+  /** Regex patterns that matched */
+  patternMatches: string[];
 }

@@ -1,17 +1,21 @@
 /**
  * Unit tests for recommendation implementation detector.
+ *
+ * Per ADR-0019, extractMatchEvidence returns raw evidence data.
+ * Agent interprets whether evidence indicates implementation.
  */
 
 import { describe, test, expect } from 'bun:test';
 
 import {
-  detectImplementation,
-  detectImplementations,
+  extractMatchEvidence,
+  extractAllMatchEvidence,
   createConfigDiff,
   mergeConfigDiffs,
   type Recommendation,
   type ConfigDiff,
 } from '../detector';
+import type { DetectionEvidence } from '../../types';
 
 // =============================================================================
 // Test Data
@@ -38,8 +42,8 @@ const testingRecommendation: Recommendation = {
 // =============================================================================
 
 describe('Recommendation Implementation Detector', () => {
-  describe('detectImplementation', () => {
-    test('should detect implementation via keyword match', () => {
+  describe('extractMatchEvidence', () => {
+    test('should extract keyword match evidence', () => {
       const diff: ConfigDiff = {
         filesAdded: [],
         filesModified: ['CLAUDE.md'],
@@ -48,15 +52,14 @@ describe('Recommendation Implementation Detector', () => {
         linesRemoved: [],
       };
 
-      const result = detectImplementation(credentialRecommendation, diff);
+      const result = extractMatchEvidence(credentialRecommendation, diff);
 
-      expect(result.detected).toBe(true);
-      expect(result.confidence).toBeGreaterThan(0);
       expect(result.evidence.length).toBeGreaterThan(0);
-      expect(result.evidence.some((e) => e.type === 'keyword')).toBe(true);
+      expect(result.evidence.some((e: DetectionEvidence) => e.type === 'keyword')).toBe(true);
+      expect(result.keywordMatches.length).toBeGreaterThan(0);
     });
 
-    test('should detect implementation via file match', () => {
+    test('should extract file match evidence', () => {
       const diff: ConfigDiff = {
         filesAdded: [],
         filesModified: ['CLAUDE.md'],
@@ -65,13 +68,13 @@ describe('Recommendation Implementation Detector', () => {
         linesRemoved: [],
       };
 
-      const result = detectImplementation(credentialRecommendation, diff);
+      const result = extractMatchEvidence(credentialRecommendation, diff);
 
-      expect(result.evidence.some((e) => e.type === 'file')).toBe(true);
-      expect(result.evidence.find((e) => e.type === 'file')?.location).toBe('CLAUDE.md');
+      expect(result.evidence.some((e: DetectionEvidence) => e.type === 'file')).toBe(true);
+      expect(result.fileMatches).toContain('CLAUDE.md');
     });
 
-    test('should detect implementation via pattern match', () => {
+    test('should extract pattern match evidence', () => {
       const diff: ConfigDiff = {
         filesAdded: [],
         filesModified: [],
@@ -80,12 +83,13 @@ describe('Recommendation Implementation Detector', () => {
         linesRemoved: [],
       };
 
-      const result = detectImplementation(credentialRecommendation, diff);
+      const result = extractMatchEvidence(credentialRecommendation, diff);
 
-      expect(result.evidence.some((e) => e.type === 'pattern')).toBe(true);
+      expect(result.evidence.some((e: DetectionEvidence) => e.type === 'pattern')).toBe(true);
+      expect(result.patternMatches.length).toBeGreaterThan(0);
     });
 
-    test('should return high confidence for multiple evidence types', () => {
+    test('should return high totalWeight for multiple evidence types', () => {
       const diff: ConfigDiff = {
         filesAdded: [],
         filesModified: ['CLAUDE.md'],
@@ -94,14 +98,13 @@ describe('Recommendation Implementation Detector', () => {
         linesRemoved: [],
       };
 
-      const result = detectImplementation(credentialRecommendation, diff);
+      const result = extractMatchEvidence(credentialRecommendation, diff);
 
-      expect(result.detected).toBe(true);
-      expect(result.confidence).toBeGreaterThanOrEqual(50);
+      expect(result.totalWeight).toBeGreaterThan(0);
       expect(result.evidence.length).toBeGreaterThanOrEqual(2);
     });
 
-    test('should not detect when no matches', () => {
+    test('should return empty evidence when no matches', () => {
       const diff: ConfigDiff = {
         filesAdded: [],
         filesModified: ['README.md'],
@@ -110,11 +113,13 @@ describe('Recommendation Implementation Detector', () => {
         linesRemoved: [],
       };
 
-      const result = detectImplementation(credentialRecommendation, diff);
+      const result = extractMatchEvidence(credentialRecommendation, diff);
 
-      expect(result.detected).toBe(false);
-      expect(result.confidence).toBe(0);
+      expect(result.totalWeight).toBe(0);
       expect(result.evidence.length).toBe(0);
+      expect(result.keywordMatches.length).toBe(0);
+      expect(result.fileMatches.length).toBe(0);
+      expect(result.patternMatches.length).toBe(0);
     });
 
     test('should handle empty diff', () => {
@@ -126,56 +131,10 @@ describe('Recommendation Implementation Detector', () => {
         linesRemoved: [],
       };
 
-      const result = detectImplementation(credentialRecommendation, diff);
+      const result = extractMatchEvidence(credentialRecommendation, diff);
 
-      expect(result.detected).toBe(false);
-      expect(result.confidence).toBe(0);
-    });
-
-    test('should provide explanation in result', () => {
-      const diff: ConfigDiff = {
-        filesAdded: [],
-        filesModified: ['CLAUDE.md'],
-        filesDeleted: [],
-        linesAdded: ['Add credential handling guidelines'],
-        linesRemoved: [],
-      };
-
-      const result = detectImplementation(credentialRecommendation, diff);
-
-      expect(result.explanation).toBeDefined();
-      expect(result.explanation.length).toBeGreaterThan(0);
-    });
-
-    test('should suggest appropriate status based on confidence', () => {
-      // High confidence case
-      const highConfidenceDiff: ConfigDiff = {
-        filesAdded: [],
-        filesModified: ['CLAUDE.md'],
-        filesDeleted: [],
-        linesAdded: [
-          'Never expose credentials in responses',
-          'Avoid API keys and secrets',
-          'Password handling guidelines',
-          'Never leak credentials',
-        ],
-        linesRemoved: [],
-      };
-
-      const highResult = detectImplementation(credentialRecommendation, highConfidenceDiff);
-      expect(highResult.suggestedStatus).toBe('detected_pending_confirm');
-
-      // No match case
-      const noMatchDiff: ConfigDiff = {
-        filesAdded: [],
-        filesModified: [],
-        filesDeleted: [],
-        linesAdded: [],
-        linesRemoved: [],
-      };
-
-      const noResult = detectImplementation(credentialRecommendation, noMatchDiff);
-      expect(noResult.suggestedStatus).toBe('pending');
+      expect(result.totalWeight).toBe(0);
+      expect(result.evidence.length).toBe(0);
     });
 
     test('should handle invalid regex patterns gracefully', () => {
@@ -195,13 +154,14 @@ describe('Recommendation Implementation Detector', () => {
       };
 
       // Should not throw
-      const result = detectImplementation(badRecommendation, diff);
+      const result = extractMatchEvidence(badRecommendation, diff);
       expect(result).toBeDefined();
+      expect(result.evidence).toBeDefined();
     });
   });
 
-  describe('detectImplementations', () => {
-    test('should check multiple recommendations', () => {
+  describe('extractAllMatchEvidence', () => {
+    test('should extract evidence for multiple recommendations', () => {
       const diff: ConfigDiff = {
         filesAdded: [],
         filesModified: ['CLAUDE.md'],
@@ -210,7 +170,7 @@ describe('Recommendation Implementation Detector', () => {
         linesRemoved: [],
       };
 
-      const results = detectImplementations(
+      const results = extractAllMatchEvidence(
         [credentialRecommendation, testingRecommendation],
         diff
       );
@@ -220,7 +180,7 @@ describe('Recommendation Implementation Detector', () => {
       expect(results.has('rec-002')).toBe(true);
     });
 
-    test('should only return detected recommendations', () => {
+    test('should include all recommendations in results', () => {
       const diff: ConfigDiff = {
         filesAdded: [],
         filesModified: ['CLAUDE.md'],
@@ -229,17 +189,21 @@ describe('Recommendation Implementation Detector', () => {
         linesRemoved: [],
       };
 
-      const results = detectImplementations(
+      const results = extractAllMatchEvidence(
         [credentialRecommendation, testingRecommendation],
         diff
       );
 
-      // Only testing recommendation should be detected
+      // All recommendations should be in the map
+      expect(results.has('rec-001')).toBe(true);
       expect(results.has('rec-002')).toBe(true);
-      // Credential recommendation might not be detected without keywords
+
+      // Testing recommendation should have evidence
+      const testingEvidence = results.get('rec-002');
+      expect(testingEvidence?.keywordMatches.length).toBeGreaterThan(0);
     });
 
-    test('should return empty map when no matches', () => {
+    test('should return map with zero evidence when no matches', () => {
       const diff: ConfigDiff = {
         filesAdded: [],
         filesModified: ['unrelated.txt'],
@@ -248,12 +212,16 @@ describe('Recommendation Implementation Detector', () => {
         linesRemoved: [],
       };
 
-      const results = detectImplementations(
+      const results = extractAllMatchEvidence(
         [credentialRecommendation, testingRecommendation],
         diff
       );
 
-      expect(results.size).toBe(0);
+      // Both recommendations should be in map, but with zero weight
+      expect(results.has('rec-001')).toBe(true);
+      expect(results.has('rec-002')).toBe(true);
+      expect(results.get('rec-001')?.totalWeight).toBe(0);
+      expect(results.get('rec-002')?.totalWeight).toBe(0);
     });
   });
 

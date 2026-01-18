@@ -75,8 +75,10 @@ export {
   loadThresholdConfig,
   getThresholdForMetric,
   isSignificantChange,
-  isImprovement,
 } from './config';
+
+// Note: isImprovement was removed per ADR-0019.
+// The agent determines whether a change is an improvement.
 
 // =============================================================================
 // Delta Calculation
@@ -100,12 +102,10 @@ export {
   linearRegression,
   timeSeriestoPoints,
   predict,
-  classifyTrend,
   calculateStats,
   // Metric trends
   getMetricTrend,
   detectInflectionPoints,
-  isLowerBetterMetric,
   summarizeTrends,
   // Analysis builder
   buildTrendAnalysis,
@@ -114,6 +114,8 @@ export {
   getSignificantTrends,
   getTrendsByDirection,
 } from './trends';
+
+// Note: classifyTrend and isLowerBetterMetric were removed per ADR-0019.
 
 export type {
   AggregatedMetric,
@@ -145,33 +147,34 @@ export {
   calculateOverallSentiment,
   isValidSentiment,
   clampSentiment,
-  getSentimentLabel,
-  getSentimentEmoji,
-  analyzeSentimentIndicators,
   calculateSentimentTrend,
   compareSentiment,
   createEmptyDimension,
   aggregateSentimentStats,
 } from './qualitative/sentiment';
 
-export type {
-  SentimentValue,
-  SentimentOptions,
-  SentimentIndicatorAnalysis,
-} from './qualitative/sentiment';
+// Note: getSentimentLabel, getSentimentEmoji, analyzeSentimentIndicators
+// were removed per ADR-0019. The agent interprets sentiment values.
+
+export type { SentimentValue, SentimentOptions } from './qualitative/sentiment';
+
+// Note: SentimentIndicatorAnalysis was removed per ADR-0019.
 
 // =============================================================================
 // Recommendation Tracking
 // =============================================================================
 
 export {
-  detectImplementation,
-  detectImplementations,
+  extractMatchEvidence,
+  extractAllMatchEvidence,
   createConfigDiff,
   mergeConfigDiffs,
 } from './tracking';
 
-export type { Recommendation, ConfigDiff, DetectionResult, DetectionEvidence } from './tracking';
+export type { Recommendation, ConfigDiff, DetectionEvidence, MatchEvidence } from './tracking';
+
+// Note: detectImplementation and DetectionResult were removed per ADR-0019.
+// Use extractMatchEvidence which returns raw evidence for agent interpretation.
 
 // =============================================================================
 // Tools

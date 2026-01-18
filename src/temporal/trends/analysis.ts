@@ -19,14 +19,13 @@ import { getMetricTrend, detectInflectionPoints, type MetricTrendOptions } from 
 
 /**
  * Options for building a TrendAnalysis.
+ *
+ * Note: slopeThreshold and rSquaredThreshold were removed per ADR-0019.
+ * The agent interprets trend direction based on raw slope and rSquared values.
  */
 export interface TrendAnalysisOptions {
   /** Minimum coverage required for metrics (0-1, default: 0.5) */
   minCoverage?: number;
-  /** Minimum slope to consider significant (default from config) */
-  slopeThreshold?: number;
-  /** Minimum R² for trend classification (default: 0.5) */
-  rSquaredThreshold?: number;
   /** Metrics to include (default: all) */
   includeMetrics?: string[];
   /** Metrics to exclude */
@@ -94,12 +93,6 @@ export function buildTrendAnalysis(
 
   // Build metric trend options - only include defined properties
   const trendOptions: MetricTrendOptions = {};
-  if (options.slopeThreshold !== undefined) {
-    trendOptions.slopeThreshold = options.slopeThreshold;
-  }
-  if (options.rSquaredThreshold !== undefined) {
-    trendOptions.rSquaredThreshold = options.rSquaredThreshold;
-  }
   if (options.inflectionWindow !== undefined) {
     trendOptions.inflectionWindow = options.inflectionWindow;
   }
@@ -164,51 +157,54 @@ export function hasSufficientBaselines(baselines: Baseline[], minimum: number = 
 /**
  * Get a summary of the trend analysis.
  *
+ * Per ADR-0019, returns raw statistics. The agent interprets
+ * whether the overall trend is positive or negative.
+ *
  * @param analysis - TrendAnalysis to summarize
- * @returns Summary with counts per direction
+ * @returns Summary with slope statistics and volatility counts
  */
 export function getTrendSummary(analysis: TrendAnalysis): {
-  improving: number;
-  degrading: number;
-  stable: number;
-  volatile: number;
-  overall: 'improving' | 'degrading' | 'stable' | 'mixed';
+  slopePositiveCount: number;
+  slopeNegativeCount: number;
+  slopeNearZeroCount: number;
+  highVolatilityCount: number;
+  averageRSquared: number;
 } {
-  let improving = 0;
-  let degrading = 0;
-  let stable = 0;
-  let volatile = 0;
+  const SLOPE_THRESHOLD = 0.01;
+  const VOLATILITY_THRESHOLD = 0.5;
+
+  let slopePositiveCount = 0;
+  let slopeNegativeCount = 0;
+  let slopeNearZeroCount = 0;
+  let highVolatilityCount = 0;
+  let totalRSquared = 0;
 
   for (const trend of analysis.metricTrends) {
-    switch (trend.direction) {
-      case 'improving':
-        improving++;
-        break;
-      case 'degrading':
-        degrading++;
-        break;
-      case 'stable':
-        stable++;
-        break;
-      case 'volatile':
-        volatile++;
-        break;
+    if (trend.volatility > VOLATILITY_THRESHOLD) {
+      highVolatilityCount++;
     }
+
+    if (Math.abs(trend.slope) < SLOPE_THRESHOLD) {
+      slopeNearZeroCount++;
+    } else if (trend.slope > 0) {
+      slopePositiveCount++;
+    } else {
+      slopeNegativeCount++;
+    }
+
+    totalRSquared += trend.rSquared;
   }
 
-  // Determine overall trend
-  let overall: 'improving' | 'degrading' | 'stable' | 'mixed';
-  if (improving > degrading && improving > stable) {
-    overall = 'improving';
-  } else if (degrading > improving && degrading > stable) {
-    overall = 'degrading';
-  } else if (stable > improving && stable > degrading) {
-    overall = 'stable';
-  } else {
-    overall = 'mixed';
-  }
+  const averageRSquared =
+    analysis.metricTrends.length > 0 ? totalRSquared / analysis.metricTrends.length : 0;
 
-  return { improving, degrading, stable, volatile, overall };
+  return {
+    slopePositiveCount,
+    slopeNegativeCount,
+    slopeNearZeroCount,
+    highVolatilityCount,
+    averageRSquared,
+  };
 }
 
 /**
@@ -226,15 +222,28 @@ export function getSignificantTrends(
 }
 
 /**
- * Get trends for specific direction.
+ * Get trends by slope direction.
+ *
+ * Per ADR-0019, filters by raw slope direction. The agent
+ * interprets whether positive/negative slope is good or bad.
  *
  * @param analysis - TrendAnalysis to filter
- * @param direction - Direction to filter for
- * @returns Trends matching the direction
+ * @param slopeDirection - Slope direction to filter for
+ * @param slopeThreshold - Minimum slope magnitude (default: 0.01)
+ * @returns Trends matching the slope direction
  */
 export function getTrendsByDirection(
   analysis: TrendAnalysis,
-  direction: 'improving' | 'degrading' | 'volatile' | 'stable'
+  slopeDirection: 'positive' | 'negative' | 'near_zero',
+  slopeThreshold: number = 0.01
 ): MetricTrend[] {
-  return analysis.metricTrends.filter((trend) => trend.direction === direction);
+  return analysis.metricTrends.filter((trend) => {
+    if (slopeDirection === 'positive') {
+      return trend.slope > slopeThreshold;
+    } else if (slopeDirection === 'negative') {
+      return trend.slope < -slopeThreshold;
+    } else {
+      return Math.abs(trend.slope) <= slopeThreshold;
+    }
+  });
 }

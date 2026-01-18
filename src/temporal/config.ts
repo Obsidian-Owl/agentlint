@@ -38,7 +38,14 @@ export const DEFAULT_THRESHOLD_CONFIG: ThresholdConfig = {
 };
 
 /**
- * Metrics where lower is better (inverted for improvement calculation).
+ * Metrics where lower values are generally considered better.
+ *
+ * Per ADR-0019, this is provided as OPTIONAL context for the agent.
+ * The agent ultimately decides whether a change is an improvement
+ * based on project context, user goals, and semantic understanding.
+ *
+ * Tools should NOT use this to make judgment calls - only to provide
+ * context to the agent when requested.
  */
 export const INVERTED_METRICS = new Set([
   'warningCount',
@@ -201,29 +208,19 @@ export function isSignificantChange(
   return Math.abs(to - from) / Math.abs(from) >= config.default;
 }
 
-/**
- * Determine if a change represents an improvement.
- *
- * @param from - Previous value
- * @param to - Current value
- * @param metricName - Name of the metric
- * @param config - Threshold configuration
- * @returns Whether the change is an improvement
- */
-export function isImprovement(
-  from: number,
-  to: number,
-  metricName: string,
-  config: ThresholdConfig = DEFAULT_THRESHOLD_CONFIG
-): boolean {
-  const threshold = getThresholdForMetric(metricName, config);
-  const isInverted = threshold.inverted ?? INVERTED_METRICS.has(metricName);
-
-  if (isInverted) {
-    // Lower is better (e.g., error count, token usage)
-    return to < from;
-  }
-
-  // Higher is better (e.g., coverage score)
-  return to > from;
-}
+// =============================================================================
+// Note: isImprovement() was removed per ADR-0019
+// =============================================================================
+//
+// The isImprovement() function was removed because determining whether a
+// change is an "improvement" is a JUDGMENT call that should be made by the
+// agent, not by tool code.
+//
+// The agent can use INVERTED_METRICS as optional context, but ultimately
+// decides based on:
+// - Project-specific goals
+// - User preferences
+// - Semantic understanding of the change
+// - Context that tools cannot access
+//
+// See ADR-0019: Tool/Agent Boundary for Temporal Analysis

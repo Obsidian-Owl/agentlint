@@ -152,6 +152,29 @@
 
 ---
 
+## Phase 6.6: Architectural Correction (ADR-0019)
+
+**Purpose**: Correct tool/agent boundary drift per Constitution Principles IV (Mixed-Methods) and VII (Intelligent Tooling)
+
+**Checkpoint**: Tools return data + evidence; agent provides judgment
+
+### Tool/Agent Boundary Refactoring
+
+- [x] T037e Create ADR-0019: Tool/Agent Boundary for Temporal Analysis in `docs/architecture/adr/0019-tool-agent-boundary-temporal.md`
+- [x] T037f Update types.ts: Remove `isImprovement` from `MetricChange`, replace `overallTrend` with `changeCounts`, add `rSquared`/`volatility` to `MetricTrend`
+- [x] T037g Refactor config.ts: Remove `isImprovement()` function (judgment)
+- [x] T037h Refactor dimensions.ts: Remove `positiveIndicators`/`negativeIndicators` arrays
+- [x] T037i Refactor sentiment.ts: Remove `getSentimentLabel()`, `getSentimentEmoji()`, `analyzeSentimentIndicators()`
+- [x] T037j Refactor regression.ts: Remove `classifyTrend()` function
+- [x] T037k Refactor metric-trend.ts: Return `slope`, `rSquared`, `volatility` instead of `direction`
+- [x] T037l Refactor summarizer.ts: Remove `determineOverallTrend()`, return `changeCounts`
+- [x] T037m Refactor detector.ts: `detectImplementation()` → `extractMatchEvidence()` (returns evidence, not judgment)
+- [x] T037n Update all tests for new return shapes in `__tests__/` and `tests/integration/temporal/`
+
+**Reference**: ADR-0019 documents the decision and rationale.
+
+---
+
 ## Phase 7: User Story 5 - Track Recommendation Implementation (Priority: P2)
 
 **Goal**: Detect and track recommendation implementations with effectiveness scoring
@@ -162,8 +185,8 @@
 
 - [x] T038 [P] [US5] Create recommendation tracking types in `src/temporal/tracking/types.ts` - RecommendationTracking, RecommendationStatus
 - [x] T039 [P] [US5] Implement tracking storage in `src/temporal/tracking/storage.ts` - saveTracking, loadTracking, updateStatus
-- [ ] T040 [US5] Implement auto-detection in `src/temporal/tracking/detector.ts` - detectImplementation(recommendation, configDiff)
-- [ ] T041 [US5] Implement effectiveness calculation in `src/temporal/tracking/effectiveness.ts` - calculateEffectiveness(preBaseline, postBaseline)
+- [x] T040 [US5] Implement evidence extraction in `src/temporal/tracking/detector.ts` - extractMatchEvidence() returns evidence array per ADR-0019
+- [x] T041 [US5] Implement baseline pair provider in `src/temporal/tracking/effectiveness.ts` - getEffectivenessData(preBaseline, postBaseline) returns data for agent judgment
 - [ ] T042 [US5] Create track_recommendation tool in `src/temporal/tools/track-recommendation.ts`
 - [ ] T043 [US5] Register track_recommendation in tool registry
 
@@ -179,9 +202,9 @@
 
 ### Implementation for US-006
 
-- [ ] T044 [P] [US6] Implement git history fetcher in `src/temporal/correlation/git-history.ts` - getCommitsBetween(fromDate, toDate)
-- [ ] T045 [P] [US6] Implement commit categorizer in `src/temporal/correlation/categorizer.ts` - categorizeCommit(commit) → high/medium/low impact
-- [ ] T046 [US6] Implement inflection point detector in `src/temporal/trends/inflection.ts` - detectInflectionPoints(metricTrend)
+- [ ] T044 [P] [US6] Implement git history fetcher in `src/temporal/correlation/git-history.ts` - getCommitsBetween() returns commit metadata per ADR-0019
+- [ ] T045 [P] [US6] Implement commit metadata extractor in `src/temporal/correlation/categorizer.ts` - getCommitMetadata(commit) returns data for agent categorization
+- [ ] T046 [US6] Implement inflection point detector in `src/temporal/trends/inflection.ts` - returns slope change points per ADR-0019
 - [ ] T047 [US6] Implement correlation builder in `src/temporal/correlation/correlator.ts` - correlateWithCommits(delta, commits)
 - [ ] T048 [US6] Add includeGitCommits option to calculate_delta tool
 - [ ] T049 [US6] Add correlatedCommits to query_trends tool
@@ -199,8 +222,8 @@
 ### Implementation for US-007
 
 - [ ] T050 [P] [US7] Implement qualitative aggregator in `src/temporal/qualitative/aggregator.ts` - aggregateReviews(reviews[])
-- [ ] T051 [P] [US7] Implement sentiment trend calculation in `src/temporal/qualitative/trend.ts` - calculateSentimentTrend(reviews[])
-- [ ] T052 [US7] Implement alignment detector in `src/temporal/qualitative/alignment.ts` - detectAlignmentDivergence(quantitative, qualitative)
+- [ ] T051 [P] [US7] Implement sentiment trend calculation in `src/temporal/qualitative/trend.ts` - returns slope and values per ADR-0019
+- [ ] T052 [US7] Implement divergence calculator in `src/temporal/qualitative/alignment.ts` - returns divergence metrics per ADR-0019
 - [ ] T053 [US7] Implement theme extractor in `src/temporal/qualitative/themes.ts` - extractThemes(reviews[])
 - [ ] T054 [US7] Add includeQualitative option to query_trends tool
 - [ ] T055 [US7] Add unit tests for qualitative trends in `src/temporal/qualitative/__tests__/trend.test.ts`

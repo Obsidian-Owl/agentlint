@@ -8,8 +8,7 @@
  */
 
 import type { MetricTrend, TimeSeriesPoint, InflectionPoint } from '../types';
-import { DEFAULT_THRESHOLD_CONFIG } from '../config';
-import { linearRegression, timeSeriestoPoints, classifyTrend, calculateStats } from './regression';
+import { linearRegression, timeSeriestoPoints, calculateStats } from './regression';
 
 // =============================================================================
 // Types
@@ -17,35 +16,19 @@ import { linearRegression, timeSeriestoPoints, classifyTrend, calculateStats } f
 
 /**
  * Options for metric trend calculation.
+ *
+ * Note: Per ADR-0019, lowerIsBetter was removed. The agent determines
+ * whether a trend represents improvement based on metric semantics
+ * and project context.
  */
 export interface MetricTrendOptions {
-  /** Minimum slope to consider significant (default from config) */
-  slopeThreshold?: number;
-  /** Minimum R² for trend classification (default: 0.5) */
-  rSquaredThreshold?: number;
-  /** Whether lower values are better (e.g., findingsCount) */
-  lowerIsBetter?: boolean;
   /** Window size for inflection detection (default: 3) */
   inflectionWindow?: number;
 }
 
-// =============================================================================
-// Constants
-// =============================================================================
-
-/** Metrics where lower values indicate improvement */
-const LOWER_IS_BETTER_METRICS = new Set([
-  'findingsCount',
-  'criticalCount',
-  'highCount',
-  'mediumCount',
-  'lowCount',
-  'infoCount',
-  'warningCount',
-  'errorRate',
-  'avgTokensPerSession',
-  'avgIterationsPerSession',
-]);
+// Note: LOWER_IS_BETTER_METRICS was removed per ADR-0019.
+// The agent determines metric semantics, not tool code.
+// See INVERTED_METRICS in config.ts for optional context.
 
 // =============================================================================
 // Public API
@@ -54,10 +37,14 @@ const LOWER_IS_BETTER_METRICS = new Set([
 /**
  * Calculate a MetricTrend from time series data.
  *
+ * Per ADR-0019, returns statistical data (slope, rSquared, volatility).
+ * The agent interprets whether the trend represents improvement or
+ * degradation based on metric semantics and project context.
+ *
  * @param metricName - Name of the metric
  * @param values - Time series data points
- * @param options - Calculation options
- * @returns MetricTrend with direction, slope, statistics
+ * @param _options - Calculation options (reserved for future use)
+ * @returns MetricTrend with slope, rSquared, volatility, and statistics
  *
  * @example
  * ```typescript
@@ -66,24 +53,20 @@ const LOWER_IS_BETTER_METRICS = new Set([
  *   { timestamp: '2026-01-02', value: 15, baselineId: 'b' },
  *   { timestamp: '2026-01-03', value: 10, baselineId: 'c' },
  * ]);
- * // trend.direction === 'improving' (findings decreasing)
- * // trend.slope < 0
+ * // trend.slope < 0 (values decreasing)
+ * // trend.rSquared close to 1 (linear pattern)
+ * // Agent decides: "For findingsCount, decreasing is good"
  * ```
  */
 export function getMetricTrend(
   metricName: string,
   values: TimeSeriesPoint[],
-  options: MetricTrendOptions = {}
+  _options: MetricTrendOptions = {}
 ): MetricTrend {
   if (values.length < 2) {
-    // Return stable trend for insufficient data
-    return createStableTrend(metricName, values);
+    // Return minimal trend for insufficient data
+    return createMinimalTrend(metricName, values);
   }
-
-  // Get thresholds
-  const slopeThreshold = options.slopeThreshold ?? DEFAULT_THRESHOLD_CONFIG.default;
-  const rSquaredThreshold = options.rSquaredThreshold ?? 0.5;
-  const lowerIsBetter = options.lowerIsBetter ?? isLowerBetterMetric(metricName);
 
   // Convert to regression points and calculate
   const points = timeSeriestoPoints(values);
@@ -93,32 +76,9 @@ export function getMetricTrend(
   const numericValues = values.map((v) => v.value);
   const stats = calculateStats(numericValues);
 
-  // Classify trend
-  let direction = classifyTrend(
-    regression.slope,
-    regression.rSquared,
-    slopeThreshold,
-    rSquaredThreshold
-  );
-
-  // Adjust direction interpretation based on metric semantics
-  if (lowerIsBetter) {
-    if (direction === 'improving') {
-      direction = 'degrading'; // For findings, increasing is degrading
-    } else if (direction === 'degrading') {
-      direction = 'improving'; // For findings, decreasing is improving
-    }
-    // Recalculate based on actual slope direction
-    if (regression.rSquared >= rSquaredThreshold) {
-      if (regression.slope < -slopeThreshold) {
-        direction = 'improving';
-      } else if (regression.slope > slopeThreshold) {
-        direction = 'degrading';
-      } else {
-        direction = 'stable';
-      }
-    }
-  }
+  // Calculate volatility (coefficient of variation)
+  // Higher volatility = more noise, less reliable trend
+  const volatility = stats.mean !== 0 ? stats.stdDev / Math.abs(stats.mean) : 0;
 
   // Get first and last values
   const firstValue = values[0]?.value ?? 0;
@@ -127,9 +87,10 @@ export function getMetricTrend(
 
   return {
     metricName,
-    direction,
     values,
     slope: regression.slope,
+    rSquared: regression.rSquared,
+    volatility,
     meanValue: stats.mean,
     standardDeviation: stats.stdDev,
     firstValue,
@@ -194,64 +155,65 @@ export function detectInflectionPoints(
   return inflections;
 }
 
-/**
- * Check if a metric is one where lower values are better.
- *
- * @param metricName - Name of the metric
- * @returns True if lower values indicate improvement
- */
-export function isLowerBetterMetric(metricName: string): boolean {
-  return LOWER_IS_BETTER_METRICS.has(metricName);
-}
+// Note: isLowerBetterMetric() was removed per ADR-0019.
+// The agent determines metric semantics based on context.
+// See INVERTED_METRICS in config.ts for optional context.
 
 /**
- * Calculate trend summary across multiple metrics.
+ * Calculate trend summary statistics across multiple metrics.
+ *
+ * Per ADR-0019, returns raw statistics. The agent interprets
+ * whether the overall trend is "improving" or "degrading".
  *
  * @param trends - Array of MetricTrend objects
- * @returns Summary with counts per direction
+ * @returns Summary with slope statistics and volatility counts
  */
 export function summarizeTrends(trends: MetricTrend[]): {
-  improving: number;
-  degrading: number;
-  stable: number;
-  volatile: number;
-  overall: 'improving' | 'degrading' | 'stable' | 'mixed';
+  /** Number of trends with slope > 0 (increasing values) */
+  slopePositiveCount: number;
+  /** Number of trends with slope < 0 (decreasing values) */
+  slopeNegativeCount: number;
+  /** Number of trends with slope ~= 0 (stable) */
+  slopeNearZeroCount: number;
+  /** Number of trends with high volatility (unreliable) */
+  highVolatilityCount: number;
+  /** Average R² across all trends (higher = more reliable) */
+  averageRSquared: number;
 } {
-  let improving = 0;
-  let degrading = 0;
-  let stable = 0;
-  let volatile = 0;
+  const SLOPE_THRESHOLD = 0.01;
+  const VOLATILITY_THRESHOLD = 0.5;
+
+  let slopePositiveCount = 0;
+  let slopeNegativeCount = 0;
+  let slopeNearZeroCount = 0;
+  let highVolatilityCount = 0;
+  let totalRSquared = 0;
 
   for (const trend of trends) {
-    switch (trend.direction) {
-      case 'improving':
-        improving++;
-        break;
-      case 'degrading':
-        degrading++;
-        break;
-      case 'stable':
-        stable++;
-        break;
-      case 'volatile':
-        volatile++;
-        break;
+    if (trend.volatility > VOLATILITY_THRESHOLD) {
+      highVolatilityCount++;
     }
+
+    if (Math.abs(trend.slope) < SLOPE_THRESHOLD) {
+      slopeNearZeroCount++;
+    } else if (trend.slope > 0) {
+      slopePositiveCount++;
+    } else {
+      slopeNegativeCount++;
+    }
+
+    totalRSquared += trend.rSquared;
   }
 
-  // Determine overall trend
-  let overall: 'improving' | 'degrading' | 'stable' | 'mixed';
-  if (improving > degrading && improving > stable) {
-    overall = 'improving';
-  } else if (degrading > improving && degrading > stable) {
-    overall = 'degrading';
-  } else if (stable > improving && stable > degrading) {
-    overall = 'stable';
-  } else {
-    overall = 'mixed';
-  }
+  const averageRSquared = trends.length > 0 ? totalRSquared / trends.length : 0;
 
-  return { improving, degrading, stable, volatile, overall };
+  return {
+    slopePositiveCount,
+    slopeNegativeCount,
+    slopeNearZeroCount,
+    highVolatilityCount,
+    averageRSquared,
+  };
 }
 
 // =============================================================================
@@ -259,17 +221,19 @@ export function summarizeTrends(trends: MetricTrend[]): {
 // =============================================================================
 
 /**
- * Create a stable trend for insufficient data.
+ * Create a minimal trend for insufficient data (< 2 points).
+ * Returns zero values for calculated statistics.
  */
-function createStableTrend(metricName: string, values: TimeSeriesPoint[]): MetricTrend {
+function createMinimalTrend(metricName: string, values: TimeSeriesPoint[]): MetricTrend {
   const firstValue = values[0]?.value ?? 0;
   const lastValue = values[values.length - 1]?.value ?? firstValue;
 
   return {
     metricName,
-    direction: 'stable',
     values,
     slope: 0,
+    rSquared: 0,
+    volatility: 0,
     meanValue: values.length > 0 ? values.reduce((sum, v) => sum + v.value, 0) / values.length : 0,
     standardDeviation: 0,
     firstValue,

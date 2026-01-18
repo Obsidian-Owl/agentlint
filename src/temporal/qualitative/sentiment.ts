@@ -21,7 +21,6 @@ import type {
   ReviewDimensionName,
   SentimentPoint,
 } from '../types';
-import { REVIEW_DIMENSIONS, type DimensionDefinition } from './dimensions';
 
 /**
  * Valid Likert scale sentiment values.
@@ -40,19 +39,9 @@ export interface SentimentOptions {
   precision?: number;
 }
 
-/**
- * Result of analyzing sentiment indicators in text.
- */
-export interface SentimentIndicatorAnalysis {
-  /** Positive indicators found in text */
-  positiveMatches: string[];
-  /** Negative indicators found in text */
-  negativeMatches: string[];
-  /** Net score based on indicator counts */
-  indicatorScore: number;
-  /** Suggested sentiment based on indicators */
-  suggestedSentiment: SentimentValue;
-}
+// Note: SentimentIndicatorAnalysis was removed per ADR-0019.
+// Sentiment analysis through keyword matching is a judgment call
+// that should be made by the agent, not tool code.
 
 /**
  * Calculate the overall sentiment from review dimensions.
@@ -127,110 +116,39 @@ export function clampSentiment(value: number): SentimentValue {
   return Math.round(value) as SentimentValue;
 }
 
-/**
- * Get sentiment label for a numeric value.
- *
- * @param sentiment - Sentiment value (-2 to +2)
- * @returns Human-readable label
- */
-export function getSentimentLabel(sentiment: number): string {
-  if (sentiment <= -1.5) return 'Very Negative';
-  if (sentiment <= -0.5) return 'Negative';
-  if (sentiment < 0.5) return 'Neutral';
-  if (sentiment < 1.5) return 'Positive';
-  return 'Very Positive';
-}
-
-/**
- * Get sentiment emoji for display.
- *
- * @param sentiment - Sentiment value (-2 to +2)
- * @returns Emoji representing the sentiment
- */
-export function getSentimentEmoji(sentiment: number): string {
-  if (sentiment <= -1.5) return '😢';
-  if (sentiment <= -0.5) return '😕';
-  if (sentiment < 0.5) return '😐';
-  if (sentiment < 1.5) return '🙂';
-  return '😊';
-}
-
-/**
- * Analyze text for sentiment indicators from dimension definitions.
- *
- * Searches for positive and negative indicator words defined in dimensions.ts
- * to provide a hint about the sentiment of a response.
- *
- * @param text - Text to analyze
- * @param dimension - Optional specific dimension to use indicators from
- * @returns Analysis result with matched indicators and suggested sentiment
- */
-export function analyzeSentimentIndicators(
-  text: string,
-  dimension?: DimensionDefinition
-): SentimentIndicatorAnalysis {
-  const lowerText = text.toLowerCase();
-  const positiveMatches: string[] = [];
-  const negativeMatches: string[] = [];
-
-  // Get indicators from specific dimension or all dimensions
-  const dimensions = dimension ? [dimension] : REVIEW_DIMENSIONS;
-
-  for (const dim of dimensions) {
-    for (const indicator of dim.positiveIndicators) {
-      if (lowerText.includes(indicator.toLowerCase())) {
-        if (!positiveMatches.includes(indicator)) {
-          positiveMatches.push(indicator);
-        }
-      }
-    }
-    for (const indicator of dim.negativeIndicators) {
-      if (lowerText.includes(indicator.toLowerCase())) {
-        if (!negativeMatches.includes(indicator)) {
-          negativeMatches.push(indicator);
-        }
-      }
-    }
-  }
-
-  // Calculate net score
-  const indicatorScore = positiveMatches.length - negativeMatches.length;
-
-  // Suggest sentiment based on balance
-  let suggestedSentiment: SentimentValue;
-  if (indicatorScore >= 3) {
-    suggestedSentiment = 2;
-  } else if (indicatorScore >= 1) {
-    suggestedSentiment = 1;
-  } else if (indicatorScore <= -3) {
-    suggestedSentiment = -2;
-  } else if (indicatorScore <= -1) {
-    suggestedSentiment = -1;
-  } else {
-    suggestedSentiment = 0;
-  }
-
-  return {
-    positiveMatches,
-    negativeMatches,
-    indicatorScore,
-    suggestedSentiment,
-  };
-}
+// =============================================================================
+// Note: Judgment functions removed per ADR-0019
+// =============================================================================
+//
+// The following functions were removed because they make judgment calls
+// that should be made by the agent, not tool code:
+//
+// - getSentimentLabel(): Converts numeric sentiment to labels
+// - getSentimentEmoji(): Converts numeric sentiment to emojis
+// - analyzeSentimentIndicators(): Keyword-based sentiment analysis
+//
+// The agent interprets sentiment values based on:
+// - Semantic understanding of responses
+// - Project context
+// - User preferences
+//
+// See ADR-0019: Tool/Agent Boundary for Temporal Analysis
 
 /**
  * Calculate sentiment trend from a series of reviews.
  *
- * Uses simple linear regression to determine if sentiment is improving,
- * degrading, or stable over time.
+ * Uses simple linear regression to calculate slope. Per ADR-0019, the agent
+ * interprets whether the trend represents improvement or degradation.
  *
  * @param reviews - Array of reviews sorted by createdAt
  * @param dimensionName - Optional dimension to analyze (default: overall)
- * @returns Trend analysis for the dimension
+ * @param slopeThreshold - Threshold for slope significance (default: 0.005)
+ * @returns Trend analysis for the dimension with slope and significance
  */
 export function calculateSentimentTrend(
   reviews: QualitativeReview[],
-  dimensionName?: ReviewDimensionName
+  dimensionName?: ReviewDimensionName,
+  slopeThreshold: number = 0.005
 ): QualitativeTrend | null {
   if (reviews.length < 2) {
     return null;
@@ -284,55 +202,41 @@ export function calculateSentimentTrend(
   const denominator = n * sumX2 - sumX * sumX;
   const slope = denominator !== 0 ? (n * sumXY - sumX * sumY) / denominator : 0;
 
-  // Classify trend direction
-  // A slope of 0.01 per day would be significant over a month
-  const slopeThreshold = 0.005;
-  let direction: 'improving' | 'degrading' | 'stable';
-
-  if (slope > slopeThreshold) {
-    direction = 'improving';
-  } else if (slope < -slopeThreshold) {
-    direction = 'degrading';
-  } else {
-    direction = 'stable';
-  }
+  // Determine if slope exceeds significance threshold
+  // The agent interprets whether positive/negative slope means improvement
+  const slopeSignificant = Math.abs(slope) > slopeThreshold;
 
   return {
     dimension: dimensionName ?? 'workflowSatisfaction',
-    direction,
     values,
     slope: Math.round(slope * 1000) / 1000, // Round to 3 decimal places
+    slopeSignificant,
   };
 }
 
 /**
  * Compare sentiment between two reviews.
  *
+ * Per ADR-0019, returns raw change values. The agent interprets
+ * whether the change represents improvement or degradation.
+ *
  * @param before - Earlier review
  * @param after - Later review
- * @returns Change in overall sentiment
+ * @returns Change in overall sentiment and per-dimension changes
  */
 export function compareSentiment(
   before: QualitativeReview,
   after: QualitativeReview
 ): {
+  /** Overall sentiment change (positive = increased, negative = decreased) */
   change: number;
-  direction: 'improved' | 'degraded' | 'unchanged';
+  /** Changes per dimension */
   dimensionChanges: Array<{
     dimension: ReviewDimensionName;
     change: number;
   }>;
 } {
   const change = after.overallSentiment - before.overallSentiment;
-
-  let direction: 'improved' | 'degraded' | 'unchanged';
-  if (change > 0.1) {
-    direction = 'improved';
-  } else if (change < -0.1) {
-    direction = 'degraded';
-  } else {
-    direction = 'unchanged';
-  }
 
   // Calculate per-dimension changes
   const dimensionChanges: Array<{ dimension: ReviewDimensionName; change: number }> = [];
@@ -350,7 +254,7 @@ export function compareSentiment(
     }
   }
 
-  return { change, direction, dimensionChanges };
+  return { change, dimensionChanges };
 }
 
 /**

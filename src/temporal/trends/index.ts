@@ -22,19 +22,23 @@ export {
   timeSeriestoPoints,
   timeSeriestoTimeWeightedPoints,
   predict,
-  classifyTrend,
   calculateStats,
 } from './regression';
 export type { RegressionResult, Point } from './regression';
+
+// Note: classifyTrend was removed per ADR-0019.
+// The agent interprets trend direction based on slope and rSquared.
 
 // Metric trend calculation
 export {
   getMetricTrend,
   detectInflectionPoints,
-  isLowerBetterMetric,
   summarizeTrends,
 } from './metric-trend';
 export type { MetricTrendOptions } from './metric-trend';
+
+// Note: isLowerBetterMetric was removed per ADR-0019.
+// See INVERTED_METRICS in config.ts for optional context.
 
 // Trend analysis builder
 export {

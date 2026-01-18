@@ -27,10 +27,13 @@ export {
   getTrendIndicator,
   createTrendIndicator,
   createMetricChangeWithTrend,
-  determineOverallTrendFromChanges,
+  countChangesByDirection,
   isInvertedMetric,
   getDirectionSymbol,
   isDirectionImprovement,
 } from './trends';
 
-export type { Direction, ChangeClassification, TrendIndicatorResult } from './trends';
+export type { Direction, TrendIndicatorResult } from './trends';
+
+// Note: determineOverallTrendFromChanges and ChangeClassification were
+// removed per ADR-0019. Use countChangesByDirection instead.

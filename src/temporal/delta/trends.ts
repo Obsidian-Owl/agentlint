@@ -8,7 +8,7 @@
  */
 
 import type { ThresholdConfig, TrendIndicator, MetricChange } from '../types';
-import { isSignificantChange, isImprovement, INVERTED_METRICS } from '../config';
+import { isSignificantChange, INVERTED_METRICS } from '../config';
 
 // =============================================================================
 // Types
@@ -20,22 +20,18 @@ import { isSignificantChange, isImprovement, INVERTED_METRICS } from '../config'
 export type Direction = '↑' | '↓' | '→';
 
 /**
- * Classification of metric change.
- */
-export type ChangeClassification = 'improved' | 'regressed' | 'unchanged';
-
-/**
  * Result of trend indicator calculation.
+ *
+ * Per ADR-0019, returns raw direction and statistics. The agent
+ * determines whether a change is an improvement based on context.
  */
 export interface TrendIndicatorResult {
-  /** Direction arrow */
+  /** Direction arrow showing raw change direction */
   direction: Direction;
-  /** Whether this is an improvement */
-  isImprovement: boolean;
   /** Whether the change is significant */
   isSignificant: boolean;
-  /** Classification of the change */
-  classification: ChangeClassification;
+  /** Whether this metric is inverted (lower is typically better) */
+  isInverted: boolean;
   /** Absolute change */
   change: number;
   /** Percentage change (0-100 scale) */
@@ -44,6 +40,9 @@ export interface TrendIndicatorResult {
   label: string;
 }
 
+// Note: ChangeClassification and isImprovement were removed per ADR-0019.
+// The agent determines classification based on context.
+
 // =============================================================================
 // Public API
 // =============================================================================
@@ -51,16 +50,20 @@ export interface TrendIndicatorResult {
 /**
  * Get trend indicator for a metric change.
  *
+ * Per ADR-0019, returns raw direction and statistics. The agent
+ * determines whether a change is an improvement based on context.
+ *
  * @param from - Previous value
  * @param to - Current value
  * @param metricName - Name of the metric (for threshold lookup)
  * @param thresholds - Optional threshold configuration
- * @returns Trend indicator result with direction and classification
+ * @returns Trend indicator result with direction and statistics
  *
  * @example
  * ```typescript
  * const result = getTrendIndicator(100, 90, 'avgTokensPerSession');
- * // { direction: '↓', isImprovement: true, isSignificant: true, ... }
+ * // { direction: '↓', isSignificant: true, isInverted: true, ... }
+ * // Agent interprets: "For avgTokensPerSession, ↓ is typically good"
  * ```
  */
 export function getTrendIndicator(
@@ -72,9 +75,9 @@ export function getTrendIndicator(
   const change = to - from;
   const percentChange = calculatePercentChange(from, to);
   const significant = isSignificantChange(from, to, metricName, thresholds);
-  const improved = isImprovement(from, to, metricName, thresholds);
+  const isInverted = INVERTED_METRICS.has(metricName);
 
-  // Determine direction
+  // Determine direction (raw change direction, not interpretation)
   let direction: Direction;
   if (!significant || Math.abs(change) < 0.001) {
     direction = '→';
@@ -84,24 +87,13 @@ export function getTrendIndicator(
     direction = '↓';
   }
 
-  // Classify the change
-  let classification: ChangeClassification;
-  if (!significant) {
-    classification = 'unchanged';
-  } else if (improved) {
-    classification = 'improved';
-  } else {
-    classification = 'regressed';
-  }
-
-  // Build label
-  const label = formatTrendLabel(metricName, direction, percentChange, improved);
+  // Build label (raw description without improvement judgment)
+  const label = formatTrendLabel(metricName, direction, percentChange, isInverted);
 
   return {
     direction,
-    isImprovement: improved,
     isSignificant: significant,
-    classification,
+    isInverted,
     change,
     percentChange,
     label,
@@ -135,6 +127,8 @@ export function createTrendIndicator(
 /**
  * Create a MetricChange object with full analysis.
  *
+ * Per ADR-0019, returns raw direction. Agent interprets improvement.
+ *
  * @param name - Metric name
  * @param from - Previous value
  * @param to - Current value
@@ -156,44 +150,45 @@ export function createMetricChangeWithTrend(
     change: result.change,
     percentChange: result.percentChange,
     direction: result.direction,
-    isImprovement: result.isImprovement,
   };
 }
 
 /**
- * Determine overall trend from multiple metric changes.
+ * Count metric changes by direction.
+ *
+ * Per ADR-0019, returns raw counts. The agent interprets
+ * whether the overall trend is positive or negative.
  *
  * @param changes - Array of metric changes
- * @returns Aggregate trend direction
+ * @returns Counts of changes by direction
  */
-export function determineOverallTrendFromChanges(
-  changes: MetricChange[]
-): 'improved' | 'regressed' | 'unchanged' {
-  if (changes.length === 0) {
-    return 'unchanged';
-  }
-
-  let improvements = 0;
-  let regressions = 0;
+export function countChangesByDirection(changes: MetricChange[]): {
+  /** Number of metrics that increased */
+  increased: number;
+  /** Number of metrics that decreased */
+  decreased: number;
+  /** Number of metrics unchanged */
+  unchanged: number;
+} {
+  let increased = 0;
+  let decreased = 0;
+  let unchanged = 0;
 
   for (const change of changes) {
-    if (change.direction === '→') {
-      continue; // Unchanged doesn't count
-    }
-    if (change.isImprovement) {
-      improvements++;
+    if (change.direction === '↑') {
+      increased++;
+    } else if (change.direction === '↓') {
+      decreased++;
     } else {
-      regressions++;
+      unchanged++;
     }
   }
 
-  if (improvements > regressions) {
-    return 'improved';
-  } else if (regressions > improvements) {
-    return 'regressed';
-  }
-  return 'unchanged';
+  return { increased, decreased, unchanged };
 }
+
+// Note: determineOverallTrendFromChanges was removed per ADR-0019.
+// The agent determines overall trend based on counts and context.
 
 /**
  * Check if a metric is inverted (lower is better).
@@ -254,12 +249,14 @@ function calculatePercentChange(from: number, to: number): number {
 
 /**
  * Format a human-readable trend label.
+ *
+ * Per ADR-0019, returns raw direction info. The agent interprets meaning.
  */
 function formatTrendLabel(
   metricName: string,
   direction: Direction,
   percentChange: number,
-  isImprovement: boolean
+  isInverted: boolean
 ): string {
   const formattedName = formatMetricName(metricName);
 
@@ -269,9 +266,10 @@ function formatTrendLabel(
 
   const directionWord = direction === '↑' ? 'increased' : 'decreased';
   const formattedPercent = Math.abs(percentChange).toFixed(1);
-  const sentiment = isImprovement ? '(improved)' : '(regressed)';
+  // Provide context but don't judge - agent interprets
+  const context = isInverted ? '(lower typically better)' : '(higher typically better)';
 
-  return `${formattedName}: ${directionWord} ${formattedPercent}% ${sentiment}`;
+  return `${formattedName}: ${directionWord} ${formattedPercent}% ${context}`;
 }
 
 /**
