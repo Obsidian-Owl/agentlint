@@ -13,3 +13,4 @@ export { TOOL_DESCRIPTIONS } from './descriptions';
 export { storeBaselineTool } from './store-baseline';
 export { queryBaselineTool } from './query-baseline';
 export { listBaselinesTool } from './list-baselines';
+export { calculateDeltaTool } from './calculate-delta';

@@ -12,6 +12,7 @@ export {
   isGitRepository,
   getRepositoryRoot,
   getCurrentBranch,
+  getCommitsBetweenDates,
 } from './git';
 
 export type { GitCommitInfo, GitOptions } from './git';

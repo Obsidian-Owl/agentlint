@@ -287,3 +287,68 @@ export async function getCurrentBranch(options: GitOptions = {}): Promise<string
     return null;
   }
 }
+
+/**
+ * Get commits between two dates.
+ *
+ * Returns commit messages (short format) for commits in the date range.
+ *
+ * @param after - Start date (ISO-8601)
+ * @param before - End date (ISO-8601)
+ * @param options - Git options
+ * @returns Array of commit messages (shortHash: subject)
+ *
+ * @example
+ * ```typescript
+ * const commits = await getCommitsBetweenDates(
+ *   '2026-01-01T00:00:00Z',
+ *   '2026-01-15T00:00:00Z'
+ * );
+ * console.log(`${commits.length} commits in range`);
+ * ```
+ */
+export async function getCommitsBetweenDates(
+  after: string,
+  before: string,
+  options: GitOptions = {}
+): Promise<string[]> {
+  const cwd = options.cwd ?? process.cwd();
+
+  try {
+    const proc = Bun.spawn(
+      ['git', 'log', `--after=${after}`, `--before=${before}`, '--format=%h: %s', '--reverse'],
+      {
+        cwd,
+        stdout: 'pipe',
+        stderr: 'pipe',
+      }
+    );
+
+    // Handle timeout
+    const timeoutMs = options.timeout ?? DEFAULT_TIMEOUT;
+    const timeoutPromise = new Promise<string[]>((resolve) => {
+      setTimeout(() => {
+        proc.kill();
+        resolve([]);
+      }, timeoutMs);
+    });
+
+    const resultPromise = (async (): Promise<string[]> => {
+      const output = await new Response(proc.stdout).text();
+      const exitCode = await proc.exited;
+
+      if (exitCode !== 0) {
+        return [];
+      }
+
+      return output
+        .trim()
+        .split('\n')
+        .filter((line) => line.length > 0);
+    })();
+
+    return await Promise.race([resultPromise, timeoutPromise]);
+  } catch {
+    return [];
+  }
+}
