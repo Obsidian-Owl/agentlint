@@ -58,6 +58,14 @@ describe('Quickstart: Tool Registration', () => {
       expect(tool.description.length).toBeGreaterThan(10);
     }
   });
+
+  test('all tools have input schemas', () => {
+    // Tools use Claude Agent SDK tool() which provides inputSchema
+    for (const tool of EP09_TEMPORAL_TOOLS) {
+      expect(tool.inputSchema).toBeDefined();
+      // SDK tools have inputSchema as the raw Zod shape, not JSON Schema
+    }
+  });
 });
 
 // =============================================================================
@@ -71,6 +79,14 @@ describe('Quickstart: store_baseline', () => {
 
   test('tool has inputSchema defined', () => {
     expect(storeBaselineTool.inputSchema).toBeDefined();
+  });
+
+  test('tool accepts documented parameters', () => {
+    // From quickstart.md: store_baseline accepts label (optional)
+    // SDK tools have inputSchema as the raw Zod shape object
+    const schema = storeBaselineTool.inputSchema as Record<string, unknown>;
+    expect(schema).toBeDefined();
+    expect(schema.label).toBeDefined(); // label is documented as optional parameter
   });
 });
 
@@ -102,6 +118,15 @@ describe('Quickstart: calculate_delta', () => {
   test('tool has inputSchema defined', () => {
     expect(calculateDeltaTool.inputSchema).toBeDefined();
   });
+
+  test('tool accepts documented parameters', () => {
+    // From quickstart.md: calculate_delta accepts fromId, toId, includeGitCommits, detailedDiff
+    // SDK tools have inputSchema as the raw Zod shape object
+    const schema = calculateDeltaTool.inputSchema as Record<string, unknown>;
+    expect(schema).toBeDefined();
+    expect(schema.fromId).toBeDefined();
+    expect(schema.toId).toBeDefined();
+  });
 });
 
 describe('Quickstart: query_trends', () => {
@@ -121,6 +146,14 @@ describe('Quickstart: conduct_review', () => {
 
   test('tool has inputSchema defined', () => {
     expect(conductReviewTool.inputSchema).toBeDefined();
+  });
+
+  test('tool accepts documented parameters', () => {
+    // From quickstart.md: conduct_review accepts dimensions array with scores
+    // SDK tools have inputSchema as the raw Zod shape object
+    const schema = conductReviewTool.inputSchema as Record<string, unknown>;
+    expect(schema).toBeDefined();
+    expect(schema.dimensions).toBeDefined();
   });
 });
 
@@ -201,5 +234,22 @@ describe('Quickstart: Storage Locations', () => {
     // Functions exist and return strings
     expect(typeof getBaselinesDir).toBe('function');
     expect(typeof getBaselinesDbPath).toBe('function');
+  });
+
+  test('baselines directory path matches documentation', () => {
+    const baselinesDir = getBaselinesDir();
+
+    // Path should contain .agentlint/baselines as documented
+    expect(baselinesDir).toContain('.agentlint');
+    expect(baselinesDir).toContain('baselines');
+    expect(baselinesDir).not.toContain('.db'); // Directory, not DB file
+  });
+
+  test('baselines database path matches documentation', () => {
+    const dbPath = getBaselinesDbPath();
+
+    // Path should be .agentlint/baselines.db as documented
+    expect(dbPath).toContain('.agentlint');
+    expect(dbPath).toContain('baselines.db');
   });
 });

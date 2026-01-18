@@ -31,7 +31,7 @@
 │  └────────────────────────────────┬────────────────────────────────┘    │
 │  ┌────────────────────────────────▼────────────────────────────────┐    │
 │  │ PERSISTENCE LAYER                                               │    │
-│  │ Baselines • Learnings • Session State • Configuration           │    │
+│  │ Baselines • Reviews • Tracking • Learnings • Session State      │    │
 │  └────────────────────────────────┬────────────────────────────────┘    │
 │  ┌────────────────────────────────▼────────────────────────────────┐    │
 │  │ INTEGRATION LAYER                                               │    │
@@ -50,7 +50,7 @@
 | **Orchestration** | Agent reasoning, tool selection, finding synthesis |
 | **Tool** | Deterministic data gathering, scoped writing |
 | **Adapter** | ACT-specific abstraction (config locations, log formats) |
-| **Persistence** | Local storage (baselines, learnings, state) |
+| **Persistence** | Local storage (baselines, reviews, tracking, learnings, state) |
 | **Integration** | External interfaces (filesystem, git, LLM API) |
 
 ---
@@ -171,13 +171,15 @@ src/cli/
 | **Config Analysis (EP05)** | `discover_configs`, `parse_config`, `analyze_hierarchy` |
 | **Session Analysis (EP06)** | `search_sessions`, `get_session_stats` |
 | **Causal Analysis (EP07)** | `trace_issue_origin`, `get_issue_patterns` |
+| **Temporal Analysis (EP09)** | `store_baseline`, `query_baseline`, `list_baselines`, `calculate_delta`, `query_trends`, `conduct_review`, `get_review_history` |
 | **Git Analysis** | `query_git` |
-| **Baseline** | `store_baseline`, `query_baseline`, `list_baselines` |
 | **Recommendation** | `store_recommendation`, `list_recommendations`, `update_recommendation` |
 | **Learning** | `store_learning`, `list_learnings`, `promote_learning` |
 | **Utility** | `retrieve_result`, `agentlint_write` |
 
 **Design Principles**: Atomic operations, structured output, error transparency, poka-yoke.
+
+**Tool/Agent Boundary**: Per [ADR-0019](../adr/0019-tool-agent-boundary-temporal.md), tools provide DATA (metrics, diffs, statistics) while the agent provides JUDGMENT (improvement assessment, trend interpretation, semantic understanding).
 
 ---
 
@@ -498,6 +500,194 @@ Overall confidence: `high` (5-6 factors), `medium` (3-4), `low` (0-2)
 
 ---
 
+## Level 3: Temporal Analysis Tools (EP09)
+
+The temporal analysis module provides longitudinal tracking of workflow effectiveness through mixed-methods measurement—combining quantitative metrics with structured qualitative reviews.
+
+```
+src/temporal/
+├── index.ts                    Public exports + type re-exports
+├── types.ts                    Core type definitions (Delta, Trend, Review, etc.)
+├── config.ts                   Threshold configuration + metric metadata
+├── errors.ts                   Domain-specific error classes
+│
+├── tools/                      SDK tool definitions
+│   ├── index.ts                Tool exports
+│   ├── descriptions.ts         Rich tool descriptions (poka-yoke)
+│   ├── store-baseline.ts       store_baseline tool
+│   ├── query-baseline.ts       query_baseline tool
+│   ├── list-baselines.ts       list_baselines tool
+│   ├── calculate-delta.ts      calculate_delta tool
+│   ├── query-trends.ts         query_trends tool
+│   ├── conduct-review.ts       conduct_review tool
+│   ├── get-review-history.ts   get_review_history tool
+│   └── spawn-analyst.ts        spawn_temporal_analyst tool
+│
+├── delta/                      Baseline comparison
+│   ├── calculator.ts           jsondiffpatch-based delta computation
+│   ├── summarizer.ts           Human-readable delta summaries
+│   └── trends.ts               Change direction extraction
+│
+├── trends/                     Time-series analysis
+│   ├── aggregator.ts           Metric aggregation across baselines
+│   ├── regression.ts           Linear regression + slope calculation
+│   ├── metric-trend.ts         Per-metric trend computation
+│   ├── analysis.ts             TrendAnalysis builder
+│   └── inflection.ts           Inflection point detection
+│
+├── qualitative/                Structured reviews
+│   ├── dimensions.ts           6 review dimensions with prompts
+│   ├── sentiment.ts            Likert scale calculations
+│   ├── trend.ts                Sentiment trend over reviews
+│   └── alignment.ts            Quant/qual alignment detection
+│
+├── tracking/                   Recommendation tracking
+│   ├── detector.ts             Evidence extraction from config diffs
+│   ├── effectiveness.ts        Pre/post baseline comparison
+│   └── api.ts                  High-level tracking operations
+│
+├── correlation/                Git correlation
+│   └── git-history.ts          Commit correlation for inflection points
+│
+├── reminders/                  Review triggers
+│   └── triggers.ts             Time/change-based review prompts
+│
+├── subagent/                   Temporal analyzer subagent
+│   ├── types.ts                Subagent type definitions
+│   └── temporal-subagent.ts    Agent prompt + builder
+│
+└── utils/                      Shared utilities
+    └── git.ts                  Git command helpers
+```
+
+| Module | Responsibility |
+|--------|----------------|
+| `tools/` | SDK tool definitions following ADR-0005 patterns |
+| `delta/` | Computes raw deltas between baselines (data, not judgment) |
+| `trends/` | Statistical analysis: slope, R², volatility, inflection points |
+| `qualitative/` | Dimension definitions, sentiment calculations, alignment checks |
+| `tracking/` | Evidence extraction for recommendation implementation detection |
+| `correlation/` | Git commit correlation for causal analysis |
+| `reminders/` | Heuristics for suggesting qualitative reviews |
+| `subagent/` | Temporal analyzer subagent for trend interpretation |
+
+### EP09 Tool Definitions
+
+| Tool | Description |
+|------|-------------|
+| `store_baseline` | Captures current workflow state as a baseline with metrics and findings |
+| `query_baseline` | Retrieves a specific baseline by ID with full metrics |
+| `list_baselines` | Lists available baselines with filtering by date range and labels |
+| `calculate_delta` | Computes differences between two baselines with change summaries |
+| `query_trends` | Analyzes metric trends over time with regression statistics |
+| `conduct_review` | Facilitates structured qualitative review across 6 dimensions |
+| `get_review_history` | Retrieves qualitative reviews with sentiment trends |
+
+### Tool/Agent Boundary (ADR-0019)
+
+Per [ADR-0019](../adr/0019-tool-agent-boundary-temporal.md), temporal tools provide DATA while the agent provides JUDGMENT:
+
+| Tool Provides | Agent Reasons About |
+|--------------|---------------------|
+| Raw metric deltas | "Is this an improvement?" |
+| Slope, R², volatility | "Is this trend significant?" |
+| Evidence with weights | "Was this recommendation implemented?" |
+| Change counts | "What's the overall trajectory?" |
+| Sentiment values | "What does this mean for workflow health?" |
+
+**Removed functions** (per ADR-0019): `isImprovement()`, `determineOverallTrend()`, `detectImplementation()`, `getSuggestedStatus()`, `generateExplanation()`, `classifyTrend()`, `getSentimentLabel()`
+
+### Key Entity Types
+
+```typescript
+interface BaselineDelta {
+  fromId: string;                // Source baseline
+  toId: string;                  // Target baseline
+  delta: DiffPatcher.Delta;      // jsondiffpatch output
+  summary: DeltaSummary;         // Human-readable changes
+}
+
+interface DeltaSummary {
+  metricsChanged: MetricChange[];
+  warningsAdded: string[];
+  warningsResolved: string[];
+  recommendationsAdded: string[];
+  recommendationsResolved: string[];
+  trendIndicators: TrendIndicator[];
+  changeCounts: { increased: number; decreased: number; unchanged: number };
+}
+
+interface TrendAnalysis {
+  projectPath: string;
+  dateRange: DateRange;
+  baselines: BaselineSummary[];
+  metricTrends: MetricTrend[];    // Per-metric: slope, R², direction
+  inflectionPoints: InflectionPoint[];
+  summary: TrendSummary;
+}
+
+interface QualitativeReview {
+  id: string;
+  baselineId: string;
+  createdAt: string;
+  dimensions: ReviewDimension[];  // 6 dimensions with sentiment + text
+  overallSentiment: number;       // -2 to +2 Likert scale
+  themes: string[];               // Extracted themes
+}
+
+interface MatchEvidence {
+  evidence: DetectionEvidence[];  // Raw evidence items
+  totalWeight: number;            // Aggregate weight for agent
+  keywordMatches: string[];
+  fileMatches: string[];
+  patternMatches: string[];
+}
+```
+
+### Review Dimensions
+
+| Dimension | Signal Type | Purpose |
+|-----------|-------------|---------|
+| `perceivedFriction` | Leading | Predict workflow issues |
+| `trustCalibration` | Leading | Agent reliability perception |
+| `taskFit` | Lagging | Tool-task alignment |
+| `configurationConfidence` | Qualitative | Setup effectiveness |
+| `improvementAttribution` | Causal | Change impact awareness |
+| `workflowSatisfaction` | Lagging | Overall experience |
+
+### Persistence Layer Integration
+
+Temporal analysis extends the persistence layer with:
+
+```
+src/persistence/
+├── reviews/                    Qualitative review storage
+│   ├── storage.ts              JSON file operations (save, load, delete)
+│   ├── indexer.ts              SQLite index for queries
+│   └── schema.sql              Review index schema
+│
+└── tracking/                   Recommendation tracking storage
+    ├── storage.ts              JSON file operations
+    └── indexer.ts              SQLite index for queries
+```
+
+Storage locations:
+- Baselines: `.agentlint/baselines/{id}.json`
+- Reviews: `.agentlint/reviews/{id}.json`
+- Tracking: `.agentlint/tracking/{id}.json`
+- Index: `.agentlint/temporal.db`
+
+### Performance Characteristics (NFR)
+
+| Metric | Target | Implementation |
+|--------|--------|----------------|
+| Delta calculation | <500ms | jsondiffpatch in-memory |
+| Trend analysis | <2s for 100 baselines | SQLite aggregation + linear regression |
+| Review storage | <100ms | Atomic JSON writes |
+| Inflection detection | <1s | Statistical analysis on time series |
+
+---
+
 ## Level 2: Adapter Layer
 
 ```
@@ -546,6 +736,8 @@ src/act/
 |----------|-----------|----------|-------|
 | `claude-code-analyzer` | claude-code | 100 | discover_configs, parse_config, analyze_hierarchy, search_sessions, get_session_stats |
 | `generalized-analyzer` | agents-md, unknown | 10 | discover_configs, parse_config |
+| `temporal-analyzer` | temporal | 75 | store_baseline, query_baseline, list_baselines, calculate_delta, query_trends, conduct_review, get_review_history |
+| `temporal-analyzer-readonly` | temporal | 50 | query_baseline, list_baselines, calculate_delta, query_trends, get_review_history |
 
 ### Key Entity Types
 

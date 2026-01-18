@@ -159,19 +159,22 @@ describe.skipIf(SKIP_LIVE_TESTS)('Temporal API Integration', () => {
     console.log(`\n📝 Subagent query response (${text.length} chars):`);
     console.log(text.slice(0, 500));
 
-    // We should get messages from the SDK - text extraction may vary
+    // We should get messages from the SDK - this validates the integration works
+    // Note: Text extraction may not capture all SDK response formats, so we
+    // primarily assert on receiving messages. The console.log above shows
+    // the actual response for debugging when needed.
     expect(messages.length).toBeGreaterThan(0);
 
-    // If we got text back, verify it mentions temporal/analyzer/trend
-    // This check is conditional since SDK response format may vary
+    // If we got extractable text, verify it mentions relevant concepts
     if (text.length > 0) {
       const lowerText = text.toLowerCase();
-      expect(
+      const hasRelevantContent =
         lowerText.includes('temporal') ||
-          lowerText.includes('analyzer') ||
-          lowerText.includes('trend') ||
-          lowerText.includes('agent')
-      ).toBe(true);
+        lowerText.includes('analyzer') ||
+        lowerText.includes('trend') ||
+        lowerText.includes('agent') ||
+        lowerText.includes('subagent');
+      expect(hasRelevantContent).toBe(true);
     }
   }, 30000);
 });

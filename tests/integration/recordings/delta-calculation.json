@@ -38,8 +38,7 @@
                   "to": 8,
                   "change": -17,
                   "percentChange": -68.0,
-                  "direction": "↓",
-                  "isImprovement": true
+                  "direction": "↓"
                 },
                 {
                   "name": "criticalCount",
@@ -47,8 +46,7 @@
                   "to": 0,
                   "change": -3,
                   "percentChange": -100.0,
-                  "direction": "↓",
-                  "isImprovement": true
+                  "direction": "↓"
                 },
                 {
                   "name": "highCount",
@@ -56,8 +54,7 @@
                   "to": 2,
                   "change": -5,
                   "percentChange": -71.43,
-                  "direction": "↓",
-                  "isImprovement": true
+                  "direction": "↓"
                 },
                 {
                   "name": "coverageScore",
@@ -65,8 +62,7 @@
                   "to": 85,
                   "change": 20,
                   "percentChange": 30.77,
-                  "direction": "↑",
-                  "isImprovement": true
+                  "direction": "↑"
                 }
               ],
               "warningsAdded": [],
@@ -90,7 +86,7 @@
                   "label": "Coverage improved by 20 points"
                 }
               ],
-              "overallTrend": "improved"
+              "changeCounts": { "increased": 1, "decreased": 3, "unchanged": 0 }
             },
             "gitCommitsInRange": [
               "abc1234 - Refactor config structure",
@@ -136,8 +132,7 @@
                   "to": 15,
                   "change": 7,
                   "percentChange": 87.5,
-                  "direction": "↑",
-                  "isImprovement": false
+                  "direction": "↑"
                 },
                 {
                   "name": "criticalCount",
@@ -145,8 +140,7 @@
                   "to": 2,
                   "change": 2,
                   "percentChange": 100.0,
-                  "direction": "↑",
-                  "isImprovement": false
+                  "direction": "↑"
                 },
                 {
                   "name": "coverageScore",
@@ -154,8 +148,7 @@
                   "to": 72,
                   "change": -13,
                   "percentChange": -15.29,
-                  "direction": "↓",
-                  "isImprovement": false
+                  "direction": "↓"
                 }
               ],
               "warningsAdded": ["New critical issues detected", "Coverage regression"],
@@ -182,7 +175,7 @@
                   "label": "Coverage regressed by 13 points"
                 }
               ],
-              "overallTrend": "regressed"
+              "changeCounts": { "increased": 2, "decreased": 1, "unchanged": 0 }
             },
             "gitCommitsInRange": [
               "jkl3456 - Quick fix for production issue",
@@ -227,8 +220,7 @@
                   "to": 17,
                   "change": 2,
                   "percentChange": 13.33,
-                  "direction": "→",
-                  "isImprovement": true
+                  "direction": "→"
                 }
               ],
               "warningsAdded": [],
@@ -242,7 +234,7 @@
                   "label": "No significant changes"
                 }
               ],
-              "overallTrend": "unchanged"
+              "changeCounts": { "increased": 1, "decreased": 0, "unchanged": 0 }
             }
           }
         }
@@ -344,8 +336,7 @@
                   "to": 8,
                   "change": -17,
                   "percentChange": -68.0,
-                  "direction": "↓",
-                  "isImprovement": true
+                  "direction": "↓"
                 }
               ],
               "warningsAdded": [],
@@ -353,7 +344,7 @@
               "recommendationsAdded": [],
               "recommendationsResolved": [],
               "trendIndicators": [],
-              "overallTrend": "improved"
+              "changeCounts": { "increased": 0, "decreased": 1, "unchanged": 0 }
             }
           }
         }
