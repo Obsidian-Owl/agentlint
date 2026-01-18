@@ -26,3 +26,12 @@ export {
   calculateStats,
 } from './regression';
 export type { RegressionResult, Point } from './regression';
+
+// Metric trend calculation
+export {
+  getMetricTrend,
+  detectInflectionPoints,
+  isLowerBetterMetric,
+  summarizeTrends,
+} from './metric-trend';
+export type { MetricTrendOptions } from './metric-trend';
