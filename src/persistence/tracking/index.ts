@@ -21,3 +21,17 @@ export {
   type TrackingStorageOptions,
   type TrackingUpdateFields,
 } from './storage';
+
+export {
+  getTrackingIndexDb,
+  indexTracking,
+  removeTrackingIndex,
+  queryTrackings,
+  getIndexedTrackingById,
+  getTrackingsByRecommendation,
+  getTrackingsByStatus,
+  countTrackings,
+  type TrackingIndexerOptions,
+  type TrackingQueryOptions,
+  type TrackingSummary,
+} from './indexer';
