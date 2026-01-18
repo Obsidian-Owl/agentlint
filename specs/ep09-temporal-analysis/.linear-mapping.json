@@ -70,7 +70,7 @@
     "T045": { "issueId": "AGE-507", "linearId": "36c53be4-9cb2-41c6-9ca5-af6d871f7883", "status": "Done", "completed_at": "2026-01-18T12:30:00.000Z" },
     "T046": { "issueId": "AGE-508", "linearId": "5e335e95-08ea-4466-925b-16259d30800e", "status": "Done", "completed_at": "2026-01-18T12:35:00.000Z" },
     "T047": { "issueId": "AGE-509", "linearId": "901db5fd-bb88-43c7-b79c-dd02863d966d", "status": "Done", "completed_at": "2026-01-18T12:45:00.000Z" },
-    "T048": { "issueId": "AGE-510", "linearId": "81c8a026-1124-4022-a593-b01181b0afaf" },
+    "T048": { "issueId": "AGE-510", "linearId": "81c8a026-1124-4022-a593-b01181b0afaf", "status": "Done", "completed_at": "2026-01-18T12:55:00.000Z" },
     "T049": { "issueId": "AGE-511", "linearId": "2465f1ca-ee08-4b7e-85a4-22f66f2cbca9" },
     "T050": { "issueId": "AGE-512", "linearId": "e62cfa91-4da5-43ea-9003-16553e9f8b51" },
     "T051": { "issueId": "AGE-513", "linearId": "1ff9e99d-9820-4703-82c4-c01a9b809338" },

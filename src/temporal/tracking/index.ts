@@ -25,3 +25,16 @@ export {
 
 // Re-export evidence types from types.ts
 export type { DetectionEvidence, MatchEvidence } from '../types';
+
+// Recommendation tracking API (T048)
+export {
+  getRecommendation,
+  getRecommendationOrThrow,
+  updateRecommendationStatus,
+  listRecommendations,
+  countRecommendations,
+  getPendingConfirmations,
+  getImplementedWithScores,
+  type RecommendationListFilter,
+  type RecommendationApiOptions,
+} from './api';
