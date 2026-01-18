@@ -14,6 +14,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { saveBaseline } from '../../persistence/baselines/storage';
 import { initBaselineSchema, indexBaseline } from '../../persistence/baselines/indexer';
 import type { Baseline, BaselineMetrics } from '../../persistence/types';
+import { getCurrentCommit } from '../utils/git';
 import { TOOL_DESCRIPTIONS } from './descriptions';
 
 // =============================================================================
@@ -60,28 +61,6 @@ interface StoreBaselineResult {
 // =============================================================================
 // Helper Functions
 // =============================================================================
-
-/**
- * Get current git commit hash.
- * Returns null if not in a git repository or git is unavailable.
- */
-async function getCurrentGitCommit(): Promise<string | null> {
-  try {
-    const proc = Bun.spawn(['git', 'rev-parse', 'HEAD'], {
-      stdout: 'pipe',
-      stderr: 'pipe',
-    });
-    const output = await new Response(proc.stdout).text();
-    const exitCode = await proc.exited;
-
-    if (exitCode === 0) {
-      return output.trim();
-    }
-    return null;
-  } catch {
-    return null;
-  }
-}
 
 /**
  * Create default metrics for a new baseline.
@@ -161,7 +140,7 @@ export const storeBaselineTool = tool(
       const createdAt = new Date().toISOString();
 
       // Get git commit for correlation
-      const gitCommit = await getCurrentGitCommit();
+      const gitCommit = await getCurrentCommit();
 
       // Create metrics (in full implementation, would gather from analysis)
       const metrics = createDefaultMetrics();
