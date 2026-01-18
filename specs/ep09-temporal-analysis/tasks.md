@@ -160,7 +160,7 @@
 
 ### Implementation for US-005
 
-- [ ] T038 [P] [US5] Create recommendation tracking types in `src/temporal/tracking/types.ts` - RecommendationTracking, RecommendationStatus
+- [x] T038 [P] [US5] Create recommendation tracking types in `src/temporal/tracking/types.ts` - RecommendationTracking, RecommendationStatus
 - [ ] T039 [P] [US5] Implement tracking storage in `src/temporal/tracking/storage.ts` - saveTracking, loadTracking, updateStatus
 - [ ] T040 [US5] Implement auto-detection in `src/temporal/tracking/detector.ts` - detectImplementation(recommendation, configDiff)
 - [ ] T041 [US5] Implement effectiveness calculation in `src/temporal/tracking/effectiveness.ts` - calculateEffectiveness(preBaseline, postBaseline)

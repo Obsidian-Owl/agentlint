@@ -151,3 +151,41 @@ export {
 } from './common';
 
 export type { OpenDatabaseOptions, SQLParams, AtomicWriteOptions } from './common';
+
+// =============================================================================
+// Recommendation Tracking Storage
+// =============================================================================
+
+export {
+  saveTracking,
+  loadTracking,
+  loadTrackingOrThrow,
+  updateStatus,
+  deleteTracking,
+  listTrackingIds,
+  loadTrackingByRecommendation,
+  loadTrackingByStatus,
+  trackingExists,
+  getTrackingDir,
+  getCurrentVersion as getTrackingVersion,
+} from './tracking';
+
+export type { TrackingStorageOptions, TrackingUpdateFields } from './tracking';
+
+// =============================================================================
+// Review Storage
+// =============================================================================
+
+export {
+  saveReview,
+  loadReview,
+  loadReviewOrThrow,
+  deleteReview,
+  listReviewIds,
+  loadReviewsByBaseline,
+  reviewExists,
+  getReviewsDir,
+  getCurrentVersion as getReviewVersion,
+} from './reviews/storage';
+
+export type { ReviewStorageOptions } from './reviews/storage';
