@@ -6,6 +6,7 @@
  * @module temporal/delta
  */
 
+// Calculator
 export {
   getDiffPatcher,
   calculateDelta,
@@ -15,3 +16,8 @@ export {
 } from './calculator';
 
 export type { DeltaCalculatorOptions, RawDelta, MetricsDelta } from './calculator';
+
+// Summarizer
+export { createDeltaSummary, formatDeltaSummary } from './summarizer';
+
+export type { SummarizerOptions } from './summarizer';
