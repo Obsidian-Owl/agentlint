@@ -21,3 +21,16 @@ export type { DeltaCalculatorOptions, RawDelta, MetricsDelta } from './calculato
 export { createDeltaSummary, formatDeltaSummary } from './summarizer';
 
 export type { SummarizerOptions } from './summarizer';
+
+// Trends
+export {
+  getTrendIndicator,
+  createTrendIndicator,
+  createMetricChangeWithTrend,
+  determineOverallTrendFromChanges,
+  isInvertedMetric,
+  getDirectionSymbol,
+  isDirectionImprovement,
+} from './trends';
+
+export type { Direction, ChangeClassification, TrendIndicatorResult } from './trends';
