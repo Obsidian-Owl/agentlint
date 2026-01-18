@@ -264,12 +264,12 @@
 - [x] T068 [P] Create TruLens eval config in `tests/evals/trulens.config.py` - actionability, causal accuracy rubrics
 - [x] T069 [P] Create golden dataset scenarios in `tests/evals/golden/temporal/` - trend analysis, qualitative review
 - [x] T070 Create trend analysis quality eval in `tests/evals/behavioral/trend-quality.test.ts` - validates trend detection accuracy
-- [ ] T071 Create qualitative review eval in `tests/evals/behavioral/review-quality.test.ts` - validates prompt quality, sentiment extraction
-- [ ] T072 Create mixed-methods alignment eval in `tests/evals/behavioral/alignment-quality.test.ts` - validates quant/qual divergence detection
+- [x] T071 Create qualitative review eval in `tests/evals/behavioral/review-quality.test.ts` - validates prompt quality, sentiment extraction
+- [x] T072 Create mixed-methods alignment eval in `tests/evals/behavioral/alignment-quality.test.ts` - validates quant/qual divergence detection
 
 ### Final Validation
 
-- [ ] T073 Configure test coverage reporting and verify > 80% threshold per spec success criteria
+- [x] T073 Configure test coverage reporting and verify > 80% threshold per spec success criteria (scripts/check-coverage.ts, 95.11% core coverage)
 - [ ] T074 Add E2E test for full temporal workflow in `tests/e2e/temporal-workflow.test.ts`
 - [ ] T075 Validate quickstart.md examples work end-to-end
 - [ ] T076 Add temporal tools to CLI help output

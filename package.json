@@ -40,6 +40,7 @@
     "typecheck": "tsc --noEmit",
     "test": "bun test",
     "test:coverage": "bun test --coverage",
+    "test:coverage:check": "bun run scripts/check-coverage.ts",
     "ci": "bun run lint && bun run format:check && bun run typecheck && bun test && bun run build",
     "prepare": "scripts/install-hooks.sh"
   },
