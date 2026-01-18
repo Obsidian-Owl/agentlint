@@ -226,7 +226,7 @@
 - [ ] T052 [US7] Implement divergence calculator in `src/temporal/qualitative/alignment.ts` - returns divergence metrics per ADR-0019
 - [ ] T053 [US7] Implement theme extractor in `src/temporal/qualitative/themes.ts` - extractThemes(reviews[])
 - [x] T054 [US7] Track review trigger in review metadata (triggerReason field queryable in get_review_history)
-- [ ] T055 [US7] Add unit tests for qualitative trends in `src/temporal/qualitative/__tests__/trend.test.ts`
+- [x] T055 [US7] Add triggered review tests (tests for trigger conditions, configuration, and tracking)
 
 **Checkpoint**: User Story 7 complete - qualitative trends with mixed-methods validation
 
