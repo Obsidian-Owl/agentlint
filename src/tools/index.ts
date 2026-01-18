@@ -32,7 +32,12 @@ export * from './adapters';
 // Re-export individual tool definitions for explicit registration
 export { discoverConfigsTool, parseConfigTool, analyzeHierarchyTool } from './config';
 export { searchSessionsTool, getSessionStatsTool } from './sessions';
-export { storeBaselineTool } from '../temporal/tools';
+export {
+  storeBaselineTool,
+  queryBaselineTool,
+  listBaselinesTool,
+  calculateDeltaTool,
+} from '../temporal/tools';
 
 // =============================================================================
 // Tool Registration Helpers (T072)
@@ -40,7 +45,12 @@ export { storeBaselineTool } from '../temporal/tools';
 
 import { discoverConfigsTool, parseConfigTool, analyzeHierarchyTool } from './config';
 import { searchSessionsTool, getSessionStatsTool } from './sessions';
-import { storeBaselineTool } from '../temporal/tools';
+import {
+  storeBaselineTool,
+  queryBaselineTool,
+  listBaselinesTool,
+  calculateDeltaTool,
+} from '../temporal/tools';
 
 /**
  * All EP05 config analysis tools as an array for bulk registration.
@@ -63,7 +73,12 @@ export const EP06_SESSION_TOOLS: ToolDefinition[] = [
 /**
  * All EP09 temporal analysis tools as an array for bulk registration.
  */
-export const EP09_TEMPORAL_TOOLS: ToolDefinition[] = [storeBaselineTool] as ToolDefinition[];
+export const EP09_TEMPORAL_TOOLS: ToolDefinition[] = [
+  storeBaselineTool,
+  queryBaselineTool,
+  listBaselinesTool,
+  calculateDeltaTool,
+] as ToolDefinition[];
 
 /**
  * Register all EP05 config analysis tools with a ToolRegistry.
