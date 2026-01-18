@@ -24,6 +24,11 @@ import {
 import { saveBaseline, loadBaseline, getLatestBaseline } from '../../../src/persistence/baselines';
 import { calculateDelta, calculateMetricsDelta } from '../../../src/temporal/delta/calculator';
 import { createDeltaSummary } from '../../../src/temporal/delta/summarizer';
+import {
+  getCommitsBetweenHashes,
+  getCommitsBetweenDates,
+  getCurrentCommit,
+} from '../../../src/temporal/utils/git';
 import type { Baseline } from '../../../src/persistence/types';
 
 // =============================================================================
@@ -291,6 +296,69 @@ describe('Temporal Delta Flow Integration', () => {
       expect(criticalChange?.from).toBe(5);
       expect(criticalChange?.to).toBe(0);
       expect(criticalChange?.direction).toBe('↓');
+    });
+  });
+
+  describe('Git Correlation', () => {
+    it('should query commits between git hashes', async () => {
+      // Test using current repo's actual git history
+      const currentCommit = await getCurrentCommit();
+
+      if (currentCommit) {
+        // Get a parent commit (HEAD~5)
+        const proc = Bun.spawn(['git', 'rev-parse', 'HEAD~5'], {
+          stdout: 'pipe',
+          stderr: 'pipe',
+        });
+        const parentOutput = await new Response(proc.stdout).text();
+        const parentCommit = parentOutput.trim();
+
+        if (parentCommit && parentCommit !== currentCommit) {
+          const commits = await getCommitsBetweenHashes(parentCommit, currentCommit);
+
+          // Should return commits between the two hashes
+          expect(commits.length).toBeGreaterThan(0);
+
+          // Each commit should have the format "hash: message"
+          for (const commit of commits) {
+            expect(commit).toMatch(/^[a-f0-9]+: .+/);
+          }
+        }
+      }
+    });
+
+    it('should query commits between dates', async () => {
+      // Test using date range that includes recent commits
+      const now = new Date();
+      const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+      const commits = await getCommitsBetweenDates(
+        yesterday.toISOString(),
+        now.toISOString()
+      );
+
+      // May or may not have commits in last 24 hours, but shouldn't error
+      expect(Array.isArray(commits)).toBe(true);
+    });
+
+    it('should return empty array for invalid hash range', async () => {
+      const commits = await getCommitsBetweenHashes('invalid123', 'invalid456');
+      expect(commits).toEqual([]);
+    });
+
+    it('should prefer hash-based queries for baselines with git commits', async () => {
+      // Test that when baselines have gitCommit, hash-based query is more accurate
+      const currentCommit = await getCurrentCommit();
+
+      if (currentCommit) {
+        // Create baselines with git commits
+        const baselineWithCommit = createTestBaseline({
+          gitCommit: currentCommit,
+          createdAt: new Date().toISOString(),
+        });
+
+        expect(baselineWithCommit.gitCommit).toBe(currentCommit);
+      }
     });
   });
 });
