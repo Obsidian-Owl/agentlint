@@ -11,3 +11,4 @@ export { TOOL_DESCRIPTIONS } from './descriptions';
 
 // Individual tool definitions
 export { storeBaselineTool } from './store-baseline';
+export { queryBaselineTool } from './query-baseline';
