@@ -143,10 +143,10 @@
 
 **Purpose**: Record agent-guided qualitative review interactions for deterministic testing
 
-- [ ] T037a Record trend analysis flow in `tests/integration/recordings/trend-analysis.json`
-- [ ] T037b Record qualitative review session in `tests/integration/recordings/qualitative-review.json`
-- [ ] T037c Create VCR integration test for trends in `tests/integration/temporal/trends-flow.test.ts`
-- [ ] T037d Create VCR integration test for reviews in `tests/integration/temporal/review-flow.test.ts`
+- [x] T037a Record trend analysis flow in `tests/integration/recordings/trend-analysis.json`
+- [x] T037b Record qualitative review session in `tests/integration/recordings/qualitative-review.json`
+- [x] T037c Create VCR integration test for trends in `tests/integration/temporal/trends-flow.test.ts`
+- [x] T037d Create VCR integration test for reviews in `tests/integration/temporal/review-flow.test.ts`
 
 **Note**: Qualitative review involves agent prompts - VCR ensures deterministic replay.
 
