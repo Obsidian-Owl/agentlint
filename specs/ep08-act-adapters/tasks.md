@@ -114,19 +114,19 @@
 
 ### Tests (write first)
 
-- [ ] T023 [P] [US3] Unit test: `generalizedInstructions` validates against `ACTInstructionsSchema` in `src/act/__tests__/instructions.test.ts`
-- [ ] T024 [P] [US3] Unit test: Generalized instructions have `actTypes: ['agents-md', 'unknown']` and `priority: 10` in `src/act/__tests__/instructions.test.ts`
+- [x] T023 [P] [US3] Unit test: `generalizedInstructions` validates against `ACTInstructionsSchema` in `src/act/__tests__/instructions.test.ts`
+- [x] T024 [P] [US3] Unit test: Generalized instructions have `actTypes: ['agents-md', 'unknown']` and `priority: 10` in `src/act/__tests__/instructions.test.ts`
 
 ### Implementation
 
-- [ ] T025 [US3] Create `src/act/instructions/generalized.ts` implementing `ACTInstructions` with prompt from `contracts/generalized-instructions.md`
-- [ ] T026 [US3] Register `generalizedInstructions` in `src/act/instructions/index.ts` (AFTER claude-code for priority ordering)
-- [ ] T027 [US3] Verify generalized uses only `GENERALIZED_ACT_TOOLS` subset (discover_configs, parse_config)
+- [x] T025 [US3] Create `src/act/instructions/generalized.ts` implementing `ACTInstructions` with prompt from `contracts/generalized-instructions.md`
+- [x] T026 [US3] Register `generalizedInstructions` in `src/act/instructions/index.ts` (AFTER claude-code for priority ordering)
+- [x] T027 [US3] Verify generalized uses only `GENERALIZED_ACT_TOOLS` subset (discover_configs, parse_config)
 
 **Checkpoint**: US3 complete
-- [ ] All US3 tests pass
-- [ ] Generalized analyzer registered as fallback
-- [ ] Lower priority ensures it's only used when no specific analyzer matches
+- [x] All US3 tests pass
+- [x] Generalized analyzer registered as fallback
+- [x] Lower priority ensures it's only used when no specific analyzer matches
 
 ---
 
@@ -137,19 +137,19 @@
 
 ### Tests (write first)
 
-- [ ] T028 [P] [US4] Integration test: Orchestrator query options include `agents` from `buildACTSubagents()` in `src/orchestration/__tests__/orchestrator.test.ts`
-- [ ] T029 [P] [US4] Integration test: Orchestrator `allowedTools` includes 'Task' to enable subagent invocation in `src/orchestration/__tests__/orchestrator.test.ts`
+- [x] T028 [P] [US4] Integration test: Orchestrator query options include `agents` from `buildACTSubagents()` in `src/orchestration/__tests__/orchestrator.test.ts`
+- [x] T029 [P] [US4] Integration test: Orchestrator `allowedTools` includes 'Task' to enable subagent invocation in `src/orchestration/__tests__/orchestrator.test.ts`
 
 ### Implementation
 
-- [ ] T030 [US4] Import `buildACTSubagents` in `src/orchestration/orchestrator.ts`
-- [ ] T031 [US4] Add `agents: buildACTSubagents()` to SDK query options in `Orchestrator.run()` method
-- [ ] T032 [US4] Ensure 'Task' tool is in allowedTools array (enables subagent invocation per SDK)
+- [x] T030 [US4] Import `buildACTSubagents` in `src/orchestration/orchestrator.ts`
+- [x] T031 [US4] Add `agents: buildACTSubagents()` to SDK query options in `Orchestrator.run()` method
+- [x] T032 [US4] Ensure 'Task' tool is in allowedTools array (enables subagent invocation per SDK)
 
 **Checkpoint**: US4 complete
-- [ ] All US4 tests pass
-- [ ] Orchestrator passes subagents to SDK
-- [ ] Claude can invoke ACT subagents via Task tool
+- [x] All US4 tests pass
+- [x] Orchestrator passes subagents to SDK
+- [x] Claude can invoke ACT subagents via Task tool
 
 ---
 

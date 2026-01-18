@@ -17,6 +17,7 @@ import type { IToolRegistry } from './tool-registry';
 import type { OrchestratorConfig, SessionState, StreamChunk, VerbosityLevel } from './types';
 import { loadConfig, MAX_SUBAGENT_DEPTH } from './config';
 import { SubagentDepthError } from '../errors';
+import { buildACTSubagents } from '../act/index.js';
 
 // =============================================================================
 // IOrchestrator Interface
@@ -206,6 +207,10 @@ export class Orchestrator implements IOrchestrator {
         settingSources: this.config.settingSources,
         mcpServers: { agentlint: mcpServer },
         abortController: this.abortController,
+        // T030-T031: ACT subagents for specialized analysis (EP08)
+        agents: buildACTSubagents(),
+        // T032: Include 'Task' in allowedTools to enable subagent invocation
+        allowedTools: this.config.allowedTools,
       };
 
       // Only add systemPrompt if we have custom content

@@ -97,6 +97,12 @@ export interface OrchestratorConfig {
    * Maximum depth is 1 per Constitution Principle C8.
    */
   depth?: number;
+  /**
+   * Tools the orchestrator is allowed to use.
+   * Must include 'Task' for subagent invocation (EP08).
+   * If undefined, all tools are allowed.
+   */
+  allowedTools?: string[];
 }
 
 /**
