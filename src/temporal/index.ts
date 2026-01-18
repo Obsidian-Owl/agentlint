@@ -161,6 +161,19 @@ export type {
 } from './qualitative/sentiment';
 
 // =============================================================================
+// Recommendation Tracking
+// =============================================================================
+
+export {
+  detectImplementation,
+  detectImplementations,
+  createConfigDiff,
+  mergeConfigDiffs,
+} from './tracking';
+
+export type { Recommendation, ConfigDiff, DetectionResult, DetectionEvidence } from './tracking';
+
+// =============================================================================
 // Tools
 // =============================================================================
 
