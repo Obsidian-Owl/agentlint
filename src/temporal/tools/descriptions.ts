@@ -114,4 +114,29 @@ Use this tool when you need to:
 Returns review summaries with sentiment and themes.
 Use query_trends for integrated quantitative/qualitative analysis.
   `.trim(),
+
+  spawn_temporal_analyst: `
+Spawn a temporal analysis subagent with configurable focus.
+
+Use this tool when you need to:
+- Analyze workflow trends across multiple baselines
+- Review qualitative sentiment trends over time
+- Compare specific baselines for detailed change analysis
+- Get comprehensive temporal insights combining metrics and reviews
+
+The subagent has deep domain knowledge about:
+- 6 qualitative review dimensions
+- Mixed-methods analysis (quantitative + qualitative)
+- Statistical trend interpretation
+- ADR-0019 tool/agent boundary principles
+
+Focus options:
+- trends: Metric trends, slopes, inflection points
+- reviews: Qualitative sentiment, themes, friction
+- comparison: Baseline-to-baseline delta analysis
+- comprehensive: Full multi-dimensional analysis
+
+Returns the subagent definition and context for orchestrator delegation.
+The orchestrator should invoke the subagent using the SDK agents option.
+  `.trim(),
 } as const;

@@ -196,34 +196,23 @@ describe('temporal/subagent/types', () => {
 
   describe('TemporalAnalysisContext interface', () => {
     it('should define required context fields', () => {
+      // Only baselineCount, reviewCount, daysSinceLastReview are required
       const context: TemporalAnalysisContext = {
-        projectPath: '/test/project',
-        hasBaselines: true,
         baselineCount: 5,
-        hasReviews: true,
         reviewCount: 3,
         daysSinceLastReview: 15,
-        reviewTriggered: false,
       };
 
-      expect(context.projectPath).toBe('/test/project');
-      expect(context.hasBaselines).toBe(true);
       expect(context.baselineCount).toBe(5);
-      expect(context.hasReviews).toBe(true);
       expect(context.reviewCount).toBe(3);
       expect(context.daysSinceLastReview).toBe(15);
-      expect(context.reviewTriggered).toBe(false);
     });
 
     it('should allow null daysSinceLastReview when no reviews', () => {
       const context: TemporalAnalysisContext = {
-        projectPath: '/test/project',
-        hasBaselines: true,
         baselineCount: 5,
-        hasReviews: false,
         reviewCount: 0,
         daysSinceLastReview: null,
-        reviewTriggered: false,
       };
 
       expect(context.daysSinceLastReview).toBeNull();
@@ -231,10 +220,7 @@ describe('temporal/subagent/types', () => {
 
     it('should allow optional triggerSummary', () => {
       const contextWithTrigger: TemporalAnalysisContext = {
-        projectPath: '/test/project',
-        hasBaselines: true,
         baselineCount: 5,
-        hasReviews: true,
         reviewCount: 3,
         daysSinceLastReview: 45,
         reviewTriggered: true,
@@ -242,6 +228,30 @@ describe('temporal/subagent/types', () => {
       };
 
       expect(contextWithTrigger.triggerSummary).toBeDefined();
+    });
+
+    it('should allow spawn tool fields', () => {
+      const context: TemporalAnalysisContext = {
+        focus: 'trends',
+        query: 'What are the metric trends?',
+        targetBaselineId: 'baseline-001',
+        comparisonBaselineId: 'baseline-002',
+        dateRange: {
+          start: '2026-01-01T00:00:00Z',
+          end: '2026-01-15T00:00:00Z',
+        },
+        includeRecommendations: true,
+        baselineCount: 5,
+        reviewCount: 3,
+        daysSinceLastReview: 15,
+      };
+
+      expect(context.focus).toBe('trends');
+      expect(context.query).toBe('What are the metric trends?');
+      expect(context.targetBaselineId).toBe('baseline-001');
+      expect(context.comparisonBaselineId).toBe('baseline-002');
+      expect(context.dateRange?.start).toBe('2026-01-01T00:00:00Z');
+      expect(context.includeRecommendations).toBe(true);
     });
   });
 

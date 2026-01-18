@@ -17,3 +17,4 @@ export { calculateDeltaTool } from './calculate-delta';
 export { queryTrendsTool } from './query-trends';
 export { conductReviewTool } from './conduct-review';
 export { getReviewHistoryTool } from './get-review-history';
+export { spawnTemporalAnalystTool } from './spawn-analyst';

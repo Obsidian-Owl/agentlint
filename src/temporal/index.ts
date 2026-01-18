@@ -189,4 +189,30 @@ export {
   queryTrendsTool,
   conductReviewTool,
   getReviewHistoryTool,
+  spawnTemporalAnalystTool,
 } from './tools';
+
+// =============================================================================
+// Subagent
+// =============================================================================
+
+export {
+  // Types
+  TEMPORAL_SUBAGENT_TOOLS,
+  TEMPORAL_READONLY_TOOLS,
+  TemporalSubagentInstructionsSchema,
+  toAgentDefinition,
+  // Subagent implementations
+  temporalAnalyzerInstructions,
+  temporalAnalyzerReadonlyInstructions,
+  buildTemporalAnalyzerAgent,
+  buildTemporalAnalyzerReadonlyAgent,
+  buildTemporalSubagents,
+} from './subagent';
+
+export type {
+  AnalysisFocus,
+  TemporalSubagentInstructions,
+  TemporalAnalysisContext,
+  TemporalAnalysisResult,
+} from './subagent';

@@ -50,21 +50,47 @@ export const TEMPORAL_READONLY_TOOLS = [
 // =============================================================================
 
 /**
+ * Analysis focus type for spawn tool.
+ */
+export type AnalysisFocus = 'trends' | 'reviews' | 'comparison' | 'comprehensive';
+
+/**
  * Context provided to the temporal analyzer subagent.
  * Per ADR-0019, this is data for agent judgment, not instructions.
  */
 export interface TemporalAnalysisContext {
+  /** Analysis focus area when spawned via spawn_temporal_analyst */
+  focus?: AnalysisFocus;
+
+  /** User's specific question or analysis request */
+  query?: string;
+
+  /** Target baseline ID for comparison-focused analysis */
+  targetBaselineId?: string;
+
+  /** Baseline ID to compare against */
+  comparisonBaselineId?: string;
+
+  /** Date range for trend analysis */
+  dateRange?: {
+    start: string;
+    end: string;
+  };
+
+  /** Whether to include actionable recommendations */
+  includeRecommendations?: boolean;
+
   /** Current project path */
-  projectPath: string;
+  projectPath?: string;
 
   /** Whether baseline history exists */
-  hasBaselines: boolean;
+  hasBaselines?: boolean;
 
   /** Number of baselines available */
   baselineCount: number;
 
   /** Whether qualitative reviews exist */
-  hasReviews: boolean;
+  hasReviews?: boolean;
 
   /** Number of reviews available */
   reviewCount: number;
@@ -73,7 +99,7 @@ export interface TemporalAnalysisContext {
   daysSinceLastReview: number | null;
 
   /** Whether triggers are suggesting a review */
-  reviewTriggered: boolean;
+  reviewTriggered?: boolean;
 
   /** Summary of trigger reasons (if any) */
   triggerSummary?: string;
