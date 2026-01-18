@@ -15,28 +15,14 @@ import type { BaselineMetrics } from '../persistence/types';
 
 /**
  * Extended baseline metrics for temporal analysis.
- * Adds session and config metrics to EP03's BaselineMetrics.
+ *
+ * Note: As of EP09, extended fields are added directly to BaselineMetrics
+ * in src/persistence/types.ts for backward compatibility. This type alias
+ * is kept for semantic clarity in temporal analysis code.
+ *
+ * @see BaselineMetrics in src/persistence/types.ts
  */
-export interface ExtendedBaselineMetrics extends BaselineMetrics {
-  /** Average tokens per session (from EP06) */
-  avgTokensPerSession?: number;
-  /** Average iterations per session (from EP06) */
-  avgIterationsPerSession?: number;
-  /** Number of sessions analyzed */
-  sessionCount?: number;
-  /** Error rate across sessions (0-1) */
-  errorRate?: number;
-  /** Token count in ACT config */
-  configTokens?: number;
-  /** Line count in ACT config */
-  configLines?: number;
-  /** Config analysis warnings */
-  warningCount?: number;
-  /** Distinct sections in config */
-  sectionCount?: number;
-  /** Config coverage score (0-100) */
-  coverageScore?: number;
-}
+export type ExtendedBaselineMetrics = BaselineMetrics;
 
 // =============================================================================
 // Delta Types
