@@ -137,6 +137,16 @@ During implementation, the agent MUST:
    - Use file paths from task description
    - Follow project conventions
 
+2.5. **Write appropriate tests** (see [dev.testing](../dev.testing/SKILL.md))
+   - Deterministic code → Unit tests in `tests/unit/`
+   - LLM interactions → VCR tests in `tests/integration/`
+   - Behavioral quality → Eval scenarios in `tests/evals/` (release-gate)
+
+   **Red flags** (use evals, not unit tests):
+   - Testing what an LLM responds
+   - Testing if agent "did the right thing"
+   - Testing recommendation quality
+
 3. **Validate work (REQUIRED before closure - ALL MUST PASS)**
    - Run tests: `bun test` (must pass - **zero failures**)
    - Check types: `bun run typecheck` (must pass - **zero errors**)

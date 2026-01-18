@@ -13,6 +13,7 @@ import { Orchestrator } from '../../../src/orchestration/orchestrator';
 import { ToolRegistry } from '../../../src/orchestration/tool-registry';
 import type { OrchestratorConfig, StreamChunk } from '../../../src/orchestration/types';
 import { createMockTool, createSuccessTool } from '../../utils/sdk-test-helpers';
+import { buildACTSubagents } from '../../../src/act/index.js';
 
 describe('Orchestrator', () => {
   let toolRegistry: ToolRegistry;
@@ -311,5 +312,74 @@ describe('StreamChunk structure', () => {
 
     expect(chunk.metadata?.toolName).toBe('mock_analyze');
     expect(chunk.metadata?.duration).toBe(150);
+  });
+});
+
+// ===========================================================================
+// T028-T029: ACT Subagent Integration (EP08)
+// ===========================================================================
+
+describe('ACT Subagent Integration (EP08)', () => {
+  // T028: Orchestrator query options include agents from buildACTSubagents()
+  describe('buildACTSubagents() integration', () => {
+    test('buildACTSubagents() returns Record<string, AgentDefinition>', () => {
+      const agents = buildACTSubagents();
+
+      expect(typeof agents).toBe('object');
+      expect(agents).not.toBeNull();
+    });
+
+    test('buildACTSubagents() includes claude-code-analyzer', () => {
+      const agents = buildACTSubagents();
+
+      expect(agents['claude-code-analyzer']).toBeDefined();
+      expect(agents['claude-code-analyzer']?.description).toBeDefined();
+      expect(agents['claude-code-analyzer']?.prompt).toBeDefined();
+    });
+
+    test('buildACTSubagents() includes generalized-analyzer', () => {
+      const agents = buildACTSubagents();
+
+      expect(agents['generalized-analyzer']).toBeDefined();
+      expect(agents['generalized-analyzer']?.description).toBeDefined();
+      expect(agents['generalized-analyzer']?.prompt).toBeDefined();
+    });
+
+    test('all subagents have required AgentDefinition fields', () => {
+      const agents = buildACTSubagents();
+
+      for (const [name, agent] of Object.entries(agents)) {
+        expect(typeof name).toBe('string');
+        expect(typeof agent.description).toBe('string');
+        expect(agent.description.length).toBeGreaterThan(0);
+        expect(typeof agent.prompt).toBe('string');
+        expect(agent.prompt.length).toBeGreaterThan(0);
+      }
+    });
+
+    test('no subagent includes Task tool (single-depth constraint)', () => {
+      const agents = buildACTSubagents();
+
+      for (const agent of Object.values(agents)) {
+        if (agent.tools) {
+          expect(agent.tools).not.toContain('Task');
+        }
+      }
+    });
+  });
+
+  // T029: Verify allowedTools includes Task for subagent invocation
+  describe('allowedTools configuration', () => {
+    test('Orchestrator config can include allowedTools', () => {
+      const toolRegistry = new ToolRegistry();
+      const config: OrchestratorConfig = {
+        model: 'claude-sonnet-4-20250514',
+        allowedTools: ['Task', 'Read', 'Write'],
+      };
+
+      const orchestrator = new Orchestrator(config, toolRegistry);
+
+      expect(orchestrator.config.allowedTools).toContain('Task');
+    });
   });
 });

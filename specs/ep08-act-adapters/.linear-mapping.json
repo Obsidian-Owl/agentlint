@@ -1,0 +1,65 @@
+{
+  "epic": "EP08",
+  "project": {
+    "id": "ca0458d1-e3b3-420a-afdd-f31532ee3438",
+    "name": "EP08: ACT Adapters"
+  },
+  "team": {
+    "id": "026f9bb0-5934-4186-b047-155812ae914d",
+    "name": "agentlint"
+  },
+  "label": {
+    "id": "481772b3-0215-4116-8cf4-f4abc283c057",
+    "name": "epic:EP08"
+  },
+  "createdAt": "2026-01-18T00:00:00.000Z",
+  "tasks": {
+    "T001": { "id": "db74c0e5-6e61-4bb9-8e3c-e5416a64bc85", "identifier": "AGE-422", "title": "T001: Create src/act/ directory structure" },
+    "T002": { "id": "6f437c43-d3d7-44ba-aa2e-9af55b1b5b15", "identifier": "AGE-423", "title": "T002: Create src/act/__tests__/ directory" },
+    "T003": { "id": "4c5efec9-2fbd-430e-aad5-dfc8269e8d3b", "identifier": "AGE-424", "title": "T003: Create src/act/instructions/ directory" },
+    "T004": { "id": "9f0b259c-bfe4-40d7-8ef7-fd42e5dffd1c", "identifier": "AGE-425", "title": "T004: Verify tsconfig includes src/act/**/*" },
+    "T005": { "id": "61871134-fd78-4c65-86f9-a4f5bce1740d", "identifier": "AGE-426", "title": "T005: Extend ACTType in EP05 with aider, copilot-cli values" },
+    "T006": { "id": "9cd6b55b-4df2-4ce7-aac6-af35cdfd3e4f", "identifier": "AGE-427", "title": "T006: Implement AgentDefinition interface in src/act/types.ts" },
+    "T007": { "id": "413f28b9-26cc-4a3e-9c7c-cf9c084046e5", "identifier": "AGE-428", "title": "T007: Implement ACTInstructions interface and Zod schema" },
+    "T008": { "id": "4e210dbc-ecbf-434b-93e5-db0310ebe1fb", "identifier": "AGE-429", "title": "T008: Implement ACT analysis output types" },
+    "T009": { "id": "958699ee-88f0-46b0-8d72-ef47ec58bed6", "identifier": "AGE-430", "title": "T009: Implement IACTSubagentRegistry interface" },
+    "T010": { "id": "c414568c-92bb-41fa-9d73-b08825761eb4", "identifier": "AGE-431", "title": "T010: Implement ACTSubagentRegistry class" },
+    "T011": { "id": "04e8372f-21af-4b8b-b977-d79087bcd957", "identifier": "AGE-432", "title": "T011: [US1] Unit test for ACTSubagentRegistry.toAgentsOption()" },
+    "T012": { "id": "df08eed1-3192-44db-a2fc-30c1996cda66", "identifier": "AGE-433", "title": "T012: [US1] Unit test for buildACTSubagents()" },
+    "T013": { "id": "82aba762-0522-4be6-b670-7de6ee7ee695", "identifier": "AGE-434", "title": "T013: [US1] Unit test for getForACTType() mapping" },
+    "T014": { "id": "a414b763-7645-448d-b34b-4f5225a51f31", "identifier": "AGE-435", "title": "T014: [US1] Implement buildACTSubagents() function" },
+    "T015": { "id": "1d47e491-198f-4b95-bad7-ebb3f6fbb5bc", "identifier": "AGE-436", "title": "T015: [US1] Create instructions/index.ts aggregator" },
+    "T016": { "id": "86304d4b-95be-4787-9eb5-b90601c611dd", "identifier": "AGE-437", "title": "T016: [US1] Export DEFAULT_ACT_TOOLS and GENERALIZED_ACT_TOOLS constants" },
+    "T017": { "id": "4e757e31-aa1e-4b70-996a-4f26c94f0eb9", "identifier": "AGE-438", "title": "T017: [US2] Unit test for claudeCodeInstructions schema validation" },
+    "T018": { "id": "acace4b2-9236-4cce-b9d2-76a86b16ffd2", "identifier": "AGE-439", "title": "T018: [US2] Unit test for Claude Code tools list" },
+    "T019": { "id": "2884778f-c2c4-446c-b536-a2e7d62dd539", "identifier": "AGE-440", "title": "T019: [US2] Unit test for Claude Code actTypes and priority" },
+    "T020": { "id": "a5179118-b579-4924-99ca-3cb7ae18ac34", "identifier": "AGE-441", "title": "T020: [US2] Create claude-code.ts with context-engineered prompt" },
+    "T021": { "id": "d3506b32-cfbc-4668-aaf9-961c1f14e74f", "identifier": "AGE-442", "title": "T021: [US2] Register claudeCodeInstructions in index.ts" },
+    "T022": { "id": "8437a834-b4a1-4537-bfc6-6a7a9592dae7", "identifier": "AGE-443", "title": "T022: [US2] Verify prompt size < 50KB (NFR-002)" },
+    "T023": { "id": "4092c01d-b944-4640-9de4-0852b87ba5e6", "identifier": "AGE-444", "title": "T023: Write generalized-instructions.test.ts test scaffolding" },
+    "T024": { "id": "77386d29-4464-4f2c-a12c-0317dc4dbda9", "identifier": "AGE-445", "title": "T024: Implement generalized.ts instruction definition" },
+    "T025": { "id": "a4dd27b9-947f-4645-9b19-b83d5e2ec107", "identifier": "AGE-446", "title": "T025: Write generalized prompt following 4-layer structure" },
+    "T026": { "id": "6166e55c-0e95-4782-89e7-7ac14396cf53", "identifier": "AGE-447", "title": "T026: Register generalized-analyzer in instructions/index.ts" },
+    "T027": { "id": "35422a04-04ef-48c1-ad51-a1525426fa90", "identifier": "AGE-448", "title": "T027: Verify generalized-instructions.test.ts passes" },
+    "T028": { "id": "52600dab-c808-4734-a7ad-767605d4b399", "identifier": "AGE-449", "title": "T028: Write integration.test.ts for orchestrator integration" },
+    "T029": { "id": "4aaf9a7a-9522-4fa0-89ce-f1989736d562", "identifier": "AGE-450", "title": "T029: Export buildACTSubagents() from src/act/index.ts" },
+    "T030": { "id": "3ec4b9d0-c9a7-4f7a-9e54-755a9f239d63", "identifier": "AGE-451", "title": "T030: Integrate buildACTSubagents() into orchestrator.ts" },
+    "T031": { "id": "438c9991-a68a-4e4f-9baa-bd3befe6dda1", "identifier": "AGE-452", "title": "T031: Add subagent invocation detection to StreamProcessor" },
+    "T032": { "id": "48663c71-b817-49c9-b2fd-1bbf35851232", "identifier": "AGE-453", "title": "T032: Verify integration.test.ts passes - Final checkpoint" }
+  },
+  "phases": {
+    "phase1_setup": ["T001", "T002", "T003", "T004"],
+    "phase2_foundational": ["T005", "T006", "T007", "T008", "T009", "T010"],
+    "phase3_us1_auto_detection": ["T011", "T012", "T013", "T014", "T015", "T016"],
+    "phase4_us2_claude_code": ["T017", "T018", "T019", "T020", "T021", "T022"],
+    "phase5_us3_generalized": ["T023", "T024", "T025", "T026", "T027"],
+    "phase6_us4_integration": ["T028", "T029", "T030", "T031", "T032"]
+  },
+  "dependencies": {
+    "phase2_blocked_by": "AGE-425",
+    "phase3_blocked_by": "AGE-431",
+    "phase4_blocked_by": "AGE-437",
+    "phase5_blocked_by": "AGE-443",
+    "phase6_blocked_by": "AGE-448"
+  }
+}

@@ -44,6 +44,9 @@ const CONFIG_FILE = path.join(CONFIG_DIR, 'config.json');
 // Default Configuration
 // =============================================================================
 
+/** Default allowed tools - includes 'Task' for subagent invocation (EP08) */
+const DEFAULT_ALLOWED_TOOLS: string[] = ['Task'];
+
 /**
  * Get the default orchestrator configuration.
  * These defaults are used when no config file exists or values are missing.
@@ -57,6 +60,7 @@ export function getDefaultConfig(): Required<OrchestratorConfig> {
     systemPromptAppend: '',
     settingSources: DEFAULT_SETTING_SOURCES,
     depth: DEFAULT_DEPTH,
+    allowedTools: DEFAULT_ALLOWED_TOOLS,
   };
 }
 
@@ -101,6 +105,7 @@ export function loadConfig(overrides?: Partial<OrchestratorConfig>): Required<Or
     systemPromptAppend: overrides?.systemPromptAppend ?? defaults.systemPromptAppend,
     settingSources: overrides?.settingSources ?? defaults.settingSources,
     depth: overrides?.depth ?? defaults.depth,
+    allowedTools: overrides?.allowedTools ?? defaults.allowedTools,
   };
 }
 
@@ -246,5 +251,6 @@ export function mergeWithDefaults(
     systemPromptAppend: partial.systemPromptAppend ?? defaults.systemPromptAppend,
     settingSources: partial.settingSources ?? defaults.settingSources,
     depth: partial.depth ?? defaults.depth,
+    allowedTools: partial.allowedTools ?? defaults.allowedTools,
   };
 }
