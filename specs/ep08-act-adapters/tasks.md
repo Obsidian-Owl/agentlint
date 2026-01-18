@@ -90,15 +90,15 @@
 
 ### Tests (write first)
 
-- [ ] T017 [P] [US2] Unit test: `claudeCodeInstructions` validates against `ACTInstructionsSchema` in `src/act/__tests__/instructions.test.ts`
-- [ ] T018 [P] [US2] Unit test: Claude Code instructions include all 5 default tools (discover_configs, parse_config, analyze_hierarchy, search_sessions, get_session_stats) in `src/act/__tests__/instructions.test.ts`
-- [ ] T019 [P] [US2] Unit test: Claude Code instructions have `actTypes: ['claude-code']` and `priority: 100` in `src/act/__tests__/instructions.test.ts`
+- [x] T017 [P] [US2] Unit test: `claudeCodeInstructions` validates against `ACTInstructionsSchema` in `tests/unit/act/instructions.test.ts`
+- [x] T018 [P] [US2] Unit test: Claude Code instructions include all 5 default tools (discover_configs, parse_config, analyze_hierarchy, search_sessions, get_session_stats) in `tests/unit/act/instructions.test.ts`
+- [x] T019 [P] [US2] Unit test: Claude Code instructions have `actTypes: ['claude-code']` and `priority: 100` in `tests/unit/act/instructions.test.ts`
 
 ### Implementation
 
-- [ ] T020 [US2] Create `src/act/instructions/claude-code.ts` implementing `ACTInstructions` with full prompt from `contracts/claude-code-instructions.md`
-- [ ] T021 [US2] Register `claudeCodeInstructions` in `src/act/instructions/index.ts` export array
-- [ ] T022 [US2] Verify prompt size < 50KB (NFR-002) - add comment with byte count
+- [x] T020 [US2] Create `src/act/instructions/claude-code.ts` implementing `ACTInstructions` with full prompt from `contracts/claude-code-instructions.md`
+- [x] T021 [US2] Register `claudeCodeInstructions` in `src/act/instructions/index.ts` export array
+- [x] T022 [US2] Verify prompt size < 50KB (NFR-002) - add comment with byte count
 
 **Checkpoint**: US2 complete
 - [ ] All US2 tests pass

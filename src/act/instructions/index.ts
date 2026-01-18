@@ -7,15 +7,17 @@
  */
 
 import type { ACTInstructions } from "../types.js";
+import { claudeCodeInstructions } from "./claude-code.js";
+// T026: import { generalizedInstructions } from "./generalized.js";
 
-// T015: Instructions aggregator - populated in Phase 4-5
-// T021: claudeCodeInstructions will be added here
-// T026: generalizedInstructions will be added here
+// Re-export individual instructions for direct access
+export { claudeCodeInstructions } from "./claude-code.js";
 
 /**
  * All bundled ACT instruction definitions.
  * Instructions are ordered by priority (highest first).
  */
 export const bundledInstructions: ACTInstructions[] = [
-  // Will be populated in T021 and T026
+  claudeCodeInstructions, // Priority 100 - Claude Code specialist
+  // T026: generalizedInstructions, // Priority 10 - Fallback
 ];
