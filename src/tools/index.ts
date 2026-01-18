@@ -38,6 +38,8 @@ export {
   listBaselinesTool,
   calculateDeltaTool,
   queryTrendsTool,
+  conductReviewTool,
+  getReviewHistoryTool,
 } from '../temporal/tools';
 
 // =============================================================================
@@ -52,6 +54,8 @@ import {
   listBaselinesTool,
   calculateDeltaTool,
   queryTrendsTool,
+  conductReviewTool,
+  getReviewHistoryTool,
 } from '../temporal/tools';
 
 /**
@@ -81,6 +85,8 @@ export const EP09_TEMPORAL_TOOLS: ToolDefinition[] = [
   listBaselinesTool,
   calculateDeltaTool,
   queryTrendsTool,
+  conductReviewTool,
+  getReviewHistoryTool,
 ] as ToolDefinition[];
 
 /**

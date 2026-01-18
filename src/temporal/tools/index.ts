@@ -15,3 +15,5 @@ export { queryBaselineTool } from './query-baseline';
 export { listBaselinesTool } from './list-baselines';
 export { calculateDeltaTool } from './calculate-delta';
 export { queryTrendsTool } from './query-trends';
+export { conductReviewTool } from './conduct-review';
+export { getReviewHistoryTool } from './get-review-history';

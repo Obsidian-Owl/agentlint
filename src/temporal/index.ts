@@ -171,4 +171,6 @@ export {
   listBaselinesTool,
   calculateDeltaTool,
   queryTrendsTool,
+  conductReviewTool,
+  getReviewHistoryTool,
 } from './tools';
