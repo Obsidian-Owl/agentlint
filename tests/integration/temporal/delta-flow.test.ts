@@ -305,15 +305,25 @@ describe('Temporal Delta Flow Integration', () => {
       const currentCommit = await getCurrentCommit();
 
       if (currentCommit) {
-        // Get a parent commit (HEAD~5)
-        const proc = Bun.spawn(['git', 'rev-parse', 'HEAD~5'], {
+        // Try to get a parent commit - use HEAD~1 for reliability in shallow clones
+        const proc = Bun.spawn(['git', 'rev-parse', 'HEAD~1'], {
           stdout: 'pipe',
           stderr: 'pipe',
         });
+        await proc.exited;
+        const exitCode = proc.exitCode;
+
+        // Skip test if git history is too shallow (common in CI)
+        if (exitCode !== 0) {
+          console.log('Skipping: git history too shallow for commit range test');
+          return;
+        }
+
         const parentOutput = await new Response(proc.stdout).text();
         const parentCommit = parentOutput.trim();
 
-        if (parentCommit && parentCommit !== currentCommit) {
+        // Validate we got a valid hash
+        if (parentCommit && /^[a-f0-9]{7,40}$/.test(parentCommit) && parentCommit !== currentCommit) {
           const commits = await getCommitsBetweenHashes(parentCommit, currentCommit);
 
           // Should return commits between the two hashes
