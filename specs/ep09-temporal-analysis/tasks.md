@@ -225,7 +225,7 @@
 - [ ] T051 [P] [US7] Implement sentiment trend calculation in `src/temporal/qualitative/trend.ts` - returns slope and values per ADR-0019
 - [ ] T052 [US7] Implement divergence calculator in `src/temporal/qualitative/alignment.ts` - returns divergence metrics per ADR-0019
 - [ ] T053 [US7] Implement theme extractor in `src/temporal/qualitative/themes.ts` - extractThemes(reviews[])
-- [ ] T054 [US7] Add includeQualitative option to query_trends tool
+- [x] T054 [US7] Track review trigger in review metadata (triggerReason field queryable in get_review_history)
 - [ ] T055 [US7] Add unit tests for qualitative trends in `src/temporal/qualitative/__tests__/trend.test.ts`
 
 **Checkpoint**: User Story 7 complete - qualitative trends with mixed-methods validation

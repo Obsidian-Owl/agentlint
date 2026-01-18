@@ -144,7 +144,12 @@ export function calculateDivergenceMetrics(
   }
 
   // Get aligned data points
-  const aligned = alignDataPoints(quantitative.values, qualitative.values, overlapStart, overlapEnd);
+  const aligned = alignDataPoints(
+    quantitative.values,
+    qualitative.values,
+    overlapStart,
+    overlapEnd
+  );
 
   if (aligned.length < 2) {
     return null;

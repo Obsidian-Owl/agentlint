@@ -54,7 +54,10 @@ function createInflectionResult(
   };
 }
 
-function createReview(daysAgo: number, overrides: Partial<QualitativeReview> = {}): QualitativeReview {
+function createReview(
+  daysAgo: number,
+  overrides: Partial<QualitativeReview> = {}
+): QualitativeReview {
   const date = new Date();
   date.setDate(date.getDate() - daysAgo);
 
@@ -85,11 +88,7 @@ function createDeltaSummary(metricsChanged: MetricChange[] = []): DeltaSummary {
   };
 }
 
-function createMetricChange(
-  name: string,
-  from: number,
-  to: number
-): MetricChange {
+function createMetricChange(name: string, from: number, to: number): MetricChange {
   const change = to - from;
   const percentChange = from !== 0 ? ((to - from) / from) * 100 : 100;
   return {
@@ -343,9 +342,7 @@ describe('temporal/reminders/triggers', () => {
     it('should handle partial parameters', () => {
       // Only provide deltaSummary
       const result = checkAllTriggers({
-        deltaSummary: createDeltaSummary([
-          createMetricChange('findingsCount', 100, 50),
-        ]),
+        deltaSummary: createDeltaSummary([createMetricChange('findingsCount', 100, 50)]),
       });
 
       expect(result.shouldTrigger).toBe(true);

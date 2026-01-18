@@ -31,7 +31,9 @@ import type { RecommendationTracking } from '../../../temporal/types';
 let testDir: string;
 let db: Database;
 
-function createTestTracking(overrides: Partial<RecommendationTracking> = {}): RecommendationTracking {
+function createTestTracking(
+  overrides: Partial<RecommendationTracking> = {}
+): RecommendationTracking {
   return {
     id: crypto.randomUUID(),
     recommendationId: 'REC-001',
@@ -68,7 +70,9 @@ describe('persistence/tracking/indexer', () => {
     it('should create database with tracking table', () => {
       // Table should exist after opening
       const tables = db
-        .query("SELECT name FROM sqlite_master WHERE type='table' AND name='recommendation_tracking'")
+        .query(
+          "SELECT name FROM sqlite_master WHERE type='table' AND name='recommendation_tracking'"
+        )
         .all();
       expect(tables.length).toBe(1);
     });

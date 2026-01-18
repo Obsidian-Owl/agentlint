@@ -381,11 +381,14 @@ export async function getCommitsBetweenHashes(
 
   try {
     // Use git log with range: fromHash..toHash (exclusive start, inclusive end)
-    const proc = Bun.spawn(['git', 'log', `${fromHash}..${toHash}`, '--format=%h: %s', '--reverse'], {
-      cwd,
-      stdout: 'pipe',
-      stderr: 'pipe',
-    });
+    const proc = Bun.spawn(
+      ['git', 'log', `${fromHash}..${toHash}`, '--format=%h: %s', '--reverse'],
+      {
+        cwd,
+        stdout: 'pipe',
+        stderr: 'pipe',
+      }
+    );
 
     // Handle timeout
     const timeoutMs = options.timeout ?? DEFAULT_TIMEOUT;
@@ -446,11 +449,14 @@ export async function getCommitDetailsBetweenHashes(
   try {
     // Format: hash|shortHash|author|date|subject
     const format = '%H|%h|%an|%aI|%s';
-    const proc = Bun.spawn(['git', 'log', `${fromHash}..${toHash}`, `--format=${format}`, '--reverse'], {
-      cwd,
-      stdout: 'pipe',
-      stderr: 'pipe',
-    });
+    const proc = Bun.spawn(
+      ['git', 'log', `${fromHash}..${toHash}`, `--format=${format}`, '--reverse'],
+      {
+        cwd,
+        stdout: 'pipe',
+        stderr: 'pipe',
+      }
+    );
 
     // Handle timeout
     const timeoutMs = options.timeout ?? DEFAULT_TIMEOUT;

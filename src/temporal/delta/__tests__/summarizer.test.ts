@@ -34,7 +34,10 @@ function createTestMetrics(overrides: Partial<BaselineMetrics> = {}): BaselineMe
   };
 }
 
-function createTestRecommendation(action: string, overrides: Partial<Recommendation> = {}): Recommendation {
+function createTestRecommendation(
+  action: string,
+  overrides: Partial<Recommendation> = {}
+): Recommendation {
   return {
     type: 'preventive',
     action,
@@ -231,9 +234,7 @@ describe('temporal/delta/summarizer', () => {
           ],
         });
         const to = createTestBaseline({
-          findings: [
-            createTestFinding('f3', [createTestRecommendation('Fix C')]),
-          ],
+          findings: [createTestFinding('f3', [createTestRecommendation('Fix C')])],
         });
 
         const { metricsDelta } = calculateDelta(from, to);
@@ -264,9 +265,7 @@ describe('temporal/delta/summarizer', () => {
       it('should include recommendations in DeltaSummary', () => {
         const from = createTestBaseline({ findings: [] });
         const to = createTestBaseline({
-          findings: [
-            createTestFinding('f1', [createTestRecommendation('New recommendation')]),
-          ],
+          findings: [createTestFinding('f1', [createTestRecommendation('New recommendation')])],
         });
 
         const { metricsDelta } = calculateDelta(from, to);
@@ -442,9 +441,7 @@ describe('temporal/delta/summarizer', () => {
     it('should format new recommendations', () => {
       const from = createTestBaseline({ findings: [] });
       const to = createTestBaseline({
-        findings: [
-          createTestFinding('f1', [createTestRecommendation('Add error handling')]),
-        ],
+        findings: [createTestFinding('f1', [createTestRecommendation('Add error handling')])],
       });
 
       const { metricsDelta } = calculateDelta(from, to);
@@ -458,9 +455,7 @@ describe('temporal/delta/summarizer', () => {
 
     it('should format addressed recommendations', () => {
       const from = createTestBaseline({
-        findings: [
-          createTestFinding('f1', [createTestRecommendation('Add error handling')]),
-        ],
+        findings: [createTestFinding('f1', [createTestRecommendation('Add error handling')])],
       });
       const to = createTestBaseline({ findings: [] });
 

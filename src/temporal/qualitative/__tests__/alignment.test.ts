@@ -275,28 +275,19 @@ describe('temporal/qualitative/alignment', () => {
       const metricTrends = [
         createMetricTrend({
           metricName: 'aligned',
-          values: [
-            createTimeSeriesPoint(30, 40),
-            createTimeSeriesPoint(0, 100),
-          ],
+          values: [createTimeSeriesPoint(30, 40), createTimeSeriesPoint(0, 100)],
           slope: 2,
         }),
         createMetricTrend({
           metricName: 'divergent',
-          values: [
-            createTimeSeriesPoint(30, 100),
-            createTimeSeriesPoint(0, 40),
-          ],
+          values: [createTimeSeriesPoint(30, 100), createTimeSeriesPoint(0, 40)],
           slope: -2,
         }),
       ];
 
       const qualTrends = [
         createQualitativeTrend({
-          values: [
-            createSentimentPoint(30, -1),
-            createSentimentPoint(0, 2),
-          ],
+          values: [createSentimentPoint(30, -1), createSentimentPoint(0, 2)],
           slope: 0.1,
         }),
       ];
@@ -461,17 +452,11 @@ describe('temporal/qualitative/alignment', () => {
       // Test that we return raw correlation for agent to interpret
       const aligned = calculateDivergenceMetrics(
         createMetricTrend({
-          values: [
-            createTimeSeriesPoint(30, 40),
-            createTimeSeriesPoint(0, 100),
-          ],
+          values: [createTimeSeriesPoint(30, 40), createTimeSeriesPoint(0, 100)],
           slope: 2,
         }),
         createQualitativeTrend({
-          values: [
-            createSentimentPoint(30, -1),
-            createSentimentPoint(0, 2),
-          ],
+          values: [createSentimentPoint(30, -1), createSentimentPoint(0, 2)],
           slope: 0.1,
         })
       );
@@ -481,17 +466,11 @@ describe('temporal/qualitative/alignment', () => {
 
       const divergent = calculateDivergenceMetrics(
         createMetricTrend({
-          values: [
-            createTimeSeriesPoint(30, 100),
-            createTimeSeriesPoint(0, 40),
-          ],
+          values: [createTimeSeriesPoint(30, 100), createTimeSeriesPoint(0, 40)],
           slope: -2,
         }),
         createQualitativeTrend({
-          values: [
-            createSentimentPoint(30, -1),
-            createSentimentPoint(0, 2),
-          ],
+          values: [createSentimentPoint(30, -1), createSentimentPoint(0, 2)],
           slope: 0.1,
         })
       );

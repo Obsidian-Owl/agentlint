@@ -235,9 +235,7 @@ export function calculateOverallTrend(
  * @param trends - Map of dimension trends
  * @returns Summary statistics
  */
-export function summarizeTrends(
-  trends: Map<ReviewDimensionName, ExtendedQualitativeTrend>
-): {
+export function summarizeTrends(trends: Map<ReviewDimensionName, ExtendedQualitativeTrend>): {
   totalDimensions: number;
   withSignificantSlope: number;
   averageSlope: number;
@@ -325,8 +323,7 @@ function linearRegression(
 
   // R² = (correlation coefficient)²
   const ssTotal = sumY2Diff;
-  const ssResidual =
-    sumY2Diff - (sumX2Diff !== 0 ? (sumXYDiff * sumXYDiff) / sumX2Diff : 0);
+  const ssResidual = sumY2Diff - (sumX2Diff !== 0 ? (sumXYDiff * sumXYDiff) / sumX2Diff : 0);
   const rSquared = ssTotal !== 0 ? 1 - ssResidual / ssTotal : 0;
 
   return { slope, rSquared: Math.max(0, Math.min(1, rSquared)) };

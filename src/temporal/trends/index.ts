@@ -30,11 +30,7 @@ export type { RegressionResult, Point } from './regression';
 // The agent interprets trend direction based on slope and rSquared.
 
 // Metric trend calculation
-export {
-  getMetricTrend,
-  detectInflectionPoints,
-  summarizeTrends,
-} from './metric-trend';
+export { getMetricTrend, detectInflectionPoints, summarizeTrends } from './metric-trend';
 export type { MetricTrendOptions } from './metric-trend';
 
 // Note: isLowerBetterMetric was removed per ADR-0019.

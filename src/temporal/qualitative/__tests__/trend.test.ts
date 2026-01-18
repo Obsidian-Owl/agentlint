@@ -16,11 +16,7 @@ import {
   summarizeTrends,
   type ExtendedQualitativeTrend,
 } from '../trend';
-import type {
-  QualitativeReview,
-  ReviewDimension,
-  ReviewDimensionName,
-} from '../../types';
+import type { QualitativeReview, ReviewDimension, ReviewDimensionName } from '../../types';
 
 // =============================================================================
 // Test Fixtures
@@ -121,11 +117,7 @@ describe('temporal/qualitative/trend', () => {
     });
 
     it('should return slope and rSquared without direction labels (ADR-0019)', () => {
-      const reviews = [
-        createReview(20, -1),
-        createReview(10, 0),
-        createReview(0, 1),
-      ];
+      const reviews = [createReview(20, -1), createReview(10, 0), createReview(0, 1)];
 
       const trend = calculateSentimentTrend(reviews);
 
@@ -195,10 +187,7 @@ describe('temporal/qualitative/trend', () => {
     });
 
     it('should include date range in result', () => {
-      const reviews = [
-        createReview(30, 0),
-        createReview(0, 1),
-      ];
+      const reviews = [createReview(30, 0), createReview(0, 1)];
 
       const trend = calculateSentimentTrend(reviews);
 
@@ -210,11 +199,7 @@ describe('temporal/qualitative/trend', () => {
     });
 
     it('should include statistical summary', () => {
-      const reviews = [
-        createReview(20, -1),
-        createReview(10, 0),
-        createReview(0, 2),
-      ];
+      const reviews = [createReview(20, -1), createReview(10, 0), createReview(0, 2)];
 
       const trend = calculateSentimentTrend(reviews);
 
@@ -226,11 +211,7 @@ describe('temporal/qualitative/trend', () => {
     });
 
     it('should respect custom options', () => {
-      const reviews = [
-        createReview(10, 0),
-        createReview(5, 0),
-        createReview(0, 0),
-      ];
+      const reviews = [createReview(10, 0), createReview(5, 0), createReview(0, 0)];
 
       // With very high threshold, slope should not be significant
       const trend = calculateSentimentTrend(reviews, undefined, {
@@ -301,11 +282,7 @@ describe('temporal/qualitative/trend', () => {
 
   describe('calculateOverallTrend', () => {
     it('should calculate overall sentiment trend', () => {
-      const reviews = [
-        createReview(20, -1),
-        createReview(10, 0),
-        createReview(0, 1),
-      ];
+      const reviews = [createReview(20, -1), createReview(10, 0), createReview(0, 1)];
 
       const trend = calculateOverallTrend(reviews);
 
@@ -314,10 +291,7 @@ describe('temporal/qualitative/trend', () => {
     });
 
     it('should use workflowSatisfaction as dimension name', () => {
-      const reviews = [
-        createReview(10, 0),
-        createReview(0, 1),
-      ];
+      const reviews = [createReview(10, 0), createReview(0, 1)];
 
       const trend = calculateOverallTrend(reviews);
 
@@ -434,10 +408,7 @@ describe('temporal/qualitative/trend', () => {
 
   describe('ADR-0019 compliance', () => {
     it('should not include direction labels', () => {
-      const reviews = [
-        createReview(20, -2),
-        createReview(0, 2),
-      ];
+      const reviews = [createReview(20, -2), createReview(0, 2)];
 
       const trend = calculateSentimentTrend(reviews);
 

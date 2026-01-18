@@ -119,7 +119,9 @@ export function formatDeltaSummary(summary: DeltaSummary): string {
   // Change counts header
   const { increased, decreased, unchanged } = summary.changeCounts;
   lines.push(`## Delta Summary\n`);
-  lines.push(`**Changes**: ${increased} ↑ increased, ${decreased} ↓ decreased, ${unchanged} → unchanged\n`);
+  lines.push(
+    `**Changes**: ${increased} ↑ increased, ${decreased} ↓ decreased, ${unchanged} → unchanged\n`
+  );
 
   // Metrics changes
   if (summary.metricsChanged.length > 0) {

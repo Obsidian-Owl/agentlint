@@ -146,7 +146,9 @@ function formatToolOutput(result: QueryTrendsResult): string {
   if (result.summary) {
     // Per ADR-0019, present raw statistics. Agent interprets meaning.
     lines.push('\n### Summary');
-    lines.push(`**Trends**: ${result.summary.slopePositiveCount} increasing, ${result.summary.slopeNegativeCount} decreasing, ${result.summary.slopeNearZeroCount} stable`);
+    lines.push(
+      `**Trends**: ${result.summary.slopePositiveCount} increasing, ${result.summary.slopeNegativeCount} decreasing, ${result.summary.slopeNearZeroCount} stable`
+    );
     lines.push(`- High volatility: ${result.summary.highVolatilityCount}`);
     lines.push(`- Average R²: ${result.summary.averageRSquared.toFixed(2)}`);
   }

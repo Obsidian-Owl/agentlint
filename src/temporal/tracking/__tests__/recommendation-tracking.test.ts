@@ -19,18 +19,17 @@ import { existsSync, rmSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
-import {
-  updateRecommendationStatus,
-  listRecommendations,
-  getRecommendation,
-} from '../api';
+import { updateRecommendationStatus, listRecommendations, getRecommendation } from '../api';
 import { saveTracking } from '../../../persistence/tracking';
 import { extractMatchEvidence, createConfigDiff } from '../detector';
 import { createDeltaSummary } from '../../delta/summarizer';
 import { calculateDelta } from '../../delta/calculator';
 import type { RecommendationTracking } from '../../types';
 import type { Baseline } from '../../../persistence/types';
-import type { Finding, Recommendation as OrchestratorRecommendation } from '../../../orchestration/types';
+import type {
+  Finding,
+  Recommendation as OrchestratorRecommendation,
+} from '../../../orchestration/types';
 
 // =============================================================================
 // Test Setup
@@ -39,7 +38,9 @@ import type { Finding, Recommendation as OrchestratorRecommendation } from '../.
 let testDir: string;
 let trackingDir: string;
 
-function createTestTracking(overrides: Partial<RecommendationTracking> = {}): RecommendationTracking {
+function createTestTracking(
+  overrides: Partial<RecommendationTracking> = {}
+): RecommendationTracking {
   return {
     id: crypto.randomUUID(),
     recommendationId: 'REC-001',
@@ -379,9 +380,7 @@ describe('T049: Recommendation Tracking Tests', () => {
         ],
       });
       const to = createTestBaseline({
-        findings: [
-          createFinding([createOrchestratorRecommendation('Finding 3 - Rec C')]),
-        ],
+        findings: [createFinding([createOrchestratorRecommendation('Finding 3 - Rec C')])],
       });
 
       const { metricsDelta } = calculateDelta(from, to);
@@ -449,22 +448,31 @@ describe('T049: Recommendation Tracking Tests', () => {
 
     it('should support filtering by multiple criteria', async () => {
       // Create various tracking records
-      await saveTracking(createTestTracking({
-        status: 'pending',
-        recommendationId: 'REC-001',
-      }), { baseDir: trackingDir });
+      await saveTracking(
+        createTestTracking({
+          status: 'pending',
+          recommendationId: 'REC-001',
+        }),
+        { baseDir: trackingDir }
+      );
 
-      await saveTracking(createTestTracking({
-        status: 'implemented',
-        recommendationId: 'REC-001',
-        effectivenessScore: 90,
-      }), { baseDir: trackingDir });
+      await saveTracking(
+        createTestTracking({
+          status: 'implemented',
+          recommendationId: 'REC-001',
+          effectivenessScore: 90,
+        }),
+        { baseDir: trackingDir }
+      );
 
-      await saveTracking(createTestTracking({
-        status: 'implemented',
-        recommendationId: 'REC-002',
-        effectivenessScore: 60,
-      }), { baseDir: trackingDir });
+      await saveTracking(
+        createTestTracking({
+          status: 'implemented',
+          recommendationId: 'REC-002',
+          effectivenessScore: 60,
+        }),
+        { baseDir: trackingDir }
+      );
 
       // Filter by status
       const implemented = await listRecommendations(

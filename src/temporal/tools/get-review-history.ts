@@ -36,6 +36,10 @@ const getReviewHistoryInputSchema = {
   baselineId: z.string().optional().describe('Filter reviews by baseline'),
   afterDate: z.string().optional().describe('Reviews after this ISO-8601 date'),
   beforeDate: z.string().optional().describe('Reviews before this ISO-8601 date'),
+  triggerReason: z
+    .enum(['scheduled', 'triggered', 'manual'])
+    .optional()
+    .describe('Filter by how the review was triggered'),
   dimension: z
     .enum([
       'perceivedFriction',
@@ -89,6 +93,7 @@ interface GetReviewHistoryResult {
     baselineId?: string;
     afterDate?: string;
     beforeDate?: string;
+    triggerReason?: string;
     dimension?: string;
   };
   error?: string;
@@ -127,6 +132,9 @@ function formatToolOutput(result: GetReviewHistoryResult): string {
     if (result.filter.beforeDate) {
       filters.push(`before: ${result.filter.beforeDate}`);
     }
+    if (result.filter.triggerReason) {
+      filters.push(`trigger: ${result.filter.triggerReason}`);
+    }
     if (result.filter.dimension) {
       filters.push(`dimension: ${result.filter.dimension}`);
     }
@@ -143,10 +151,9 @@ function formatToolOutput(result: GetReviewHistoryResult): string {
 
     for (const review of result.reviews) {
       // Per ADR-0019, return raw sentiment value. Agent interprets meaning.
-      const sentimentValue = review.overallSentiment >= 0 ? `+${review.overallSentiment}` : `${review.overallSentiment}`;
-      lines.push(
-        `**${formatDate(review.createdAt)}** - Sentiment: ${sentimentValue}`
-      );
+      const sentimentValue =
+        review.overallSentiment >= 0 ? `+${review.overallSentiment}` : `${review.overallSentiment}`;
+      lines.push(`**${formatDate(review.createdAt)}** - Sentiment: ${sentimentValue}`);
       lines.push(`- ID: ${review.id.slice(0, 8)}...`);
       lines.push(`- Baseline: ${review.baselineId.slice(0, 8)}...`);
 
@@ -250,6 +257,9 @@ export const getReviewHistoryTool = tool(
       if (args.beforeDate) {
         queryOptions.before = args.beforeDate;
       }
+      if (args.triggerReason) {
+        queryOptions.triggerReason = args.triggerReason;
+      }
 
       // Open database and query
       const db = await getReviewIndexDb();
@@ -324,11 +334,18 @@ export const getReviewHistoryTool = tool(
       };
 
       // Add active filters
-      if (args.baselineId || args.afterDate || args.beforeDate || args.dimension) {
+      if (
+        args.baselineId ||
+        args.afterDate ||
+        args.beforeDate ||
+        args.triggerReason ||
+        args.dimension
+      ) {
         result.filter = {};
         if (args.baselineId) result.filter.baselineId = args.baselineId;
         if (args.afterDate) result.filter.afterDate = args.afterDate;
         if (args.beforeDate) result.filter.beforeDate = args.beforeDate;
+        if (args.triggerReason) result.filter.triggerReason = args.triggerReason;
         if (args.dimension) result.filter.dimension = args.dimension;
       }
 

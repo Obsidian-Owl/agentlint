@@ -285,6 +285,49 @@ describe('Qualitative Review Flow Integration', () => {
       db.close();
     });
 
+    it('should filter reviews by trigger reason', async () => {
+      const review1 = createTestReview('review-trigger-1', 'baseline-001', {
+        createdAt: '2026-01-15T10:00:00.000Z',
+        triggerReason: 'manual',
+      });
+      const review2 = createTestReview('review-trigger-2', 'baseline-001', {
+        createdAt: '2026-01-16T10:00:00.000Z',
+        triggerReason: 'triggered',
+      });
+      const review3 = createTestReview('review-trigger-3', 'baseline-001', {
+        createdAt: '2026-01-17T10:00:00.000Z',
+        triggerReason: 'scheduled',
+      });
+
+      const filePath1 = await saveReview(review1, { baseDir: reviewsDir });
+      const filePath2 = await saveReview(review2, { baseDir: reviewsDir });
+      const filePath3 = await saveReview(review3, { baseDir: reviewsDir });
+
+      const db = await getReviewIndexDb({ baseDir: reviewsDir });
+      indexReview(db, review1, filePath1);
+      indexReview(db, review2, filePath2);
+      indexReview(db, review3, filePath3);
+
+      // Query by manual trigger
+      const manualReviews = queryReviews(db, { triggerReason: 'manual' });
+      expect(manualReviews.length).toBe(1);
+      expect(manualReviews[0]?.id).toBe('review-trigger-1');
+      expect(manualReviews[0]?.triggerReason).toBe('manual');
+
+      // Query by triggered
+      const triggeredReviews = queryReviews(db, { triggerReason: 'triggered' });
+      expect(triggeredReviews.length).toBe(1);
+      expect(triggeredReviews[0]?.id).toBe('review-trigger-2');
+      expect(triggeredReviews[0]?.triggerReason).toBe('triggered');
+
+      // Query by scheduled
+      const scheduledReviews = queryReviews(db, { triggerReason: 'scheduled' });
+      expect(scheduledReviews.length).toBe(1);
+      expect(scheduledReviews[0]?.id).toBe('review-trigger-3');
+
+      db.close();
+    });
+
     it('should filter reviews by date range', async () => {
       const review1 = createTestReview('review-date-1', 'baseline-001', {
         createdAt: '2026-01-10T10:00:00.000Z',

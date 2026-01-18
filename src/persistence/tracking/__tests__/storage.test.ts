@@ -33,7 +33,9 @@ import type { RecommendationTracking } from '../../../temporal/types';
 let testDir: string;
 let trackingDir: string;
 
-function createTestTracking(overrides: Partial<RecommendationTracking> = {}): RecommendationTracking {
+function createTestTracking(
+  overrides: Partial<RecommendationTracking> = {}
+): RecommendationTracking {
   return {
     id: crypto.randomUUID(),
     recommendationId: 'REC-001',
@@ -293,7 +295,9 @@ describe('persistence/tracking/storage', () => {
       await saveTracking(tracking3, { baseDir: trackingDir });
 
       const pendingResults = await loadTrackingByStatus('pending', { baseDir: trackingDir });
-      const implementedResults = await loadTrackingByStatus('implemented', { baseDir: trackingDir });
+      const implementedResults = await loadTrackingByStatus('implemented', {
+        baseDir: trackingDir,
+      });
 
       expect(pendingResults.length).toBe(2);
       expect(implementedResults.length).toBe(1);

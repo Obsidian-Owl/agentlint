@@ -33,7 +33,9 @@ import type { RecommendationTracking } from '../../types';
 let testDir: string;
 let trackingDir: string;
 
-function createTestTracking(overrides: Partial<RecommendationTracking> = {}): RecommendationTracking {
+function createTestTracking(
+  overrides: Partial<RecommendationTracking> = {}
+): RecommendationTracking {
   return {
     id: crypto.randomUUID(),
     recommendationId: 'REC-001',
@@ -138,7 +140,11 @@ describe('temporal/tracking/api', () => {
     it('should throw for non-existent tracking', async () => {
       let error: Error | undefined;
       try {
-        await updateRecommendationStatus('non-existent', { status: 'implemented' }, { baseDir: trackingDir });
+        await updateRecommendationStatus(
+          'non-existent',
+          { status: 'implemented' },
+          { baseDir: trackingDir }
+        );
       } catch (e) {
         error = e as Error;
       }
@@ -166,8 +172,14 @@ describe('temporal/tracking/api', () => {
       await saveTracking(pending2, { baseDir: trackingDir });
       await saveTracking(implemented, { baseDir: trackingDir });
 
-      const pendingResults = await listRecommendations({ status: 'pending' }, { baseDir: trackingDir });
-      const implementedResults = await listRecommendations({ status: 'implemented' }, { baseDir: trackingDir });
+      const pendingResults = await listRecommendations(
+        { status: 'pending' },
+        { baseDir: trackingDir }
+      );
+      const implementedResults = await listRecommendations(
+        { status: 'implemented' },
+        { baseDir: trackingDir }
+      );
 
       expect(pendingResults.length).toBe(2);
       expect(implementedResults.length).toBe(1);
@@ -181,7 +193,10 @@ describe('temporal/tracking/api', () => {
       await saveTracking(rec1b, { baseDir: trackingDir });
       await saveTracking(rec2, { baseDir: trackingDir });
 
-      const results = await listRecommendations({ recommendationId: 'REC-001' }, { baseDir: trackingDir });
+      const results = await listRecommendations(
+        { recommendationId: 'REC-001' },
+        { baseDir: trackingDir }
+      );
 
       expect(results.length).toBe(2);
       expect(results.every((r) => r.recommendationId === 'REC-001')).toBe(true);
@@ -193,8 +208,14 @@ describe('temporal/tracking/api', () => {
       await saveTracking(withPre, { baseDir: trackingDir });
       await saveTracking(withoutPre, { baseDir: trackingDir });
 
-      const withPreResults = await listRecommendations({ hasPreBaseline: true }, { baseDir: trackingDir });
-      const withoutPreResults = await listRecommendations({ hasPreBaseline: false }, { baseDir: trackingDir });
+      const withPreResults = await listRecommendations(
+        { hasPreBaseline: true },
+        { baseDir: trackingDir }
+      );
+      const withoutPreResults = await listRecommendations(
+        { hasPreBaseline: false },
+        { baseDir: trackingDir }
+      );
 
       expect(withPreResults.length).toBe(1);
       expect(withPreResults[0]?.preBaselineId).toBe('baseline-1');
@@ -208,7 +229,10 @@ describe('temporal/tracking/api', () => {
       await saveTracking(withPost, { baseDir: trackingDir });
       await saveTracking(withoutPost, { baseDir: trackingDir });
 
-      const withPostResults = await listRecommendations({ hasPostBaseline: true }, { baseDir: trackingDir });
+      const withPostResults = await listRecommendations(
+        { hasPostBaseline: true },
+        { baseDir: trackingDir }
+      );
 
       expect(withPostResults.length).toBe(1);
       expect(withPostResults[0]?.postBaselineId).toBe('baseline-2');
@@ -220,7 +244,10 @@ describe('temporal/tracking/api', () => {
       await saveTracking(withScore, { baseDir: trackingDir });
       await saveTracking(withoutScore, { baseDir: trackingDir });
 
-      const withScoreResults = await listRecommendations({ hasEffectivenessScore: true }, { baseDir: trackingDir });
+      const withScoreResults = await listRecommendations(
+        { hasEffectivenessScore: true },
+        { baseDir: trackingDir }
+      );
 
       expect(withScoreResults.length).toBe(1);
       expect(withScoreResults[0]?.effectivenessScore).toBe(85);
@@ -249,8 +276,14 @@ describe('temporal/tracking/api', () => {
       await saveTracking(older, { baseDir: trackingDir });
       await saveTracking(newer, { baseDir: trackingDir });
 
-      const ascResults = await listRecommendations({}, { baseDir: trackingDir, sortBy: 'detectedAt', sortOrder: 'asc' });
-      const descResults = await listRecommendations({}, { baseDir: trackingDir, sortBy: 'detectedAt', sortOrder: 'desc' });
+      const ascResults = await listRecommendations(
+        {},
+        { baseDir: trackingDir, sortBy: 'detectedAt', sortOrder: 'asc' }
+      );
+      const descResults = await listRecommendations(
+        {},
+        { baseDir: trackingDir, sortBy: 'detectedAt', sortOrder: 'desc' }
+      );
 
       expect(ascResults[0]?.detectedAt).toBe('2026-01-01T10:00:00Z');
       expect(descResults[0]?.detectedAt).toBe('2026-01-15T10:00:00Z');
@@ -297,8 +330,14 @@ describe('temporal/tracking/api', () => {
       await saveTracking(createTestTracking({ status: 'pending' }), { baseDir: trackingDir });
       await saveTracking(createTestTracking({ status: 'implemented' }), { baseDir: trackingDir });
 
-      const pendingCount = await countRecommendations({ status: 'pending' }, { baseDir: trackingDir });
-      const implementedCount = await countRecommendations({ status: 'implemented' }, { baseDir: trackingDir });
+      const pendingCount = await countRecommendations(
+        { status: 'pending' },
+        { baseDir: trackingDir }
+      );
+      const implementedCount = await countRecommendations(
+        { status: 'implemented' },
+        { baseDir: trackingDir }
+      );
 
       expect(pendingCount).toBe(2);
       expect(implementedCount).toBe(1);
@@ -308,8 +347,12 @@ describe('temporal/tracking/api', () => {
   describe('getPendingConfirmations', () => {
     it('should return only detected_pending_confirm status', async () => {
       await saveTracking(createTestTracking({ status: 'pending' }), { baseDir: trackingDir });
-      await saveTracking(createTestTracking({ status: 'detected_pending_confirm' }), { baseDir: trackingDir });
-      await saveTracking(createTestTracking({ status: 'detected_pending_confirm' }), { baseDir: trackingDir });
+      await saveTracking(createTestTracking({ status: 'detected_pending_confirm' }), {
+        baseDir: trackingDir,
+      });
+      await saveTracking(createTestTracking({ status: 'detected_pending_confirm' }), {
+        baseDir: trackingDir,
+      });
       await saveTracking(createTestTracking({ status: 'implemented' }), { baseDir: trackingDir });
 
       const results = await getPendingConfirmations({ baseDir: trackingDir });
@@ -321,22 +364,19 @@ describe('temporal/tracking/api', () => {
 
   describe('getImplementedWithScores', () => {
     it('should return implemented recommendations with scores sorted by score desc', async () => {
-      await saveTracking(
-        createTestTracking({ status: 'implemented', effectivenessScore: 70 }),
-        { baseDir: trackingDir }
-      );
-      await saveTracking(
-        createTestTracking({ status: 'implemented', effectivenessScore: 95 }),
-        { baseDir: trackingDir }
-      );
+      await saveTracking(createTestTracking({ status: 'implemented', effectivenessScore: 70 }), {
+        baseDir: trackingDir,
+      });
+      await saveTracking(createTestTracking({ status: 'implemented', effectivenessScore: 95 }), {
+        baseDir: trackingDir,
+      });
       await saveTracking(
         createTestTracking({ status: 'implemented' }), // No score
         { baseDir: trackingDir }
       );
-      await saveTracking(
-        createTestTracking({ status: 'pending', effectivenessScore: 80 }),
-        { baseDir: trackingDir }
-      );
+      await saveTracking(createTestTracking({ status: 'pending', effectivenessScore: 80 }), {
+        baseDir: trackingDir,
+      });
 
       const results = await getImplementedWithScores({ baseDir: trackingDir });
 

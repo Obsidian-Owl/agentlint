@@ -199,7 +199,8 @@ function extractMetricChanges(
     }
 
     const change = toValue - fromValue;
-    const percentChange = fromValue !== 0 ? ((toValue - fromValue) / fromValue) * 100 : toValue !== 0 ? 100 : 0;
+    const percentChange =
+      fromValue !== 0 ? ((toValue - fromValue) / fromValue) * 100 : toValue !== 0 ? 100 : 0;
 
     // Determine direction
     let direction: '↑' | '↓' | '→';

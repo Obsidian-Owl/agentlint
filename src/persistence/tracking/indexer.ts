@@ -215,7 +215,10 @@ export function removeTrackingIndex(db: Database, id: string): boolean {
  * @param options - Query options
  * @returns Array of tracking summaries
  */
-export function queryTrackings(db: Database, options: TrackingQueryOptions = {}): TrackingSummary[] {
+export function queryTrackings(
+  db: Database,
+  options: TrackingQueryOptions = {}
+): TrackingSummary[] {
   const conditions: string[] = [];
   const params: Record<string, string | number | null> = {};
 
@@ -322,7 +325,10 @@ export function getTrackingsByRecommendation(
  * @param status - Status to filter by
  * @returns Array of tracking summaries
  */
-export function getTrackingsByStatus(db: Database, status: RecommendationStatus): TrackingSummary[] {
+export function getTrackingsByStatus(
+  db: Database,
+  status: RecommendationStatus
+): TrackingSummary[] {
   return queryTrackings(db, { status, orderBy: 'detectedAt', order: 'desc' });
 }
 

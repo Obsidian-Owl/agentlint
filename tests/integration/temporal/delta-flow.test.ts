@@ -332,10 +332,7 @@ describe('Temporal Delta Flow Integration', () => {
       const now = new Date();
       const yesterday = new Date(now.getTime() - 24 * 60 * 60 * 1000);
 
-      const commits = await getCommitsBetweenDates(
-        yesterday.toISOString(),
-        now.toISOString()
-      );
+      const commits = await getCommitsBetweenDates(yesterday.toISOString(), now.toISOString());
 
       // May or may not have commits in last 24 hours, but shouldn't error
       expect(Array.isArray(commits)).toBe(true);
