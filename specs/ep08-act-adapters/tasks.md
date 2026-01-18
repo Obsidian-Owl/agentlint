@@ -43,15 +43,15 @@
 
 ### Types (from contracts/interfaces.ts)
 
-- [ ] T005 Extend `ACTType` in EP05 `src/tools/types.ts` to add `aider`, `copilot-cli` values, then re-export from `src/act/types.ts`
-- [ ] T006 [P] Implement `AgentDefinition` interface matching SDK shape in `src/act/types.ts`
-- [ ] T007 [P] Implement `ACTInstructions` interface and `ACTInstructionsSchema` Zod validator in `src/act/types.ts`
-- [ ] T008 Implement `ACTAnalysisFindings`, `ACTConfigIssue`, `ACTSessionIssue`, `ACTRecommendation` output types in `src/act/types.ts`
+- [x] T005 Extend `ACTType` in EP05 `src/tools/types.ts` to add `aider`, `copilot-cli` values, then re-export from `src/act/types.ts`
+- [x] T006 [P] Implement `AgentDefinition` interface matching SDK shape in `src/act/types.ts`
+- [x] T007 [P] Implement `ACTInstructions` interface and `ACTInstructionsSchema` Zod validator in `src/act/types.ts`
+- [x] T008 Implement `ACTAnalysisFindings`, `ACTConfigIssue`, `ACTSessionIssue`, `ACTRecommendation` output types in `src/act/types.ts`
 
 ### Registry
 
-- [ ] T009 Implement `IACTSubagentRegistry` interface in `src/act/registry.ts`
-- [ ] T010 Implement `ACTSubagentRegistry` class with `register()`, `get()`, `list()`, `getForACTType()`, `toAgentsOption()` methods in `src/act/registry.ts`
+- [x] T009 Implement `IACTSubagentRegistry` interface in `src/act/registry.ts`
+- [x] T010 Implement `ACTSubagentRegistry` class with `register()`, `get()`, `list()`, `getForACTType()`, `toAgentsOption()` methods in `src/act/registry.ts`
 
 **Checkpoint**: Foundation ready
 - [ ] All types compile without errors

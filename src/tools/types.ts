@@ -24,6 +24,8 @@ export type ACTType =
   | 'claude-code' // Claude Code (primary)
   | 'agents-md' // AGENTS.md standard
   | 'cursor' // Cursor (future)
+  | 'aider' // Aider (future)
+  | 'copilot-cli' // GitHub Copilot CLI (future)
   | 'windsurf' // Windsurf (future)
   | 'unknown'; // Unrecognized ACT
 
