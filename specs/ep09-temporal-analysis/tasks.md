@@ -270,7 +270,7 @@
 ### Final Validation
 
 - [x] T073 Configure test coverage reporting and verify > 80% threshold per spec success criteria (scripts/check-coverage.ts, 95.11% core coverage)
-- [ ] T074 Add E2E test for full temporal workflow in `tests/e2e/temporal-workflow.test.ts`
+- [x] T074 Add E2E test for full temporal workflow in `tests/e2e/temporal/workflow-live.test.ts`
 - [ ] T075 Validate quickstart.md examples work end-to-end
 - [ ] T076 Add temporal tools to CLI help output
 

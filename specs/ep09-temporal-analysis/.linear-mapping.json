@@ -96,7 +96,7 @@
     "T071": { "issueId": "AGE-533", "linearId": "0fe1e855-c284-43fa-b081-4e9da3eeb330", "status": "Done", "completed_at": "2026-01-19T14:10:00.000Z" },
     "T072": { "issueId": "AGE-534", "linearId": "1f36f7db-37b3-415c-a911-2079d1bc1c94", "status": "Done", "completed_at": "2026-01-19T14:30:00.000Z" },
     "T073": { "issueId": "AGE-535", "linearId": "9e8d2b69-8fad-4998-b40d-f207ae7f87f6", "status": "Done", "completed_at": "2026-01-19T14:50:00.000Z" },
-    "T074": { "issueId": "AGE-536", "linearId": "bc71d21a-e43c-4ce0-96eb-aaa8ca5a64fa" },
+    "T074": { "issueId": "AGE-536", "linearId": "bc71d21a-e43c-4ce0-96eb-aaa8ca5a64fa", "status": "Done", "completed_at": "2026-01-19T15:10:00.000Z" },
     "T075": { "issueId": "AGE-537", "linearId": "c2c2c280-a74a-447a-b588-b56ef5f70bca" },
     "T076": { "issueId": "AGE-538", "linearId": "e476a557-d1ff-4dff-88b5-3e44476d69c3" }
   },
