@@ -35,3 +35,13 @@ export {
   summarizeTrends,
 } from './metric-trend';
 export type { MetricTrendOptions } from './metric-trend';
+
+// Trend analysis builder
+export {
+  buildTrendAnalysis,
+  hasSufficientBaselines,
+  getTrendSummary,
+  getSignificantTrends,
+  getTrendsByDirection,
+} from './analysis';
+export type { TrendAnalysisOptions } from './analysis';
