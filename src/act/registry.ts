@@ -6,9 +6,9 @@
  * @module act/registry
  */
 
-import type { ACTType } from "../tools/types.js";
-import type { AgentDefinition, ACTInstructions } from "./types.js";
-import { ACTInstructionsSchema } from "./types.js";
+import type { ACTType } from '../tools/types.js';
+import type { AgentDefinition, ACTInstructions } from './types.js';
+import { ACTInstructionsSchema } from './types.js';
 
 /**
  * T009: Interface for the ACT subagent registry.
@@ -65,9 +65,7 @@ export class ACTSubagentRegistry implements IACTSubagentRegistry {
     ACTInstructionsSchema.parse(instructions);
 
     if (this.subagents.has(instructions.name)) {
-      throw new Error(
-        `Subagent with name '${instructions.name}' is already registered`
-      );
+      throw new Error(`Subagent with name '${instructions.name}' is already registered`);
     }
 
     this.subagents.set(instructions.name, instructions);
@@ -93,7 +91,7 @@ export class ACTSubagentRegistry implements IACTSubagentRegistry {
    */
   getForACTType(actType: ACTType): ACTInstructions | undefined {
     const matches = this.list().filter((inst) =>
-      inst.actTypes.includes(actType as ACTInstructions["actTypes"][number])
+      inst.actTypes.includes(actType as ACTInstructions['actTypes'][number])
     );
 
     if (matches.length === 0) {
@@ -101,9 +99,7 @@ export class ACTSubagentRegistry implements IACTSubagentRegistry {
     }
 
     // Return highest priority match
-    return matches.reduce((best, current) =>
-      current.priority > best.priority ? current : best
-    );
+    return matches.reduce((best, current) => (current.priority > best.priority ? current : best));
   }
 
   /**
@@ -125,7 +121,7 @@ export class ACTSubagentRegistry implements IACTSubagentRegistry {
       };
 
       // Only include model if not 'inherit' (SDK default)
-      if (instructions.model && instructions.model !== "inherit") {
+      if (instructions.model && instructions.model !== 'inherit') {
         agentDef.model = instructions.model;
       }
 

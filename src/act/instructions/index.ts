@@ -6,13 +6,13 @@
  * @module act/instructions
  */
 
-import type { ACTInstructions } from "../types.js";
-import { claudeCodeInstructions } from "./claude-code.js";
-import { generalizedInstructions } from "./generalized.js";
+import type { ACTInstructions } from '../types.js';
+import { claudeCodeInstructions } from './claude-code.js';
+import { generalizedInstructions } from './generalized.js';
 
 // Re-export individual instructions for direct access
-export { claudeCodeInstructions } from "./claude-code.js";
-export { generalizedInstructions } from "./generalized.js";
+export { claudeCodeInstructions } from './claude-code.js';
+export { generalizedInstructions } from './generalized.js';
 
 /**
  * All bundled ACT instruction definitions.

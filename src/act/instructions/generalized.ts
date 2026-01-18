@@ -7,8 +7,8 @@
  * @module act/instructions/generalized
  */
 
-import type { ACTInstructions } from "../types.js";
-import { GENERALIZED_ACT_TOOLS } from "../types.js";
+import type { ACTInstructions } from '../types.js';
+import { GENERALIZED_ACT_TOOLS } from '../types.js';
 
 /**
  * Generalized ACT Analyzer prompt.
@@ -239,13 +239,13 @@ Report your findings in this structure:
  * Uses only basic discovery and parsing tools.
  */
 export const generalizedInstructions: ACTInstructions = {
-  name: "generalized-analyzer",
-  displayName: "Generalized ACT Analyzer",
+  name: 'generalized-analyzer',
+  displayName: 'Generalized ACT Analyzer',
   description:
-    "Fallback analyzer for AI coding tools without a dedicated specialist. Use when ACT type is unknown or for generic AGENTS.md configurations.",
+    'Fallback analyzer for AI coding tools without a dedicated specialist. Use when ACT type is unknown or for generic AGENTS.md configurations.',
   prompt: GENERALIZED_PROMPT,
   tools: [...GENERALIZED_ACT_TOOLS],
-  actTypes: ["agents-md", "unknown"],
+  actTypes: ['agents-md', 'unknown'],
   priority: 10, // Low priority - fallback analyzer
 };
 

@@ -514,3 +514,95 @@ Overall confidence: `high` (5-6 factors), `medium` (3-4), `low` (0-2)
 ```
 
 The generalized adapter ensures value even for unknown AI tools.
+
+---
+
+## Level 3: ACT Subagent Module (EP08)
+
+The ACT (AI Coding Tool) subagent system provides specialized analysis agents that the orchestrator can delegate to via the SDK's native subagent pattern.
+
+```
+src/act/
+├── index.ts                    Public exports + buildACTSubagents()
+├── registry.ts                 ACTSubagentRegistry class
+├── types.ts                    AgentDefinition, ACTInstructions, output types
+│
+└── instructions/               Subagent instruction sets
+    ├── index.ts                Bundled instructions aggregator
+    ├── claude-code.ts          Claude Code specialist (priority 100)
+    └── generalized.ts          Fallback analyzer (priority 10)
+```
+
+| Module | Responsibility |
+|--------|----------------|
+| `index.ts` | Builds subagent configuration for SDK `agents` option via `buildACTSubagents()` |
+| `registry.ts` | Manages registration, lookup by name/ACT type, priority-based routing |
+| `types.ts` | Zod-validated schemas (`ACTInstructionsSchema`), output types for findings |
+| `instructions/` | Context-engineered prompts following 4-layer structure (Role → Domain → Task → Output) |
+
+### Subagent Definitions
+
+| Subagent | ACT Types | Priority | Tools |
+|----------|-----------|----------|-------|
+| `claude-code-analyzer` | claude-code | 100 | discover_configs, parse_config, analyze_hierarchy, search_sessions, get_session_stats |
+| `generalized-analyzer` | agents-md, unknown | 10 | discover_configs, parse_config |
+
+### Key Entity Types
+
+```typescript
+interface AgentDefinition {
+  description: string;          // When to invoke (Claude uses for delegation)
+  prompt: string;               // Context-engineered system prompt
+  tools?: string[];             // Allowed tools (must NOT include 'Task')
+  model?: 'sonnet' | 'opus' | 'haiku' | 'inherit';
+}
+
+interface ACTInstructions {
+  name: string;                 // Unique identifier (e.g., "claude-code-analyzer")
+  displayName: string;          // Human-readable name
+  description: string;          // Delegation trigger description
+  prompt: string;               // Full system prompt (max 50KB)
+  tools: string[];              // Allowed tools (validated: no 'Task')
+  actTypes: ACTType[];          // Which ACT types this handles
+  priority: number;             // Selection priority (1-100, higher wins)
+  model?: string;               // Optional model override
+}
+
+interface ACTAnalysisFindings {
+  projectPath: string;
+  actType: string;
+  filesAnalyzed: number;
+  configIssues: ACTConfigIssue[];
+  sessionIssues?: ACTSessionIssue[];
+  recommendations: ACTRecommendation[];
+  summary: string;
+  limitations?: string[];
+}
+```
+
+### SDK Integration
+
+```typescript
+import { query } from '@anthropic-ai/claude-agent-sdk';
+import { buildACTSubagents } from './act';
+
+// Orchestrator passes subagents to SDK
+const response = await query({
+  prompt: task,
+  options: {
+    model: 'claude-sonnet-4-20250514',
+    agents: buildACTSubagents(),      // EP08: ACT subagents
+    allowedTools: ['Task', ...],       // Enable subagent invocation
+  },
+});
+```
+
+### Single-Depth Constraint (C8)
+
+Per Constitution Principle C8 and SDK design, subagents are limited to depth=1:
+
+- **Orchestrator**: `MAX_SUBAGENT_DEPTH = 1` enforced in constructor
+- **Schema Validation**: `ACTInstructionsSchema` rejects 'Task' in tools array
+- **Error Handling**: `SubagentDepthError` thrown if depth exceeded
+
+This prevents infinite delegation chains while enabling specialized analysis.

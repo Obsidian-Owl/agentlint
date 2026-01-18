@@ -7,8 +7,8 @@
  * @module act/instructions/claude-code
  */
 
-import type { ACTInstructions } from "../types.js";
-import { DEFAULT_ACT_TOOLS } from "../types.js";
+import type { ACTInstructions } from '../types.js';
+import { DEFAULT_ACT_TOOLS } from '../types.js';
 
 /**
  * Claude Code Analyzer prompt.
@@ -240,13 +240,13 @@ Report your findings in this structure:
  * and session history.
  */
 export const claudeCodeInstructions: ACTInstructions = {
-  name: "claude-code-analyzer",
-  displayName: "Claude Code Analyzer",
+  name: 'claude-code-analyzer',
+  displayName: 'Claude Code Analyzer',
   description:
-    "Analyzes Claude Code configurations, settings hierarchies, memory files, and session logs. Use when the project uses CLAUDE.md or .claude/ directory.",
+    'Analyzes Claude Code configurations, settings hierarchies, memory files, and session logs. Use when the project uses CLAUDE.md or .claude/ directory.',
   prompt: CLAUDE_CODE_PROMPT,
   tools: [...DEFAULT_ACT_TOOLS],
-  actTypes: ["claude-code"],
+  actTypes: ['claude-code'],
   priority: 100, // Highest priority - specific analyzer
 };
 

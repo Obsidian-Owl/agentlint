@@ -4,10 +4,10 @@
  * @module act/types
  */
 
-import { z } from "zod";
+import { z } from 'zod';
 
 // T005: Re-export ACTType from EP05 (now includes aider, copilot-cli)
-export { type ACTType } from "../tools/types.js";
+export { type ACTType } from '../tools/types.js';
 
 /**
  * T006: AgentDefinition - Configuration for an SDK subagent.
@@ -27,7 +27,7 @@ export interface AgentDefinition {
   disallowedTools?: string[];
 
   /** Model override: 'sonnet' | 'opus' | 'haiku' | 'inherit' */
-  model?: "sonnet" | "opus" | "haiku" | "inherit";
+  model?: 'sonnet' | 'opus' | 'haiku' | 'inherit';
 
   /** MCP servers available to this subagent */
   mcpServers?: Array<{ name: string; config: unknown }>;
@@ -38,21 +38,18 @@ export interface AgentDefinition {
  * Includes all EP05/EP06 analysis tools.
  */
 export const DEFAULT_ACT_TOOLS = [
-  "discover_configs",
-  "parse_config",
-  "analyze_hierarchy",
-  "search_sessions",
-  "get_session_stats",
+  'discover_configs',
+  'parse_config',
+  'analyze_hierarchy',
+  'search_sessions',
+  'get_session_stats',
 ] as const;
 
 /**
  * T016: Minimal tools for generalized analyzer (fallback).
  * Only basic discovery and parsing.
  */
-export const GENERALIZED_ACT_TOOLS = [
-  "discover_configs",
-  "parse_config",
-] as const;
+export const GENERALIZED_ACT_TOOLS = ['discover_configs', 'parse_config'] as const;
 
 /**
  * T007: Zod schema for validating ACTInstructions.
@@ -61,7 +58,7 @@ export const ACTInstructionsSchema = z.object({
   /** Unique identifier - becomes agent key (e.g., "claude-code-analyzer") */
   name: z
     .string()
-    .regex(/^[a-z0-9-]+$/, "Name must be lowercase alphanumeric with hyphens")
+    .regex(/^[a-z0-9-]+$/, 'Name must be lowercase alphanumeric with hyphens')
     .min(1)
     .max(50),
 
@@ -78,22 +75,14 @@ export const ACTInstructionsSchema = z.object({
   tools: z
     .array(z.string())
     .min(1)
-    .refine((tools) => !tools.includes("Task"), {
+    .refine((tools) => !tools.includes('Task'), {
       message: "Subagent tools must NOT include 'Task' (single-depth constraint)",
     }),
 
   /** Which ACT types this analyzer handles (internal routing) */
   actTypes: z
     .array(
-      z.enum([
-        "claude-code",
-        "agents-md",
-        "cursor",
-        "aider",
-        "copilot-cli",
-        "windsurf",
-        "unknown",
-      ])
+      z.enum(['claude-code', 'agents-md', 'cursor', 'aider', 'copilot-cli', 'windsurf', 'unknown'])
     )
     .min(1),
 
@@ -101,7 +90,7 @@ export const ACTInstructionsSchema = z.object({
   priority: z.number().int().min(1).max(100),
 
   /** Model override (defaults to inherit) */
-  model: z.enum(["sonnet", "opus", "haiku", "inherit"]).optional(),
+  model: z.enum(['sonnet', 'opus', 'haiku', 'inherit']).optional(),
 });
 
 /**
@@ -112,13 +101,13 @@ export type ACTInstructions = z.infer<typeof ACTInstructionsSchema>;
 /**
  * T008: Severity of a detected issue.
  */
-export type ACTIssueSeverity = "critical" | "high" | "medium" | "low" | "info";
+export type ACTIssueSeverity = 'critical' | 'high' | 'medium' | 'low' | 'info';
 
 /**
  * T008: Type of recommendation.
  * Per Constitution III (Causal-First): preventive > symptomatic.
  */
-export type ACTRecommendationType = "symptomatic" | "preventive" | "systemic";
+export type ACTRecommendationType = 'symptomatic' | 'preventive' | 'systemic';
 
 /**
  * T008: An issue detected in ACT configuration.
