@@ -241,7 +241,7 @@
 ### Implementation for US-008
 
 - [x] T056 [P] [US8] Define TemporalSubagent interface in `src/temporal/subagent/types.ts` following EP08 pattern
-- [ ] T057 [P] [US8] Implement temporal subagent in `src/temporal/subagent/temporal-subagent.ts` with depth limit per C8
+- [x] T057 [P] [US8] Implement temporal subagent in `src/temporal/subagent/temporal-subagent.ts` with depth limit per C8
 - [ ] T058 [US8] Create subagent instructions in `src/temporal/subagent/instructions.ts`
 - [ ] T059 [US8] Create check_review_reminder tool in `src/temporal/tools/check-review-reminder.ts`
 - [ ] T060 [US8] Register check_review_reminder and temporal subagent
