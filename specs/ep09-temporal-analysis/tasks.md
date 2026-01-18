@@ -240,13 +240,13 @@
 
 ### Implementation for US-008
 
-- [ ] T056 [P] [US8] Create reminder configuration in `src/temporal/reminders/config.ts` - ReviewReminderConfig
-- [ ] T057 [P] [US8] Implement reminder tracker in `src/temporal/reminders/tracker.ts` - shouldPromptReview(lastReviewDate, config)
-- [ ] T058 [US8] Implement triggered review detection in `src/temporal/reminders/triggers.ts` - checkTriggerConditions(delta, config)
+- [x] T056 [P] [US8] Define TemporalSubagent interface in `src/temporal/subagent/types.ts` following EP08 pattern
+- [ ] T057 [P] [US8] Implement temporal subagent in `src/temporal/subagent/temporal-subagent.ts` with depth limit per C8
+- [ ] T058 [US8] Create subagent instructions in `src/temporal/subagent/instructions.ts`
 - [ ] T059 [US8] Create check_review_reminder tool in `src/temporal/tools/check-review-reminder.ts`
-- [ ] T060 [US8] Register check_review_reminder in tool registry
+- [ ] T060 [US8] Register check_review_reminder and temporal subagent
 
-**Checkpoint**: User Story 8 complete - review reminders configured and working
+**Checkpoint**: User Story 8 complete - review reminders and temporal subagent working
 
 ---
 
@@ -254,12 +254,10 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-### Subagent & Performance
+### Performance Optimization
 
-- [ ] T061 [P] Implement optional temporal-analyzer subagent in `src/temporal/subagent/temporal-analyzer.ts` per EP08 pattern
-- [ ] T062 [P] Create subagent instructions in `src/temporal/subagent/instructions.ts`
-- [ ] T063 Performance optimization: add lazy-loading for large baselines in query functions
-- [ ] T064 Performance optimization: add SQLite query batching for trend analysis
+- [ ] T061 [P] Performance optimization: add lazy-loading for large baselines in query functions
+- [ ] T062 [P] Performance optimization: add SQLite query batching for trend analysis
 
 ### TruLens Behavioral Evals (ADR-0011/0012)
 
