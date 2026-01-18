@@ -1,0 +1,214 @@
+{
+  "version": "1.0.0",
+  "name": "tests/integration/recordings/baseline-storage.json",
+  "createdAt": "2026-01-18T09:00:00.000Z",
+  "description": "VCR recordings for baseline storage operations",
+  "recordings": [
+    {
+      "request": {
+        "url": "agentlint://store_baseline",
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "projectPath": "/test/project",
+          "actType": "claude-code",
+          "metrics": {
+            "findingsCount": 10,
+            "criticalCount": 1,
+            "highCount": 2,
+            "mediumCount": 3,
+            "lowCount": 4,
+            "infoCount": 0
+          },
+          "findings": [],
+          "label": "test-baseline"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "success": true,
+          "id": "test-baseline-id-001",
+          "message": "Baseline stored successfully",
+          "version": "1.0.0"
+        }
+      },
+      "timestamp": "2026-01-18T09:00:01.000Z"
+    },
+    {
+      "request": {
+        "url": "agentlint://store_baseline",
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "projectPath": "/test/project",
+          "actType": "claude-code",
+          "metrics": {
+            "findingsCount": 5,
+            "criticalCount": 0,
+            "highCount": 1,
+            "mediumCount": 2,
+            "lowCount": 2,
+            "infoCount": 0
+          },
+          "findings": [],
+          "label": "test-baseline-improved"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "success": true,
+          "id": "test-baseline-id-002",
+          "message": "Baseline stored successfully",
+          "version": "1.0.0"
+        }
+      },
+      "timestamp": "2026-01-18T09:01:00.000Z"
+    },
+    {
+      "request": {
+        "url": "agentlint://query_baseline",
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "id": "test-baseline-id-001"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "success": true,
+          "baseline": {
+            "id": "test-baseline-id-001",
+            "version": "1.0.0",
+            "createdAt": "2026-01-18T09:00:01.000Z",
+            "projectPath": "/test/project",
+            "actType": "claude-code",
+            "configPath": null,
+            "gitCommit": null,
+            "metrics": {
+              "findingsCount": 10,
+              "criticalCount": 1,
+              "highCount": 2,
+              "mediumCount": 3,
+              "lowCount": 4,
+              "infoCount": 0
+            },
+            "findings": [],
+            "label": "test-baseline",
+            "notes": null
+          }
+        }
+      },
+      "timestamp": "2026-01-18T09:00:02.000Z"
+    },
+    {
+      "request": {
+        "url": "agentlint://query_baseline",
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "id": "latest"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "success": true,
+          "baseline": {
+            "id": "test-baseline-id-002",
+            "version": "1.0.0",
+            "createdAt": "2026-01-18T09:01:00.000Z",
+            "projectPath": "/test/project",
+            "actType": "claude-code",
+            "configPath": null,
+            "gitCommit": null,
+            "metrics": {
+              "findingsCount": 5,
+              "criticalCount": 0,
+              "highCount": 1,
+              "mediumCount": 2,
+              "lowCount": 2,
+              "infoCount": 0
+            },
+            "findings": [],
+            "label": "test-baseline-improved",
+            "notes": null
+          }
+        }
+      },
+      "timestamp": "2026-01-18T09:01:01.000Z"
+    },
+    {
+      "request": {
+        "url": "agentlint://list_baselines",
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "projectPath": "/test/project",
+          "limit": 10
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "success": true,
+          "baselines": [
+            {
+              "id": "test-baseline-id-002",
+              "version": "1.0.0",
+              "createdAt": "2026-01-18T09:01:00.000Z",
+              "projectPath": "/test/project",
+              "actType": "claude-code",
+              "label": "test-baseline-improved",
+              "metrics": {
+                "findingsCount": 5,
+                "criticalCount": 0
+              }
+            },
+            {
+              "id": "test-baseline-id-001",
+              "version": "1.0.0",
+              "createdAt": "2026-01-18T09:00:01.000Z",
+              "projectPath": "/test/project",
+              "actType": "claude-code",
+              "label": "test-baseline",
+              "metrics": {
+                "findingsCount": 10,
+                "criticalCount": 1
+              }
+            }
+          ],
+          "total": 2
+        }
+      },
+      "timestamp": "2026-01-18T09:01:02.000Z"
+    }
+  ]
+}
