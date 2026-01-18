@@ -8,11 +8,7 @@
 
 import { describe, it, expect } from 'bun:test';
 
-import {
-  spawnTemporalAnalystTool,
-  buildAnalysisContext,
-  buildQueryPrompt,
-} from '../spawn-analyst';
+import { spawnTemporalAnalystTool, buildAnalysisContext, buildQueryPrompt } from '../spawn-analyst';
 import { TEMPORAL_SUBAGENT_TOOLS, TEMPORAL_READONLY_TOOLS } from '../../subagent/types';
 import { buildTemporalAnalyzerAgent, buildTemporalAnalyzerReadonlyAgent } from '../../subagent';
 

@@ -65,7 +65,11 @@
       "type": "investigation",
       "summary": "Investigate source of volatility",
       "action": "Analyze what differs between high and low measurement periods",
-      "evidence": ["findingsCount swings from 10 to 32", "R² < 0.10 indicates no linear relationship", "Pattern may be cyclical or tied to external factors"]
+      "evidence": [
+        "findingsCount swings from 10 to 32",
+        "R² < 0.10 indicates no linear relationship",
+        "Pattern may be cyclical or tied to external factors"
+      ]
     },
     {
       "id": "rec-010",
@@ -79,7 +83,7 @@
   "rubric_weights": {
     "trend_accuracy": 0.45,
     "causal_accuracy": 0.25,
-    "recommendation_actionability": 0.20,
-    "review_quality": 0.10
+    "recommendation_actionability": 0.2,
+    "review_quality": 0.1
   }
 }

@@ -61,7 +61,7 @@
     "sentiment_change": {
       "overall": { "from": 0.22, "to": 0.68, "change": 0.46 },
       "perceivedFriction": { "from": 0.15, "to": 0.72, "change": 0.57 },
-      "configurationConfidence": { "from": 0.25, "to": 0.65, "change": 0.40 },
+      "configurationConfidence": { "from": 0.25, "to": 0.65, "change": 0.4 },
       "workflowSatisfaction": { "from": 0.28, "to": 0.75, "change": 0.47 }
     }
   },
@@ -80,14 +80,18 @@
       "type": "observation",
       "summary": "Changes validated by mixed-methods",
       "action": "Document configuration changes as best practices",
-      "evidence": ["Metrics improved 64%", "Sentiment improved 0.46 points", "All dimensions show positive change"]
+      "evidence": [
+        "Metrics improved 64%",
+        "Sentiment improved 0.46 points",
+        "All dimensions show positive change"
+      ]
     }
   ],
 
   "rubric_weights": {
-    "trend_accuracy": 0.20,
+    "trend_accuracy": 0.2,
     "causal_accuracy": 0.25,
-    "recommendation_actionability": 0.20,
+    "recommendation_actionability": 0.2,
     "mixed_methods_alignment": 0.35
   }
 }

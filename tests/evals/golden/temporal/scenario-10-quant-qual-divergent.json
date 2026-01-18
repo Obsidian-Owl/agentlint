@@ -43,7 +43,7 @@
       "overallSentiment": 0.62,
       "dimensions": [
         { "name": "perceivedFriction", "sentiment": 0.55 },
-        { "name": "taskFit", "sentiment": 0.70 },
+        { "name": "taskFit", "sentiment": 0.7 },
         { "name": "workflowSatisfaction", "sentiment": 0.68 }
       ]
     },
@@ -53,15 +53,15 @@
       "createdAt": "2026-01-15T15:00:00.000Z",
       "overallSentiment": 0.28,
       "dimensions": [
-        { "name": "perceivedFriction", "sentiment": 0.30 },
+        { "name": "perceivedFriction", "sentiment": 0.3 },
         { "name": "taskFit", "sentiment": 0.22 },
         { "name": "workflowSatisfaction", "sentiment": 0.35 }
       ]
     },
     "sentiment_change": {
       "overall": { "from": 0.62, "to": 0.28, "change": -0.34 },
-      "perceivedFriction": { "from": 0.55, "to": 0.30, "change": -0.25 },
-      "taskFit": { "from": 0.70, "to": 0.22, "change": -0.48 },
+      "perceivedFriction": { "from": 0.55, "to": 0.3, "change": -0.25 },
+      "taskFit": { "from": 0.7, "to": 0.22, "change": -0.48 },
       "workflowSatisfaction": { "from": 0.68, "to": 0.35, "change": -0.33 }
     }
   },
@@ -101,7 +101,10 @@
       "type": "caution",
       "summary": "Do not celebrate metric improvements yet",
       "action": "Hold on promoting recent configuration changes as improvements",
-      "evidence": ["Divergence suggests metrics may be misleading", "User satisfaction actually decreased"]
+      "evidence": [
+        "Divergence suggests metrics may be misleading",
+        "User satisfaction actually decreased"
+      ]
     },
     {
       "id": "rec-016",
@@ -114,8 +117,8 @@
 
   "rubric_weights": {
     "trend_accuracy": 0.15,
-    "causal_accuracy": 0.30,
-    "recommendation_actionability": 0.20,
+    "causal_accuracy": 0.3,
+    "recommendation_actionability": 0.2,
     "mixed_methods_alignment": 0.35
   }
 }

@@ -254,16 +254,16 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-### Performance Optimization
+### Configuration & Optimization
 
-- [ ] T061 [P] Performance optimization: add lazy-loading for large baselines in query functions
-- [ ] T062 [P] Performance optimization: add SQLite query batching for trend analysis
+- [x] T061 [P] Add configurable significance thresholds (ThresholdConfig in types.ts, config in ~/.agentlint/config.json)
+- [x] T062 [P] Optimize SQLite queries for large baseline sets (indexes, lazy-load, <2s on 50 baselines)
 
 ### TruLens Behavioral Evals (ADR-0011/0012)
 
-- [ ] T068 [P] Create TruLens eval config in `tests/evals/trulens.config.py` - actionability, causal accuracy rubrics
-- [ ] T069 [P] Create golden dataset scenarios in `tests/evals/golden/temporal/` - trend analysis, qualitative review
-- [ ] T070 Create trend analysis quality eval in `tests/evals/behavioral/trend-quality.test.ts` - validates trend detection accuracy
+- [x] T068 [P] Create TruLens eval config in `tests/evals/trulens.config.py` - actionability, causal accuracy rubrics
+- [x] T069 [P] Create golden dataset scenarios in `tests/evals/golden/temporal/` - trend analysis, qualitative review
+- [x] T070 Create trend analysis quality eval in `tests/evals/behavioral/trend-quality.test.ts` - validates trend detection accuracy
 - [ ] T071 Create qualitative review eval in `tests/evals/behavioral/review-quality.test.ts` - validates prompt quality, sentiment extraction
 - [ ] T072 Create mixed-methods alignment eval in `tests/evals/behavioral/alignment-quality.test.ts` - validates quant/qual divergence detection
 

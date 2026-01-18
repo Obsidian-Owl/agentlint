@@ -68,7 +68,13 @@ async function runEvaluations(options: {
   all?: boolean;
   verbose?: boolean;
 }): Promise<EvalResults> {
-  const args = ['--json', '--golden', EVAL_CONFIG.goldenDatasetPath, '--database', EVAL_CONFIG.databasePath];
+  const args = [
+    '--json',
+    '--golden',
+    EVAL_CONFIG.goldenDatasetPath,
+    '--database',
+    EVAL_CONFIG.databasePath,
+  ];
 
   if (options.scenario) {
     args.push('--scenario', options.scenario);

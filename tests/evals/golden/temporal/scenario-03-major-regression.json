@@ -46,12 +46,12 @@
   "expected_properties": {
     "delta_type": "regression",
     "metrics_changed": [
-      {"name": "findingsCount", "from": 5, "to": 28, "direction": "↑"},
-      {"name": "criticalCount", "from": 0, "to": 5, "direction": "↑"},
-      {"name": "highCount", "from": 1, "to": 10, "direction": "↑"},
-      {"name": "avgTokensPerSession", "from": 1000, "to": 4500, "direction": "↑"},
-      {"name": "warningCount", "from": 2, "to": 18, "direction": "↑"},
-      {"name": "errorCount", "from": 0, "to": 12, "direction": "↑"}
+      { "name": "findingsCount", "from": 5, "to": 28, "direction": "↑" },
+      { "name": "criticalCount", "from": 0, "to": 5, "direction": "↑" },
+      { "name": "highCount", "from": 1, "to": 10, "direction": "↑" },
+      { "name": "avgTokensPerSession", "from": 1000, "to": 4500, "direction": "↑" },
+      { "name": "warningCount", "from": 2, "to": 18, "direction": "↑" },
+      { "name": "errorCount", "from": 0, "to": 12, "direction": "↑" }
     ],
     "change_counts": {
       "increased": 9,
@@ -75,7 +75,11 @@
       "type": "investigation",
       "summary": "Investigate root cause of regression",
       "action": "Review git history and configuration changes between baselines",
-      "evidence": ["460% increase in findings", "Critical issues introduced", "Token usage 4.5x higher"]
+      "evidence": [
+        "460% increase in findings",
+        "Critical issues introduced",
+        "Token usage 4.5x higher"
+      ]
     },
     {
       "id": "rec-003",

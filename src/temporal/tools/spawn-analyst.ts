@@ -33,23 +33,19 @@ const AnalysisFocusSchema = z.enum(['trends', 'reviews', 'comparison', 'comprehe
  * Input schema for spawn_temporal_analyst tool.
  */
 const spawnTemporalAnalystInputSchema = {
-  focus: AnalysisFocusSchema.describe(`
+  focus: AnalysisFocusSchema.describe(
+    `
 Analysis focus area:
 - trends: Analyze metric trends over time, identify inflection points
 - reviews: Analyze qualitative review data and sentiment trends
 - comparison: Compare specific baselines to identify changes
 - comprehensive: Full analysis combining all dimensions
-  `.trim()),
+  `.trim()
+  ),
 
-  query: z
-    .string()
-    .optional()
-    .describe('Specific question or analysis request for the subagent'),
+  query: z.string().optional().describe('Specific question or analysis request for the subagent'),
 
-  baselineId: z
-    .string()
-    .optional()
-    .describe('Target baseline ID for comparison-focused analysis'),
+  baselineId: z.string().optional().describe('Target baseline ID for comparison-focused analysis'),
 
   compareToId: z
     .string()
@@ -246,7 +242,9 @@ function formatToolOutput(result: SpawnTemporalAnalystResult): string {
   }
 
   if (result.context.dateRange) {
-    lines.push(`**Date Range**: ${result.context.dateRange.start} to ${result.context.dateRange.end}`);
+    lines.push(
+      `**Date Range**: ${result.context.dateRange.start} to ${result.context.dateRange.end}`
+    );
   }
 
   if (result.context.targetBaselineId) {

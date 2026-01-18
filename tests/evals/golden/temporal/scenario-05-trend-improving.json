@@ -65,14 +65,18 @@
       "type": "observation",
       "summary": "Sustained improvement trajectory",
       "action": "Continue current practices; consider documenting effective changes",
-      "evidence": ["73% reduction in findings over 4 weeks", "65% reduction in token usage", "High trend reliability (R² > 0.95)"]
+      "evidence": [
+        "73% reduction in findings over 4 weeks",
+        "65% reduction in token usage",
+        "High trend reliability (R² > 0.95)"
+      ]
     }
   ],
 
   "rubric_weights": {
     "trend_accuracy": 0.45,
-    "causal_accuracy": 0.20,
-    "recommendation_actionability": 0.20,
+    "causal_accuracy": 0.2,
+    "recommendation_actionability": 0.2,
     "review_quality": 0.15
   }
 }

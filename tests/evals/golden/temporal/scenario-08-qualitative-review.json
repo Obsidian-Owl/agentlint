@@ -28,7 +28,7 @@
       {
         "name": "taskFit",
         "score": 4,
-        "sentiment": 0.60,
+        "sentiment": 0.6,
         "observations": "Good at standard development tasks, struggles with project-specific conventions"
       },
       {
@@ -40,7 +40,7 @@
       {
         "name": "improvementAttribution",
         "score": 3,
-        "sentiment": 0.30,
+        "sentiment": 0.3,
         "observations": "Some improvements noticed after config changes but hard to attribute specifically"
       },
       {
@@ -54,7 +54,7 @@
   },
 
   "expected_properties": {
-    "overall_sentiment_range": [0.30, 0.40],
+    "overall_sentiment_range": [0.3, 0.4],
     "lowest_dimension": "configurationConfidence",
     "highest_dimension": "taskFit",
     "theme_extraction_valid": true,
@@ -67,7 +67,10 @@
       "type": "actionable",
       "summary": "Improve CLAUDE.md documentation",
       "action": "Add project-specific conventions and file organization rules to CLAUDE.md",
-      "evidence": ["configurationConfidence scored lowest (2/5)", "Friction with file organization noted"]
+      "evidence": [
+        "configurationConfidence scored lowest (2/5)",
+        "Friction with file organization noted"
+      ]
     },
     {
       "id": "rec-012",

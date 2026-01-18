@@ -47,7 +47,7 @@
     "errorCount": {
       "slope": 3.25,
       "rSquared": 0.99,
-      "volatility": 0.10,
+      "volatility": 0.1,
       "meanValue": 6.4,
       "percentChange": 1300.0
     },
@@ -81,7 +81,11 @@
       "type": "urgent",
       "summary": "Immediate investigation required",
       "action": "Review all changes since baseline-d01; identify root cause of degradation",
-      "evidence": ["520% increase in findings", "1300% increase in errors", "Trend is consistent and accelerating"]
+      "evidence": [
+        "520% increase in findings",
+        "1300% increase in errors",
+        "Trend is consistent and accelerating"
+      ]
     },
     {
       "id": "rec-008",
@@ -93,9 +97,9 @@
   ],
 
   "rubric_weights": {
-    "trend_accuracy": 0.40,
-    "causal_accuracy": 0.30,
-    "recommendation_actionability": 0.20,
-    "review_quality": 0.10
+    "trend_accuracy": 0.4,
+    "causal_accuracy": 0.3,
+    "recommendation_actionability": 0.2,
+    "review_quality": 0.1
   }
 }

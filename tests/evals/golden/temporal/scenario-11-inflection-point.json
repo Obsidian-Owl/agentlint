@@ -102,7 +102,10 @@
       "type": "observation",
       "summary": "Configuration change identified as improvement source",
       "action": "Document the CLAUDE.md changes as best practices for other projects",
-      "evidence": ["Clear inflection point at commit jkl3456", "60% reduction in findings after change"]
+      "evidence": [
+        "Clear inflection point at commit jkl3456",
+        "60% reduction in findings after change"
+      ]
     },
     {
       "id": "rec-018",
@@ -116,7 +119,7 @@
   "rubric_weights": {
     "trend_accuracy": 0.35,
     "causal_accuracy": 0.35,
-    "recommendation_actionability": 0.20,
-    "review_quality": 0.10
+    "recommendation_actionability": 0.2,
+    "review_quality": 0.1
   }
 }

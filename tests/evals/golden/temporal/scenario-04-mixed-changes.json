@@ -46,14 +46,14 @@
   "expected_properties": {
     "delta_type": "mixed",
     "metrics_changed": [
-      {"name": "findingsCount", "from": 15, "to": 12, "direction": "↓"},
-      {"name": "criticalCount", "from": 2, "to": 0, "direction": "↓"},
-      {"name": "highCount", "from": 5, "to": 3, "direction": "↓"},
-      {"name": "lowCount", "from": 3, "to": 4, "direction": "↑"},
-      {"name": "avgTokensPerSession", "from": 2000, "to": 2800, "direction": "↑"},
-      {"name": "avgSessionDuration", "from": 150, "to": 200, "direction": "↑"},
-      {"name": "warningCount", "from": 8, "to": 5, "direction": "↓"},
-      {"name": "errorCount", "from": 3, "to": 6, "direction": "↑"}
+      { "name": "findingsCount", "from": 15, "to": 12, "direction": "↓" },
+      { "name": "criticalCount", "from": 2, "to": 0, "direction": "↓" },
+      { "name": "highCount", "from": 5, "to": 3, "direction": "↓" },
+      { "name": "lowCount", "from": 3, "to": 4, "direction": "↑" },
+      { "name": "avgTokensPerSession", "from": 2000, "to": 2800, "direction": "↑" },
+      { "name": "avgSessionDuration", "from": 150, "to": 200, "direction": "↑" },
+      { "name": "warningCount", "from": 8, "to": 5, "direction": "↓" },
+      { "name": "errorCount", "from": 3, "to": 6, "direction": "↑" }
     ],
     "change_counts": {
       "increased": 4,
