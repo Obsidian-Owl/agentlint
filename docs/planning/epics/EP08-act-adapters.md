@@ -30,10 +30,6 @@
 - [ ] Implement Generalized adapter (fallback)
   - Common patterns (AGENTS.md, etc.)
   - Best-effort parsing for unknown tools
-- [ ] Implement Git integration via adapter (ADR-0015)
-  - Git history queries
-  - Git blame for origin tracing
-  - Git pickaxe for change search
 - [ ] Adapter auto-detection based on project files
 - [ ] Adapter registration mechanism
 
@@ -43,6 +39,7 @@
 - Aider adapter (.aiderrules) - Future
 - Copilot CLI adapter - Future
 - Tool layer implementation (uses adapters)
+- Git SDK tools - Deferred to EP13 (agent can use `git` CLI directly; EP07 has internal git-evidence for causal tracing)
 
 ### Minimum Viable Product (MVP)
 
@@ -62,7 +59,7 @@ The minimum deliverable that proves the hypothesis:
 | **Runtime Scenarios** | All scenarios invoke adapters for data access |
 | **Quality Requirements** | QS-4 (new ACT without core changes) |
 | **Crosscutting Concepts** | N/A |
-| **ADRs** | ADR-0002 (MVP focus), ADR-0015 (Git Integration) |
+| **ADRs** | ADR-0002 (MVP focus) |
 
 ## Requirements Traceability
 
@@ -91,7 +88,6 @@ The minimum deliverable that proves the hypothesis:
 
 | System/Team | Dependency | Status |
 |-------------|------------|--------|
-| Git CLI | Git command execution | Available |
 | File system | Config/log file access | Available |
 
 ## Technical Considerations
@@ -99,7 +95,6 @@ The minimum deliverable that proves the hypothesis:
 ### Key Decisions
 
 - Adapter interface is minimal: detect, parse config, locate logs, parse logs
-- Git integration via adapter (not separate integration) per ADR-0015
 - Generalized adapter ensures value even for unknown tools
 - Auto-detection prefers specific adapters over generalized
 
@@ -108,13 +103,11 @@ The minimum deliverable that proves the hypothesis:
 | Risk | Likelihood | Impact | Mitigation |
 |------|------------|--------|------------|
 | Claude Code format changes | Low | Medium | Version detection, graceful degradation |
-| Git commands differ across versions | Low | Low | Test on common Git versions |
 | Unknown ACT formats | High | Low | Generalized adapter provides fallback |
 
 ### Spikes Needed
 
 - [ ] Survey ACT config formats (Cursor, Aider, Copilot)
-- [ ] Test Git integration across platforms
 
 ### Constitution Alignment
 
@@ -131,7 +124,6 @@ The minimum deliverable that proves the hypothesis:
 - [ ] Claude Code adapter locates session logs
 - [ ] Generalized adapter detects AGENTS.md
 - [ ] Generalized adapter provides fallback parsing
-- [ ] Git adapter queries history, blame, pickaxe
 - [ ] Auto-detection selects appropriate adapter
 
 ### Non-Functional
@@ -162,7 +154,6 @@ The minimum deliverable that proves the hypothesis:
 
 From ADRs:
 - ADR-0002: Claude Code primary for MVP
-- ADR-0015: Git via CLI, not library
 
 From Constitution:
 - VI. Agent-Agnostic: Must support adapter pattern
@@ -172,12 +163,10 @@ From Constitution:
 1. Project with CLAUDE.md → Claude Code adapter selected
 2. Project with only AGENTS.md → Generalized adapter
 3. Project with multiple ACT configs → all detected
-4. Git blame for file change history
 
 ### Tech Stack Notes (for `/speckit.plan`)
 
 - TypeScript interfaces for adapter contract
-- Child process for Git CLI execution
 - File system for config/log access
 
 ---
@@ -186,4 +175,5 @@ From Constitution:
 
 | Date | Author | Change |
 |------|--------|--------|
+| 2026-01-18 | Gap Analysis | Removed git scope - deferred to EP13; agent can use `git` CLI directly, EP07 has internal git-evidence |
 | 2026-01-15 | Arc42 Decomposer | Initial creation from Arc42 |

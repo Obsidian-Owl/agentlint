@@ -6,7 +6,7 @@
 
 agentlint enables continuous improvement of AI-assisted development workflows through systematic analysis, issue tracing, and preventive recommendations. This catalogue decomposes the Arc42 architecture into 12 implementable epics spanning foundation infrastructure, core analysis tools, and advanced features.
 
-**Total Epics**: 12
+**Total Epics**: 13 (12 active + 1 deferred)
 **Estimated Duration**: 20-24 weeks (with parallelization)
 **Critical Path**: EP01 → EP02 → EP06 → EP07 → EP10
 
@@ -14,18 +14,19 @@ agentlint enables continuous improvement of AI-assisted development workflows th
 
 | Epic | Name | Type | Priority | Size | Duration | Status |
 |------|------|------|----------|------|----------|--------|
-| EP01 | Project Foundation & CI/CD | Foundation | P0 | M | 4 weeks | Not Started |
-| EP02 | Orchestration Core | Foundation | P0 | L | 6 weeks | Not Started |
+| EP01 | Project Foundation & CI/CD | Foundation | P0 | M | 4 weeks | Complete |
+| EP02 | Orchestration Core | Foundation | P0 | L | 6 weeks | Complete |
 | EP03 | Persistence Layer | Foundation | P0 | M | 4 weeks | Not Started |
 | EP04 | CLI Interface & Commands | Business | P1 | M | 4 weeks | Not Started |
 | EP05 | Config Analysis Tools | Business | P1 | L | 6 weeks | Not Started |
-| EP06 | Session Analysis Tools | Business | P1 | L | 6 weeks | Not Started |
-| EP07 | Causal Tracing Engine | Business | P1 | L | 6 weeks | Not Started |
-| EP08 | ACT Adapters | Business | P1 | M | 5 weeks | Not Started |
+| EP06 | Session Analysis Tools | Business | P1 | L | 6 weeks | Complete |
+| EP07 | Causal Tracing Engine | Business | P1 | L | 6 weeks | Complete |
+| EP08 | ACT Adapters | Business | P1 | M | 4 weeks | Not Started |
 | EP09 | Temporal Analysis | Business | P1 | M | 5 weeks | Not Started |
 | EP10 | Recommendation Engine | Business | P1 | M | 4 weeks | Not Started |
 | EP11 | Quality & Security | Enabler | P2 | M | 4 weeks | Not Started |
 | EP12 | Global Learnings | Integration | P2 | M | 4 weeks | Not Started |
+| EP13 | Git SDK Tools | Enabler | P3 | S | 2 weeks | Deferred |
 
 ## Dependency Matrix
 
@@ -190,6 +191,7 @@ All epics must respect the 9 constitutional principles:
 - [EP10: Recommendation Engine](epics/EP10-recommendation-engine.md)
 - [EP11: Quality & Security](epics/EP11-quality-security.md)
 - [EP12: Global Learnings](epics/EP12-global-learnings.md)
+- [EP13: Git SDK Tools](epics/EP13-git-sdk-tools.md) *(Deferred)*
 
 ### Related Documents
 

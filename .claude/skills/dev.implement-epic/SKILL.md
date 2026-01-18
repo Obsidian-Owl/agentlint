@@ -154,6 +154,7 @@ Read: .specify/memory/constitution.md
 - Implement per task description from tasks.md
 - Use project's existing patterns and tooling
 - Reference spec.md and plan.md continuously
+- **Choose test type per [dev.testing](../dev.testing/SKILL.md)**: unit for deterministic, VCR for LLM calls, evals for behavior
 
 ### Step 6: Validate
 
@@ -354,5 +355,6 @@ This skill supports:
 ## Handoff
 
 After completing this skill:
+- **Test Review (Level 2)**: Run `/dev.test-review --all` to validate test quality and ADR-0011/0012 compliance
 - **Check integration**: Run `/dev.integration-check` before PR
 - **Create PR**: Run `/dev.pr` to create pull request with Linear links
