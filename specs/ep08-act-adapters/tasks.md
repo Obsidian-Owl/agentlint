@@ -67,15 +67,15 @@
 
 ### Tests (write first)
 
-- [ ] T011 [P] [US1] Unit test: `ACTSubagentRegistry.toAgentsOption()` returns Record<string, AgentDefinition> in `src/act/__tests__/registry.test.ts`
-- [ ] T012 [P] [US1] Unit test: `buildACTSubagents()` returns all registered subagents in `src/act/__tests__/index.test.ts`
-- [ ] T013 [P] [US1] Unit test: Registry correctly maps ACT types to subagents via `getForACTType()` in `src/act/__tests__/registry.test.ts`
+- [x] T011 [P] [US1] Unit test: `ACTSubagentRegistry.toAgentsOption()` returns Record<string, AgentDefinition> in `tests/unit/act/registry.test.ts`
+- [x] T012 [P] [US1] Unit test: `buildACTSubagents()` returns all registered subagents in `tests/unit/act/index.test.ts`
+- [x] T013 [P] [US1] Unit test: Registry correctly maps ACT types to subagents via `getForACTType()` in `tests/unit/act/registry.test.ts`
 
 ### Implementation
 
-- [ ] T014 [US1] Implement `buildACTSubagents()` function in `src/act/index.ts` that instantiates registry and returns `toAgentsOption()` result
-- [ ] T015 [US1] Create `src/act/instructions/index.ts` to aggregate all instruction definitions (empty array initially)
-- [ ] T016 [US1] Export `DEFAULT_ACT_TOOLS` and `GENERALIZED_ACT_TOOLS` constants in `src/act/types.ts`
+- [x] T014 [US1] Implement `buildACTSubagents()` function in `src/act/index.ts` that instantiates registry and returns `toAgentsOption()` result
+- [x] T015 [US1] Create `src/act/instructions/index.ts` to aggregate all instruction definitions (empty array initially)
+- [x] T016 [US1] Export `DEFAULT_ACT_TOOLS` and `GENERALIZED_ACT_TOOLS` constants in `src/act/types.ts`
 
 **Checkpoint**: US1 complete
 - [ ] All US1 tests pass
