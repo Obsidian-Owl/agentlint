@@ -1,0 +1,97 @@
+{
+  "id": "temporal-09-quant-qual-aligned",
+  "version": "1.0",
+  "source": "synthetic",
+  "description": "Quantitative improvement matches qualitative sentiment improvement",
+  "difficulty": "medium",
+  "tags": ["mixed-methods", "aligned", "validation"],
+
+  "quantitative_data": {
+    "from_baseline": {
+      "id": "baseline-a01",
+      "createdAt": "2026-01-01T10:00:00.000Z",
+      "metrics": {
+        "findingsCount": 22,
+        "criticalCount": 3,
+        "avgTokensPerSession": 3800,
+        "warningCount": 12
+      }
+    },
+    "to_baseline": {
+      "id": "baseline-a02",
+      "createdAt": "2026-01-15T10:00:00.000Z",
+      "metrics": {
+        "findingsCount": 8,
+        "criticalCount": 0,
+        "avgTokensPerSession": 1400,
+        "warningCount": 3
+      }
+    },
+    "delta": {
+      "findingsCount": { "from": 22, "to": 8, "percentChange": -63.6 },
+      "criticalCount": { "from": 3, "to": 0, "percentChange": -100 },
+      "avgTokensPerSession": { "from": 3800, "to": 1400, "percentChange": -63.2 },
+      "warningCount": { "from": 12, "to": 3, "percentChange": -75 }
+    }
+  },
+
+  "qualitative_data": {
+    "from_review": {
+      "id": "review-a01",
+      "baselineId": "baseline-a01",
+      "createdAt": "2026-01-01T15:00:00.000Z",
+      "overallSentiment": 0.22,
+      "dimensions": [
+        { "name": "perceivedFriction", "sentiment": 0.15 },
+        { "name": "configurationConfidence", "sentiment": 0.25 },
+        { "name": "workflowSatisfaction", "sentiment": 0.28 }
+      ]
+    },
+    "to_review": {
+      "id": "review-a02",
+      "baselineId": "baseline-a02",
+      "createdAt": "2026-01-15T15:00:00.000Z",
+      "overallSentiment": 0.68,
+      "dimensions": [
+        { "name": "perceivedFriction", "sentiment": 0.72 },
+        { "name": "configurationConfidence", "sentiment": 0.65 },
+        { "name": "workflowSatisfaction", "sentiment": 0.75 }
+      ]
+    },
+    "sentiment_change": {
+      "overall": { "from": 0.22, "to": 0.68, "change": 0.46 },
+      "perceivedFriction": { "from": 0.15, "to": 0.72, "change": 0.57 },
+      "configurationConfidence": { "from": 0.25, "to": 0.65, "change": 0.4 },
+      "workflowSatisfaction": { "from": 0.28, "to": 0.75, "change": 0.47 }
+    }
+  },
+
+  "agent_interpretation": "Quantitative metrics and qualitative sentiment show strong alignment. As findings decreased by 64% and critical issues were eliminated, user-reported friction decreased significantly (+0.57 sentiment). Configuration confidence also improved (+0.40 sentiment), suggesting the changes that improved metrics also improved the user experience. This validates that the measured improvements reflect genuine workflow enhancement.",
+
+  "expected_properties": {
+    "alignment_type": "convergent",
+    "correlation": "positive",
+    "validation_confidence": "high"
+  },
+
+  "recommendations": [
+    {
+      "id": "rec-013",
+      "type": "observation",
+      "summary": "Changes validated by mixed-methods",
+      "action": "Document configuration changes as best practices",
+      "evidence": [
+        "Metrics improved 64%",
+        "Sentiment improved 0.46 points",
+        "All dimensions show positive change"
+      ]
+    }
+  ],
+
+  "rubric_weights": {
+    "trend_accuracy": 0.2,
+    "causal_accuracy": 0.25,
+    "recommendation_actionability": 0.2,
+    "mixed_methods_alignment": 0.35
+  }
+}

@@ -31,6 +31,7 @@ All decisions are documented in [docs/architecture/adr/](../adr/).
 | [0016](../adr/0016-mcp-integration-strategy.md) | MCP Integration | Format compatible, protocol optional |
 | [0017](../adr/0017-agent-skills-integration-strategy.md) | Agent Skills | Detect and analyze SKILL.md |
 | [0018](../adr/0018-distribution-and-installation-strategy.md) | Distribution | Bun compile primary |
+| [0019](../adr/0019-tool-agent-boundary-temporal.md) | Tool/Agent Boundary | Tools provide data, agent provides judgment |
 
 ---
 
@@ -44,9 +45,10 @@ All decisions are documented in [docs/architecture/adr/](../adr/).
 - React-based terminal UI (Ink)
 - Streaming output for long operations
 
-### Agent Infrastructure (ADR 0005-0006)
+### Agent Infrastructure (ADR 0005-0006, 0019)
 - Type-safe tools with rich descriptions
 - SQLite for session log search
+- Clear tool/agent boundary: tools provide data, agent provides judgment
 
 ### Persistence (ADR 0007-0010)
 - Human-readable JSON for baselines

@@ -1,0 +1,125 @@
+{
+  "id": "temporal-11-inflection-point",
+  "version": "1.0",
+  "source": "synthetic",
+  "description": "Trend with clear inflection point where direction changes",
+  "difficulty": "hard",
+  "tags": ["trend", "inflection", "change-point"],
+
+  "baseline_data": {
+    "baselines": [
+      {
+        "id": "baseline-i01",
+        "createdAt": "2026-01-01T10:00:00.000Z",
+        "metrics": { "findingsCount": 25, "errorCount": 8 },
+        "gitCommit": "abc1234"
+      },
+      {
+        "id": "baseline-i02",
+        "createdAt": "2026-01-08T10:00:00.000Z",
+        "metrics": { "findingsCount": 28, "errorCount": 10 },
+        "gitCommit": "def5678"
+      },
+      {
+        "id": "baseline-i03",
+        "createdAt": "2026-01-15T10:00:00.000Z",
+        "metrics": { "findingsCount": 32, "errorCount": 14 },
+        "gitCommit": "ghi9012"
+      },
+      {
+        "id": "baseline-i04",
+        "createdAt": "2026-01-22T10:00:00.000Z",
+        "metrics": { "findingsCount": 22, "errorCount": 9 },
+        "gitCommit": "jkl3456"
+      },
+      {
+        "id": "baseline-i05",
+        "createdAt": "2026-01-29T10:00:00.000Z",
+        "metrics": { "findingsCount": 15, "errorCount": 5 },
+        "gitCommit": "mno7890"
+      },
+      {
+        "id": "baseline-i06",
+        "createdAt": "2026-02-05T10:00:00.000Z",
+        "metrics": { "findingsCount": 10, "errorCount": 2 },
+        "gitCommit": "pqr1234"
+      }
+    ]
+  },
+
+  "trend_analysis": {
+    "findingsCount": {
+      "slope": -2.8,
+      "rSquared": 0.45,
+      "volatility": 0.38,
+      "meanValue": 22.0,
+      "percentChange": -60.0
+    },
+    "inflection_points": [
+      {
+        "timestamp": "2026-01-22T10:00:00.000Z",
+        "metric": "findingsCount",
+        "beforeDirection": "increasing",
+        "afterDirection": "decreasing",
+        "correlatedChanges": ["jkl3456: Updated CLAUDE.md with project conventions"]
+      }
+    ]
+  },
+
+  "correlated_commits": [
+    {
+      "hash": "jkl3456",
+      "message": "Updated CLAUDE.md with project conventions",
+      "timestamp": "2026-01-20T14:30:00.000Z",
+      "filesChanged": ["CLAUDE.md", ".claude/commands/review.md"],
+      "likelyImpact": "high"
+    }
+  ],
+
+  "expected_properties": {
+    "has_inflection": true,
+    "inflection_date": "2026-01-22T10:00:00.000Z",
+    "before_slope_positive": true,
+    "after_slope_negative": true
+  },
+
+  "causal_chains": [
+    {
+      "symptom": "Findings trend reversed from increasing to decreasing",
+      "traced_cause": "CLAUDE.md update with project conventions",
+      "evidence": [
+        "Inflection point correlates with commit jkl3456",
+        "Findings dropped 31% immediately after change",
+        "Trend continued downward for 3 subsequent baselines"
+      ],
+      "mechanism": "Adding project-specific conventions improved agent understanding, reducing misconfigurations and errors"
+    }
+  ],
+
+  "recommendations": [
+    {
+      "id": "rec-017",
+      "type": "observation",
+      "summary": "Configuration change identified as improvement source",
+      "action": "Document the CLAUDE.md changes as best practices for other projects",
+      "evidence": [
+        "Clear inflection point at commit jkl3456",
+        "60% reduction in findings after change"
+      ]
+    },
+    {
+      "id": "rec-018",
+      "type": "preventive",
+      "summary": "Add similar conventions proactively",
+      "action": "Review other projects for missing conventions; apply same patterns",
+      "evidence": ["Proven effectiveness in this project"]
+    }
+  ],
+
+  "rubric_weights": {
+    "trend_accuracy": 0.35,
+    "causal_accuracy": 0.35,
+    "recommendation_actionability": 0.2,
+    "review_quality": 0.1
+  }
+}

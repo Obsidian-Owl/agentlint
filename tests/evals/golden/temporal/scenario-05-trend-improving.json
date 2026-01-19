@@ -1,0 +1,82 @@
+{
+  "id": "temporal-05-trend-improving",
+  "version": "1.0",
+  "source": "synthetic",
+  "description": "Multi-baseline trend showing consistent improvement over time",
+  "difficulty": "medium",
+  "tags": ["trend", "improvement", "multi-baseline"],
+
+  "baseline_data": {
+    "baselines": [
+      {
+        "id": "baseline-t01",
+        "createdAt": "2026-01-01T10:00:00.000Z",
+        "metrics": { "findingsCount": 30, "avgTokensPerSession": 4000 }
+      },
+      {
+        "id": "baseline-t02",
+        "createdAt": "2026-01-08T10:00:00.000Z",
+        "metrics": { "findingsCount": 25, "avgTokensPerSession": 3200 }
+      },
+      {
+        "id": "baseline-t03",
+        "createdAt": "2026-01-15T10:00:00.000Z",
+        "metrics": { "findingsCount": 18, "avgTokensPerSession": 2500 }
+      },
+      {
+        "id": "baseline-t04",
+        "createdAt": "2026-01-22T10:00:00.000Z",
+        "metrics": { "findingsCount": 12, "avgTokensPerSession": 1800 }
+      },
+      {
+        "id": "baseline-t05",
+        "createdAt": "2026-01-29T10:00:00.000Z",
+        "metrics": { "findingsCount": 8, "avgTokensPerSession": 1400 }
+      }
+    ]
+  },
+
+  "trend_analysis": {
+    "findingsCount": {
+      "slope": -5.5,
+      "rSquared": 0.98,
+      "volatility": 0.12,
+      "meanValue": 18.6,
+      "percentChange": -73.3
+    },
+    "avgTokensPerSession": {
+      "slope": -650,
+      "rSquared": 0.97,
+      "volatility": 0.15,
+      "meanValue": 2580,
+      "percentChange": -65.0
+    }
+  },
+
+  "expected_properties": {
+    "trend_type": "improving",
+    "trend_reliability": "high",
+    "trend_summary": "Both findingsCount and avgTokensPerSession show strong, consistent downward trends with high R² values (>0.95), indicating reliable improvement."
+  },
+
+  "recommendations": [
+    {
+      "id": "rec-006",
+      "type": "observation",
+      "summary": "Sustained improvement trajectory",
+      "action": "Continue current practices; consider documenting effective changes",
+      "evidence": [
+        "73% reduction in findings over 4 weeks",
+        "65% reduction in token usage",
+        "High trend reliability (R² > 0.95)"
+      ]
+    }
+  ],
+
+  "rubric_weights": {
+    "trend_accuracy": 0.45,
+    "causal_accuracy": 0.2,
+    "recommendation_actionability": 0.2,
+    "review_quality": 0.15
+  }
+}

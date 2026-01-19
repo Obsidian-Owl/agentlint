@@ -1,0 +1,99 @@
+{
+  "id": "temporal-03-major-regression",
+  "version": "1.0",
+  "source": "synthetic",
+  "description": "Significant regression - findings increased, new critical issues appeared",
+  "difficulty": "easy",
+  "tags": ["delta", "regression", "negative"],
+
+  "baseline_data": {
+    "from": {
+      "id": "baseline-005",
+      "createdAt": "2026-01-01T10:00:00.000Z",
+      "projectPath": "/test/project",
+      "metrics": {
+        "findingsCount": 5,
+        "criticalCount": 0,
+        "highCount": 1,
+        "mediumCount": 2,
+        "lowCount": 2,
+        "infoCount": 0,
+        "avgTokensPerSession": 1000,
+        "avgSessionDuration": 60,
+        "warningCount": 2,
+        "errorCount": 0
+      }
+    },
+    "to": {
+      "id": "baseline-006",
+      "createdAt": "2026-01-15T10:00:00.000Z",
+      "projectPath": "/test/project",
+      "metrics": {
+        "findingsCount": 28,
+        "criticalCount": 5,
+        "highCount": 10,
+        "mediumCount": 8,
+        "lowCount": 5,
+        "infoCount": 0,
+        "avgTokensPerSession": 4500,
+        "avgSessionDuration": 350,
+        "warningCount": 18,
+        "errorCount": 12
+      }
+    }
+  },
+
+  "expected_properties": {
+    "delta_type": "regression",
+    "metrics_changed": [
+      { "name": "findingsCount", "from": 5, "to": 28, "direction": "↑" },
+      { "name": "criticalCount", "from": 0, "to": 5, "direction": "↑" },
+      { "name": "highCount", "from": 1, "to": 10, "direction": "↑" },
+      { "name": "avgTokensPerSession", "from": 1000, "to": 4500, "direction": "↑" },
+      { "name": "warningCount", "from": 2, "to": 18, "direction": "↑" },
+      { "name": "errorCount", "from": 0, "to": 12, "direction": "↑" }
+    ],
+    "change_counts": {
+      "increased": 9,
+      "decreased": 0,
+      "unchanged": 1
+    }
+  },
+
+  "causal_chains": [
+    {
+      "symptom": "Critical findings appeared (0 → 5)",
+      "traced_cause": "Possible configuration change or codebase update",
+      "evidence": ["No prior critical findings", "Multiple metrics regressed simultaneously"],
+      "mechanism": "Recent changes may have introduced anti-patterns or removed safeguards"
+    }
+  ],
+
+  "recommendations": [
+    {
+      "id": "rec-002",
+      "type": "investigation",
+      "summary": "Investigate root cause of regression",
+      "action": "Review git history and configuration changes between baselines",
+      "evidence": [
+        "460% increase in findings",
+        "Critical issues introduced",
+        "Token usage 4.5x higher"
+      ]
+    },
+    {
+      "id": "rec-003",
+      "type": "preventive",
+      "summary": "Add baseline regression detection",
+      "action": "Configure threshold alerts for critical count > 0",
+      "evidence": ["criticalCount increased from 0 to 5"]
+    }
+  ],
+
+  "rubric_weights": {
+    "trend_accuracy": 0.25,
+    "causal_accuracy": 0.35,
+    "recommendation_actionability": 0.25,
+    "review_quality": 0.15
+  }
+}

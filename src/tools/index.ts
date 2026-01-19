@@ -19,6 +19,9 @@ export * from './config';
 // Note: Export with namespace to avoid conflicts with config exports (both have extractMetrics)
 export * as sessions from './sessions';
 
+// Temporal analysis tools (EP09)
+export * as temporal from '../temporal/tools';
+
 // Adapters for different ACT formats
 export * from './adapters';
 
@@ -29,6 +32,15 @@ export * from './adapters';
 // Re-export individual tool definitions for explicit registration
 export { discoverConfigsTool, parseConfigTool, analyzeHierarchyTool } from './config';
 export { searchSessionsTool, getSessionStatsTool } from './sessions';
+export {
+  storeBaselineTool,
+  queryBaselineTool,
+  listBaselinesTool,
+  calculateDeltaTool,
+  queryTrendsTool,
+  conductReviewTool,
+  getReviewHistoryTool,
+} from '../temporal/tools';
 
 // =============================================================================
 // Tool Registration Helpers (T072)
@@ -36,6 +48,15 @@ export { searchSessionsTool, getSessionStatsTool } from './sessions';
 
 import { discoverConfigsTool, parseConfigTool, analyzeHierarchyTool } from './config';
 import { searchSessionsTool, getSessionStatsTool } from './sessions';
+import {
+  storeBaselineTool,
+  queryBaselineTool,
+  listBaselinesTool,
+  calculateDeltaTool,
+  queryTrendsTool,
+  conductReviewTool,
+  getReviewHistoryTool,
+} from '../temporal/tools';
 
 /**
  * All EP05 config analysis tools as an array for bulk registration.
@@ -53,6 +74,19 @@ export const EP05_CONFIG_TOOLS: ToolDefinition[] = [
 export const EP06_SESSION_TOOLS: ToolDefinition[] = [
   searchSessionsTool,
   getSessionStatsTool,
+] as ToolDefinition[];
+
+/**
+ * All EP09 temporal analysis tools as an array for bulk registration.
+ */
+export const EP09_TEMPORAL_TOOLS: ToolDefinition[] = [
+  storeBaselineTool,
+  queryBaselineTool,
+  listBaselinesTool,
+  calculateDeltaTool,
+  queryTrendsTool,
+  conductReviewTool,
+  getReviewHistoryTool,
 ] as ToolDefinition[];
 
 /**
@@ -90,12 +124,30 @@ export function registerEP06Tools(registry: IToolRegistry): void {
 }
 
 /**
+ * Register all EP09 temporal analysis tools with a ToolRegistry.
+ *
+ * @param registry - The ToolRegistry to register tools with
+ * @example
+ * ```typescript
+ * import { createToolRegistry } from './orchestration';
+ * import { registerEP09Tools } from './tools';
+ *
+ * const registry = createToolRegistry();
+ * registerEP09Tools(registry);
+ * ```
+ */
+export function registerEP09Tools(registry: IToolRegistry): void {
+  registry.registerMany(EP09_TEMPORAL_TOOLS);
+}
+
+/**
  * Register all agentlint tools with a ToolRegistry.
- * Includes EP05 config analysis and EP06 session analysis tools.
+ * Includes EP05 config analysis, EP06 session analysis, and EP09 temporal tools.
  *
  * @param registry - The ToolRegistry to register tools with
  */
 export function registerAllTools(registry: IToolRegistry): void {
   registerEP05Tools(registry);
   registerEP06Tools(registry);
+  registerEP09Tools(registry);
 }

@@ -16,6 +16,8 @@ import type { Finding, SessionState } from '../orchestration/types';
 /**
  * Aggregated metrics from analysis findings.
  * Stored in SQLite for fast querying.
+ *
+ * Extended in EP09 with session and config metrics (optional fields).
  */
 export interface BaselineMetrics {
   /** Total number of findings */
@@ -30,6 +32,27 @@ export interface BaselineMetrics {
   lowCount: number;
   /** Count of info severity findings */
   infoCount: number;
+
+  // --- EP09 Extended Metrics (optional for backward compatibility) ---
+
+  /** Average tokens per session (from EP06) */
+  avgTokensPerSession?: number;
+  /** Average iterations per session (from EP06) */
+  avgIterationsPerSession?: number;
+  /** Number of sessions analyzed */
+  sessionCount?: number;
+  /** Error rate across sessions (0-1) */
+  errorRate?: number;
+  /** Token count in ACT config */
+  configTokens?: number;
+  /** Line count in ACT config */
+  configLines?: number;
+  /** Config analysis warnings */
+  warningCount?: number;
+  /** Distinct sections in config */
+  sectionCount?: number;
+  /** Config coverage score (0-100) */
+  coverageScore?: number;
 }
 
 /**

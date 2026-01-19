@@ -1,0 +1,90 @@
+{
+  "id": "temporal-08-qualitative-review",
+  "version": "1.0",
+  "source": "synthetic",
+  "description": "Qualitative review with mixed sentiment across dimensions",
+  "difficulty": "medium",
+  "tags": ["review", "qualitative", "sentiment"],
+
+  "review_output": {
+    "id": "review-001",
+    "baselineId": "baseline-q01",
+    "createdAt": "2026-01-15T14:00:00.000Z",
+    "overallSentiment": 0.35,
+    "themes": ["configuration-clarity", "tool-selection", "context-loss"],
+    "dimensions": [
+      {
+        "name": "perceivedFriction",
+        "score": 3,
+        "sentiment": 0.25,
+        "observations": "Some friction with file organization commands, but generally manageable"
+      },
+      {
+        "name": "trustCalibration",
+        "score": 4,
+        "sentiment": 0.55,
+        "observations": "Agent suggestions are mostly reliable, occasional overconfidence in complex refactoring"
+      },
+      {
+        "name": "taskFit",
+        "score": 4,
+        "sentiment": 0.6,
+        "observations": "Good at standard development tasks, struggles with project-specific conventions"
+      },
+      {
+        "name": "configurationConfidence",
+        "score": 2,
+        "sentiment": 0.05,
+        "observations": "CLAUDE.md feels incomplete, unclear what to add for better results"
+      },
+      {
+        "name": "improvementAttribution",
+        "score": 3,
+        "sentiment": 0.3,
+        "observations": "Some improvements noticed after config changes but hard to attribute specifically"
+      },
+      {
+        "name": "workflowSatisfaction",
+        "score": 3,
+        "sentiment": 0.35,
+        "observations": "Workflow is functional but could be smoother, context loss between sessions is frustrating"
+      }
+    ],
+    "triggerReason": "scheduled"
+  },
+
+  "expected_properties": {
+    "overall_sentiment_range": [0.3, 0.4],
+    "lowest_dimension": "configurationConfidence",
+    "highest_dimension": "taskFit",
+    "theme_extraction_valid": true,
+    "sentiment_score_alignment": true
+  },
+
+  "recommendations": [
+    {
+      "id": "rec-011",
+      "type": "actionable",
+      "summary": "Improve CLAUDE.md documentation",
+      "action": "Add project-specific conventions and file organization rules to CLAUDE.md",
+      "evidence": [
+        "configurationConfidence scored lowest (2/5)",
+        "Friction with file organization noted"
+      ]
+    },
+    {
+      "id": "rec-012",
+      "type": "investigation",
+      "summary": "Address context loss between sessions",
+      "action": "Review session continuity settings; consider session summaries",
+      "evidence": ["workflowSatisfaction notes context loss frustration"]
+    }
+  ],
+
+  "rubric_weights": {
+    "trend_accuracy": 0.15,
+    "causal_accuracy": 0.25,
+    "recommendation_actionability": 0.25,
+    "review_quality": 0.35
+  }
+}

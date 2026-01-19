@@ -85,6 +85,14 @@ agentlint follows a 6-layer architecture:
 
 See [docs/architecture](docs/architecture) for detailed documentation.
 
+## Temporal Analysis (EP09)
+
+Track workflow effectiveness over time with mixed-methods measurement:
+- **Quantitative**: Baseline capture, delta comparison, trend analysis
+- **Qualitative**: Structured reviews with 6 dimensions and Likert scoring
+
+See [`src/temporal/README.md`](src/temporal/README.md) and [`specs/ep09-temporal-analysis/quickstart.md`](specs/ep09-temporal-analysis/quickstart.md).
+
 ## License
 
 MIT

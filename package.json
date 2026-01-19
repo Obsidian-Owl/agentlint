@@ -40,6 +40,7 @@
     "typecheck": "tsc --noEmit",
     "test": "bun test",
     "test:coverage": "bun test --coverage",
+    "test:coverage:check": "bun run scripts/check-coverage.ts",
     "ci": "bun run lint && bun run format:check && bun run typecheck && bun test && bun run build",
     "prepare": "scripts/install-hooks.sh"
   },
@@ -50,6 +51,7 @@
     "commander": "^12.0.0",
     "fast-glob": "3.3.3",
     "ink": "^5.0.0",
+    "jsondiffpatch": "0.7.3",
     "react": "^18.0.0",
     "remark-frontmatter": "5.0.0",
     "remark-gfm": "4.0.1",
@@ -67,6 +69,7 @@
     "@types/uuid": "^10.0.0",
     "@typescript-eslint/eslint-plugin": "^8.0.0",
     "@typescript-eslint/parser": "^8.0.0",
+    "bun-bagel": "1.2.0",
     "eslint": "^8.57.0",
     "ink-testing-library": "4.0.0",
     "prettier": "^3.0.0",

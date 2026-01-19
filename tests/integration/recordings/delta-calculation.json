@@ -1,0 +1,355 @@
+{
+  "version": "1.0.0",
+  "name": "tests/integration/recordings/delta-calculation.json",
+  "createdAt": "2026-01-18T09:00:00.000Z",
+  "description": "VCR recordings for delta calculation operations",
+  "recordings": [
+    {
+      "request": {
+        "url": "agentlint://calculate_delta",
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "fromId": "baseline-before-refactor",
+          "toId": "baseline-after-refactor",
+          "includeGitCommits": true,
+          "detailedDiff": false
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "success": true,
+          "delta": {
+            "fromId": "baseline-before-refactor",
+            "toId": "baseline-after-refactor",
+            "fromTimestamp": "2026-01-15T10:00:00.000Z",
+            "toTimestamp": "2026-01-16T14:00:00.000Z",
+            "summary": {
+              "metricsChanged": [
+                {
+                  "name": "findingsCount",
+                  "from": 25,
+                  "to": 8,
+                  "change": -17,
+                  "percentChange": -68.0,
+                  "direction": "↓"
+                },
+                {
+                  "name": "criticalCount",
+                  "from": 3,
+                  "to": 0,
+                  "change": -3,
+                  "percentChange": -100.0,
+                  "direction": "↓"
+                },
+                {
+                  "name": "highCount",
+                  "from": 7,
+                  "to": 2,
+                  "change": -5,
+                  "percentChange": -71.43,
+                  "direction": "↓"
+                },
+                {
+                  "name": "coverageScore",
+                  "from": 65,
+                  "to": 85,
+                  "change": 20,
+                  "percentChange": 30.77,
+                  "direction": "↑"
+                }
+              ],
+              "warningsAdded": [],
+              "warningsResolved": ["Generic rule with no context", "Missing testing guidance"],
+              "recommendationsAdded": [],
+              "recommendationsResolved": [],
+              "trendIndicators": [
+                {
+                  "metric": "findingsCount",
+                  "indicator": "↓",
+                  "label": "Findings decreased by 68%"
+                },
+                {
+                  "metric": "criticalCount",
+                  "indicator": "↓",
+                  "label": "Critical issues eliminated"
+                },
+                {
+                  "metric": "coverageScore",
+                  "indicator": "↑",
+                  "label": "Coverage improved by 20 points"
+                }
+              ],
+              "changeCounts": { "increased": 1, "decreased": 3, "unchanged": 0 }
+            },
+            "gitCommitsInRange": [
+              "abc1234 - Refactor config structure",
+              "def5678 - Add testing guidance section",
+              "ghi9012 - Remove generic rules"
+            ]
+          }
+        }
+      },
+      "timestamp": "2026-01-18T09:00:00.000Z"
+    },
+    {
+      "request": {
+        "url": "agentlint://calculate_delta",
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "fromId": "baseline-after-refactor",
+          "toId": "baseline-regression",
+          "includeGitCommits": true,
+          "detailedDiff": false
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "success": true,
+          "delta": {
+            "fromId": "baseline-after-refactor",
+            "toId": "baseline-regression",
+            "fromTimestamp": "2026-01-16T14:00:00.000Z",
+            "toTimestamp": "2026-01-17T09:00:00.000Z",
+            "summary": {
+              "metricsChanged": [
+                {
+                  "name": "findingsCount",
+                  "from": 8,
+                  "to": 15,
+                  "change": 7,
+                  "percentChange": 87.5,
+                  "direction": "↑"
+                },
+                {
+                  "name": "criticalCount",
+                  "from": 0,
+                  "to": 2,
+                  "change": 2,
+                  "percentChange": 100.0,
+                  "direction": "↑"
+                },
+                {
+                  "name": "coverageScore",
+                  "from": 85,
+                  "to": 72,
+                  "change": -13,
+                  "percentChange": -15.29,
+                  "direction": "↓"
+                }
+              ],
+              "warningsAdded": ["New critical issues detected", "Coverage regression"],
+              "warningsResolved": [],
+              "recommendationsAdded": [
+                "Review recent changes for regressions",
+                "Restore coverage to previous levels"
+              ],
+              "recommendationsResolved": [],
+              "trendIndicators": [
+                {
+                  "metric": "findingsCount",
+                  "indicator": "↑",
+                  "label": "Findings increased by 88%"
+                },
+                {
+                  "metric": "criticalCount",
+                  "indicator": "↑",
+                  "label": "Critical issues reintroduced"
+                },
+                {
+                  "metric": "coverageScore",
+                  "indicator": "↓",
+                  "label": "Coverage regressed by 13 points"
+                }
+              ],
+              "changeCounts": { "increased": 2, "decreased": 1, "unchanged": 0 }
+            },
+            "gitCommitsInRange": [
+              "jkl3456 - Quick fix for production issue",
+              "mno7890 - Emergency patch"
+            ]
+          }
+        }
+      },
+      "timestamp": "2026-01-18T09:00:01.000Z"
+    },
+    {
+      "request": {
+        "url": "agentlint://calculate_delta",
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "fromId": "baseline-stable-1",
+          "toId": "baseline-stable-2",
+          "includeGitCommits": false,
+          "detailedDiff": false
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "success": true,
+          "delta": {
+            "fromId": "baseline-stable-1",
+            "toId": "baseline-stable-2",
+            "fromTimestamp": "2026-01-10T10:00:00.000Z",
+            "toTimestamp": "2026-01-11T10:00:00.000Z",
+            "summary": {
+              "metricsChanged": [
+                {
+                  "name": "sessionCount",
+                  "from": 15,
+                  "to": 17,
+                  "change": 2,
+                  "percentChange": 13.33,
+                  "direction": "→"
+                }
+              ],
+              "warningsAdded": [],
+              "warningsResolved": [],
+              "recommendationsAdded": [],
+              "recommendationsResolved": [],
+              "trendIndicators": [
+                {
+                  "metric": "overall",
+                  "indicator": "→",
+                  "label": "No significant changes"
+                }
+              ],
+              "changeCounts": { "increased": 1, "decreased": 0, "unchanged": 0 }
+            }
+          }
+        }
+      },
+      "timestamp": "2026-01-18T09:00:02.000Z"
+    },
+    {
+      "request": {
+        "url": "agentlint://calculate_delta",
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "fromId": "nonexistent-baseline",
+          "toId": "latest",
+          "includeGitCommits": false,
+          "detailedDiff": false
+        }
+      },
+      "response": {
+        "status": 404,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "success": false,
+          "error": "Source baseline not found: nonexistent-baseline"
+        }
+      },
+      "timestamp": "2026-01-18T09:00:03.000Z"
+    },
+    {
+      "request": {
+        "url": "agentlint://calculate_delta",
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "fromId": "baseline-before-refactor",
+          "toId": "baseline-after-refactor",
+          "includeGitCommits": false,
+          "detailedDiff": true
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "success": true,
+          "delta": {
+            "fromId": "baseline-before-refactor",
+            "toId": "baseline-after-refactor",
+            "fromTimestamp": "2026-01-15T10:00:00.000Z",
+            "toTimestamp": "2026-01-16T14:00:00.000Z",
+            "delta": {
+              "id": ["baseline-before-refactor", "baseline-after-refactor"],
+              "createdAt": ["2026-01-15T10:00:00.000Z", "2026-01-16T14:00:00.000Z"],
+              "gitCommit": ["abc1234567890", "def7890123456"],
+              "metrics": {
+                "findingsCount": [25, 8],
+                "criticalCount": [3, 0],
+                "highCount": [7, 2],
+                "mediumCount": [10, 4],
+                "lowCount": [5, 2],
+                "coverageScore": [65, 85]
+              },
+              "findings": {
+                "_t": "a",
+                "_0": [
+                  {
+                    "id": "finding-1",
+                    "type": "config_antipattern",
+                    "severity": "critical"
+                  },
+                  0,
+                  0
+                ],
+                "_1": [
+                  {
+                    "id": "finding-2",
+                    "type": "config_gap",
+                    "severity": "high"
+                  },
+                  0,
+                  0
+                ]
+              },
+              "label": ["before-refactor", "after-refactor"]
+            },
+            "summary": {
+              "metricsChanged": [
+                {
+                  "name": "findingsCount",
+                  "from": 25,
+                  "to": 8,
+                  "change": -17,
+                  "percentChange": -68.0,
+                  "direction": "↓"
+                }
+              ],
+              "warningsAdded": [],
+              "warningsResolved": [],
+              "recommendationsAdded": [],
+              "recommendationsResolved": [],
+              "trendIndicators": [],
+              "changeCounts": { "increased": 0, "decreased": 1, "unchanged": 0 }
+            }
+          }
+        }
+      },
+      "timestamp": "2026-01-18T09:00:04.000Z"
+    }
+  ]
+}
