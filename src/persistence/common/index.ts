@@ -19,6 +19,7 @@ export {
   getProjectLearningsDbPath,
   getGlobalLearningsDir,
   getGlobalLearningsDbPath,
+  getRecommendationsDir,
   expandTilde,
 } from './directories';
 

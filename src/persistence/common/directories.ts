@@ -167,6 +167,16 @@ export function getGlobalLearningsDbPath(): string {
 }
 
 /**
+ * Get the recommendations directory path.
+ *
+ * @param projectPath - Project root path (default: process.cwd())
+ * @returns Path to .agentlint/recommendations directory
+ */
+export function getRecommendationsDir(projectPath: string = process.cwd()): string {
+  return join(getProjectDir(projectPath), 'recommendations');
+}
+
+/**
  * Expand tilde (~) in a path to the home directory.
  *
  * @param path - Path that may contain ~
