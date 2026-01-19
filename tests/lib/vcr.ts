@@ -290,7 +290,11 @@ export class VCR {
       (r) => r.request.method === method && r.request.url === url
     );
 
-    return matching[index];
+    const recording = matching[index];
+    if (recording) {
+      this.playbackIndex.set(key, index + 1);
+    }
+    return recording;
   }
 
   /**
