@@ -6,3 +6,6 @@ exclude:
     # Test files containing intentionally fake secrets for testing secret detection logic
     - tests/unit/tools/config/anti-patterns.test.ts
     - tests/fixtures/
+    # EP11 secret detection tests use example/fake secrets to verify detection
+    - tests/unit/security/
+    - tests/integration/secrets-vcr.test.ts

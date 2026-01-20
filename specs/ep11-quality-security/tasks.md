@@ -102,10 +102,10 @@
 
 ### Tests (write first)
 
-- [ ] T025 [P] [US4] Unit test for pattern matching in `tests/unit/security/detector.test.ts`
-- [ ] T026 [P] [US4] Unit test for entropy scoring in `tests/unit/security/entropy.test.ts`
-- [ ] T027 [P] [US4] Unit test for classification in `tests/unit/security/classifier.test.ts`
-- [ ] T028 [P] [US4] Integration test with VCR for LLM validation in `tests/integration/secrets-vcr.test.ts`
+- [x] T025 [P] [US4] Unit test for pattern matching in `tests/unit/security/detector.test.ts`
+- [x] T026 [P] [US4] Unit test for entropy scoring in `tests/unit/security/entropy.test.ts`
+- [x] T027 [P] [US4] Unit test for classification in `tests/unit/security/classifier.test.ts`
+- [x] T028 [P] [US4] Integration test with VCR for LLM validation in `tests/integration/secrets-vcr.test.ts`
 
 ### Implementation
 
