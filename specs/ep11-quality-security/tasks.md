@@ -158,7 +158,7 @@
 
 ### Tests (write first)
 
-- [ ] T043 [P] [US3] Unit test for code-based grader in `tests/unit/eval/code-based.test.ts`
+- [x] T043 [P] [US3] Unit test for code-based grader in `tests/unit/eval/code-based.test.ts`
 - [ ] T044 [P] [US3] Unit test for score calculation in `tests/unit/eval/scoring.test.ts`
 - [ ] T045 [P] [US3] Integration test for evaluation runner in `tests/integration/eval-runner.test.ts`
 
