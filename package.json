@@ -58,6 +58,7 @@
     "remark-frontmatter": "5.0.0",
     "remark-gfm": "4.0.1",
     "remark-parse": "11.0.0",
+    "toml": "3.0.0",
     "unified": "11.0.5",
     "uuid": "^11.0.5",
     "vfile-matter": "5.0.1",
