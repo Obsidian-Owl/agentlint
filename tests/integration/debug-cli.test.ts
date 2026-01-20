@@ -6,8 +6,8 @@
  * @module tests/integration/debug-cli
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'bun:test';
-import { existsSync, unlinkSync, readFileSync } from 'fs';
+import { describe, it, afterEach } from 'bun:test';
+import { existsSync, unlinkSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
 

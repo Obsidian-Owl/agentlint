@@ -204,8 +204,8 @@ describe('redactObject', () => {
     const result = redactObject(obj);
     expect(result.config.database.host).toBe('localhost');
     // 'credentials' is a sensitive key, so the entire nested object is replaced
-    expect(result.config.database.credentials).toBe(REDACTED_PLACEHOLDER);
-    expect(result.items[0].secret).toBe(REDACTED_PLACEHOLDER);
+    expect(result.config.database.credentials as unknown).toBe(REDACTED_PLACEHOLDER);
+    expect((result.items[0] as Record<string, unknown>).secret).toBe(REDACTED_PLACEHOLDER);
   });
 });
 
@@ -324,7 +324,9 @@ describe('mergePatterns', () => {
     const custom = [createRedactionPattern(/custom/g, '[CUSTOM]', 'custom')];
     const merged = mergePatterns(custom);
     // Custom pattern should be at the end
-    expect(merged[merged.length - 1].type).toBe('custom');
+    const lastPattern = merged[merged.length - 1];
+    expect(lastPattern).toBeDefined();
+    expect(lastPattern!.type).toBe('custom');
   });
 });
 
