@@ -30,7 +30,7 @@
 - [x] T001 [P] Create `src/debug/` directory structure per plan.md
 - [x] T002 [P] Create `src/security/` directory structure per plan.md
 - [x] T003 [P] Create `src/eval/` directory structure per plan.md
-- [ ] T004 [P] Create `tests/evals/golden/` directory structure per plan.md
+- [x] T004 [P] Create `tests/evals/golden/` directory structure per plan.md
 - [ ] T005 Add `@types/toml` dev dependency to package.json
 - [ ] T006 Add TruLens Python requirements to `tests/evals/requirements.txt`
 

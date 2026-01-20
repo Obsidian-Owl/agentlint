@@ -1,0 +1,19 @@
+{
+  "$schema": "../../src/eval/types.ts#GoldenManifest",
+  "version": "1.0",
+  "updatedAt": "2026-01-20T00:00:00.000Z",
+  "scenarios": [],
+  "stats": {
+    "total": 0,
+    "bySource": {
+      "public-repo": 0,
+      "dogfood": 0,
+      "production-failure": 0
+    },
+    "byDifficulty": {
+      "easy": 0,
+      "medium": 0,
+      "hard": 0
+    }
+  }
+}
