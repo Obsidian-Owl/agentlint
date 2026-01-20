@@ -9,3 +9,5 @@ exclude:
     # EP11 secret detection tests use example/fake secrets to verify detection
     - tests/unit/security/
     - tests/integration/secrets-vcr.test.ts
+    # E2E test fixtures with intentional test secrets for detection testing
+    - tests/e2e/fixtures/

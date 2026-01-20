@@ -132,7 +132,7 @@
 ### Tests (write first)
 
 - [x] T035 [P] [US2] Create E2E test structure in `tests/e2e/`
-- [ ] T036 [P] [US2] Create test fixtures with known issues in `tests/e2e/fixtures/`
+- [x] T036 [P] [US2] Create test fixtures with known issues in `tests/e2e/fixtures/`
 - [ ] T037 [P] [US2] Unit test for VCR strict mode in `tests/unit/vcr-strict.test.ts`
 - [ ] T038 [P] [US2] Create dogfood test placeholder in `tests/e2e/dogfood.test.ts`
 

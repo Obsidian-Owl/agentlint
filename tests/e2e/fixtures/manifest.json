@@ -1,0 +1,54 @@
+{
+  "$schema": "./manifest.schema.json",
+  "version": "1.0.0",
+  "description": "E2E test fixtures with expected findings for validation",
+  "fixtures": {
+    "project-minimal": {
+      "description": "Minimal project with sparse CLAUDE.md",
+      "expectedFindings": {
+        "minCount": 1,
+        "maxCount": 10,
+        "categories": ["missing-section", "incomplete-docs"]
+      },
+      "files": ["CLAUDE.md"],
+      "notes": "Should detect missing sections like Project Overview, Development Workflow"
+    },
+    "project-with-issues": {
+      "description": "Project with intentional anti-patterns and a test secret",
+      "expectedFindings": {
+        "minCount": 2,
+        "maxCount": 15,
+        "categories": ["anti-pattern", "secret-candidate", "missing-section"]
+      },
+      "files": ["CLAUDE.md", ".cursorrules"],
+      "knownIssues": [
+        {
+          "type": "secret-candidate",
+          "description": "AWS access key pattern in CLAUDE.md",
+          "location": "CLAUDE.md:12"
+        },
+        {
+          "type": "anti-pattern",
+          "description": "Advice to skip tests in .cursorrules",
+          "location": ".cursorrules:8"
+        },
+        {
+          "type": "anti-pattern",
+          "description": "Advice to skip documentation in .cursorrules",
+          "location": ".cursorrules:9"
+        }
+      ],
+      "notes": "Contains AKIAIOSFODNN7EXAMPLE (AWS example key) for secret detection testing"
+    },
+    "project-complete": {
+      "description": "Well-structured project with comprehensive documentation",
+      "expectedFindings": {
+        "minCount": 0,
+        "maxCount": 3,
+        "categories": []
+      },
+      "files": ["CLAUDE.md", ".cursorrules"],
+      "notes": "Should have minimal or no findings - represents best practices"
+    }
+  }
+}
