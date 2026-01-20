@@ -54,7 +54,7 @@
 ### Utilities
 
 - [x] T011 Create namespace constants in `src/debug/namespaces.ts` per DEBUG_NAMESPACES
-- [ ] T012 Create entropy calculation in `src/security/entropy.ts` per calculateEntropy function
+- [x] T012 Create entropy calculation in `src/security/entropy.ts` per calculateEntropy function
 - [ ] T013 Create redaction utilities in `src/debug/redaction.ts` per createRedactedPlaceholder
 - [ ] T014 Create score calculation in `src/eval/scoring.ts` per calculateOverallScore
 
