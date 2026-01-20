@@ -117,6 +117,8 @@ export interface GlobalOptions {
   quiet?: boolean;
   /** Log file path - write debug output to file */
   logFile?: string;
+  /** Disable automatic secret detection scanning */
+  secrets?: boolean;
 }
 
 /**

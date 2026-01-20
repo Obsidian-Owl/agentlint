@@ -113,7 +113,7 @@
 - [x] T030 [US4] Implement TOML parser in `src/security/patterns/parser.ts`
 - [x] T031 [US4] Implement SecretDetector class in `src/security/detector.ts` (depends on T030)
 - [x] T032 [US4] Implement SecretClassifier (LLM tool) in `src/security/classifier.ts` (depends on T031)
-- [ ] T033 [US4] Add `--no-secrets` CLI flag to `src/cli/program.ts`
+- [x] T033 [US4] Add `--no-secrets` CLI flag to `src/cli/program.ts`
 - [ ] T034 [US4] Create public exports in `src/security/index.ts`
 
 **Checkpoint**: US4 complete and independently testable

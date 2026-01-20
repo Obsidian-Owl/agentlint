@@ -74,7 +74,8 @@ Documentation:
     .option('--fail-on-findings', 'Exit with code 1 if findings are present')
     .option('--debug <categories>', 'Enable debug output for categories (e.g., "tools,llm" or "*" for all)')
     .option('--quiet', 'Suppress non-error output')
-    .option('--log-file <path>', 'Write debug output to file');
+    .option('--log-file <path>', 'Write debug output to file')
+    .option('--no-secrets', 'Disable automatic secret detection scanning');
 
   // Configure help behavior with terminal-aware formatter
   program.configureHelp({
