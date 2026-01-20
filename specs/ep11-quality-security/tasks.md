@@ -32,7 +32,7 @@
 - [x] T003 [P] Create `src/eval/` directory structure per plan.md
 - [x] T004 [P] Create `tests/evals/golden/` directory structure per plan.md
 - [x] T005 Add `@types/toml` dev dependency to package.json
-- [ ] T006 Add TruLens Python requirements to `tests/evals/requirements.txt`
+- [x] T006 Add TruLens Python requirements to `tests/evals/requirements.txt`
 
 **Checkpoint**: Setup complete
 - [ ] All directories exist

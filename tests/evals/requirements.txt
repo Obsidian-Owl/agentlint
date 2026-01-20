@@ -1,0 +1,17 @@
+# TruLens Python requirements for EP11 LLM-as-judge evaluation
+# Requires Python 3.11+
+
+# Core TruLens libraries
+trulens-core>=1.0.0
+trulens-providers-litellm>=1.0.0
+
+# LiteLLM for Anthropic API integration
+litellm>=1.0.0
+
+# Utilities
+python-dotenv>=1.0.0
+
+# Note: Install with:
+#   python -m venv .venv
+#   source .venv/bin/activate
+#   pip install -r tests/evals/requirements.txt
