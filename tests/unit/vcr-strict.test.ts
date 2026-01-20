@@ -10,7 +10,7 @@
  */
 
 import { describe, test, expect, beforeEach, afterEach } from 'bun:test';
-import { VCR, type VCROptions, type Cassette } from '../lib/vcr';
+import { VCR, type Cassette } from '../lib/vcr';
 import { join } from 'path';
 import { writeFileSync, mkdirSync, rmSync, existsSync } from 'fs';
 import { tmpdir } from 'os';
