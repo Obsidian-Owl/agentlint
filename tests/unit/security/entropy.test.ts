@@ -290,11 +290,10 @@ describe('Real-world secret patterns', () => {
   });
 
   it('should identify GitHub token pattern as high entropy', () => {
-    // GitHub tokens are base64-ish
-    const fakeGhToken = 'ghp_' + 'x'.repeat(36).replace(/x/g, () =>
-      'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'[Math.floor(Math.random() * 62)]
-    );
-    const tokenPart = fakeGhToken.slice(4);
+    // GitHub tokens are base64-ish - use a deterministic high-entropy string
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    // Create a varied string instead of random to ensure consistent entropy
+    const tokenPart = Array.from({ length: 36 }, (_, i) => chars[i % chars.length]).join('');
     const result = analyzeEntropy(tokenPart);
 
     expect(result.entropy).toBeGreaterThan(3);

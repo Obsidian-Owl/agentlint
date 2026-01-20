@@ -6,7 +6,7 @@
  * @module tests/unit/security/detector
  */
 
-import { describe, it, expect } from 'bun:test';
+import { describe, it } from 'bun:test';
 // Note: SecretDetector will be implemented in T031. These tests define expected behavior.
 
 describe('SecretDetector', () => {
