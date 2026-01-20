@@ -1,0 +1,94 @@
+{
+  "id": "rec-04-historic-context",
+  "version": "1.0",
+  "source": "synthetic",
+  "description": "New findings with existing recommendations → deduplication",
+  "difficulty": "hard",
+  "tags": ["deduplication", "historic-context", "refinement"],
+
+  "input_data": {
+    "findings": [
+      {
+        "id": "finding-new-001",
+        "type": "config_gap",
+        "severity": "high",
+        "message": "Missing authentication flow documentation",
+        "location": "CLAUDE.md",
+        "suggestion": "Add authentication section"
+      },
+      {
+        "id": "finding-new-002",
+        "type": "quality",
+        "severity": "medium",
+        "message": "Session handling lacks error recovery",
+        "location": "src/session/manager.ts",
+        "suggestion": "Add error recovery"
+      }
+    ],
+    "causalTraces": [
+      {
+        "rootCause": "Missing security documentation patterns",
+        "symptoms": ["finding-new-001"],
+        "confidence": 0.9
+      }
+    ],
+    "historicRecommendations": [
+      {
+        "id": "rec-existing-001",
+        "type": "preventive",
+        "action": "Add security section to CLAUDE.md",
+        "target": "CLAUDE.md",
+        "priority": "high",
+        "status": "open",
+        "tracedOrigin": {
+          "findingId": "finding-old-security-001",
+          "configGap": "Missing security guidance"
+        },
+        "createdAt": "2026-01-15T10:00:00.000Z"
+      }
+    ],
+    "interactionMode": "propose"
+  },
+
+  "expected_output": {
+    "recommendations": [
+      {
+        "type": "preventive",
+        "action": "Add session error recovery patterns to CLAUDE.md with specific guidance for connection drops, timeout handling, and state recovery",
+        "target": "CLAUDE.md",
+        "rationale": "Session error recovery is a distinct concern from general security. Dedicated guidance prevents ad-hoc implementations.",
+        "priority": "medium",
+        "tracedOrigin": {
+          "findingId": "finding-new-002",
+          "configGap": "Missing session error recovery patterns"
+        }
+      }
+    ],
+    "clarifyingQuestions": [],
+    "assumptions": [
+      "Assuming finding-new-001 (auth documentation) is covered by existing rec-existing-001 (security section) - will refine existing recommendation instead of creating duplicate"
+    ],
+    "refinements": [
+      {
+        "targetRecommendationId": "rec-existing-001",
+        "refinement": "Expand security section scope to explicitly include authentication flow documentation with OAuth2/JWT patterns",
+        "reason": "Finding-new-001 relates to authentication which is a subset of security - refine existing recommendation rather than create duplicate"
+      }
+    ]
+  },
+
+  "expected_properties": {
+    "recommendation_count": 1,
+    "recommendation_types": ["preventive"],
+    "priorities": ["medium"],
+    "has_traced_origins": true,
+    "question_count": 0,
+    "avoids_duplicates": true,
+    "refines_existing": true
+  },
+
+  "rubric_weights": {
+    "recommendation_specificity": 0.5,
+    "recommendation_causal_trace": 0.5
+  }
+}

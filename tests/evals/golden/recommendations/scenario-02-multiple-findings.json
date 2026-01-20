@@ -1,0 +1,99 @@
+{
+  "id": "rec-02-multiple-findings",
+  "version": "1.0",
+  "source": "synthetic",
+  "description": "3 related findings → pattern-based prioritization",
+  "difficulty": "medium",
+  "tags": ["pattern", "multiple-findings", "prioritization"],
+
+  "input_data": {
+    "findings": [
+      {
+        "id": "finding-error-001",
+        "type": "quality",
+        "severity": "high",
+        "message": "Inconsistent error handling in API layer",
+        "location": "src/api/",
+        "suggestion": "Standardize error handling patterns"
+      },
+      {
+        "id": "finding-error-002",
+        "type": "config_gap",
+        "severity": "medium",
+        "message": "No error handling guidance in documentation",
+        "location": "CLAUDE.md",
+        "suggestion": "Add error handling section"
+      },
+      {
+        "id": "finding-error-003",
+        "type": "quality",
+        "severity": "low",
+        "message": "Error message unclear in session-manager.ts:142",
+        "location": "src/session-manager.ts:142",
+        "suggestion": "Improve error message clarity"
+      }
+    ],
+    "causalTraces": [
+      {
+        "rootCause": "Missing error handling patterns",
+        "symptoms": ["finding-error-001", "finding-error-003"],
+        "confidence": 0.85
+      }
+    ],
+    "historicRecommendations": [],
+    "interactionMode": "propose"
+  },
+
+  "expected_output": {
+    "recommendations": [
+      {
+        "type": "systemic",
+        "action": "Establish consistent error handling patterns across the API layer with standardized error codes and recovery strategies",
+        "target": "src/api/",
+        "rationale": "Multiple findings indicate inconsistent error handling causing cascading issues. Systemic fix prevents entire class of errors and improves debugging.",
+        "priority": "high",
+        "tracedOrigin": {
+          "findingId": "finding-error-001",
+          "pattern": "inconsistent-error-handling"
+        }
+      },
+      {
+        "type": "preventive",
+        "action": "Add comprehensive error handling section to CLAUDE.md documenting standard patterns, error codes, and recovery strategies",
+        "target": "CLAUDE.md",
+        "rationale": "Documentation prevents future inconsistencies by providing clear guidance for all developers.",
+        "priority": "medium",
+        "tracedOrigin": {
+          "findingId": "finding-error-002",
+          "configGap": "Missing error handling documentation"
+        }
+      },
+      {
+        "type": "symptomatic",
+        "action": "Update error message at session-manager.ts:142 to include session ID and operation context",
+        "target": "src/session-manager.ts:142",
+        "rationale": "Immediate fix for specific unclear error message that hinders debugging.",
+        "priority": "low",
+        "tracedOrigin": {
+          "findingId": "finding-error-003",
+          "sessionId": "session-debug"
+        }
+      }
+    ],
+    "clarifyingQuestions": [],
+    "assumptions": ["Assuming the systemic fix should take precedence over individual fixes"]
+  },
+
+  "expected_properties": {
+    "recommendation_count": 3,
+    "recommendation_types": ["systemic", "preventive", "symptomatic"],
+    "priorities": ["high", "medium", "low"],
+    "has_traced_origins": true,
+    "question_count": 0
+  },
+
+  "rubric_weights": {
+    "recommendation_prioritization": 0.6,
+    "recommendation_specificity": 0.4
+  }
+}

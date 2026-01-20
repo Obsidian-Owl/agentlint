@@ -1,0 +1,69 @@
+{
+  "id": "rec-03-ambiguous-context",
+  "version": "1.0",
+  "source": "synthetic",
+  "description": "Ambiguous findings → clarifying questions",
+  "difficulty": "medium",
+  "tags": ["questions", "ambiguous", "user-interaction"],
+
+  "input_data": {
+    "findings": [
+      {
+        "id": "finding-ambig-001",
+        "type": "quality",
+        "severity": "medium",
+        "message": "Code complexity could be improved in orchestrator",
+        "location": "src/orchestration/orchestrator.ts",
+        "suggestion": "Consider refactoring"
+      },
+      {
+        "id": "finding-ambig-002",
+        "type": "quality",
+        "severity": "medium",
+        "message": "Performance could be optimized in orchestrator",
+        "location": "src/orchestration/orchestrator.ts",
+        "suggestion": "Consider optimization"
+      }
+    ],
+    "causalTraces": [],
+    "historicRecommendations": [],
+    "interactionMode": "ask"
+  },
+
+  "expected_output": {
+    "recommendations": [],
+    "clarifyingQuestions": [
+      {
+        "question": "Which improvement area should be prioritized for the orchestrator?",
+        "context": "Both code complexity and performance were flagged in the same file. Addressing one may affect the other, so understanding priority helps focus efforts.",
+        "options": [
+          {
+            "label": "Code complexity",
+            "description": "Refactor for readability and maintainability, may have minor performance impact"
+          },
+          {
+            "label": "Performance",
+            "description": "Optimize for speed, may increase code complexity"
+          },
+          {
+            "label": "Both incrementally",
+            "description": "Address both in smaller steps over multiple sessions"
+          }
+        ],
+        "defaultAnswer": "Code complexity (maintainability typically has higher long-term value based on industry patterns)"
+      }
+    ],
+    "assumptions": []
+  },
+
+  "expected_properties": {
+    "recommendation_count": 0,
+    "question_count": 1,
+    "questions_have_options": true,
+    "questions_have_defaults": true
+  },
+
+  "rubric_weights": {
+    "advisor_question_quality": 1.0
+  }
+}
