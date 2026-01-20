@@ -6,13 +6,14 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 agentlint is a local-first CLI tool for continuous improvement of AI-assisted development workflows. It traces issues to their origins and provides preventive recommendations that compound value over time. Unlike traditional linters, agentlint analyzes the AI development system itself—configuration quality, session effectiveness, and workflow optimization.
 
-**Status**: EP02 Complete (Orchestration Core implemented)
+**Status**: EP11 Complete (Quality & Security implemented)
 
-**Stack**: TypeScript + Bun, Claude Agent SDK (@anthropic-ai/claude-agent-sdk), Zod validation
+**Stack**: TypeScript + Bun, Claude Agent SDK (@anthropic-ai/claude-agent-sdk), Zod validation, SQLite
 
 **Implemented Epics**:
 - EP01: Project Setup (CI/CD, TypeScript config, test framework)
 - EP02: Orchestration Core (Claude Agent SDK wrapper, streaming, checkpoints, session management)
+- EP11: Quality & Security (debug infrastructure, session recording, evaluation framework, outcome tracking)
 
 ## Constitution
 
@@ -96,6 +97,76 @@ The `src/orchestration/` module wraps the Claude Agent SDK:
   "model": "claude-sonnet-4-20250514",
   "checkpoint": { "intervalMs": 60000 },
   "verbosity": "normal"
+}
+```
+
+## Quality & Security Module (EP11)
+
+The `src/debug/` and `src/eval/` modules provide quality infrastructure:
+
+### Debug Infrastructure (`src/debug/`)
+
+| Component | File | Purpose |
+|-----------|------|---------|
+| DebugLogger | `logger.ts` | Namespace-based logging with verbosity levels |
+| SecretRedactor | `redaction.ts` | Auto-redacts secrets from logs |
+| TokenTracker | `metrics.ts` | Track LLM call tokens and latency |
+| DEBUG_NAMESPACES | `namespaces.ts` | Standard namespace constants |
+
+**Usage**:
+```typescript
+import { createDebugLogger, DEBUG_NAMESPACES, redact } from './debug';
+
+const logger = createDebugLogger({
+  level: 'debug',
+  namespaces: ['agentlint:tools', 'agentlint:llm'],
+});
+
+// Redact secrets from strings
+const safe = redact('api_key=sk-secret');
+// → 'api_key=[REDACTED:API_KEY]'
+```
+
+### Session Recording (`src/orchestration/checkpoint.ts`)
+
+| Component | Purpose |
+|-----------|---------|
+| SessionRecorder | Record checkpoints to disk for crash recovery |
+| SessionReplayer | Replay sessions from recorded checkpoints |
+
+**CLI Commands**:
+```bash
+agentlint session list           # List recorded sessions
+agentlint session replay <id>    # Replay a session
+agentlint session delete <id>    # Delete a session
+agentlint session cleanup        # Clean up old sessions
+```
+
+### Evaluation Framework (`src/eval/`)
+
+| Component | File | Purpose |
+|-----------|------|---------|
+| Scoring | `scoring.ts` | Numerical quality scoring (0-100) |
+| Graders | `graders/` | Code-based and LLM-judge graders |
+| Runner | `runner.ts` | Execute evaluations |
+
+### Outcome Tracking (`src/persistence/outcome-storage.ts`, `src/eval/feedback.ts`)
+
+Tracks recommendation effectiveness for continuous improvement:
+
+| Component | File | Purpose |
+|-----------|------|---------|
+| OutcomeStorage | `outcome-storage.ts` | SQLite storage for outcomes |
+| FeedbackCollector | `feedback.ts` | Opt-in feedback collection |
+
+**Configuration** (opt-in per Constitution Principle I):
+```json
+{
+  "outcomeTracking": {
+    "collectFeedback": true,
+    "maxPromptsPerSession": 3,
+    "followUpDelayDays": 7
+  }
 }
 ```
 

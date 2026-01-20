@@ -84,13 +84,16 @@ export class CodeBasedGrader implements ICodeBasedGrader {
       .filter(([, passed]) => !passed)
       .map(([name]) => name);
 
-    return {
+    const result: CodeBasedGrade = {
       passed: failedChecks.length === 0,
       checks,
-      details: failedChecks.length > 0
-        ? { failedChecks: failedChecks.join(', ') }
-        : undefined,
     };
+
+    if (failedChecks.length > 0) {
+      result.details = { failedChecks: failedChecks.join(', ') };
+    }
+
+    return result;
   }
 
   /**

@@ -47,3 +47,19 @@ export {
   setDefaultLogger,
   DEFAULT_DEBUG_CONFIG,
 } from './logger';
+
+// Re-export metrics (EP11 T057)
+export {
+  TokenTracker,
+  createTokenTracker,
+  createLatencyTimer,
+  getDefaultTokenTracker,
+  setDefaultTokenTracker,
+  resetDefaultTokenTracker,
+  type TokenUsage,
+  type LatencyMetrics,
+  type LLMCallMetrics,
+  type MetricsSummary,
+  type ITokenTracker,
+  type ILatencyTimer,
+} from './metrics';

@@ -67,10 +67,13 @@ function createGrades(
   codeBasedPassed: boolean,
   llmJudge?: LLMJudgeGrade
 ): EvaluationGrades {
-  return {
+  const grades: EvaluationGrades = {
     codeBased: createCodeBasedGrade(codeBasedPassed),
-    llmJudge,
   };
+  if (llmJudge !== undefined) {
+    grades.llmJudge = llmJudge;
+  }
+  return grades;
 }
 
 function createEvaluationResult(

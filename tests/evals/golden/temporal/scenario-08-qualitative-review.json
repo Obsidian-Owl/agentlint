@@ -10,43 +10,43 @@
     "id": "review-001",
     "baselineId": "baseline-q01",
     "createdAt": "2026-01-15T14:00:00.000Z",
-    "overallSentiment": 0.35,
+    "overallSentiment": 0,
     "themes": ["configuration-clarity", "tool-selection", "context-loss"],
     "dimensions": [
       {
         "name": "perceivedFriction",
         "score": 3,
-        "sentiment": 0.25,
+        "sentiment": 0,
         "observations": "Some friction with file organization commands, but generally manageable"
       },
       {
         "name": "trustCalibration",
-        "score": 4,
-        "sentiment": 0.55,
+        "score": 3,
+        "sentiment": 0,
         "observations": "Agent suggestions are mostly reliable, occasional overconfidence in complex refactoring"
       },
       {
         "name": "taskFit",
         "score": 4,
-        "sentiment": 0.6,
+        "sentiment": 1,
         "observations": "Good at standard development tasks, struggles with project-specific conventions"
       },
       {
         "name": "configurationConfidence",
         "score": 2,
-        "sentiment": 0.05,
+        "sentiment": -1,
         "observations": "CLAUDE.md feels incomplete, unclear what to add for better results"
       },
       {
         "name": "improvementAttribution",
         "score": 3,
-        "sentiment": 0.3,
+        "sentiment": 0,
         "observations": "Some improvements noticed after config changes but hard to attribute specifically"
       },
       {
         "name": "workflowSatisfaction",
         "score": 3,
-        "sentiment": 0.35,
+        "sentiment": 0,
         "observations": "Workflow is functional but could be smoother, context loss between sessions is frustrating"
       }
     ],
@@ -54,7 +54,7 @@
   },
 
   "expected_properties": {
-    "overall_sentiment_range": [0.3, 0.4],
+    "overall_sentiment_range": [-0.5, 0.5],
     "lowest_dimension": "configurationConfidence",
     "highest_dimension": "taskFit",
     "theme_extraction_valid": true,

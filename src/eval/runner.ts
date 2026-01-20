@@ -17,6 +17,7 @@ import type {
   GoldenInput,
   EvaluationResult,
   EvaluationSummary,
+  EvaluationGrades,
   LLMJudgeGrade,
   IEvaluationRunner,
 } from './types';
@@ -244,17 +245,20 @@ export class EvaluationRunner implements IEvaluationRunner {
       }
     }
 
+    // Build grades object conditionally to satisfy exactOptionalPropertyTypes
+    const grades: EvaluationGrades = { codeBased };
+    if (llmJudge !== undefined) {
+      grades.llmJudge = llmJudge;
+    }
+
     // Calculate overall score
-    const overallScore = calculateOverallScore(
-      { codeBased, llmJudge },
-      scenario.rubricWeights
-    );
+    const overallScore = calculateOverallScore(grades, scenario.rubricWeights);
 
     return {
       id: randomUUID(),
       scenarioId: scenario.id,
       timestamp: new Date().toISOString(),
-      grades: { codeBased, llmJudge },
+      grades,
       overallScore,
       passed: overallScore >= EVAL_THRESHOLDS.PASS_THRESHOLD,
     };

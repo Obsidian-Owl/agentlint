@@ -409,8 +409,8 @@ describe('Review Quality: Theme Identification', () => {
     // Calculate expected average
     const avgSentiment = dimensions.reduce((sum, d) => sum + d.sentiment, 0) / dimensions.length;
 
-    // Should be close to average (within 0.15)
-    expect(Math.abs(reportedOverall - avgSentiment)).toBeLessThan(0.15);
+    // Should be close to average (within 0.2 for Likert scale per ADR-0020)
+    expect(Math.abs(reportedOverall - avgSentiment)).toBeLessThan(0.2);
   });
 
   it('identifies lowest and highest dimensions correctly', () => {
@@ -494,9 +494,9 @@ describe('Review Quality: Golden Scenario Validation', () => {
     }
 
     for (const dim of scenario.review_output.dimensions) {
-      // Golden dataset uses 0-1 sentiment scale (different from Likert -2 to +2)
-      expect(dim.sentiment).toBeGreaterThanOrEqual(-1);
-      expect(dim.sentiment).toBeLessThanOrEqual(1);
+      // Golden dataset uses Likert scale per ADR-0020
+      expect(dim.sentiment).toBeGreaterThanOrEqual(-2);
+      expect(dim.sentiment).toBeLessThanOrEqual(2);
       // Score is 1-5 scale
       expect(dim.score).toBeGreaterThanOrEqual(1);
       expect(dim.score).toBeLessThanOrEqual(5);

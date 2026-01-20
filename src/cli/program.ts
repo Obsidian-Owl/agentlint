@@ -100,6 +100,9 @@ Documentation:
   // Keep existing update command
   addUpdateCommand(program);
 
+  // Add session management command (EP11)
+  addSessionCommand(program);
+
   return program;
 }
 
@@ -469,6 +472,126 @@ Examples:
       if (options.channel) args.push('--channel', options.channel);
       const exitCode = await runUpdate(args);
       process.exit(exitCode);
+    });
+}
+
+// =============================================================================
+// EP11: Session Management Commands (T055)
+// =============================================================================
+
+function addSessionCommand(program: Command): void {
+  const session = program
+    .command('session')
+    .description('Manage analysis session recordings')
+    .addHelpText(
+      'after',
+      `
+Subcommands:
+  list      List recorded analysis sessions
+  replay    Replay a session for debugging
+  delete    Delete a recorded session
+  cleanup   Remove old sessions based on retention policy
+
+Session recordings enable crash recovery and debugging.`
+    );
+
+  // session list
+  session
+    .command('list')
+    .description('List recorded analysis sessions')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ agentlint session list           List all recorded sessions
+  $ agentlint session list --json    Output as JSON`
+    )
+    .action(async () => {
+      const { runSessionList } = await import('./commands/session');
+      const globalOpts = extractGlobalOptions(program.opts());
+      const exitCode = await runSessionList(globalOpts);
+      if (exitCode !== 0) {
+        process.exit(exitCode);
+      }
+    });
+
+  // session replay
+  session
+    .command('replay <session-id>')
+    .description('Replay a recorded session')
+    .option('-s, --sequence <number>', 'Replay from specific checkpoint sequence', undefined)
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ agentlint session replay abc123              Replay from last checkpoint
+  $ agentlint session replay abc123 -s 5         Replay from checkpoint 5
+  $ agentlint session replay abc123 --json       Output replay context as JSON`
+    )
+    .action(async (sessionId: string, options: { sequence?: string }) => {
+      const { runSessionReplay } = await import('./commands/session');
+      const globalOpts = extractGlobalOptions(program.opts());
+      const replayOpts = { ...globalOpts, sessionId } as Parameters<typeof runSessionReplay>[0];
+      if (options.sequence) {
+        replayOpts.sequence = parseInt(options.sequence, 10);
+      }
+      const exitCode = await runSessionReplay(replayOpts);
+      if (exitCode !== 0) {
+        process.exit(exitCode);
+      }
+    });
+
+  // session delete
+  session
+    .command('delete <session-id>')
+    .description('Delete a recorded session')
+    .option('-f, --force', 'Skip confirmation')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ agentlint session delete abc123        Delete session (with confirmation)
+  $ agentlint session delete abc123 -f     Delete without confirmation`
+    )
+    .action(async (sessionId: string, options: { force?: boolean }) => {
+      const { runSessionDelete } = await import('./commands/session');
+      const globalOpts = extractGlobalOptions(program.opts());
+      const deleteOpts = { ...globalOpts, sessionId } as Parameters<typeof runSessionDelete>[0];
+      if (options.force !== undefined) {
+        deleteOpts.force = options.force;
+      }
+      const exitCode = await runSessionDelete(deleteOpts);
+      if (exitCode !== 0) {
+        process.exit(exitCode);
+      }
+    });
+
+  // session cleanup
+  session
+    .command('cleanup')
+    .description('Remove old sessions based on retention policy')
+    .option('-d, --days <number>', 'Retention days (default: 7)', '7')
+    .option('--dry-run', 'Show what would be deleted without deleting')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ agentlint session cleanup              Clean up sessions older than 7 days
+  $ agentlint session cleanup -d 30        Keep sessions from last 30 days
+  $ agentlint session cleanup --dry-run    Preview what would be deleted`
+    )
+    .action(async (options: { days?: string; dryRun?: boolean }) => {
+      const { runSessionCleanup } = await import('./commands/session');
+      const globalOpts = extractGlobalOptions(program.opts());
+      const days = options.days ? parseInt(options.days, 10) : 7;
+      const cleanupOpts = { ...globalOpts, days } as Parameters<typeof runSessionCleanup>[0];
+      if (options.dryRun !== undefined) {
+        cleanupOpts.dryRun = options.dryRun;
+      }
+      const exitCode = await runSessionCleanup(cleanupOpts);
+      if (exitCode !== 0) {
+        process.exit(exitCode);
+      }
     });
 }
 

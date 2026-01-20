@@ -165,7 +165,7 @@ describe('EvaluationRunner Integration', () => {
       const scenarios = await runner.loadGoldenDataset(tempDir);
 
       expect(scenarios).toHaveLength(3);
-      expect(scenarios[0].id).toBe('scenario-001');
+      expect(scenarios[0]!.id).toBe('scenario-001');
     });
 
     test('throws error for missing manifest', async () => {
