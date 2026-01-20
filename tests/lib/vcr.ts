@@ -378,3 +378,68 @@ export function useVCR(cassettePath: string, options?: VCROptions): void {
     testVcr.cleanup();
   });
 }
+
+/**
+ * Helper to use VCR in strict mode (CI-friendly).
+ *
+ * This wrapper enforces strict mode, ensuring tests fail if cassettes are missing.
+ * Use this for integration tests that must be deterministic in CI.
+ *
+ * @example
+ * ```typescript
+ * import { useStrictVCR } from '../lib/vcr';
+ *
+ * describe('My Integration Test', () => {
+ *   useStrictVCR('tests/integration/recordings/my-test.json');
+ *
+ *   it('replays recorded responses deterministically', async () => {
+ *     // Test runs against recorded responses
+ *     // Fails if cassette is missing (CI behavior)
+ *   });
+ * });
+ * ```
+ */
+export function useStrictVCR(cassettePath: string, additionalOptions?: Omit<VCROptions, 'strict'>): void {
+  useVCR(cassettePath, { ...additionalOptions, strict: true });
+}
+
+/**
+ * Create a strict VCR instance for CI environments.
+ *
+ * Use this when you need more control over the VCR instance than useStrictVCR provides.
+ *
+ * @param options - Additional VCR options (strict is always true)
+ * @returns VCR instance configured for strict mode
+ *
+ * @example
+ * ```typescript
+ * const vcr = createStrictVCR();
+ * await vcr.load('path/to/cassette.json');
+ * vcr.setupMocks();
+ * // ... run tests ...
+ * vcr.cleanup();
+ * ```
+ */
+export function createStrictVCR(options?: Omit<VCROptions, 'strict'>): VCR {
+  return new VCR({ ...options, strict: true });
+}
+
+/**
+ * Check if VCR recording mode should be enabled.
+ *
+ * This helper checks the VCR_MODE environment variable.
+ *
+ * @returns True if VCR_MODE=record
+ */
+export function shouldRecord(): boolean {
+  return process.env.VCR_MODE === 'record';
+}
+
+/**
+ * Check if running in CI environment.
+ *
+ * @returns True if CI=true environment variable is set
+ */
+export function isCIEnvironment(): boolean {
+  return process.env.CI === 'true';
+}
