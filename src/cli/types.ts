@@ -107,10 +107,16 @@ export interface GlobalOptions {
   markdown?: boolean;
   /** Plain text output (no colors) */
   plain?: boolean;
-  /** Verbose output */
+  /** Verbose output - shows tool calls and timing */
   verbose?: boolean;
   /** Exit 1 if findings present */
   failOnFindings?: boolean;
+  /** Debug mode - enable specific debug namespaces (e.g., "tools,llm" or "*" for all) */
+  debug?: string;
+  /** Quiet mode - suppress non-error output */
+  quiet?: boolean;
+  /** Log file path - write debug output to file */
+  logFile?: string;
 }
 
 /**

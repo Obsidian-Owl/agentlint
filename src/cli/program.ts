@@ -12,6 +12,8 @@ import { Command, Help } from 'commander';
 import { getVersion } from '../version';
 import { getTerminalWidth } from './utils/terminal';
 import type { GlobalOptions } from './types';
+import { createLoggerFromCLIOptions, setDefaultLogger } from '../debug/logger';
+import type { IDebugLogger } from '../debug/types';
 
 /**
  * Package description for CLI.
@@ -69,7 +71,10 @@ Documentation:
     .option('--markdown', 'Output results as Markdown')
     .option('--plain', 'Plain text output without colors')
     .option('--verbose', 'Show detailed output including tool calls')
-    .option('--fail-on-findings', 'Exit with code 1 if findings are present');
+    .option('--fail-on-findings', 'Exit with code 1 if findings are present')
+    .option('--debug <categories>', 'Enable debug output for categories (e.g., "tools,llm" or "*" for all)')
+    .option('--quiet', 'Suppress non-error output')
+    .option('--log-file <path>', 'Write debug output to file');
 
   // Configure help behavior with terminal-aware formatter
   program.configureHelp({
@@ -121,8 +126,62 @@ export function extractGlobalOptions(options: Record<string, unknown>): GlobalOp
   if (typeof options['failOnFindings'] === 'boolean') {
     result.failOnFindings = options['failOnFindings'];
   }
+  if (typeof options['debug'] === 'string') {
+    result.debug = options['debug'];
+  }
+  if (typeof options['quiet'] === 'boolean') {
+    result.quiet = options['quiet'];
+  }
+  if (typeof options['logFile'] === 'string') {
+    result.logFile = options['logFile'];
+  }
 
   return result;
+}
+
+/**
+ * Initializes the debug logger from global CLI options.
+ *
+ * This function should be called at the start of command handlers to
+ * configure the debug logger based on --verbose, --debug, --quiet, and --log-file flags.
+ *
+ * @param options - Global options from CLI
+ * @returns Configured debug logger
+ *
+ * @example
+ * ```typescript
+ * const logger = initializeDebugLogger(globalOpts);
+ * logger.debug('agentlint:tools', 'Starting analysis');
+ * ```
+ */
+export function initializeDebugLogger(options: GlobalOptions): IDebugLogger {
+  // Build options object, only including defined values
+  const loggerOptions: {
+    verbose?: boolean;
+    debug?: string;
+    quiet?: boolean;
+    logFile?: string;
+  } = {};
+
+  if (options.verbose !== undefined) {
+    loggerOptions.verbose = options.verbose;
+  }
+  if (options.debug !== undefined) {
+    loggerOptions.debug = options.debug;
+  }
+  if (options.quiet !== undefined) {
+    loggerOptions.quiet = options.quiet;
+  }
+  if (options.logFile !== undefined) {
+    loggerOptions.logFile = options.logFile;
+  }
+
+  const logger = createLoggerFromCLIOptions(loggerOptions);
+
+  // Set as default logger so all modules can access it
+  setDefaultLogger(logger);
+
+  return logger;
 }
 
 // =============================================================================

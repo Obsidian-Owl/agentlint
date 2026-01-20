@@ -82,7 +82,7 @@
 - [x] T019 [US1] Implement DebugLogger class in `src/debug/logger.ts` (depends on T011, T013)
 - [x] T020 [US1] Implement namespaced child logger in `src/debug/logger.ts`
 - [x] T021 [US1] Implement file output in `src/debug/logger.ts` (depends on T019)
-- [ ] T022 [US1] Add CLI flags (--verbose, --debug, --quiet, --log-file) to `src/cli/program.ts` (depends on T019)
+- [x] T022 [US1] Add CLI flags (--verbose, --debug, --quiet, --log-file) to `src/cli/program.ts` (depends on T019)
 - [ ] T023 [US1] Integrate DebugLogger with existing orchestration in `src/orchestration/orchestrator.ts`
 - [ ] T024 [US1] Create public exports in `src/debug/index.ts`
 
