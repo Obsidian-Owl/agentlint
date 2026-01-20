@@ -59,8 +59,17 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Run tests
-        run: bun test
+      - name: Run unit tests
+        run: bun test tests/unit
+        env:
+          CI: 'true'
+
+      - name: Run integration tests (VCR strict mode)
+        run: bun test tests/integration
+        env:
+          CI: 'true'
+          # VCR strict mode is enabled via CI=true
+          # Tests will fail if cassettes are missing
 
   build:
     name: Build

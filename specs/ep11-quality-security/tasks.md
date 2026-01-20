@@ -141,7 +141,7 @@
 - [x] T039 [US2] Implement VCR strict mode wrapper in `tests/lib/vcr.ts` (depends on T037)
 - [x] T040 [US2] Implement dogfood test analyzing agentlint's own CLAUDE.md in `tests/e2e/dogfood.test.ts`
 - [x] T041 [US2] Add `bun run record` script to package.json for cassette recording
-- [ ] T042 [US2] Add CI configuration for VCR strict mode in `.github/workflows/`
+- [x] T042 [US2] Add CI configuration for VCR strict mode in `.github/workflows/`
 
 **Checkpoint**: US2 complete and independently testable
 - [ ] E2E tests pass with VCR playback
