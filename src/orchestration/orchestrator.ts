@@ -18,6 +18,9 @@ import type { OrchestratorConfig, SessionState, StreamChunk, VerbosityLevel } fr
 import { loadConfig, MAX_SUBAGENT_DEPTH } from './config';
 import { SubagentDepthError } from '../errors';
 import { buildACTSubagents } from '../act/index.js';
+import { getDefaultLogger } from '../debug/logger';
+import { DEBUG_NAMESPACES } from '../debug/namespaces';
+import type { INamespacedLogger } from '../debug/types';
 
 // =============================================================================
 // IOrchestrator Interface
@@ -115,6 +118,9 @@ export class Orchestrator implements IOrchestrator {
   /** Abort controller for interruption */
   private abortController: AbortController | null = null;
 
+  /** Debug logger for orchestration */
+  private readonly logger: INamespacedLogger;
+
   /**
    * Create a new Orchestrator.
    *
@@ -125,11 +131,18 @@ export class Orchestrator implements IOrchestrator {
   constructor(config: OrchestratorConfig, toolRegistry: IToolRegistry) {
     this.config = loadConfig(config);
     this.toolRegistry = toolRegistry;
+    this.logger = getDefaultLogger().child(DEBUG_NAMESPACES.ORCHESTRATION);
 
     // Validate depth limit (T050)
     if (this.config.depth > MAX_SUBAGENT_DEPTH) {
       throw new SubagentDepthError(this.config.depth, MAX_SUBAGENT_DEPTH);
     }
+
+    this.logger.debug('Orchestrator created', {
+      model: this.config.model,
+      depth: this.config.depth,
+      verbosity: this.config.verbosity,
+    });
   }
 
   /**
@@ -188,9 +201,16 @@ export class Orchestrator implements IOrchestrator {
     this._isActive = true;
     this.abortController = new AbortController();
 
+    this.logger.info('Starting orchestrator run', { task: task.substring(0, 100) });
+
     try {
       // Initialize session state
       this._sessionState = this.createInitialState(task);
+
+      this.logger.debug('Session initialized', {
+        sessionId: this._sessionState.id,
+        phase: this._sessionState.phase,
+      });
 
       // Yield session start status
       yield this.createChunk('status', 'normal', `Starting analysis: ${task}`);
@@ -245,10 +265,14 @@ export class Orchestrator implements IOrchestrator {
       }
 
       // Yield completion status
+      this.logger.info('Analysis complete', {
+        sessionId: this._sessionState?.id,
+      });
       yield this.createChunk('status', 'normal', 'Analysis complete');
     } catch (error) {
       // Yield error chunk
       const errorMessage = error instanceof Error ? error.message : String(error);
+      this.logger.error('Analysis failed', { error: errorMessage });
       yield this.createChunk('error', 'quiet', `Error: ${errorMessage}`);
       throw error;
     } finally {
@@ -352,6 +376,10 @@ export class Orchestrator implements IOrchestrator {
         if (block.type === 'text') {
           chunks.push(this.createChunk('text', 'normal', block.text));
         } else if (block.type === 'tool_use') {
+          this.logger.debug('Tool invocation', {
+            tool: block.name,
+            // Input may contain secrets, rely on redaction
+          });
           chunks.push(
             this.createChunk('tool_start', 'verbose', `Calling tool: ${block.name}`, {
               toolName: block.name,
@@ -362,6 +390,9 @@ export class Orchestrator implements IOrchestrator {
       }
     } else if (msg.type === 'tool_result') {
       // Tool result
+      this.logger.debug('Tool completed', {
+        toolId: msg.tool_use_id,
+      });
       chunks.push(
         this.createChunk('tool_result', 'verbose', 'Tool completed', {
           toolId: msg.tool_use_id,
@@ -370,6 +401,11 @@ export class Orchestrator implements IOrchestrator {
       );
     } else if (msg.type === 'result') {
       // Final result
+      this.logger.info('Session result', {
+        sessionId: msg.session_id,
+        inputTokens: msg.input_tokens,
+        outputTokens: msg.output_tokens,
+      });
       chunks.push(
         this.createChunk('status', 'normal', 'Session completed', {
           sessionId: msg.session_id,
