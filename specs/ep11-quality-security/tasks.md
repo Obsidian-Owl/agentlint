@@ -47,7 +47,7 @@
 ### Types
 
 - [x] T007 [P] Create type exports in `src/debug/types.ts` per contracts/debug.ts
-- [ ] T008 [P] Create type exports in `src/security/types.ts` per contracts/secrets.ts
+- [x] T008 [P] Create type exports in `src/security/types.ts` per contracts/secrets.ts
 - [ ] T009 [P] Create type exports in `src/eval/types.ts` per contracts/eval.ts
 - [ ] T010 [P] Create type exports in `src/orchestration/checkpoint-types.ts` per contracts/checkpoint.ts
 
