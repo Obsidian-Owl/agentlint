@@ -109,7 +109,7 @@
 
 ### Implementation
 
-- [ ] T029 [US4] Bundle Gitleaks TOML patterns in `src/security/patterns/gitleaks.toml`
+- [x] T029 [US4] Bundle Gitleaks TOML patterns in `src/security/patterns/gitleaks.toml`
 - [ ] T030 [US4] Implement TOML parser in `src/security/patterns/parser.ts`
 - [ ] T031 [US4] Implement SecretDetector class in `src/security/detector.ts` (depends on T030)
 - [ ] T032 [US4] Implement SecretClassifier (LLM tool) in `src/security/classifier.ts` (depends on T031)
