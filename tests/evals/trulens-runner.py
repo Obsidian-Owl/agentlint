@@ -6,15 +6,15 @@ Python subprocess for TruLens LLM-as-judge evaluation.
 Receives scenario + output JSON on stdin or as file argument,
 returns evaluation scores on stdout.
 
-Usage:
+Usage (with uv from tests/evals directory):
     # From file
-    python tests/evals/trulens-runner.py input.json
+    uv run python trulens-runner.py input.json
 
     # From stdin
-    echo '{"scenario": {...}, "output": {...}}' | python tests/evals/trulens-runner.py -
+    echo '{"scenario": {...}, "output": {...}}' | uv run python trulens-runner.py -
 
     # Check TruLens availability
-    python tests/evals/trulens-runner.py --check
+    uv run python trulens-runner.py --check
 
 See ADR-0011 (Testing Strategy) and ADR-0012 (Evaluation Framework).
 """

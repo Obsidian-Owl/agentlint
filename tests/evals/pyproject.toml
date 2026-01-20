@@ -1,0 +1,17 @@
+[project]
+name = "agentlint-evals"
+version = "0.1.0"
+description = "TruLens evaluations for agentlint"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "trulens-core>=1.0.0",
+    "trulens-providers-litellm>=1.0.0",
+    "litellm>=1.0.0",
+    "python-dotenv>=1.0.0",
+    "setuptools>=70.0.0",  # Required for pkg_resources (trulens dependency)
+]
+
+[tool.uv]
+# This is a virtual project - dependencies only, no package to build
+package = false
