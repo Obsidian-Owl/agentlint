@@ -172,8 +172,8 @@ src/cli/
 | **Session Analysis (EP06)** | `search_sessions`, `get_session_stats` |
 | **Causal Analysis (EP07)** | `trace_issue_origin`, `get_issue_patterns` |
 | **Temporal Analysis (EP09)** | `store_baseline`, `query_baseline`, `list_baselines`, `calculate_delta`, `query_trends`, `conduct_review`, `get_review_history` |
+| **Recommendation Advisor (EP10)** | `spawn_recommendation_advisor`, `create_recommendation`, `get_recommendation`, `list_recommendations`, `get_recommendation_summary`, `add_recommendation_event`, `update_recommendation_status`, `refine_recommendation`, `complete_recommendation` |
 | **Git Analysis** | `query_git` |
-| **Recommendation** | `store_recommendation`, `list_recommendations`, `update_recommendation` |
 | **Learning** | `store_learning`, `list_learnings`, `promote_learning` |
 | **Utility** | `retrieve_result`, `agentlint_write` |
 
@@ -688,6 +688,181 @@ Storage locations:
 
 ---
 
+## Level 3: Recommendation Advisor Tools (EP10)
+
+The recommendation advisor module synthesizes actionable recommendations from analysis findings through a reasoning-heavy subagent with case-based state management.
+
+```
+src/recommendations/
+├── index.ts                    Public exports + type re-exports
+├── types.ts                    Core type definitions (Recommendation, Event, etc.)
+├── schemas.ts                  Zod validation schemas
+│
+├── storage/                    Persistence operations
+│   ├── index.ts                Storage exports
+│   ├── storage.ts              Atomic JSON CRUD (save, load, delete, list)
+│   └── compression.ts          Token budgeting + context compression
+│
+├── tools/                      SDK tool definitions
+│   ├── index.ts                Tool exports
+│   ├── spawn-advisor.ts        spawn_recommendation_advisor tool
+│   ├── create-recommendation.ts create_recommendation tool
+│   ├── get-recommendation.ts   get_recommendation tool
+│   ├── list-recommendations.ts list_recommendations tool
+│   ├── get-recommendation-summary.ts get_recommendation_summary tool
+│   ├── add-event.ts            add_recommendation_event tool
+│   ├── update-status.ts        update_recommendation_status tool
+│   ├── refine-recommendation.ts refine_recommendation tool
+│   └── complete-recommendation.ts complete_recommendation tool
+│
+└── subagent/                   Recommendation advisor subagent
+    ├── index.ts                Subagent exports
+    ├── types.ts                Subagent type definitions + tool list
+    ├── recommendation-advisor.ts Agent prompt + builder
+    └── questions.ts            Clarifying question utilities
+```
+
+| Module | Responsibility |
+|--------|----------------|
+| `storage/storage.ts` | Atomic JSON CRUD for recommendations in `.agentlint/recommendations/` |
+| `storage/compression.ts` | Token estimation, summary compression within 8K budget |
+| `tools/` | SDK tool definitions following ADR-0005 patterns |
+| `subagent/` | Recommendation advisor subagent for synthesis and judgment |
+
+### EP10 Tool Definitions
+
+| Tool | Description |
+|------|-------------|
+| `spawn_recommendation_advisor` | Spawns the recommendation advisor subagent with configurable context |
+| `create_recommendation` | Creates a new recommendation case with traced origin |
+| `get_recommendation` | Retrieves a full recommendation with all events |
+| `list_recommendations` | Queries recommendations with filtering by status, type, priority |
+| `get_recommendation_summary` | Returns compressed summary for context loading |
+| `add_recommendation_event` | Appends observation, evidence, or feedback to a recommendation |
+| `update_recommendation_status` | Transitions recommendation status (open → pending_confirmation → implemented → monitoring) |
+| `refine_recommendation` | Updates action, target, or priority with audit trail |
+| `complete_recommendation` | Closes case with reason (implemented, superseded, obsolete, rejected) |
+
+### Tool/Agent Boundary (ADR-0019)
+
+Per [ADR-0019](../adr/0019-tool-agent-boundary-temporal.md), recommendation tools provide DATA while the agent provides JUDGMENT:
+
+| Tool Provides | Agent Reasons About |
+|--------------|---------------------|
+| Recommendation CRUD operations | "What type of recommendation is this?" |
+| Event history and summaries | "Has this recommendation been implemented?" |
+| Compressed context within budget | "Which recommendations are most relevant?" |
+| Traced origin data | "What caused this issue?" |
+| Status transitions | "What is the appropriate next status?" |
+
+### Key Entity Types
+
+```typescript
+interface Recommendation {
+  id: string;                   // UUID
+  projectPath: string;
+  createdAt: string;            // ISO 8601
+  type: RecommendationType;     // 'symptomatic' | 'preventive' | 'systemic'
+  action: string;               // WHAT to do (max 1000 chars)
+  target: string;               // WHERE to do it (max 500 chars)
+  rationale: string;            // WHY this helps (max 2000 chars)
+  priority: Priority;           // 'high' | 'medium' | 'low'
+  tracedOrigin: TracedOrigin;   // Causal link to source
+  status: RecommendationStatus; // Lifecycle state
+  events: RecommendationEvent[]; // Append-only history
+  completedAt?: string;
+  completionReason?: CompletionReason;
+}
+
+interface RecommendationEvent {
+  id: string;                   // UUID
+  timestamp: string;            // ISO 8601
+  type: EventType;              // created, observation, refinement, etc.
+  content: string;              // Max 200 chars per NFR-003
+  baselineId?: string;
+  sessionId?: string;
+  commitHash?: string;
+}
+
+interface TracedOrigin {
+  findingId?: string;           // EP05/EP06/EP07 finding
+  sessionId?: string;           // Session where issue observed
+  configGap?: string;           // Missing configuration
+  pattern?: string;             // Recurring pattern
+}
+
+interface RecommendationSummary {
+  id: string;
+  type: RecommendationType;
+  status: RecommendationStatus;
+  actionSummary: string;        // Max 100 chars
+  target: string;
+  priority: Priority;
+  eventCount: number;
+  lastEventAt: string;
+  lastEventType: EventType;
+  recentActivity: string;       // Compressed event summary
+  milestones: Milestones;
+}
+```
+
+### Recommendation Lifecycle
+
+```
+┌─────────┐     ┌─────────────────────┐     ┌─────────────┐     ┌────────────┐
+│  open   │────►│ pending_confirmation│────►│ implemented │────►│ monitoring │
+└─────────┘     └─────────────────────┘     └─────────────┘     └────────────┘
+     │                    │                        │                   │
+     │                    │                        │                   │
+     ▼                    ▼                        ▼                   ▼
+┌──────────────────────────────────────────────────────────────────────────┐
+│                            completed                                      │
+│  Reasons: implemented | superseded | obsolete | rejected                  │
+└──────────────────────────────────────────────────────────────────────────┘
+```
+
+### Persistence Layer Integration
+
+Recommendations are stored as individual JSON files:
+
+```
+.agentlint/recommendations/
+├── {uuid-1}.json           # Recommendation file with version + data
+├── {uuid-2}.json
+└── ...
+```
+
+Each file follows the `RecommendationFile` schema:
+```typescript
+interface RecommendationFile {
+  version: string;           // Schema version (e.g., "1.0.0")
+  recommendation: Recommendation;
+}
+```
+
+### Context Compression (NFR-001/NFR-002)
+
+Per Constitution IX (Agent-Aware), recommendations are compressed for context loading:
+
+| Event Count | Compression Strategy |
+|-------------|---------------------|
+| ≤3 events | Include all events verbatim |
+| 4-10 events | `[+N earlier events]` prefix + last 3 verbatim |
+| >10 events | `[Events summarized - use get_recommendation for full history]` |
+
+Token budget: 8K tokens for all recommendations (newest-first loading).
+
+### Performance Characteristics (NFR)
+
+| Metric | Target | Implementation |
+|--------|--------|----------------|
+| Recommendation save | <100ms | Atomic JSON writes |
+| Context loading | <500ms | Compression + budget enforcement |
+| Summary generation | <50ms | In-memory compression |
+| List query | <200ms | Filesystem directory scan |
+
+---
+
 ## Level 2: Adapter Layer
 
 ```
@@ -735,9 +910,10 @@ src/act/
 | Subagent | ACT Types | Priority | Tools |
 |----------|-----------|----------|-------|
 | `claude-code-analyzer` | claude-code | 100 | discover_configs, parse_config, analyze_hierarchy, search_sessions, get_session_stats |
-| `generalized-analyzer` | agents-md, unknown | 10 | discover_configs, parse_config |
+| `recommendation-advisor` | recommendation | 80 | create_recommendation, get_recommendation, list_recommendations, get_recommendation_summary, add_recommendation_event, update_recommendation_status, refine_recommendation, complete_recommendation |
 | `temporal-analyzer` | temporal | 75 | store_baseline, query_baseline, list_baselines, calculate_delta, query_trends, conduct_review, get_review_history |
 | `temporal-analyzer-readonly` | temporal | 50 | query_baseline, list_baselines, calculate_delta, query_trends, get_review_history |
+| `generalized-analyzer` | agents-md, unknown | 10 | discover_configs, parse_config |
 
 ### Key Entity Types
 

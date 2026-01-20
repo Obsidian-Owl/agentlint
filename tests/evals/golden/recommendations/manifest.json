@@ -1,0 +1,62 @@
+{
+  "version": "1.0",
+  "description": "Golden dataset for EP10 Recommendation Advisor TruLens evaluations",
+  "created_at": "2026-01-20T10:00:00.000Z",
+  "adr_references": ["ADR-0011", "ADR-0012"],
+
+  "scenarios": [
+    {
+      "file": "scenario-01-simple-config.json",
+      "id": "rec-01-simple-config",
+      "category": "single-finding",
+      "difficulty": "easy",
+      "tests": ["recommendation_specificity", "recommendation_causal_trace"],
+      "description": "Single config gap finding → preventive recommendation"
+    },
+    {
+      "file": "scenario-02-multiple-findings.json",
+      "id": "rec-02-multiple-findings",
+      "category": "pattern",
+      "difficulty": "medium",
+      "tests": ["recommendation_prioritization", "recommendation_specificity"],
+      "description": "3 related findings → pattern-based prioritization"
+    },
+    {
+      "file": "scenario-03-ambiguous-context.json",
+      "id": "rec-03-ambiguous-context",
+      "category": "questions",
+      "difficulty": "medium",
+      "tests": ["advisor_question_quality"],
+      "description": "Ambiguous findings → clarifying questions"
+    },
+    {
+      "file": "scenario-04-historic-context.json",
+      "id": "rec-04-historic-context",
+      "category": "deduplication",
+      "difficulty": "hard",
+      "tests": ["recommendation_specificity", "recommendation_causal_trace"],
+      "description": "New findings with existing recommendations → deduplication"
+    }
+  ],
+
+  "coverage": {
+    "single-finding": 1,
+    "pattern": 1,
+    "questions": 1,
+    "deduplication": 1,
+    "total": 4
+  },
+
+  "difficulty_distribution": {
+    "easy": 1,
+    "medium": 2,
+    "hard": 1
+  },
+
+  "feedback_function_coverage": {
+    "recommendation_specificity": 3,
+    "recommendation_causal_trace": 2,
+    "recommendation_prioritization": 1,
+    "advisor_question_quality": 1
+  }
+}

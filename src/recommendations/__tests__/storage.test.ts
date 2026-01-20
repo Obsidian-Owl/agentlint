@@ -315,5 +315,53 @@ describe('recommendations/storage', () => {
       expect(loaded!.events.length).toBe(2);
       expect(loaded!.events[1]?.type).toBe('observation');
     });
+
+    it('should handle concurrent writes with last-write-wins', async () => {
+      const recommendation = createTestRecommendation();
+      await saveRecommendation(recommendation, { baseDir: recommendationsDir });
+
+      // Create two competing updates
+      const update1 = { ...recommendation, priority: 'high' as const };
+      const update2 = { ...recommendation, priority: 'low' as const };
+
+      // Launch concurrent writes
+      const [, ] = await Promise.all([
+        saveRecommendation(update1, { baseDir: recommendationsDir }),
+        saveRecommendation(update2, { baseDir: recommendationsDir }),
+      ]);
+
+      // File should exist and contain one of the updates
+      const loaded = await loadRecommendation(recommendation.id, { baseDir: recommendationsDir });
+      expect(loaded).not.toBeNull();
+      expect(['high', 'low']).toContain(loaded!.priority);
+
+      // Should only have one file
+      const ids = listRecommendationIds({ baseDir: recommendationsDir });
+      expect(ids.length).toBe(1);
+    });
+
+    it('should not corrupt data with rapid sequential writes', async () => {
+      const recommendation = createTestRecommendation();
+      await saveRecommendation(recommendation, { baseDir: recommendationsDir });
+
+      // Rapid sequential writes
+      for (let i = 0; i < 10; i++) {
+        const event = createTestEvent({
+          type: 'observation',
+          content: `Observation ${i}`,
+        });
+        const updated = {
+          ...recommendation,
+          events: [...recommendation.events, event],
+        };
+        recommendation.events = updated.events;
+        await saveRecommendation(updated, { baseDir: recommendationsDir });
+      }
+
+      // Should have 11 events (1 initial + 10 added)
+      const loaded = await loadRecommendation(recommendation.id, { baseDir: recommendationsDir });
+      expect(loaded).not.toBeNull();
+      expect(loaded!.events.length).toBe(11);
+    });
   });
 });

@@ -10,28 +10,28 @@
 ## 8.1 Domain Model
 
 ```
-┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│   Baseline   │◄───►│   Analysis   │────►│Recommendation│
-│ • metrics    │     │ • findings   │     │ • evidence   │
-│ • config     │     │ • issues     │     │ • status     │
-└──────────────┘     └──────────────┘     └──────────────┘
-       │                    │                    │
-       ▼                    ▼                    ▼
-┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│   Session    │────►│    Issue     │     │   Learning   │
-│ • tokens     │     │ • origin     │     │ • scope      │
-│ • iterations │     │ • severity   │     │ • pattern    │
-└──────────────┘     └──────────────┘     └──────────────┘
-                            │
-                            ▼
-              ┌─────────────────────────┐
-              │      CausalChain        │
+┌──────────────┐     ┌──────────────┐     ┌──────────────────────┐
+│   Baseline   │◄───►│   Analysis   │────►│    Recommendation    │
+│ • metrics    │     │ • findings   │     │ • action             │
+│ • config     │     │ • issues     │     │ • target             │
+└──────────────┘     └──────────────┘     │ • tracedOrigin       │
+       │                    │             │ • status             │
+       ▼                    ▼             │ • events[]           │
+┌──────────────┐     ┌──────────────┐     └──────────┬───────────┘
+│   Session    │────►│    Issue     │                │
+│ • tokens     │     │ • origin     │                ▼
+│ • iterations │     │ • severity   │     ┌──────────────────────┐
+└──────────────┘     └──────────────┘     │ RecommendationEvent  │
+                            │             │ • type               │
+                            ▼             │ • content            │
+              ┌─────────────────────────┐ │ • timestamp          │
+              │      CausalChain        │ └──────────────────────┘
               │ • trigger (evidence)    │
-              │ • gap (config gap)      │
-              │ • mechanism             │
-              │ • confidence            │
-              └─────────────────────────┘
-                     │           │
+              │ • gap (config gap)      │          ┌──────────────┐
+              │ • mechanism             │          │   Learning   │
+              │ • confidence            │          │ • scope      │
+              └─────────────────────────┘          │ • pattern    │
+                     │           │                 └──────────────┘
           ┌──────────┘           └──────────┐
           ▼                                 ▼
 ┌──────────────────┐              ┌──────────────────┐
@@ -42,6 +42,34 @@
 │ • position       │              │ • chainIds       │
 └──────────────────┘              └──────────────────┘
 ```
+
+### Recommendation Entities (EP10)
+
+| Entity | Purpose |
+|--------|---------|
+| **Recommendation** | Living document tracking a suggested improvement over time |
+| **RecommendationEvent** | Append-only log entry (observation, evidence, refinement, etc.) |
+| **TracedOrigin** | Causal link to source (finding, session, config gap, pattern) |
+| **RecommendationSummary** | Compressed view for context loading within token budget |
+
+### Recommendation Types
+
+| Type | Description | When to Use |
+|------|-------------|-------------|
+| `symptomatic` | Quick fix for immediate symptoms | No clear root cause |
+| `preventive` | Prevents recurrence via config/workflow change | Clear pattern with causal trace |
+| `systemic` | Addresses underlying workflow/architecture issue | Deep-rooted pattern across multiple areas |
+
+### Recommendation Status Lifecycle
+
+| Status | Description |
+|--------|-------------|
+| `open` | Active recommendation, not yet implemented |
+| `pending_confirmation` | Implementation detected, awaiting user confirmation |
+| `implemented` | Confirmed implemented by user |
+| `monitoring` | Tracking effectiveness over time |
+
+Completion reasons: `implemented`, `superseded`, `obsolete`, `rejected`
 
 ### Causal Analysis Entities (EP07)
 
@@ -177,6 +205,32 @@ Following Claude Code patterns:
 | **Compression Triggers** | Auto-summarize near limit |
 | **Priority Preservation** | Goals, errors, decisions always retained |
 | **Large Results** | Summarize + store, retrieve on demand |
+
+### Recommendation Context Compression (EP10)
+
+Per Constitution IX (Agent-Aware), recommendations are compressed for context loading within an 8K token budget:
+
+**Compression Rules**:
+
+| Event Count | Strategy | Example |
+|-------------|----------|---------|
+| ≤3 events | Include all events verbatim | `[created] Recommendation created: Add error handling...` |
+| 4-10 events | Prefix + last 3 verbatim | `[+4 earlier events]\n[observation] Config updated...\n[evidence] Baseline shows...` |
+| >10 events | Summary message | `[Events summarized - use get_recommendation for full history]` |
+
+**Loading Strategy**:
+- Load recommendations newest-first until 8K token budget exhausted
+- Each recommendation compressed to `RecommendationSummary` (< 500 chars per NFR-001)
+- Agent can request full recommendation via `get_recommendation` tool
+
+**Token Estimation**:
+```typescript
+// Simple char/4 approximation
+function estimateTokens(input: string | object): number {
+  const text = typeof input === 'string' ? input : JSON.stringify(input);
+  return Math.ceil(text.length / 4);
+}
+```
 
 ---
 

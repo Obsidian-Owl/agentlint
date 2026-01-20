@@ -1,0 +1,134 @@
+{
+  "version": "1.0.0",
+  "name": "tests/integration/recordings/recommendations/advisor-clarifying-questions.json",
+  "createdAt": "2026-01-20T10:00:00.000Z",
+  "description": "VCR recordings for ambiguous context → clarifying questions flow",
+  "recordings": [
+    {
+      "request": {
+        "url": "agentlint://spawn_advisor",
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "findings": [
+            {
+              "id": "finding-ambig-001",
+              "type": "quality",
+              "severity": "medium",
+              "message": "Code complexity could be improved",
+              "location": "src/orchestration/orchestrator.ts"
+            },
+            {
+              "id": "finding-ambig-002",
+              "type": "quality",
+              "severity": "medium",
+              "message": "Performance could be optimized",
+              "location": "src/orchestration/orchestrator.ts"
+            }
+          ],
+          "interactionMode": "ask"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "success": true,
+          "advisorOutput": {
+            "recommendations": [],
+            "clarifyingQuestions": [
+              {
+                "question": "Which improvement area should be prioritized for the orchestrator?",
+                "context": "Both code complexity and performance were flagged, but addressing one may affect the other. Need to understand priority.",
+                "options": [
+                  {
+                    "label": "Code complexity",
+                    "description": "Refactor for readability and maintainability, may have minor performance impact"
+                  },
+                  {
+                    "label": "Performance",
+                    "description": "Optimize for speed, may increase code complexity"
+                  },
+                  {
+                    "label": "Both incrementally",
+                    "description": "Address both in smaller steps, slower overall progress"
+                  }
+                ],
+                "defaultAnswer": "Code complexity (maintainability typically has higher long-term value)"
+              }
+            ],
+            "assumptions": []
+          }
+        }
+      },
+      "timestamp": "2026-01-20T10:00:01.000Z"
+    },
+    {
+      "request": {
+        "url": "agentlint://spawn_advisor",
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "findings": [
+            {
+              "id": "finding-ambig-003",
+              "type": "config_gap",
+              "severity": "high",
+              "message": "Missing documentation for authentication flow",
+              "location": "CLAUDE.md"
+            }
+          ],
+          "interactionMode": "propose"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "success": true,
+          "advisorOutput": {
+            "recommendations": [
+              {
+                "id": "rec-proposed-001",
+                "projectPath": "/test/project",
+                "createdAt": "2026-01-20T10:00:02.000Z",
+                "type": "preventive",
+                "action": "Add authentication flow documentation to CLAUDE.md",
+                "target": "CLAUDE.md",
+                "rationale": "Missing auth documentation leads to inconsistent implementations and security issues.",
+                "priority": "high",
+                "status": "open",
+                "tracedOrigin": {
+                  "findingId": "finding-ambig-003",
+                  "configGap": "Missing authentication flow documentation"
+                },
+                "events": [
+                  {
+                    "id": "evt-proposed-001",
+                    "timestamp": "2026-01-20T10:00:02.000Z",
+                    "type": "created",
+                    "content": "Recommendation proposed from finding-ambig-003"
+                  }
+                ]
+              }
+            ],
+            "clarifyingQuestions": [],
+            "assumptions": [
+              "Assuming standard OAuth2/JWT patterns are acceptable",
+              "Assuming documentation should cover both setup and usage"
+            ]
+          }
+        }
+      },
+      "timestamp": "2026-01-20T10:00:02.000Z"
+    }
+  ]
+}

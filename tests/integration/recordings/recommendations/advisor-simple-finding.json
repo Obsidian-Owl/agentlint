@@ -1,0 +1,106 @@
+{
+  "version": "1.0.0",
+  "name": "tests/integration/recordings/recommendations/advisor-simple-finding.json",
+  "createdAt": "2026-01-20T10:00:00.000Z",
+  "description": "VCR recordings for simple finding → preventive recommendation flow",
+  "recordings": [
+    {
+      "request": {
+        "url": "agentlint://create_recommendation",
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "type": "preventive",
+          "action": "Add error handling section to CLAUDE.md with common patterns",
+          "target": "CLAUDE.md",
+          "rationale": "Without error handling guidance, agents may implement inconsistent error recovery, leading to harder-to-debug issues.",
+          "priority": "high",
+          "tracedOrigin": {
+            "findingId": "finding-001",
+            "configGap": "No error handling guidance in developer documentation"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "success": true,
+          "recommendation": {
+            "id": "rec-simple-001",
+            "projectPath": "/test/project",
+            "createdAt": "2026-01-20T10:00:01.000Z",
+            "type": "preventive",
+            "action": "Add error handling section to CLAUDE.md with common patterns",
+            "target": "CLAUDE.md",
+            "rationale": "Without error handling guidance, agents may implement inconsistent error recovery, leading to harder-to-debug issues.",
+            "priority": "high",
+            "status": "open",
+            "tracedOrigin": {
+              "findingId": "finding-001",
+              "configGap": "No error handling guidance in developer documentation"
+            },
+            "events": [
+              {
+                "id": "evt-001",
+                "timestamp": "2026-01-20T10:00:01.000Z",
+                "type": "created",
+                "content": "Recommendation created from finding-001"
+              }
+            ]
+          }
+        }
+      },
+      "timestamp": "2026-01-20T10:00:01.000Z"
+    },
+    {
+      "request": {
+        "url": "agentlint://get_recommendation",
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "id": "rec-simple-001"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "success": true,
+          "recommendation": {
+            "id": "rec-simple-001",
+            "projectPath": "/test/project",
+            "createdAt": "2026-01-20T10:00:01.000Z",
+            "type": "preventive",
+            "action": "Add error handling section to CLAUDE.md with common patterns",
+            "target": "CLAUDE.md",
+            "rationale": "Without error handling guidance, agents may implement inconsistent error recovery, leading to harder-to-debug issues.",
+            "priority": "high",
+            "status": "open",
+            "tracedOrigin": {
+              "findingId": "finding-001",
+              "configGap": "No error handling guidance in developer documentation"
+            },
+            "events": [
+              {
+                "id": "evt-001",
+                "timestamp": "2026-01-20T10:00:01.000Z",
+                "type": "created",
+                "content": "Recommendation created from finding-001"
+              }
+            ]
+          }
+        }
+      },
+      "timestamp": "2026-01-20T10:00:02.000Z"
+    }
+  ]
+}

@@ -1,0 +1,406 @@
+{
+  "metadata": {
+    "feature": "ep10-recommendation-advisor",
+    "project": "EP10: Recommendation Advisor",
+    "project_id": "785f68d8-3b16-4c98-ae2d-fe58630f1d4b",
+    "epic_label": "epic:EP10",
+    "epic_label_id": "e9c644fc-b911-4637-9551-41a13c9b1d69",
+    "team_id": "026f9bb0-5934-4186-b047-155812ae914d",
+    "created_at": "2026-01-19T22:03:41.761Z",
+    "last_sync": "2026-01-19T22:07:44.216Z"
+  },
+  "mappings": {
+    "T001": {
+      "linear_id": "3586d877-c60b-407d-b9ef-35878bd00e2b",
+      "linear_identifier": "AGE-540",
+      "title": "T001: Create directory structure src/recommendations/",
+      "url": "https://linear.app/obsidianowl/issue/AGE-540",
+      "status": "Todo"
+    },
+    "T002": {
+      "linear_id": "5aec075b-270c-41bb-8c2e-36adcb9cb82a",
+      "linear_identifier": "AGE-541",
+      "title": "T002: Create src/recommendations/index.ts with module exports",
+      "url": "https://linear.app/obsidianowl/issue/AGE-541",
+      "status": "Todo"
+    },
+    "T003": {
+      "linear_id": "0eb6a56c-5c77-4fa8-8808-fefb16fa2dc3",
+      "linear_identifier": "AGE-542",
+      "title": "T003: Create .agentlint/recommendations/ runtime storage directory",
+      "url": "https://linear.app/obsidianowl/issue/AGE-542",
+      "status": "Todo"
+    },
+    "T004": {
+      "linear_id": "7122c2c8-6788-4fb6-91f6-f712b82224bd",
+      "linear_identifier": "AGE-543",
+      "title": "T004: Add recommendations path constants to persistence/common/paths.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-543",
+      "status": "Todo"
+    },
+    "T005": {
+      "linear_id": "9d583479-06bf-441b-919a-9e1dfa3e500c",
+      "linear_identifier": "AGE-544",
+      "title": "T005: Create src/recommendations/types.ts with all type exports",
+      "url": "https://linear.app/obsidianowl/issue/AGE-544",
+      "status": "Todo"
+    },
+    "T006": {
+      "linear_id": "661ff215-f41e-4e59-ac94-cd62ff272c49",
+      "linear_identifier": "AGE-545",
+      "title": "T006: Create src/recommendations/schemas.ts with Zod validation schemas",
+      "url": "https://linear.app/obsidianowl/issue/AGE-545",
+      "status": "Todo"
+    },
+    "T007": {
+      "linear_id": "259499b7-2df7-431d-bb54-33bc9aa805d7",
+      "linear_identifier": "AGE-546",
+      "title": "T007: Write unit tests for storage module (CRUD, atomic writes)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-546",
+      "status": "Todo"
+    },
+    "T008": {
+      "linear_id": "20846c0a-0794-4ce2-94ee-527145459b57",
+      "linear_identifier": "AGE-547",
+      "title": "T008: Create src/recommendations/storage/index.ts with storage exports",
+      "url": "https://linear.app/obsidianowl/issue/AGE-547",
+      "status": "Todo"
+    },
+    "T009": {
+      "linear_id": "1ee67990-3bad-4b2b-9ea6-25290b496db2",
+      "linear_identifier": "AGE-548",
+      "title": "T009: Implement storage.ts with CRUD operations (save, load, list, delete)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-548",
+      "status": "Todo"
+    },
+    "T010": {
+      "linear_id": "7a8aa93f-4184-4290-b1cc-ab7702367d75",
+      "linear_identifier": "AGE-549",
+      "title": "T010: Write unit tests for compression (token estimation, summary)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-549",
+      "status": "Todo"
+    },
+    "T011": {
+      "linear_id": "9516d597-6d34-4923-be04-b5992ebaa67a",
+      "linear_identifier": "AGE-550",
+      "title": "T011: Implement compression.ts with token estimation and context loading",
+      "url": "https://linear.app/obsidianowl/issue/AGE-550",
+      "status": "Todo"
+    },
+    "T012": {
+      "linear_id": "0215e920-8049-46aa-9fa7-5b2cc8565daf",
+      "linear_identifier": "AGE-551",
+      "title": "T012: Update storage/index.ts to export compression utilities",
+      "url": "https://linear.app/obsidianowl/issue/AGE-551",
+      "status": "Todo"
+    },
+    "T013": {
+      "linear_id": "7f5360c1-f205-416c-9bf2-2c3f5ed93a23",
+      "linear_identifier": "AGE-552",
+      "title": "T013: [US1] Write unit tests for subagent definition (prompt, tools)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-552",
+      "status": "Todo"
+    },
+    "T014": {
+      "linear_id": "b4ac75ab-1cde-4e99-9b1a-54071f2457dc",
+      "linear_identifier": "AGE-553",
+      "title": "T014: [US1] Write integration tests for spawn_recommendation_advisor tool",
+      "url": "https://linear.app/obsidianowl/issue/AGE-553",
+      "status": "Todo"
+    },
+    "T015": {
+      "linear_id": "8a487bbb-f5fb-4751-961b-42c43e46505c",
+      "linear_identifier": "AGE-554",
+      "title": "T015: [US1] Create subagent/types.ts with subagent-specific types",
+      "url": "https://linear.app/obsidianowl/issue/AGE-554",
+      "status": "Todo"
+    },
+    "T016": {
+      "linear_id": "e88dc956-9b6e-4299-8b35-6186460dddfb",
+      "linear_identifier": "AGE-555",
+      "title": "T016: [US1] Create recommendation-advisor.ts with 4-layer system prompt",
+      "url": "https://linear.app/obsidianowl/issue/AGE-555",
+      "status": "Todo"
+    },
+    "T017": {
+      "linear_id": "b4d82b9e-c18b-4254-92e4-a79eae9b54fc",
+      "linear_identifier": "AGE-556",
+      "title": "T017: [US1] Implement toAgentDefinition() factory function",
+      "url": "https://linear.app/obsidianowl/issue/AGE-556",
+      "status": "Todo"
+    },
+    "T018": {
+      "linear_id": "70fe5e27-dce0-408f-93bc-4c3e9e8d48d0",
+      "linear_identifier": "AGE-557",
+      "title": "T018: [US1] Create subagent/index.ts with public exports",
+      "url": "https://linear.app/obsidianowl/issue/AGE-557",
+      "status": "Todo"
+    },
+    "T019": {
+      "linear_id": "1d80f01b-39ca-47fb-8466-af70f277a70f",
+      "linear_identifier": "AGE-558",
+      "title": "T019: [US1] Create spawn-advisor.ts tool with context building",
+      "url": "https://linear.app/obsidianowl/issue/AGE-558",
+      "status": "Todo"
+    },
+    "T020": {
+      "linear_id": "9a84310d-e76c-4560-85f2-8b795a08e0c8",
+      "linear_identifier": "AGE-559",
+      "title": "T020: [US1] Create tools/index.ts with tool exports",
+      "url": "https://linear.app/obsidianowl/issue/AGE-559",
+      "status": "Todo"
+    },
+    "T021": {
+      "linear_id": "db655dee-236a-4a9b-8f3e-f8ac665daa40",
+      "linear_identifier": "AGE-560",
+      "title": "T021: [US2] Write unit tests for create_recommendation tool",
+      "url": "https://linear.app/obsidianowl/issue/AGE-560",
+      "status": "Todo"
+    },
+    "T022": {
+      "linear_id": "47364e36-e87c-4bf4-a746-d08da227c6af",
+      "linear_identifier": "AGE-561",
+      "title": "T022: [US2] Write unit tests for get_recommendation tool",
+      "url": "https://linear.app/obsidianowl/issue/AGE-561",
+      "status": "Todo"
+    },
+    "T023": {
+      "linear_id": "547793f7-8bc0-47cc-850e-758b3ab0f3fd",
+      "linear_identifier": "AGE-562",
+      "title": "T023: [US2] Implement create-recommendation.ts with validation and UUID",
+      "url": "https://linear.app/obsidianowl/issue/AGE-562",
+      "status": "Todo"
+    },
+    "T024": {
+      "linear_id": "b01cf34a-f238-436e-821e-9de26235f4ea",
+      "linear_identifier": "AGE-563",
+      "title": "T024: [US2] Implement get-recommendation.ts returning full case",
+      "url": "https://linear.app/obsidianowl/issue/AGE-563",
+      "status": "Todo"
+    },
+    "T025": {
+      "linear_id": "9c574b08-7560-4c87-98bd-9ce8541b0c92",
+      "linear_identifier": "AGE-564",
+      "title": "T025: [US2] Add create/get tools to tools/index.ts exports",
+      "url": "https://linear.app/obsidianowl/issue/AGE-564",
+      "status": "Todo"
+    },
+    "T026": {
+      "linear_id": "2550274f-1253-421d-a86e-69220b65a72c",
+      "linear_identifier": "AGE-565",
+      "title": "T026: [US2] Verify atomic write behavior with concurrent access test",
+      "url": "https://linear.app/obsidianowl/issue/AGE-565",
+      "status": "Todo"
+    },
+    "T027": {
+      "linear_id": "d230a002-7b7f-4dfd-93de-bede5f12a578",
+      "linear_identifier": "AGE-566",
+      "title": "T027: [US3] Write unit tests for add_recommendation_event tool",
+      "url": "https://linear.app/obsidianowl/issue/AGE-566",
+      "status": "Todo"
+    },
+    "T028": {
+      "linear_id": "83ff7009-fe45-4d44-9c5d-d9743b209233",
+      "linear_identifier": "AGE-567",
+      "title": "T028: [US3] Implement add-event.ts with validation (200 char limit)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-567",
+      "status": "Todo"
+    },
+    "T029": {
+      "linear_id": "165b53b7-0f97-4ab9-bd2a-7e92bc5dff48",
+      "linear_identifier": "AGE-568",
+      "title": "T029: [US3] Add add_recommendation_event to tool exports",
+      "url": "https://linear.app/obsidianowl/issue/AGE-568",
+      "status": "Todo"
+    },
+    "T030": {
+      "linear_id": "a54aaf23-b303-4b65-a361-b15cc1fcaf0a",
+      "linear_identifier": "AGE-569",
+      "title": "T030: [US3] Add optional context fields handling to add-event.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-569",
+      "status": "Todo"
+    },
+    "T031": {
+      "linear_id": "2be517d9-8a48-4f80-be71-3929c539390a",
+      "linear_identifier": "AGE-570",
+      "title": "T031: [US3] Add edge case tests for system-generated event types",
+      "url": "https://linear.app/obsidianowl/issue/AGE-570",
+      "status": "Todo"
+    },
+    "T032": {
+      "linear_id": "f0a4f5a3-59f4-4303-a4f8-07328279326b",
+      "linear_identifier": "AGE-571",
+      "title": "T032: [US4] Write unit tests for list_recommendations tool",
+      "url": "https://linear.app/obsidianowl/issue/AGE-571",
+      "status": "Todo"
+    },
+    "T033": {
+      "linear_id": "cbaee807-5c0e-44e8-875d-40cfd7b02939",
+      "linear_identifier": "AGE-572",
+      "title": "T033: [US4] Write unit tests for get_recommendation_summary tool",
+      "url": "https://linear.app/obsidianowl/issue/AGE-572",
+      "status": "Todo"
+    },
+    "T034": {
+      "linear_id": "c16ed84d-1feb-4f4d-bd22-4b9cab5cfeee",
+      "linear_identifier": "AGE-573",
+      "title": "T034: [US4] Write integration test for 8K token budget loading",
+      "url": "https://linear.app/obsidianowl/issue/AGE-573",
+      "status": "Todo"
+    },
+    "T035": {
+      "linear_id": "d5ab07b7-ba7c-48ed-ae68-fea99401a0f8",
+      "linear_identifier": "AGE-574",
+      "title": "T035: [US4] Implement list-recommendations.ts with filters",
+      "url": "https://linear.app/obsidianowl/issue/AGE-574",
+      "status": "Todo"
+    },
+    "T036": {
+      "linear_id": "3628ae47-6705-480c-954f-fa64586c408e",
+      "linear_identifier": "AGE-575",
+      "title": "T036: [US4] Implement get-recommendation-summary.ts with compression",
+      "url": "https://linear.app/obsidianowl/issue/AGE-575",
+      "status": "Todo"
+    },
+    "T037": {
+      "linear_id": "c10a45c0-4db0-43f3-ab0b-481b1d410990",
+      "linear_identifier": "AGE-576",
+      "title": "T037: [US4] Add list/summary tools to exports",
+      "url": "https://linear.app/obsidianowl/issue/AGE-576",
+      "status": "Todo"
+    },
+    "T038": {
+      "linear_id": "7e56de5b-807d-461e-9f87-7d33e2c0a617",
+      "linear_identifier": "AGE-577",
+      "title": "T038: [US4] Verify newest-first ordering and budget exhaustion",
+      "url": "https://linear.app/obsidianowl/issue/AGE-577",
+      "status": "Todo"
+    },
+    "T039": {
+      "linear_id": "8a4984ad-d3a3-42cf-a52c-b320e3b794a7",
+      "linear_identifier": "AGE-578",
+      "title": "T039: [US5] Write unit tests for refine_recommendation tool",
+      "url": "https://linear.app/obsidianowl/issue/AGE-578",
+      "status": "Todo"
+    },
+    "T040": {
+      "linear_id": "2babb920-4b5c-4785-80dd-0f6e89cbc757",
+      "linear_identifier": "AGE-579",
+      "title": "T040: [US5] Implement refine-recommendation.ts with audit trail",
+      "url": "https://linear.app/obsidianowl/issue/AGE-579",
+      "status": "Todo"
+    },
+    "T041": {
+      "linear_id": "9c7fbb74-360a-4a90-b242-566b70542247",
+      "linear_identifier": "AGE-580",
+      "title": "T041: [US5] Add refinement event content format",
+      "url": "https://linear.app/obsidianowl/issue/AGE-580",
+      "status": "Todo"
+    },
+    "T042": {
+      "linear_id": "a4d2a385-8eea-4586-804d-f8b33e0daa99",
+      "linear_identifier": "AGE-581",
+      "title": "T042: [US5] Add validation to prevent refining completed recommendations",
+      "url": "https://linear.app/obsidianowl/issue/AGE-581",
+      "status": "Todo"
+    },
+    "T043": {
+      "linear_id": "2e5c3414-68e5-45fc-9345-148bcc90ad8e",
+      "linear_identifier": "AGE-582",
+      "title": "T043: [US5] Add refine_recommendation to tool exports",
+      "url": "https://linear.app/obsidianowl/issue/AGE-582",
+      "status": "Todo"
+    },
+    "T044": {
+      "linear_id": "3cfdaff9-c295-4807-a802-f644e9cbbe3f",
+      "linear_identifier": "AGE-583",
+      "title": "T044: [US6] Write unit tests for update_recommendation_status tool",
+      "url": "https://linear.app/obsidianowl/issue/AGE-583",
+      "status": "Todo"
+    },
+    "T045": {
+      "linear_id": "9decfe90-57f0-4478-896f-4ce96d4b4ddb",
+      "linear_identifier": "AGE-584",
+      "title": "T045: [US6] Write unit tests for complete_recommendation tool",
+      "url": "https://linear.app/obsidianowl/issue/AGE-584",
+      "status": "Todo"
+    },
+    "T046": {
+      "linear_id": "c26fb741-a5f8-40c3-a3d2-f6f8d0d2dce7",
+      "linear_identifier": "AGE-585",
+      "title": "T046: [US6] Implement update-status.ts with state transition validation",
+      "url": "https://linear.app/obsidianowl/issue/AGE-585",
+      "status": "Todo"
+    },
+    "T047": {
+      "linear_id": "94efaeaf-7a42-4f39-bee4-3f20b9859278",
+      "linear_identifier": "AGE-586",
+      "title": "T047: [US6] Implement complete-recommendation.ts with completion reason",
+      "url": "https://linear.app/obsidianowl/issue/AGE-586",
+      "status": "Todo"
+    },
+    "T048": {
+      "linear_id": "1b4d96b2-85ce-4ac5-a692-81a7542ff885",
+      "linear_identifier": "AGE-587",
+      "title": "T048: [US6] Add status/complete tools to exports",
+      "url": "https://linear.app/obsidianowl/issue/AGE-587",
+      "status": "Todo"
+    },
+    "T049": {
+      "linear_id": "2091c246-f3a6-4ca8-9b35-246887a47348",
+      "linear_identifier": "AGE-588",
+      "title": "T049: [US7] Write unit tests for ClarifyingQuestion output format",
+      "url": "https://linear.app/obsidianowl/issue/AGE-588",
+      "status": "Todo"
+    },
+    "T050": {
+      "linear_id": "602a9409-f2dd-4f10-9834-089c09159c89",
+      "linear_identifier": "AGE-589",
+      "title": "T050: [US7] Add ClarifyingQuestion handling to subagent output",
+      "url": "https://linear.app/obsidianowl/issue/AGE-589",
+      "status": "Todo"
+    },
+    "T051": {
+      "linear_id": "ad8d955f-729f-4585-bc78-d1be3ef4740f",
+      "linear_identifier": "AGE-590",
+      "title": "T051: [US7] Add assumptions tracking to AdvisorOutput",
+      "url": "https://linear.app/obsidianowl/issue/AGE-590",
+      "status": "Todo"
+    },
+    "T052": {
+      "linear_id": "deaa006f-503d-421e-b9f0-e30baf2ea543",
+      "linear_identifier": "AGE-591",
+      "title": "T052: [US7] Update subagent prompt with question-asking guidance",
+      "url": "https://linear.app/obsidianowl/issue/AGE-591",
+      "status": "Todo"
+    },
+    "T053": {
+      "linear_id": "d3ad67df-2918-4a79-a1e5-3895e37e29f1",
+      "linear_identifier": "AGE-592",
+      "title": "T053: Update src/recommendations/index.ts with all public exports",
+      "url": "https://linear.app/obsidianowl/issue/AGE-592",
+      "status": "Todo"
+    },
+    "T054": {
+      "linear_id": "3af57719-be1f-468b-8306-d6a9f1f28229",
+      "linear_identifier": "AGE-593",
+      "title": "T054: Register all tools with ToolRegistry in orchestrator",
+      "url": "https://linear.app/obsidianowl/issue/AGE-593",
+      "status": "Todo"
+    },
+    "T055": {
+      "linear_id": "d47f5310-ba36-4e0b-9cec-91ae2a0bab85",
+      "linear_identifier": "AGE-594",
+      "title": "T055: Run full test suite and ensure > 80% coverage",
+      "url": "https://linear.app/obsidianowl/issue/AGE-594",
+      "status": "Todo"
+    },
+    "T056": {
+      "linear_id": "c478d605-59a7-4059-a8f2-0ac3ed80b6b5",
+      "linear_identifier": "AGE-595",
+      "title": "T056: Validate implementation against quickstart.md scenarios",
+      "url": "https://linear.app/obsidianowl/issue/AGE-595",
+      "status": "Todo"
+    }
+  }
+}

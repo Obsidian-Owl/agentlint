@@ -1,0 +1,55 @@
+{
+  "id": "rec-01-simple-config",
+  "version": "1.0",
+  "source": "synthetic",
+  "description": "Single config gap finding → preventive recommendation",
+  "difficulty": "easy",
+  "tags": ["single-finding", "config-gap", "preventive"],
+
+  "input_data": {
+    "findings": [
+      {
+        "id": "finding-config-001",
+        "type": "config_gap",
+        "severity": "high",
+        "message": "Missing error handling guidance in CLAUDE.md",
+        "location": "CLAUDE.md",
+        "suggestion": "Add section documenting error handling patterns"
+      }
+    ],
+    "causalTraces": [],
+    "historicRecommendations": [],
+    "interactionMode": "propose"
+  },
+
+  "expected_output": {
+    "recommendations": [
+      {
+        "type": "preventive",
+        "action": "Add error handling section to CLAUDE.md documenting standard error handling patterns (try-catch, error boundaries, fallbacks)",
+        "target": "CLAUDE.md",
+        "rationale": "Without error handling guidance, agents implement inconsistent error recovery, leading to harder-to-debug issues and poor user experience.",
+        "priority": "high",
+        "tracedOrigin": {
+          "findingId": "finding-config-001",
+          "configGap": "Missing error handling guidance in developer documentation"
+        }
+      }
+    ],
+    "clarifyingQuestions": [],
+    "assumptions": []
+  },
+
+  "expected_properties": {
+    "recommendation_count": 1,
+    "recommendation_types": ["preventive"],
+    "priorities": ["high"],
+    "has_traced_origins": true,
+    "question_count": 0
+  },
+
+  "rubric_weights": {
+    "recommendation_specificity": 0.5,
+    "recommendation_causal_trace": 0.5
+  }
+}

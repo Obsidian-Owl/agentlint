@@ -12,28 +12,132 @@
 // Types
 // =============================================================================
 
-// Types will be exported here after T005 implementation
+export type {
+  RecommendationType,
+  RecommendationStatus,
+  CompletionReason,
+  EventType,
+  Priority,
+  TracedOrigin,
+  RecommendationEvent,
+  Recommendation,
+  Milestones,
+  RecommendationSummary,
+  QuestionOption,
+  ClarifyingQuestion,
+  AdvisorOutput,
+  RecommendationFile,
+  CreateRecommendationInput,
+  AddEventInput,
+  ListRecommendationsInput,
+  RefineRecommendationInput,
+  CompleteRecommendationInput,
+  SpawnAdvisorInput,
+  RecommendationAdvisorContext,
+} from './types';
 
 // =============================================================================
 // Schemas
 // =============================================================================
 
-// Zod schemas will be exported here after T006 implementation
+export {
+  RecommendationTypeSchema,
+  RecommendationStatusSchema,
+  CompletionReasonSchema,
+  EventTypeSchema,
+  PrioritySchema,
+  TracedOriginSchema,
+  RecommendationEventSchema,
+  RecommendationSchema,
+  RecommendationFileSchema,
+} from './schemas';
 
 // =============================================================================
 // Storage
 // =============================================================================
 
-// Storage functions will be exported here after T008-T012 implementation
+export {
+  saveRecommendation,
+  loadRecommendation,
+  listRecommendationIds,
+  deleteRecommendation,
+} from './storage';
+
+export {
+  estimateTokens,
+  compressRecommendation,
+  loadRecommendationsForContext,
+  formatEventsVerbatim,
+  TOKEN_BUDGET,
+  CHARS_PER_TOKEN,
+} from './storage/compression';
 
 // =============================================================================
 // Tools
 // =============================================================================
 
-// Tool implementations will be exported here after Phase 3-9 implementation
+export {
+  // Spawn advisor
+  spawnRecommendationAdvisorTool,
+  buildAdvisorContext,
+  buildQueryPrompt,
+  // CRUD
+  createRecommendationTool,
+  createRecommendation,
+  getRecommendationTool,
+  getRecommendation,
+  // Events
+  addRecommendationEventTool,
+  addRecommendationEvent,
+  // Query
+  listRecommendationsTool,
+  listRecommendations,
+  getRecommendationSummaryTool,
+  getRecommendationSummary,
+  // Refinement
+  refineRecommendationTool,
+  refineRecommendation,
+  // Status management
+  updateRecommendationStatusTool,
+  updateRecommendationStatus,
+  completeRecommendationTool,
+  completeRecommendation,
+} from './tools';
 
 // =============================================================================
 // Subagent
 // =============================================================================
 
-// Subagent definition will be exported here after T015-T018 implementation
+export {
+  recommendationAdvisorInstructions,
+  buildRecommendationAdvisorAgent,
+  buildRecommendationSubagents,
+  RECOMMENDATION_ADVISOR_TOOLS,
+  toAgentDefinition,
+  // Question handling
+  createClarifyingQuestion,
+  validateClarifyingQuestion,
+  formatClarifyingQuestion,
+  formatAdvisorOutput,
+  parseClarifyingQuestions,
+  parseAssumptions,
+} from './subagent';
+
+// =============================================================================
+// Convenience: All Tools Array
+// =============================================================================
+
+/**
+ * All recommendation tools for registry registration.
+ */
+export const RECOMMENDATION_TOOLS = [
+  'spawn_recommendation_advisor',
+  'create_recommendation',
+  'get_recommendation',
+  'add_recommendation_event',
+  'list_recommendations',
+  'get_recommendation_summary',
+  'refine_recommendation',
+  'update_recommendation_status',
+  'complete_recommendation',
+] as const;

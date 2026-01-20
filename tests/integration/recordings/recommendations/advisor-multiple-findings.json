@@ -1,0 +1,262 @@
+{
+  "version": "1.0.0",
+  "name": "tests/integration/recordings/recommendations/advisor-multiple-findings.json",
+  "createdAt": "2026-01-20T10:00:00.000Z",
+  "description": "VCR recordings for 3 findings → pattern identification and prioritized recommendations",
+  "recordings": [
+    {
+      "request": {
+        "url": "agentlint://list_recommendations",
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "status": "open",
+          "limit": 50
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "success": true,
+          "recommendations": [],
+          "total": 0
+        }
+      },
+      "timestamp": "2026-01-20T10:00:01.000Z"
+    },
+    {
+      "request": {
+        "url": "agentlint://create_recommendation",
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "type": "systemic",
+          "action": "Establish consistent error handling patterns across codebase",
+          "target": "src/",
+          "rationale": "Multiple findings indicate inconsistent error handling causing cascading issues. Systemic fix prevents entire class of errors.",
+          "priority": "high",
+          "tracedOrigin": {
+            "findingId": "finding-001",
+            "pattern": "inconsistent-error-handling"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "success": true,
+          "recommendation": {
+            "id": "rec-pattern-001",
+            "projectPath": "/test/project",
+            "createdAt": "2026-01-20T10:00:02.000Z",
+            "type": "systemic",
+            "action": "Establish consistent error handling patterns across codebase",
+            "target": "src/",
+            "rationale": "Multiple findings indicate inconsistent error handling causing cascading issues. Systemic fix prevents entire class of errors.",
+            "priority": "high",
+            "status": "open",
+            "tracedOrigin": {
+              "findingId": "finding-001",
+              "pattern": "inconsistent-error-handling"
+            },
+            "events": [
+              {
+                "id": "evt-001",
+                "timestamp": "2026-01-20T10:00:02.000Z",
+                "type": "created",
+                "content": "Recommendation created from pattern: inconsistent-error-handling"
+              }
+            ]
+          }
+        }
+      },
+      "timestamp": "2026-01-20T10:00:02.000Z"
+    },
+    {
+      "request": {
+        "url": "agentlint://create_recommendation",
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "type": "preventive",
+          "action": "Add error handling section to CLAUDE.md documenting standard patterns",
+          "target": "CLAUDE.md",
+          "rationale": "Without guidance, developers continue implementing inconsistent patterns. Documentation prevents recurrence.",
+          "priority": "medium",
+          "tracedOrigin": {
+            "findingId": "finding-002",
+            "configGap": "Missing error handling guidance"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "success": true,
+          "recommendation": {
+            "id": "rec-pattern-002",
+            "projectPath": "/test/project",
+            "createdAt": "2026-01-20T10:00:03.000Z",
+            "type": "preventive",
+            "action": "Add error handling section to CLAUDE.md documenting standard patterns",
+            "target": "CLAUDE.md",
+            "rationale": "Without guidance, developers continue implementing inconsistent patterns. Documentation prevents recurrence.",
+            "priority": "medium",
+            "status": "open",
+            "tracedOrigin": {
+              "findingId": "finding-002",
+              "configGap": "Missing error handling guidance"
+            },
+            "events": [
+              {
+                "id": "evt-002",
+                "timestamp": "2026-01-20T10:00:03.000Z",
+                "type": "created",
+                "content": "Recommendation created from finding-002"
+              }
+            ]
+          }
+        }
+      },
+      "timestamp": "2026-01-20T10:00:03.000Z"
+    },
+    {
+      "request": {
+        "url": "agentlint://create_recommendation",
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "type": "symptomatic",
+          "action": "Fix error message in session-manager.ts:142 to include context",
+          "target": "src/session-manager.ts",
+          "rationale": "Immediate fix for unclear error message blocking debugging.",
+          "priority": "low",
+          "tracedOrigin": {
+            "findingId": "finding-003",
+            "sessionId": "session-debug-001"
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "success": true,
+          "recommendation": {
+            "id": "rec-pattern-003",
+            "projectPath": "/test/project",
+            "createdAt": "2026-01-20T10:00:04.000Z",
+            "type": "symptomatic",
+            "action": "Fix error message in session-manager.ts:142 to include context",
+            "target": "src/session-manager.ts",
+            "rationale": "Immediate fix for unclear error message blocking debugging.",
+            "priority": "low",
+            "status": "open",
+            "tracedOrigin": {
+              "findingId": "finding-003",
+              "sessionId": "session-debug-001"
+            },
+            "events": [
+              {
+                "id": "evt-003",
+                "timestamp": "2026-01-20T10:00:04.000Z",
+                "type": "created",
+                "content": "Recommendation created from finding-003"
+              }
+            ]
+          }
+        }
+      },
+      "timestamp": "2026-01-20T10:00:04.000Z"
+    },
+    {
+      "request": {
+        "url": "agentlint://get_recommendation_summary",
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "status": "open"
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "success": true,
+          "summaries": [
+            {
+              "id": "rec-pattern-001",
+              "type": "systemic",
+              "status": "open",
+              "actionSummary": "Establish consistent error handling patterns across codebase",
+              "target": "src/",
+              "priority": "high",
+              "eventCount": 1,
+              "lastEventAt": "2026-01-20T10:00:02.000Z",
+              "lastEventType": "created",
+              "recentActivity": "Created from pattern analysis",
+              "milestones": {
+                "created": "2026-01-20T10:00:02.000Z"
+              }
+            },
+            {
+              "id": "rec-pattern-002",
+              "type": "preventive",
+              "status": "open",
+              "actionSummary": "Add error handling section to CLAUDE.md documenting standard patterns",
+              "target": "CLAUDE.md",
+              "priority": "medium",
+              "eventCount": 1,
+              "lastEventAt": "2026-01-20T10:00:03.000Z",
+              "lastEventType": "created",
+              "recentActivity": "Created from finding analysis",
+              "milestones": {
+                "created": "2026-01-20T10:00:03.000Z"
+              }
+            },
+            {
+              "id": "rec-pattern-003",
+              "type": "symptomatic",
+              "status": "open",
+              "actionSummary": "Fix error message in session-manager.ts:142 to include context",
+              "target": "src/session-manager.ts",
+              "priority": "low",
+              "eventCount": 1,
+              "lastEventAt": "2026-01-20T10:00:04.000Z",
+              "lastEventType": "created",
+              "recentActivity": "Created from session analysis",
+              "milestones": {
+                "created": "2026-01-20T10:00:04.000Z"
+              }
+            }
+          ],
+          "total": 3
+        }
+      },
+      "timestamp": "2026-01-20T10:00:05.000Z"
+    }
+  ]
+}
