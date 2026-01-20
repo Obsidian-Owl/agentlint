@@ -43,6 +43,8 @@
     "test:coverage:check": "bun run scripts/check-coverage.ts",
     "record": "VCR_MODE=record bun test tests/integration",
     "record:recommendations": "VCR_MODE=record bun test tests/integration/recommendations",
+    "record:e2e": "VCR_MODE=record bun test tests/e2e",
+    "record:all": "VCR_MODE=record bun test tests/integration tests/e2e",
     "ci": "bun run lint && bun run format:check && bun run typecheck && bun test && bun run build",
     "prepare": "scripts/install-hooks.sh"
   },
