@@ -71,6 +71,45 @@
 
 Completion reasons: `implemented`, `superseded`, `obsolete`, `rejected`
 
+### Outcome Tracking Entities (EP11)
+
+| Entity | Purpose |
+|--------|---------|
+| **RecommendationOutcome** | Tracks effectiveness of a recommendation after implementation |
+| **OutcomeMetrics** | Aggregated metrics by recommendation type (implementation rate, success rate) |
+| **ImplicitTrackingEvent** | Automatically detected events (config changes, issue recurrence) |
+
+### Outcome Tracking Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `implemented` | boolean | Whether the recommendation was implemented |
+| `helped` | boolean | User feedback on whether implementation helped |
+| `configChangedAfter` | boolean | Config changes detected after recommendation |
+| `similarIssueRecurred` | boolean | Similar issues detected after implementation |
+| `implementationDate` | string | When the recommendation was implemented |
+| `outcomeNotes` | string | User-provided notes on the outcome |
+
+### Outcome Storage
+
+Outcomes are stored in SQLite (`.agentlint/outcomes.db`) for efficient querying:
+
+```sql
+-- Outcomes table with boolean fields stored as integers
+CREATE TABLE IF NOT EXISTS recommendation_outcomes (
+  id TEXT PRIMARY KEY,
+  session_id TEXT NOT NULL,
+  recommendation_id TEXT NOT NULL,
+  recommendation_type TEXT NOT NULL,
+  implemented INTEGER,           -- 0/1/null
+  helped INTEGER,               -- 0/1/null
+  config_changed_after INTEGER,
+  similar_issue_recurred INTEGER,
+  created_at TEXT NOT NULL,
+  updated_at TEXT
+);
+```
+
 ### Causal Analysis Entities (EP07)
 
 | Entity | Purpose |

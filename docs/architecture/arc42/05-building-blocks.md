@@ -100,7 +100,8 @@ src/cli/
 │   ├── analyse.ts     Run full analysis
 │   ├── baseline.ts    Capture baseline state
 │   ├── compare.ts     Compare against baseline
-│   └── trace.ts       Trace finding to origin
+│   ├── trace.ts       Trace finding to origin
+│   └── session.ts     Session recording management (EP11)
 │
 ├── components/        Ink React components (ADR-0004)
 │   ├── App.tsx        Main application wrapper
@@ -974,3 +975,225 @@ Per Constitution Principle C8 and SDK design, subagents are limited to depth=1:
 - **Error Handling**: `SubagentDepthError` thrown if depth exceeded
 
 This prevents infinite delegation chains while enabling specialized analysis.
+
+---
+
+## Level 3: Debug Infrastructure (EP11)
+
+The debug module provides structured logging with namespace-based filtering and automatic secret redaction for safe debugging output.
+
+```
+src/debug/
+├── index.ts                    Public exports
+├── types.ts                    Type definitions (LogLevel, DebugConfig, etc.)
+├── namespaces.ts               Standard namespace constants (DEBUG_NAMESPACES)
+├── logger.ts                   DebugLogger class with namespace filtering
+├── redaction.ts                Secret redaction (patterns, redact(), redactObject())
+└── metrics.ts                  TokenTracker for LLM call metrics
+```
+
+| Module | Responsibility |
+|--------|----------------|
+| `logger.ts` | Namespace-based debug logging with verbosity levels |
+| `namespaces.ts` | Standard namespace constants (TOOLS, LLM, ORCHESTRATION, etc.) |
+| `redaction.ts` | Pattern-based secret detection and replacement in strings/objects |
+| `metrics.ts` | Token usage tracking, latency timers, LLM call metrics aggregation |
+
+### Key Entity Types
+
+```typescript
+interface IDebugLogger {
+  debug(namespace: string, message: string, data?: unknown): void;
+  info(namespace: string, message: string, data?: unknown): void;
+  warn(namespace: string, message: string, data?: unknown): void;
+  error(namespace: string, message: string, data?: unknown): void;
+  child(namespace: string): IDebugLogger;
+  isEnabled(namespace: string): boolean;
+}
+
+interface ITokenTracker {
+  recordLLMCall(call: LLMCallMetrics): void;
+  getSummary(): MetricsSummary;
+  reset(): void;
+}
+
+interface RedactionPattern {
+  name: string;
+  pattern: RegExp;
+  replacement: string;
+}
+```
+
+### Secret Redaction
+
+The redaction module provides defense-in-depth for debug output:
+
+| Pattern Category | Examples |
+|-----------------|----------|
+| API Keys | `sk-...`, `AKIA...`, `ghp_...`, `ghs_...` |
+| Passwords | `password=`, `secret=`, `token=` |
+| Connection Strings | `postgres://`, `mongodb://`, `redis://` |
+| JWT Tokens | `eyJ...` (Base64 encoded) |
+| Private Keys | `-----BEGIN ... KEY-----` |
+
+### Performance Characteristics (NFR)
+
+| Metric | Target | Implementation |
+|--------|--------|----------------|
+| Logger overhead (disabled) | <0.01ms/call | Namespace check short-circuit |
+| Redaction (1000 lines) | <500ms | Regex-based pattern matching |
+| Token tracking | <1ms/call | In-memory accumulation |
+
+---
+
+## Level 3: Evaluation Framework (EP11)
+
+The evaluation module provides LLM-as-judge evaluation with code-based checks for assessing analysis quality, following [ADR-0012](../adr/0012-evaluation-framework-for-analysis-quality.md).
+
+```
+src/eval/
+├── index.ts                    Public exports
+├── types.ts                    Type definitions (Scenario, EvalResult, etc.)
+├── scoring.ts                  Numerical scoring utilities (0-100 scale)
+├── feedback.ts                 FeedbackCollector for opt-in user feedback
+├── runner.ts                   EvaluationRunner for batch evaluation
+│
+└── graders/                    Grading implementations
+    ├── code-based.ts           Deterministic code-based checks
+    └── llm-judge.ts            LLM-as-judge via TruLens
+```
+
+| Module | Responsibility |
+|--------|----------------|
+| `scoring.ts` | Score normalization, weighted aggregation, grade computation |
+| `feedback.ts` | Opt-in feedback collection with rate limiting (Constitution I) |
+| `runner.ts` | Load scenarios, run graders, aggregate results, check release gate |
+| `graders/code-based.ts` | Deterministic checks (structure, completeness, patterns) |
+| `graders/llm-judge.ts` | TruLens subprocess integration for semantic evaluation |
+
+### Key Entity Types
+
+```typescript
+interface GoldenScenario {
+  id: string;
+  version: string;
+  source: 'synthetic' | 'recorded' | 'curated';
+  description: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+  tags: string[];
+  // Scenario-specific data...
+}
+
+interface EvaluationResult {
+  scenarioId: string;
+  passed: boolean;
+  scores: Record<string, number>;
+  feedback?: string;
+  error?: string;
+}
+
+interface IFeedbackCollector {
+  shouldPrompt(sessionId: string): boolean;
+  collectFeedback(outcome: RecommendationOutcome): Promise<void>;
+  getPendingFollowUps(): Promise<RecommendationOutcome[]>;
+}
+```
+
+### TruLens Integration
+
+```typescript
+// LLM-as-judge via subprocess
+const proc = spawn('uv', ['run', 'python', 'trulens-runner.py', '-'], {
+  stdio: ['pipe', 'pipe', 'pipe'],
+});
+
+// Input: scenario JSON via stdin
+// Output: evaluation scores via stdout
+```
+
+### Performance Characteristics (NFR)
+
+| Metric | Target | Implementation |
+|--------|--------|----------------|
+| Code-based grading | <100ms/scenario | In-memory checks |
+| LLM-judge grading | <30s/scenario | TruLens subprocess |
+| Release gate check | <5min total | Parallel scenario evaluation |
+
+---
+
+## Level 3: Secret Detection Module (EP11)
+
+The security module provides pattern-based secret detection with entropy analysis, following [ADR-0013](../adr/0013-secret-detection-strategy.md). Secrets are detected but never stored.
+
+```
+src/security/
+├── index.ts                    Public exports
+├── types.ts                    Type definitions (SecretCandidate, ClassifiedSecret, etc.)
+├── entropy.ts                  Shannon entropy calculation for secret likelihood
+├── detector.ts                 SecretDetector class with pattern matching
+├── classifier.ts               SecretClassifier for LLM-assisted validation
+│
+└── patterns/                   Detection patterns
+    ├── index.ts                Pattern exports
+    ├── parser.ts               Gitleaks TOML parser
+    └── gitleaks.toml           Bundled detection rules
+```
+
+| Module | Responsibility |
+|--------|----------------|
+| `entropy.ts` | Shannon entropy calculation, character set detection, threshold analysis |
+| `detector.ts` | Pattern-based secret detection using Gitleaks rules |
+| `classifier.ts` | LLM-assisted classification of detected candidates |
+| `patterns/parser.ts` | Parse Gitleaks TOML format to internal rules |
+
+### Key Entity Types
+
+```typescript
+interface SecretCandidate {
+  ruleId: string;
+  match: string;           // The matched secret (redacted before output)
+  location: FileLocation;
+  entropy?: number;
+  context?: string;
+}
+
+interface ClassifiedSecret {
+  candidate: Omit<SecretCandidate, 'match'>;  // match field stripped
+  classification: SecretClassification;
+  confidence: number;
+  explanation?: string;
+}
+
+interface ISecretDetector {
+  scanFile(filePath: string): Promise<FileScanResult>;
+  scanContent(content: string, filePath?: string): SecretCandidate[];
+  getPatternCount(): number;
+}
+```
+
+### Detection Flow
+
+```
+Content → Pattern Matching → Entropy Analysis → Classification → Report
+                │                  │                 │
+                │                  │                 └─ LLM validates
+                │                  └─ Filter low-entropy matches
+                └─ Gitleaks rules (400+ patterns)
+```
+
+### Security Considerations
+
+| Aspect | Implementation |
+|--------|---------------|
+| Never store secrets | `match` field stripped before serialization |
+| Redact in logs | Debug output uses redaction patterns |
+| Entropy threshold | Default 3.5 bits/char filters false positives |
+| Pattern source | Gitleaks community rules (open source) |
+
+### Performance Characteristics (NFR)
+
+| Metric | Target | Implementation |
+|--------|--------|----------------|
+| File scan | <1s/file | Regex pattern matching |
+| Entropy calculation | <1ms/string | Shannon formula |
+| Pattern loading | <100ms | TOML parsing + regex compilation |
