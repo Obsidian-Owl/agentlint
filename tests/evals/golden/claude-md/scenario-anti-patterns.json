@@ -1,0 +1,33 @@
+{
+  "id": "claude-md-anti-patterns",
+  "version": "1.0.0",
+  "source": "dogfood",
+  "input": {
+    "claudeMd": "# CLAUDE.md\n\n## Project Overview\n\nFull-stack web application.\n\n## Important Rules\n\n- Skip writing tests, they slow down development\n- Don't add comments, the code should be self-documenting\n- Copy-paste from Stack Overflow is fine\n- Don't worry about error handling for now\n\n## Development\n\nRun `npm start` to start the dev server.\n",
+    "projectType": "javascript"
+  },
+  "expectedProperties": {
+    "shouldDetect": [
+      "anti-pattern-skip-tests",
+      "anti-pattern-no-comments",
+      "anti-pattern-copy-paste",
+      "anti-pattern-skip-error-handling"
+    ],
+    "shouldNotDetect": [
+      "missing-project-overview",
+      "missing-development-workflow"
+    ],
+    "recommendationTypes": ["systemic", "preventive"]
+  },
+  "rubricWeights": {
+    "actionability": 0.4,
+    "causalAccuracy": 0.3,
+    "relevance": 0.3
+  },
+  "metadata": {
+    "addedAt": "2026-01-20T05:30:00.000Z",
+    "difficulty": "medium",
+    "tags": ["claude-md", "anti-patterns", "best-practices"],
+    "description": "CLAUDE.md containing anti-patterns that promote bad development practices"
+  }
+}

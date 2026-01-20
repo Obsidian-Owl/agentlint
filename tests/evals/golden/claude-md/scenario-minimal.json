@@ -1,0 +1,33 @@
+{
+  "id": "claude-md-minimal",
+  "version": "1.0.0",
+  "source": "dogfood",
+  "input": {
+    "claudeMd": "# CLAUDE.md\n\nThis is my project.\n",
+    "projectType": "typescript"
+  },
+  "expectedProperties": {
+    "shouldDetect": [
+      "missing-project-overview",
+      "missing-development-workflow",
+      "missing-architecture",
+      "missing-testing-guidelines"
+    ],
+    "shouldNotDetect": [
+      "secret-exposure",
+      "anti-pattern"
+    ],
+    "recommendationTypes": ["preventive"]
+  },
+  "rubricWeights": {
+    "actionability": 0.4,
+    "causalAccuracy": 0.3,
+    "relevance": 0.3
+  },
+  "metadata": {
+    "addedAt": "2026-01-20T05:30:00.000Z",
+    "difficulty": "easy",
+    "tags": ["claude-md", "missing-sections", "structural"],
+    "description": "Minimal CLAUDE.md with only a title - should detect multiple missing sections"
+  }
+}
