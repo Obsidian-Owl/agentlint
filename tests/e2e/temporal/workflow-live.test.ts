@@ -80,7 +80,14 @@ beforeAll(() => {
 // Subagent Configuration Tests
 // =============================================================================
 
-describe.skipIf(SKIP_LIVE_TESTS)('Temporal Subagent Configuration', () => {
+describe('Temporal Subagent Configuration', () => {
+  test('requires ANTHROPIC_API_KEY', () => {
+    expect(
+      process.env.ANTHROPIC_API_KEY,
+      'ANTHROPIC_API_KEY environment variable not set - live tests require API access'
+    ).toBeTruthy();
+  });
+
   test('SDK accepts agents from buildTemporalSubagents()', async () => {
     const agents = buildTemporalSubagents();
 
@@ -121,7 +128,14 @@ describe.skipIf(SKIP_LIVE_TESTS)('Temporal Subagent Configuration', () => {
 // Basic API Integration Tests
 // =============================================================================
 
-describe.skipIf(SKIP_LIVE_TESTS)('Temporal API Integration', () => {
+describe('Temporal API Integration', () => {
+  test('requires ANTHROPIC_API_KEY', () => {
+    expect(
+      process.env.ANTHROPIC_API_KEY,
+      'ANTHROPIC_API_KEY environment variable not set - live tests require API access'
+    ).toBeTruthy();
+  });
+
   test('simple query with temporal agents configured works', async () => {
     const agents = buildTemporalSubagents() as unknown as SDKAgents;
 
@@ -183,7 +197,14 @@ describe.skipIf(SKIP_LIVE_TESTS)('Temporal API Integration', () => {
 // Workflow Structure Tests
 // =============================================================================
 
-describe.skipIf(SKIP_LIVE_TESTS)('Temporal Workflow Structure', () => {
+describe('Temporal Workflow Structure', () => {
+  test('requires ANTHROPIC_API_KEY', () => {
+    expect(
+      process.env.ANTHROPIC_API_KEY,
+      'ANTHROPIC_API_KEY environment variable not set - live tests require API access'
+    ).toBeTruthy();
+  });
+
   test('temporal analyzer prompt follows output format specification', () => {
     const agents = buildTemporalSubagents();
     const analyzer = agents['temporal-analyzer'];
@@ -224,7 +245,14 @@ describe.skipIf(SKIP_LIVE_TESTS)('Temporal Workflow Structure', () => {
 // Behavioral Validation Tests
 // =============================================================================
 
-describe.skipIf(SKIP_LIVE_TESTS)('Temporal Behavioral Validation', () => {
+describe('Temporal Behavioral Validation', () => {
+  test('requires ANTHROPIC_API_KEY', () => {
+    expect(
+      process.env.ANTHROPIC_API_KEY,
+      'ANTHROPIC_API_KEY environment variable not set - live tests require API access'
+    ).toBeTruthy();
+  });
+
   test('analyzer prompt instructs interpretation not repetition', () => {
     const agents = buildTemporalSubagents();
     const analyzer = agents['temporal-analyzer'];
@@ -257,7 +285,14 @@ describe.skipIf(SKIP_LIVE_TESTS)('Temporal Behavioral Validation', () => {
 // Smoke Test
 // =============================================================================
 
-describe.skipIf(SKIP_LIVE_TESTS)('Temporal Smoke Test', () => {
+describe('Temporal Smoke Test', () => {
+  test('requires ANTHROPIC_API_KEY', () => {
+    expect(
+      process.env.ANTHROPIC_API_KEY,
+      'ANTHROPIC_API_KEY environment variable not set - live tests require API access'
+    ).toBeTruthy();
+  });
+
   test('complete round-trip: build agents → pass to SDK → get response', async () => {
     // 1. Build agents
     const agents = buildTemporalSubagents();
@@ -285,7 +320,14 @@ describe.skipIf(SKIP_LIVE_TESTS)('Temporal Smoke Test', () => {
 // End-to-End Workflow Test
 // =============================================================================
 
-describe.skipIf(SKIP_LIVE_TESTS)('Full Temporal Workflow E2E', () => {
+describe('Full Temporal Workflow E2E', () => {
+  test('requires ANTHROPIC_API_KEY', () => {
+    expect(
+      process.env.ANTHROPIC_API_KEY,
+      'ANTHROPIC_API_KEY environment variable not set - live tests require API access'
+    ).toBeTruthy();
+  });
+
   test('can invoke temporal-analyzer for trend analysis', async () => {
     const agents = buildTemporalSubagents() as unknown as SDKAgents;
 
@@ -334,7 +376,14 @@ describe.skipIf(SKIP_LIVE_TESTS)('Full Temporal Workflow E2E', () => {
 // Constitution Alignment Tests
 // =============================================================================
 
-describe.skipIf(SKIP_LIVE_TESTS)('Constitution Alignment', () => {
+describe('Constitution Alignment', () => {
+  test('requires ANTHROPIC_API_KEY', () => {
+    expect(
+      process.env.ANTHROPIC_API_KEY,
+      'ANTHROPIC_API_KEY environment variable not set - live tests require API access'
+    ).toBeTruthy();
+  });
+
   test('temporal analyzer respects C8 single subagent depth', () => {
     const agents = buildTemporalSubagents();
     const analyzer = agents['temporal-analyzer'];

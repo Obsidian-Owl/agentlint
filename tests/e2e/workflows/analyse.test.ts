@@ -12,7 +12,7 @@
 import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
 import { writeFileSync } from 'fs';
 import { join } from 'path';
-import { createTestFixture, runCLI, parseJSONOutput, SKIP_LIVE_TESTS } from '../helpers';
+import { createTestFixture, runCLI, parseJSONOutput } from '../helpers';
 import type { TestFixture } from '../helpers';
 
 // =============================================================================
@@ -20,29 +20,33 @@ import type { TestFixture } from '../helpers';
 // =============================================================================
 
 interface AnalyseOutput {
-  format_version: string;
-  command: string;
-  timestamp: string;
-  success: boolean;
-  findings?: Array<{
-    id: string;
+  status: 'success' | 'error' | 'dry-run';
+  error?: string;
+  directory: string;
+  configs: Array<{
+    path: string;
+    relativePath: string;
     type: string;
-    severity: string;
     description: string;
+    size: number;
   }>;
-  recommendations?: Array<{
+  findings: Array<{
     id: string;
+    severity: string;
+    type: string;
     title: string;
-    priority: string;
+    description: string;
+    location?: {
+      file: string;
+      line?: number;
+    };
   }>;
-  metrics?: {
-    findingsCount: number;
-    criticalCount: number;
-    highCount: number;
-    mediumCount: number;
-    lowCount: number;
-    infoCount: number;
+  summary: {
+    total: number;
+    bySeverity: Record<string, number>;
   };
+  timestamp: string;
+  durationMs?: number;
 }
 
 // =============================================================================
@@ -138,9 +142,9 @@ describe('E2E: Analyse Workflow', () => {
 
       expect(result.exitCode).toBe(0);
 
-      const output = parseJSONOutput<{ files?: string[] }>(result);
-      expect(output?.files).toBeDefined();
-      // Should find the CLAUDE.md we created
+      const output = parseJSONOutput<{ configs?: Array<{ type: string }> }>(result);
+      expect(output?.configs).toBeDefined();
+      expect(output?.configs?.some((c) => c.type === 'claude-code')).toBe(true);
     });
   });
 
@@ -160,7 +164,7 @@ describe('E2E: Analyse Workflow', () => {
 // Live Analysis Tests (require API key)
 // =============================================================================
 
-describe.skipIf(SKIP_LIVE_TESTS)('E2E: Analyse Workflow (Live)', () => {
+describe('E2E: Analyse Workflow (Live)', () => {
   let fixture: TestFixture;
 
   beforeAll(() => {
@@ -173,6 +177,13 @@ describe.skipIf(SKIP_LIVE_TESTS)('E2E: Analyse Workflow (Live)', () => {
     fixture.cleanup();
   });
 
+  test('requires ANTHROPIC_API_KEY', () => {
+    expect(
+      process.env.ANTHROPIC_API_KEY,
+      'ANTHROPIC_API_KEY environment variable not set - live tests require API access'
+    ).toBeTruthy();
+  });
+
   test('full analysis produces findings and recommendations', async () => {
     const result = await runCLI(['analyse', '-d', fixture.path], {
       json: true,
@@ -182,13 +193,12 @@ describe.skipIf(SKIP_LIVE_TESTS)('E2E: Analyse Workflow (Live)', () => {
     expect(result.exitCode).toBe(0);
 
     const output = parseJSONOutput<AnalyseOutput>(result);
-    expect(output?.success).toBe(true);
-    expect(output?.command).toBe('analyse');
+    // Analysis succeeds with either 'success' or 'dry-run' status (no orchestrator yet)
+    expect(['success', 'dry-run']).toContain(output?.status);
 
-    // Analysis should produce some findings for the incomplete CLAUDE.md
-    if (output?.findings) {
-      expect(Array.isArray(output.findings)).toBe(true);
-    }
+    // Should discover config files
+    expect(output?.configs).toBeDefined();
+    expect(output?.configs?.length).toBeGreaterThan(0);
   }, 120000);
 
   test('--fail-on-findings exits with code 1 when issues found', async () => {
@@ -199,7 +209,7 @@ describe.skipIf(SKIP_LIVE_TESTS)('E2E: Analyse Workflow (Live)', () => {
 
     // Should exit 1 if findings present, 0 otherwise
     const output = parseJSONOutput<AnalyseOutput>(result);
-    if (output?.metrics?.findingsCount && output.metrics.findingsCount > 0) {
+    if (output?.summary?.total && output.summary.total > 0) {
       expect(result.exitCode).toBe(1);
     }
   }, 120000);

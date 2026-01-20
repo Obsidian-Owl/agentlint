@@ -20,9 +20,8 @@ import { atomicWrite, atomicWriteJson } from '../../../src/persistence/common/at
 import { openDatabase } from '../../../src/persistence/common/database';
 import { DEFAULT_PERSISTENCE_CONFIG } from '../../../src/persistence/types';
 
-// Skip permission tests on Windows
+// Platform check - tests will fail with clear message on Windows
 const isWindows = platform() === 'win32';
-const describeUnix = isWindows ? describe.skip : describe;
 
 describe('permissions', () => {
   const testBaseDir = join(tmpdir(), 'agentlint-test-permissions');
@@ -63,7 +62,11 @@ describe('permissions', () => {
     }
   });
 
-  describeUnix('directory permissions', () => {
+  describe('directory permissions', () => {
+    it('requires POSIX platform', () => {
+      expect(!isWindows, 'Permission tests require POSIX platform (not Windows)').toBe(true);
+    });
+
     it('should create directory with 0700 by default', async () => {
       const dir = join(testBaseDir, 'default-perms');
       await ensureDir(dir);
@@ -103,7 +106,11 @@ describe('permissions', () => {
     });
   });
 
-  describeUnix('file permissions', () => {
+  describe('file permissions', () => {
+    it('requires POSIX platform', () => {
+      expect(!isWindows, 'Permission tests require POSIX platform (not Windows)').toBe(true);
+    });
+
     it('atomicWrite should create file (permission depends on umask)', async () => {
       const filePath = join(testBaseDir, 'file-perms.txt');
       await ensureDir(testBaseDir);
@@ -139,7 +146,11 @@ describe('permissions', () => {
     });
   });
 
-  describeUnix('database file permissions', () => {
+  describe('database file permissions', () => {
+    it('requires POSIX platform', () => {
+      expect(!isWindows, 'Permission tests require POSIX platform (not Windows)').toBe(true);
+    });
+
     it('openDatabase should create database in directory with correct permissions', async () => {
       const dbPath = join(testBaseDir, 'db-perms', 'test.db');
       const db = await openDatabase(dbPath);
@@ -156,7 +167,11 @@ describe('permissions', () => {
     });
   });
 
-  describeUnix('permission enforcement', () => {
+  describe('permission enforcement', () => {
+    it('requires POSIX platform', () => {
+      expect(!isWindows, 'Permission tests require POSIX platform (not Windows)').toBe(true);
+    });
+
     it('should restrict access to owner only with 0700', async () => {
       const dir = join(testBaseDir, 'restricted');
       await ensureDir(dir, 0o700);
@@ -185,7 +200,11 @@ describe('permissions', () => {
     });
   });
 
-  describeUnix('permission preservation on update', () => {
+  describe('permission preservation on update', () => {
+    it('requires POSIX platform', () => {
+      expect(!isWindows, 'Permission tests require POSIX platform (not Windows)').toBe(true);
+    });
+
     it('atomicWrite should successfully overwrite files', async () => {
       const filePath = join(testBaseDir, 'preserve-perms.txt');
       await ensureDir(testBaseDir);

@@ -26,7 +26,7 @@ const GOLDEN_DATASET_PATH = join(__dirname, '../golden/temporal');
 
 /**
  * Check which golden scenario files exist at module load time.
- * This allows us to use test.skipIf() for proper test skipping.
+ * Tests will fail with clear messages if required golden data is missing.
  */
 function checkGoldenDataAvailability(): Record<string, boolean> {
   const scenarios = [
@@ -167,101 +167,109 @@ function isWithinTolerance(actual: number, expected: number, tolerancePercent: n
 // =============================================================================
 
 describe('Trend Detection Quality: Slope Calculation', () => {
-  test.skipIf(!GOLDEN_DATA_AVAILABLE['scenario-05-trend-improving.json'])(
-    'calculates correct slope for improving trend (scenario-05)',
-    () => {
-      const scenario = loadGoldenScenario('scenario-05-trend-improving.json');
-      expect(scenario).not.toBeNull();
-      expect(scenario!.baseline_data.baselines).toBeDefined();
+  test('calculates correct slope for improving trend (scenario-05)', () => {
+    expect(
+      GOLDEN_DATA_AVAILABLE['scenario-05-trend-improving.json'],
+      'Golden data file scenario-05-trend-improving.json not found'
+    ).toBe(true);
 
-      const timeSeries = buildTimeSeriesFromBaselines(
-        scenario!.baseline_data.baselines,
-        'findingsCount'
-      );
+    const scenario = loadGoldenScenario('scenario-05-trend-improving.json');
+    expect(scenario).not.toBeNull();
+    expect(scenario!.baseline_data.baselines).toBeDefined();
 
-      const trend = getMetricTrend('findingsCount', timeSeries);
+    const timeSeries = buildTimeSeriesFromBaselines(
+      scenario!.baseline_data.baselines,
+      'findingsCount'
+    );
 
-      // Expected from golden: slope = -5.5 (negative = decreasing = improving for findingsCount)
-      const expected = scenario!.trend_analysis?.findingsCount;
-      if (typeof expected === 'object' && expected !== null && 'slope' in expected) {
-        // Slope should be negative (decreasing)
-        expect(trend.slope).toBeLessThan(0);
-        // Should be within 20% tolerance of expected
-        expect(isWithinTolerance(trend.slope, expected.slope, 20)).toBe(true);
-      }
+    const trend = getMetricTrend('findingsCount', timeSeries);
+
+    // Expected from golden: slope = -5.5 (negative = decreasing = improving for findingsCount)
+    const expected = scenario!.trend_analysis?.findingsCount;
+    if (typeof expected === 'object' && expected !== null && 'slope' in expected) {
+      // Slope should be negative (decreasing)
+      expect(trend.slope).toBeLessThan(0);
+      // Should be within 20% tolerance of expected
+      expect(isWithinTolerance(trend.slope, expected.slope, 20)).toBe(true);
     }
-  );
+  });
 
-  test.skipIf(!GOLDEN_DATA_AVAILABLE['scenario-06-trend-degrading.json'])(
-    'calculates correct slope for degrading trend (scenario-06)',
-    () => {
-      const scenario = loadGoldenScenario('scenario-06-trend-degrading.json');
-      expect(scenario).not.toBeNull();
-      expect(scenario!.baseline_data.baselines).toBeDefined();
+  test('calculates correct slope for degrading trend (scenario-06)', () => {
+    expect(
+      GOLDEN_DATA_AVAILABLE['scenario-06-trend-degrading.json'],
+      'Golden data file scenario-06-trend-degrading.json not found'
+    ).toBe(true);
 
-      const timeSeries = buildTimeSeriesFromBaselines(
-        scenario!.baseline_data.baselines,
-        'findingsCount'
-      );
+    const scenario = loadGoldenScenario('scenario-06-trend-degrading.json');
+    expect(scenario).not.toBeNull();
+    expect(scenario!.baseline_data.baselines).toBeDefined();
 
-      const trend = getMetricTrend('findingsCount', timeSeries);
+    const timeSeries = buildTimeSeriesFromBaselines(
+      scenario!.baseline_data.baselines,
+      'findingsCount'
+    );
 
-      // Expected from golden: slope = 6.5 (positive = increasing = degrading for findingsCount)
-      const expected = scenario!.trend_analysis?.findingsCount;
-      if (typeof expected === 'object' && expected !== null && 'slope' in expected) {
-        // Slope should be positive (increasing)
-        expect(trend.slope).toBeGreaterThan(0);
-        expect(isWithinTolerance(trend.slope, expected.slope, 20)).toBe(true);
-      }
+    const trend = getMetricTrend('findingsCount', timeSeries);
+
+    // Expected from golden: slope = 6.5 (positive = increasing = degrading for findingsCount)
+    const expected = scenario!.trend_analysis?.findingsCount;
+    if (typeof expected === 'object' && expected !== null && 'slope' in expected) {
+      // Slope should be positive (increasing)
+      expect(trend.slope).toBeGreaterThan(0);
+      expect(isWithinTolerance(trend.slope, expected.slope, 20)).toBe(true);
     }
-  );
+  });
 
-  test.skipIf(!GOLDEN_DATA_AVAILABLE['scenario-07-trend-volatile.json'])(
-    'detects low R² for volatile trend (scenario-07)',
-    () => {
-      const scenario = loadGoldenScenario('scenario-07-trend-volatile.json');
-      expect(scenario).not.toBeNull();
-      expect(scenario!.baseline_data.baselines).toBeDefined();
+  test('detects low R-squared for volatile trend (scenario-07)', () => {
+    expect(
+      GOLDEN_DATA_AVAILABLE['scenario-07-trend-volatile.json'],
+      'Golden data file scenario-07-trend-volatile.json not found'
+    ).toBe(true);
 
-      const timeSeries = buildTimeSeriesFromBaselines(
-        scenario!.baseline_data.baselines,
-        'findingsCount'
-      );
+    const scenario = loadGoldenScenario('scenario-07-trend-volatile.json');
+    expect(scenario).not.toBeNull();
+    expect(scenario!.baseline_data.baselines).toBeDefined();
 
-      const trend = getMetricTrend('findingsCount', timeSeries);
+    const timeSeries = buildTimeSeriesFromBaselines(
+      scenario!.baseline_data.baselines,
+      'findingsCount'
+    );
 
-      // Expected from golden: rSquared = 0.02 (very low = unreliable trend)
-      const expected = scenario!.trend_analysis?.findingsCount;
-      if (typeof expected === 'object' && expected !== null && 'rSquared' in expected) {
-        // R² should be low (< 0.3) indicating unreliable trend
-        expect(trend.rSquared).toBeLessThan(0.3);
-      }
+    const trend = getMetricTrend('findingsCount', timeSeries);
+
+    // Expected from golden: rSquared = 0.02 (very low = unreliable trend)
+    const expected = scenario!.trend_analysis?.findingsCount;
+    if (typeof expected === 'object' && expected !== null && 'rSquared' in expected) {
+      // R² should be low (< 0.3) indicating unreliable trend
+      expect(trend.rSquared).toBeLessThan(0.3);
     }
-  );
+  });
 
-  test.skipIf(!GOLDEN_DATA_AVAILABLE['scenario-05-trend-improving.json'])(
-    'calculates high R² for consistent trends',
-    () => {
-      // Test scenario-05 (improving) should have high R²
-      const scenario = loadGoldenScenario('scenario-05-trend-improving.json');
-      expect(scenario).not.toBeNull();
-      expect(scenario!.baseline_data.baselines).toBeDefined();
+  test('calculates high R-squared for consistent trends', () => {
+    expect(
+      GOLDEN_DATA_AVAILABLE['scenario-05-trend-improving.json'],
+      'Golden data file scenario-05-trend-improving.json not found'
+    ).toBe(true);
 
-      const timeSeries = buildTimeSeriesFromBaselines(
-        scenario!.baseline_data.baselines,
-        'findingsCount'
-      );
+    // Test scenario-05 (improving) should have high R²
+    const scenario = loadGoldenScenario('scenario-05-trend-improving.json');
+    expect(scenario).not.toBeNull();
+    expect(scenario!.baseline_data.baselines).toBeDefined();
 
-      const trend = getMetricTrend('findingsCount', timeSeries);
+    const timeSeries = buildTimeSeriesFromBaselines(
+      scenario!.baseline_data.baselines,
+      'findingsCount'
+    );
 
-      // Expected from golden: rSquared = 0.98 (very high = reliable trend)
-      const expected = scenario!.trend_analysis?.findingsCount;
-      if (typeof expected === 'object' && expected !== null && 'rSquared' in expected) {
-        // R² should be high (> 0.9) indicating reliable trend
-        expect(trend.rSquared).toBeGreaterThan(0.9);
-      }
+    const trend = getMetricTrend('findingsCount', timeSeries);
+
+    // Expected from golden: rSquared = 0.98 (very high = reliable trend)
+    const expected = scenario!.trend_analysis?.findingsCount;
+    if (typeof expected === 'object' && expected !== null && 'rSquared' in expected) {
+      // R² should be high (> 0.9) indicating reliable trend
+      expect(trend.rSquared).toBeGreaterThan(0.9);
     }
-  );
+  });
 });
 
 // =============================================================================
@@ -269,60 +277,64 @@ describe('Trend Detection Quality: Slope Calculation', () => {
 // =============================================================================
 
 describe('Trend Detection Quality: Volatility Detection', () => {
-  test.skipIf(!GOLDEN_DATA_AVAILABLE['scenario-07-trend-volatile.json'])(
-    'detects high volatility in noisy data (scenario-07)',
-    () => {
-      const scenario = loadGoldenScenario('scenario-07-trend-volatile.json');
-      expect(scenario).not.toBeNull();
-      expect(scenario!.baseline_data.baselines).toBeDefined();
+  test('detects high volatility in noisy data (scenario-07)', () => {
+    expect(
+      GOLDEN_DATA_AVAILABLE['scenario-07-trend-volatile.json'],
+      'Golden data file scenario-07-trend-volatile.json not found'
+    ).toBe(true);
 
-      const timeSeries = buildTimeSeriesFromBaselines(
-        scenario!.baseline_data.baselines,
-        'findingsCount'
-      );
+    const scenario = loadGoldenScenario('scenario-07-trend-volatile.json');
+    expect(scenario).not.toBeNull();
+    expect(scenario!.baseline_data.baselines).toBeDefined();
 
-      const trend = getMetricTrend('findingsCount', timeSeries);
+    const timeSeries = buildTimeSeriesFromBaselines(
+      scenario!.baseline_data.baselines,
+      'findingsCount'
+    );
 
-      // Expected from golden: volatility = 0.62 (high)
-      const expected = scenario!.trend_analysis?.findingsCount;
-      if (typeof expected === 'object' && expected !== null && 'volatility' in expected) {
-        // Volatility should be high (> 0.4)
-        expect(trend.volatility).toBeGreaterThan(0.4);
-      }
+    const trend = getMetricTrend('findingsCount', timeSeries);
+
+    // Expected from golden: volatility = 0.62 (high)
+    const expected = scenario!.trend_analysis?.findingsCount;
+    if (typeof expected === 'object' && expected !== null && 'volatility' in expected) {
+      // Volatility should be high (> 0.4)
+      expect(trend.volatility).toBeGreaterThan(0.4);
     }
-  );
+  });
 
-  const bothVolatilityScenariosAvailable =
-    GOLDEN_DATA_AVAILABLE['scenario-05-trend-improving.json'] &&
-    GOLDEN_DATA_AVAILABLE['scenario-07-trend-volatile.json'];
+  test('detects lower volatility in consistent data compared to volatile data', () => {
+    expect(
+      GOLDEN_DATA_AVAILABLE['scenario-05-trend-improving.json'],
+      'Golden data file scenario-05-trend-improving.json not found'
+    ).toBe(true);
+    expect(
+      GOLDEN_DATA_AVAILABLE['scenario-07-trend-volatile.json'],
+      'Golden data file scenario-07-trend-volatile.json not found'
+    ).toBe(true);
 
-  test.skipIf(!bothVolatilityScenariosAvailable)(
-    'detects lower volatility in consistent data compared to volatile data',
-    () => {
-      const improvingScenario = loadGoldenScenario('scenario-05-trend-improving.json');
-      const volatileScenario = loadGoldenScenario('scenario-07-trend-volatile.json');
+    const improvingScenario = loadGoldenScenario('scenario-05-trend-improving.json');
+    const volatileScenario = loadGoldenScenario('scenario-07-trend-volatile.json');
 
-      expect(improvingScenario).not.toBeNull();
-      expect(volatileScenario).not.toBeNull();
-      expect(improvingScenario!.baseline_data.baselines).toBeDefined();
-      expect(volatileScenario!.baseline_data.baselines).toBeDefined();
+    expect(improvingScenario).not.toBeNull();
+    expect(volatileScenario).not.toBeNull();
+    expect(improvingScenario!.baseline_data.baselines).toBeDefined();
+    expect(volatileScenario!.baseline_data.baselines).toBeDefined();
 
-      const improvingTimeSeries = buildTimeSeriesFromBaselines(
-        improvingScenario!.baseline_data.baselines,
-        'findingsCount'
-      );
-      const volatileTimeSeries = buildTimeSeriesFromBaselines(
-        volatileScenario!.baseline_data.baselines,
-        'findingsCount'
-      );
+    const improvingTimeSeries = buildTimeSeriesFromBaselines(
+      improvingScenario!.baseline_data.baselines,
+      'findingsCount'
+    );
+    const volatileTimeSeries = buildTimeSeriesFromBaselines(
+      volatileScenario!.baseline_data.baselines,
+      'findingsCount'
+    );
 
-      const improvingTrend = getMetricTrend('findingsCount', improvingTimeSeries);
-      const volatileTrend = getMetricTrend('findingsCount', volatileTimeSeries);
+    const improvingTrend = getMetricTrend('findingsCount', improvingTimeSeries);
+    const volatileTrend = getMetricTrend('findingsCount', volatileTimeSeries);
 
-      // Consistent data should have lower volatility than volatile data
-      expect(improvingTrend.volatility).toBeLessThan(volatileTrend.volatility);
-    }
-  );
+    // Consistent data should have lower volatility than volatile data
+    expect(improvingTrend.volatility).toBeLessThan(volatileTrend.volatility);
+  });
 });
 
 // =============================================================================
@@ -388,69 +400,75 @@ describe('Trend Detection Quality: Linear Regression', () => {
 // =============================================================================
 
 describe('Trend Detection Quality: Full Analysis', () => {
-  test.skipIf(!GOLDEN_DATA_AVAILABLE['scenario-05-trend-improving.json'])(
-    'correctly identifies improving trend',
-    () => {
-      const scenario = loadGoldenScenario('scenario-05-trend-improving.json');
-      expect(scenario).not.toBeNull();
-      expect(scenario!.baseline_data.baselines).toBeDefined();
+  test('correctly identifies improving trend', () => {
+    expect(
+      GOLDEN_DATA_AVAILABLE['scenario-05-trend-improving.json'],
+      'Golden data file scenario-05-trend-improving.json not found'
+    ).toBe(true);
 
-      // Per ADR-0019, we don't have a "direction" field - agent interprets
-      // We verify the statistical properties are correct
-      const timeSeries = buildTimeSeriesFromBaselines(
-        scenario!.baseline_data.baselines,
-        'findingsCount'
-      );
+    const scenario = loadGoldenScenario('scenario-05-trend-improving.json');
+    expect(scenario).not.toBeNull();
+    expect(scenario!.baseline_data.baselines).toBeDefined();
 
-      const trend = getMetricTrend('findingsCount', timeSeries);
+    // Per ADR-0019, we don't have a "direction" field - agent interprets
+    // We verify the statistical properties are correct
+    const timeSeries = buildTimeSeriesFromBaselines(
+      scenario!.baseline_data.baselines,
+      'findingsCount'
+    );
 
-      // For findingsCount, negative slope + high R² = reliable improvement
-      expect(trend.slope).toBeLessThan(0);
-      expect(trend.rSquared).toBeGreaterThan(0.9);
-      expect(trend.percentChange).toBeLessThan(-50); // Should show significant decrease
-    }
-  );
+    const trend = getMetricTrend('findingsCount', timeSeries);
 
-  test.skipIf(!GOLDEN_DATA_AVAILABLE['scenario-06-trend-degrading.json'])(
-    'correctly identifies degrading trend',
-    () => {
-      const scenario = loadGoldenScenario('scenario-06-trend-degrading.json');
-      expect(scenario).not.toBeNull();
-      expect(scenario!.baseline_data.baselines).toBeDefined();
+    // For findingsCount, negative slope + high R² = reliable improvement
+    expect(trend.slope).toBeLessThan(0);
+    expect(trend.rSquared).toBeGreaterThan(0.9);
+    expect(trend.percentChange).toBeLessThan(-50); // Should show significant decrease
+  });
 
-      const timeSeries = buildTimeSeriesFromBaselines(
-        scenario!.baseline_data.baselines,
-        'findingsCount'
-      );
+  test('correctly identifies degrading trend', () => {
+    expect(
+      GOLDEN_DATA_AVAILABLE['scenario-06-trend-degrading.json'],
+      'Golden data file scenario-06-trend-degrading.json not found'
+    ).toBe(true);
 
-      const trend = getMetricTrend('findingsCount', timeSeries);
+    const scenario = loadGoldenScenario('scenario-06-trend-degrading.json');
+    expect(scenario).not.toBeNull();
+    expect(scenario!.baseline_data.baselines).toBeDefined();
 
-      // For findingsCount, positive slope + high R² = reliable degradation
-      expect(trend.slope).toBeGreaterThan(0);
-      expect(trend.rSquared).toBeGreaterThan(0.9);
-      expect(trend.percentChange).toBeGreaterThan(100); // Should show significant increase
-    }
-  );
+    const timeSeries = buildTimeSeriesFromBaselines(
+      scenario!.baseline_data.baselines,
+      'findingsCount'
+    );
 
-  test.skipIf(!GOLDEN_DATA_AVAILABLE['scenario-07-trend-volatile.json'])(
-    'correctly identifies volatile/unstable trend',
-    () => {
-      const scenario = loadGoldenScenario('scenario-07-trend-volatile.json');
-      expect(scenario).not.toBeNull();
-      expect(scenario!.baseline_data.baselines).toBeDefined();
+    const trend = getMetricTrend('findingsCount', timeSeries);
 
-      const timeSeries = buildTimeSeriesFromBaselines(
-        scenario!.baseline_data.baselines,
-        'findingsCount'
-      );
+    // For findingsCount, positive slope + high R² = reliable degradation
+    expect(trend.slope).toBeGreaterThan(0);
+    expect(trend.rSquared).toBeGreaterThan(0.9);
+    expect(trend.percentChange).toBeGreaterThan(100); // Should show significant increase
+  });
 
-      const trend = getMetricTrend('findingsCount', timeSeries);
+  test('correctly identifies volatile/unstable trend', () => {
+    expect(
+      GOLDEN_DATA_AVAILABLE['scenario-07-trend-volatile.json'],
+      'Golden data file scenario-07-trend-volatile.json not found'
+    ).toBe(true);
 
-      // For volatile data: low R² + high volatility = unreliable trend
-      expect(trend.rSquared).toBeLessThan(0.3);
-      expect(trend.volatility).toBeGreaterThan(0.4);
-    }
-  );
+    const scenario = loadGoldenScenario('scenario-07-trend-volatile.json');
+    expect(scenario).not.toBeNull();
+    expect(scenario!.baseline_data.baselines).toBeDefined();
+
+    const timeSeries = buildTimeSeriesFromBaselines(
+      scenario!.baseline_data.baselines,
+      'findingsCount'
+    );
+
+    const trend = getMetricTrend('findingsCount', timeSeries);
+
+    // For volatile data: low R² + high volatility = unreliable trend
+    expect(trend.rSquared).toBeLessThan(0.3);
+    expect(trend.volatility).toBeGreaterThan(0.4);
+  });
 });
 
 // =============================================================================
@@ -508,35 +526,37 @@ describe('Trend Detection Quality: Accuracy Threshold', () => {
 // =============================================================================
 
 describe('Trend Detection Quality: Edge Cases', () => {
-  test.skipIf(!GOLDEN_DATA_AVAILABLE['scenario-12-minimal-data.json'])(
-    'handles minimal data (2 baselines)',
-    () => {
-      const scenario = loadGoldenScenario('scenario-12-minimal-data.json');
-      expect(scenario).not.toBeNull();
-      expect(scenario!.baseline_data.from).toBeDefined();
-      expect(scenario!.baseline_data.to).toBeDefined();
+  test('handles minimal data (2 baselines)', () => {
+    expect(
+      GOLDEN_DATA_AVAILABLE['scenario-12-minimal-data.json'],
+      'Golden data file scenario-12-minimal-data.json not found'
+    ).toBe(true);
 
-      // With only 2 points, we can calculate slope but R² is meaningless
-      const timeSeries: TimeSeriesPoint[] = [
-        {
-          timestamp: scenario!.baseline_data.from!.createdAt,
-          value: scenario!.baseline_data.from!.metrics.findingsCount ?? 0,
-          baselineId: scenario!.baseline_data.from!.id,
-        },
-        {
-          timestamp: scenario!.baseline_data.to!.createdAt,
-          value: scenario!.baseline_data.to!.metrics.findingsCount ?? 0,
-          baselineId: scenario!.baseline_data.to!.id,
-        },
-      ];
+    const scenario = loadGoldenScenario('scenario-12-minimal-data.json');
+    expect(scenario).not.toBeNull();
+    expect(scenario!.baseline_data.from).toBeDefined();
+    expect(scenario!.baseline_data.to).toBeDefined();
 
-      const trend = getMetricTrend('findingsCount', timeSeries);
+    // With only 2 points, we can calculate slope but R² is meaningless
+    const timeSeries: TimeSeriesPoint[] = [
+      {
+        timestamp: scenario!.baseline_data.from!.createdAt,
+        value: scenario!.baseline_data.from!.metrics.findingsCount ?? 0,
+        baselineId: scenario!.baseline_data.from!.id,
+      },
+      {
+        timestamp: scenario!.baseline_data.to!.createdAt,
+        value: scenario!.baseline_data.to!.metrics.findingsCount ?? 0,
+        baselineId: scenario!.baseline_data.to!.id,
+      },
+    ];
 
-      // Should still produce a result, but R² will be low due to insufficient data
-      expect(trend.slope).toBeDefined();
-      expect(trend.meanValue).toBeDefined();
-    }
-  );
+    const trend = getMetricTrend('findingsCount', timeSeries);
+
+    // Should still produce a result, but R² will be low due to insufficient data
+    expect(trend.slope).toBeDefined();
+    expect(trend.meanValue).toBeDefined();
+  });
 
   it('handles empty time series gracefully', () => {
     const timeSeries: TimeSeriesPoint[] = [];

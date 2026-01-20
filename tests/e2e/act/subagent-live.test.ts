@@ -61,11 +61,12 @@ async function extractResponseText(
   return { text, sawTaskTool, messages };
 }
 
-describe.skipIf(SKIP_LIVE_TESTS)('Live Subagent E2E Tests', () => {
-  beforeAll(() => {
-    if (SKIP_LIVE_TESTS) {
-      console.log('\n⚠️  Skipping live tests - set ANTHROPIC_API_KEY to run\n');
-    }
+describe('Live Subagent E2E Tests', () => {
+  test('requires ANTHROPIC_API_KEY', () => {
+    expect(
+      process.env.ANTHROPIC_API_KEY,
+      'ANTHROPIC_API_KEY environment variable not set - live tests require API access'
+    ).toBeTruthy();
   });
 
   test('SDK accepts agents from buildACTSubagents()', async () => {
@@ -128,7 +129,14 @@ describe.skipIf(SKIP_LIVE_TESTS)('Live Subagent E2E Tests', () => {
 // Behavioral Validation Tests
 // =============================================================================
 
-describe.skipIf(SKIP_LIVE_TESTS)('Subagent Behavioral Validation', () => {
+describe('Subagent Behavioral Validation', () => {
+  test('requires ANTHROPIC_API_KEY', () => {
+    expect(
+      process.env.ANTHROPIC_API_KEY,
+      'ANTHROPIC_API_KEY environment variable not set - live tests require API access'
+    ).toBeTruthy();
+  });
+
   test('claude-code-analyzer prompt produces structured output format', async () => {
     const agents = buildACTSubagents();
     const claudeCodeAgent = agents['claude-code-analyzer'];
@@ -157,7 +165,14 @@ describe.skipIf(SKIP_LIVE_TESTS)('Subagent Behavioral Validation', () => {
 // Smoke Test
 // =============================================================================
 
-describe.skipIf(SKIP_LIVE_TESTS)('Smoke Test', () => {
+describe('Smoke Test', () => {
+  test('requires ANTHROPIC_API_KEY', () => {
+    expect(
+      process.env.ANTHROPIC_API_KEY,
+      'ANTHROPIC_API_KEY environment variable not set - live tests require API access'
+    ).toBeTruthy();
+  });
+
   test('complete round-trip: build agents → pass to SDK → get response', async () => {
     // 1. Build agents
     const agents = buildACTSubagents();
@@ -185,7 +200,14 @@ describe.skipIf(SKIP_LIVE_TESTS)('Smoke Test', () => {
 // Subagent Invocation Test
 // =============================================================================
 
-describe.skipIf(SKIP_LIVE_TESTS)('Subagent Invocation', () => {
+describe('Subagent Invocation', () => {
+  test('requires ANTHROPIC_API_KEY', () => {
+    expect(
+      process.env.ANTHROPIC_API_KEY,
+      'ANTHROPIC_API_KEY environment variable not set - live tests require API access'
+    ).toBeTruthy();
+  });
+
   test('Task tool is available when agents configured', async () => {
     const agents = buildACTSubagents() as unknown as SDKAgents;
 

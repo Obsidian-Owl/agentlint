@@ -73,7 +73,7 @@ export interface TestFixture {
 export async function runCLI(args: string[], options: CLIOptions = {}): Promise<CLIResult> {
   const cwd = options.cwd ?? process.cwd();
   const timeout = options.timeout ?? 60000;
-  const cliPath = resolve(__dirname, '../../src/cli/index.ts');
+  const cliPath = resolve(__dirname, '../../src/cli.ts');
 
   const startTime = performance.now();
 
