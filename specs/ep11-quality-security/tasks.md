@@ -72,10 +72,10 @@
 
 ### Tests (write first)
 
-- [ ] T015 [P] [US1] Unit test for DebugLogger in `tests/unit/debug/logger.test.ts`
-- [ ] T016 [P] [US1] Unit test for namespace filtering in `tests/unit/debug/namespaces.test.ts`
-- [ ] T017 [P] [US1] Unit test for redaction in `tests/unit/debug/redaction.test.ts`
-- [ ] T018 [P] [US1] Integration test for CLI flags in `tests/integration/debug-cli.test.ts`
+- [x] T015 [P] [US1] Unit test for DebugLogger in `tests/unit/debug/logger.test.ts`
+- [x] T016 [P] [US1] Unit test for namespace filtering in `tests/unit/debug/namespaces.test.ts`
+- [x] T017 [P] [US1] Unit test for redaction in `tests/unit/debug/redaction.test.ts`
+- [x] T018 [P] [US1] Integration test for CLI flags in `tests/integration/debug-cli.test.ts`
 
 ### Implementation
 
