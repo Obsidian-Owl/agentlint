@@ -105,7 +105,7 @@
 - [ ] T025 [P] [US4] Unit test for pattern matching in `tests/unit/security/detector.test.ts` *(not yet created)*
 - [ ] T026 [P] [US4] Unit test for entropy scoring in `tests/unit/security/entropy.test.ts` *(not yet created)*
 - [ ] T027 [P] [US4] Unit test for classification in `tests/unit/security/classifier.test.ts` *(not yet created)*
-- [x] T028 [P] [US4] Integration test for secret detection in `tests/integration/secrets-vcr.test.ts` *(heuristic classifier, VCR pending LLM integration)*
+- [x] T028 [P] [US4] Integration test for secret detection in `tests/integration/secrets.test.ts`
 
 ### Implementation
 
@@ -321,9 +321,8 @@ Foundational (T007-T014)
 
 ### Known Gaps
 1. **T025-T027**: Unit tests for security module not created (implementation exists, tests don't)
-2. **VCR for LLM classification**: Current classifier uses heuristics; VCR needed when LLM classification added
-3. **T051-T052, T054-T056**: Session recording tests and implementation pending
-4. **T058-T059**: Outcome tracking tests pending
+2. **T051-T052, T054-T056**: Session recording tests and implementation pending
+3. **T058-T059**: Outcome tracking tests pending
 
 ### TruLens Evaluation Results
 - Overall score: **0.77** (PASS, threshold: 0.7)

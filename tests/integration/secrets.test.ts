@@ -1,13 +1,9 @@
 /**
  * EP11 Quality & Security - Secret Detection Integration Tests
  *
- * Integration tests for secret detection pipeline.
+ * Integration tests for secret detection pipeline using heuristic classification.
  *
- * NOTE: The current SecretClassifier uses heuristic analysis, not LLM calls.
- * VCR recordings would be needed if/when LLM-based classification is implemented.
- * Tests marked with VCR in their description are skipped pending LLM integration.
- *
- * @module tests/integration/secrets-vcr
+ * @module tests/integration/secrets
  */
 
 import { describe, it, expect, beforeAll, afterEach } from 'bun:test';
@@ -120,27 +116,6 @@ describe('Secret Detection Pipeline', () => {
       expect(scanResult.scannedFiles).toBe(3);
       // Results may vary based on pattern matching
       expect(scanResult.durationMs).toBeGreaterThan(0);
-    });
-  });
-
-  describe('VCR Playback', () => {
-    it.skip('should use recorded LLM responses in strict mode', async () => {
-      // NOTE: This test requires LLM-based classification which is not yet implemented.
-      // The current SecretClassifier uses heuristics, not LLM calls.
-      // When LLM classification is added, this test should:
-      // 1. Load a VCR cassette with pre-recorded responses
-      // 2. Run classification in strict VCR mode
-      // 3. Verify no actual LLM calls are made
-    });
-
-    it.skip('should fail on missing cassette in strict mode', async () => {
-      // NOTE: Requires VCR infrastructure and LLM-based classification.
-      // Test should verify that running in strict mode without a cassette fails.
-    });
-
-    it.skip('should allow recording new cassettes in record mode', async () => {
-      // NOTE: Requires VCR infrastructure and LLM-based classification.
-      // Test should verify that new cassettes can be recorded.
     });
   });
 
@@ -291,37 +266,6 @@ describe('Secret Detection Pipeline', () => {
         // Batch should complete quickly (heuristic-based)
         expect(durationMs).toBeLessThan(100);
       }
-    });
-  });
-});
-
-describe('Secret Detection CLI Integration', () => {
-  describe('--no-secrets flag', () => {
-    it.skip('should disable secret scanning when flag is set', async () => {
-      // NOTE: CLI integration tests require CLI infrastructure.
-      // Test: agentlint analyse --no-secrets should skip secret detection
-    });
-
-    it.skip('should not invoke classifier when scanning is disabled', async () => {
-      // NOTE: CLI integration tests require CLI infrastructure.
-      // No LLM calls for classification when disabled
-    });
-  });
-
-  describe('Output Formats', () => {
-    it.skip('should include secrets in JSON output', async () => {
-      // NOTE: CLI integration tests require CLI infrastructure.
-      // Test: agentlint analyse --json should include classified secrets
-    });
-
-    it.skip('should format secrets in plain text output', async () => {
-      // NOTE: CLI integration tests require CLI infrastructure.
-      // Test: Human-readable secret detection results
-    });
-
-    it.skip('should use redacted values in all output', async () => {
-      // NOTE: CLI integration tests require CLI infrastructure.
-      // Never show raw secrets in any output format
     });
   });
 });
