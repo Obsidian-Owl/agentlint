@@ -6,12 +6,71 @@
  * @module security
  */
 
-// Re-export types
-export * from './types';
+// =============================================================================
+// Types
+// =============================================================================
 
-// Re-export entropy utilities
-export * from './entropy';
+export type {
+  GitleaksRule,
+  PatternSet,
+  FileLocation,
+  SecretCandidate,
+  SecretClassification,
+  ClassifiedSecret,
+  FileScanResult,
+  SecretScanResult,
+  ISecretDetector,
+  ISecretClassifier,
+  SecretDetectionCLIOptions,
+} from './types';
 
-// Detector and classifier will be exported after implementation
-// export * from './detector';
-// export * from './classifier';
+// =============================================================================
+// Entropy Utilities
+// =============================================================================
+
+export {
+  calculateEntropy,
+  calculateNormalizedEntropy,
+  detectCharacterSet,
+  getMaxEntropyForCharSet,
+  analyzeEntropy,
+  isLikelySecret,
+  calculateWindowEntropy,
+  DEFAULT_ENTROPY_THRESHOLD,
+  HIGH_ENTROPY_THRESHOLD,
+  CHAR_SETS,
+} from './entropy';
+
+export type { EntropyAnalysis } from './entropy';
+
+// =============================================================================
+// Pattern Parser
+// =============================================================================
+
+export {
+  parseGitleaksToml,
+  parseGitleaksTomlSync,
+  parseGitleaksTomlContent,
+  isValidRegex,
+  getBundledPatternsPath,
+} from './patterns/parser';
+
+// =============================================================================
+// Secret Detector
+// =============================================================================
+
+export {
+  SecretDetector,
+  createSecretDetector,
+  createSecretDetectorWithPatterns,
+} from './detector';
+
+// =============================================================================
+// Secret Classifier
+// =============================================================================
+
+export {
+  SecretClassifier,
+  createSecretClassifier,
+  classifySecretTool,
+} from './classifier';
