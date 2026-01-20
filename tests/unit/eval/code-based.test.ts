@@ -9,10 +9,9 @@
  */
 
 import { describe, test, expect } from 'bun:test';
+import { CodeBasedGrader } from '../../../src/eval/graders/code-based';
 import type {
   GoldenScenario,
-  CodeBasedGrade,
-  ICodeBasedGrader,
 } from '../../../src/eval/types';
 
 // =============================================================================
@@ -96,84 +95,11 @@ function createValidOutput() {
 }
 
 // =============================================================================
-// Mock Grader for Testing
-// =============================================================================
-
-/**
- * Mock implementation of CodeBasedGrader for testing.
- * This will be replaced by the real implementation in T048.
- */
-class MockCodeBasedGrader implements ICodeBasedGrader {
-  grade(scenario: GoldenScenario, output: unknown): CodeBasedGrade {
-    const checks = {
-      outputFormatValid: this.checkOutputFormat(output),
-      requiredFieldsPresent: this.checkRequiredFields(output),
-      noHallucinatedFiles: this.checkNoHallucinatedFiles(scenario, output),
-      causalChainComplete: this.checkCausalChain(output),
-    };
-
-    return {
-      passed: Object.values(checks).every(Boolean),
-      checks,
-    };
-  }
-
-  private checkOutputFormat(output: unknown): boolean {
-    if (typeof output !== 'object' || output === null) return false;
-    const o = output as Record<string, unknown>;
-    return typeof o.format_version === 'string' && typeof o.success === 'boolean';
-  }
-
-  private checkRequiredFields(output: unknown): boolean {
-    if (typeof output !== 'object' || output === null) return false;
-    const o = output as Record<string, unknown>;
-    return (
-      'format_version' in o &&
-      'command' in o &&
-      'timestamp' in o &&
-      'success' in o
-    );
-  }
-
-  private checkNoHallucinatedFiles(scenario: GoldenScenario, output: unknown): boolean {
-    if (typeof output !== 'object' || output === null) return false;
-    const o = output as { findings?: Array<{ location?: { file?: string } }> };
-
-    // For now, just check that findings reference real files
-    // A real implementation would cross-reference against actual files
-    if (!o.findings) return true;
-
-    for (const finding of o.findings) {
-      const file = finding.location?.file;
-      // Simple check: file must be in the input (CLAUDE.md or referenced)
-      if (file && !file.includes('CLAUDE') && !file.includes('.cursorrules')) {
-        // Could be a hallucinated file - but for test purposes, allow it
-        // Real implementation would check against actual file list
-      }
-    }
-    return true;
-  }
-
-  private checkCausalChain(output: unknown): boolean {
-    if (typeof output !== 'object' || output === null) return false;
-    const o = output as { findings?: Array<{ origin?: unknown }> };
-
-    if (!o.findings) return true;
-
-    // Check that each finding has an origin
-    for (const finding of o.findings) {
-      if (!finding.origin) return false;
-    }
-    return true;
-  }
-}
-
-// =============================================================================
 // Test Suite
 // =============================================================================
 
 describe('CodeBasedGrader', () => {
-  const grader = new MockCodeBasedGrader();
+  const grader = new CodeBasedGrader();
 
   describe('Output Format Validation', () => {
     test('passes for valid output format', () => {
@@ -346,7 +272,7 @@ describe('CodeBasedGrader', () => {
 // =============================================================================
 
 describe('CodeBasedGrader Edge Cases', () => {
-  const grader = new MockCodeBasedGrader();
+  const grader = new CodeBasedGrader();
 
   test('handles output with extra fields gracefully', () => {
     const scenario = createTestScenario();
