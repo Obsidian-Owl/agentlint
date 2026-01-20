@@ -22,12 +22,7 @@ export const RecommendationStatusSchema = z.enum([
   'monitoring',
 ]);
 
-export const CompletionReasonSchema = z.enum([
-  'implemented',
-  'superseded',
-  'obsolete',
-  'rejected',
-]);
+export const CompletionReasonSchema = z.enum(['implemented', 'superseded', 'obsolete', 'rejected']);
 
 export const EventTypeSchema = z.enum([
   'created',

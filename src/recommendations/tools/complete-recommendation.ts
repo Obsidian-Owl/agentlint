@@ -11,7 +11,12 @@ import { tool } from '@anthropic-ai/claude-agent-sdk';
 import { z } from 'zod';
 
 import { loadRecommendation, saveRecommendation } from '../storage';
-import type { Recommendation, RecommendationEvent, CompletionReason, CompleteRecommendationInput } from '../types';
+import type {
+  Recommendation,
+  RecommendationEvent,
+  CompletionReason,
+  CompleteRecommendationInput,
+} from '../types';
 
 // =============================================================================
 // Input Schema
@@ -55,7 +60,10 @@ interface CompleteRecommendationResult {
 /**
  * Create a completed event.
  */
-function createCompletedEvent(reason: CompletionReason, supersededBy?: string): RecommendationEvent {
+function createCompletedEvent(
+  reason: CompletionReason,
+  supersededBy?: string
+): RecommendationEvent {
   let content = `Completed: ${reason}`;
   if (supersededBy) {
     content += ` (superseded by ${supersededBy.slice(0, 8)}...)`;

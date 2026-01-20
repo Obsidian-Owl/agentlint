@@ -31,10 +31,7 @@ const listRecommendationsInputSchema = {
     .optional()
     .describe('Filter by recommendation type'),
 
-  priority: z
-    .enum(['high', 'medium', 'low'])
-    .optional()
-    .describe('Filter by priority'),
+  priority: z.enum(['high', 'medium', 'low']).optional().describe('Filter by priority'),
 
   limit: z
     .number()
@@ -179,7 +176,9 @@ function formatToolOutput(result: ListRecommendationsResult): string {
 
   if (result.recommendations.length < result.total) {
     lines.push(`---`);
-    lines.push(`Showing ${result.recommendations.length} of ${result.total} total. Use limit parameter to see more.`);
+    lines.push(
+      `Showing ${result.recommendations.length} of ${result.total} total. Use limit parameter to see more.`
+    );
   }
 
   return lines.join('\n');

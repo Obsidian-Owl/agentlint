@@ -234,7 +234,9 @@ describe('recommendations/storage', () => {
       const deleted = deleteRecommendation(recommendation.id, { baseDir: recommendationsDir });
 
       expect(deleted).toBe(true);
-      expect(await loadRecommendation(recommendation.id, { baseDir: recommendationsDir })).toBeNull();
+      expect(
+        await loadRecommendation(recommendation.id, { baseDir: recommendationsDir })
+      ).toBeNull();
     });
 
     it('should return false for non-existent recommendation', () => {
@@ -325,7 +327,7 @@ describe('recommendations/storage', () => {
       const update2 = { ...recommendation, priority: 'low' as const };
 
       // Launch concurrent writes
-      const [, ] = await Promise.all([
+      const [,] = await Promise.all([
         saveRecommendation(update1, { baseDir: recommendationsDir }),
         saveRecommendation(update2, { baseDir: recommendationsDir }),
       ]);

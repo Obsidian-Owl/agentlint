@@ -12,7 +12,10 @@ import { existsSync, rmSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
-import { getRecommendationSummaryTool, getRecommendationSummary } from '../tools/get-recommendation-summary';
+import {
+  getRecommendationSummaryTool,
+  getRecommendationSummary,
+} from '../tools/get-recommendation-summary';
 import { saveRecommendation } from '../storage';
 import type { Recommendation, RecommendationEvent } from '../types';
 
@@ -135,14 +138,18 @@ describe('recommendations/tools/get-recommendation-summary', () => {
 
     describe('recommendation not found', () => {
       it('should return success false for non-existent ID', async () => {
-        const result = await getRecommendationSummary('non-existent-id', { baseDir: recommendationsDir });
+        const result = await getRecommendationSummary('non-existent-id', {
+          baseDir: recommendationsDir,
+        });
 
         expect(result.success).toBe(false);
         expect(result.summary).toBeUndefined();
       });
 
       it('should include error message for non-existent ID', async () => {
-        const result = await getRecommendationSummary('non-existent-id', { baseDir: recommendationsDir });
+        const result = await getRecommendationSummary('non-existent-id', {
+          baseDir: recommendationsDir,
+        });
 
         expect(result.error).toContain('not found');
       });
@@ -212,8 +219,16 @@ describe('recommendations/tools/get-recommendation-summary', () => {
     describe('lastEventAt and lastEventType', () => {
       it('should populate lastEventAt from most recent event', async () => {
         const events = [
-          createTestEvent({ type: 'created', content: 'Created', timestamp: '2026-01-01T00:00:00Z' }),
-          createTestEvent({ type: 'observation', content: 'Observed', timestamp: '2026-01-15T00:00:00Z' }),
+          createTestEvent({
+            type: 'created',
+            content: 'Created',
+            timestamp: '2026-01-01T00:00:00Z',
+          }),
+          createTestEvent({
+            type: 'observation',
+            content: 'Observed',
+            timestamp: '2026-01-15T00:00:00Z',
+          }),
         ];
         const rec = createTestRecommendation({ events });
         await saveRecommendation(rec, { baseDir: recommendationsDir });

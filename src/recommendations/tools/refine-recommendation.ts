@@ -11,7 +11,7 @@ import { tool } from '@anthropic-ai/claude-agent-sdk';
 import { z } from 'zod';
 
 import { loadRecommendation, saveRecommendation } from '../storage';
-import type { Recommendation, RecommendationEvent, Priority, RefineRecommendationInput } from '../types';
+import type { Recommendation, RecommendationEvent, RefineRecommendationInput } from '../types';
 
 // =============================================================================
 // Input Schema
@@ -27,10 +27,7 @@ const refineRecommendationInputSchema = {
 
   target: z.string().optional().describe('New target (where to make the change)'),
 
-  priority: z
-    .enum(['high', 'medium', 'low'])
-    .optional()
-    .describe('New priority level'),
+  priority: z.enum(['high', 'medium', 'low']).optional().describe('New priority level'),
 };
 
 // =============================================================================
@@ -118,7 +115,7 @@ export async function refineRecommendation(
 
     if (input.priority !== undefined && input.priority !== recommendation.priority) {
       changes.push({ field: 'Priority', old: recommendation.priority, new: input.priority });
-      recommendation.priority = input.priority as Priority;
+      recommendation.priority = input.priority;
     }
 
     // Only create event if there were actual changes

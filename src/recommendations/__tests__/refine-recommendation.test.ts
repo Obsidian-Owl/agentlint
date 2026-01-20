@@ -327,10 +327,7 @@ describe('recommendations/tools/refine-recommendation', () => {
         await saveRecommendation(rec, { baseDir: recommendationsDir });
         const originalEventCount = rec.events.length;
 
-        await refineRecommendation(
-          { recommendationId: rec.id },
-          { baseDir: recommendationsDir }
-        );
+        await refineRecommendation({ recommendationId: rec.id }, { baseDir: recommendationsDir });
 
         const unchanged = await loadRecommendation(rec.id, { baseDir: recommendationsDir });
         expect(unchanged?.events.length).toBe(originalEventCount);

@@ -12,7 +12,10 @@ import { existsSync, rmSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
-import { completeRecommendationTool, completeRecommendation } from '../tools/complete-recommendation';
+import {
+  completeRecommendationTool,
+  completeRecommendation,
+} from '../tools/complete-recommendation';
 import { saveRecommendation, loadRecommendation } from '../storage';
 import type { Recommendation, RecommendationEvent } from '../types';
 

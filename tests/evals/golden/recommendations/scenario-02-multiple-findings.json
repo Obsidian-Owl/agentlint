@@ -81,9 +81,7 @@
       }
     ],
     "clarifyingQuestions": [],
-    "assumptions": [
-      "Assuming the systemic fix should take precedence over individual fixes"
-    ]
+    "assumptions": ["Assuming the systemic fix should take precedence over individual fixes"]
   },
 
   "expected_properties": {

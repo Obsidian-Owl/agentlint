@@ -128,7 +128,10 @@ describe('recommendations/tools/list-recommendations', () => {
         await saveRecommendation(openRec, { baseDir: recommendationsDir });
         await saveRecommendation(implementedRec, { baseDir: recommendationsDir });
 
-        const result = await listRecommendations({ status: 'open' }, { baseDir: recommendationsDir });
+        const result = await listRecommendations(
+          { status: 'open' },
+          { baseDir: recommendationsDir }
+        );
 
         expect(result.recommendations).toHaveLength(1);
         expect(result.recommendations[0]?.status).toBe('open');
@@ -140,7 +143,10 @@ describe('recommendations/tools/list-recommendations', () => {
         await saveRecommendation(openRec, { baseDir: recommendationsDir });
         await saveRecommendation(implementedRec, { baseDir: recommendationsDir });
 
-        const result = await listRecommendations({ status: 'implemented' }, { baseDir: recommendationsDir });
+        const result = await listRecommendations(
+          { status: 'implemented' },
+          { baseDir: recommendationsDir }
+        );
 
         expect(result.recommendations).toHaveLength(1);
         expect(result.recommendations[0]?.status).toBe('implemented');
@@ -154,7 +160,10 @@ describe('recommendations/tools/list-recommendations', () => {
         await saveRecommendation(preventiveRec, { baseDir: recommendationsDir });
         await saveRecommendation(symptomaticRec, { baseDir: recommendationsDir });
 
-        const result = await listRecommendations({ type: 'preventive' }, { baseDir: recommendationsDir });
+        const result = await listRecommendations(
+          { type: 'preventive' },
+          { baseDir: recommendationsDir }
+        );
 
         expect(result.recommendations).toHaveLength(1);
         expect(result.recommendations[0]?.type).toBe('preventive');
@@ -166,7 +175,10 @@ describe('recommendations/tools/list-recommendations', () => {
         await saveRecommendation(preventiveRec, { baseDir: recommendationsDir });
         await saveRecommendation(systemicRec, { baseDir: recommendationsDir });
 
-        const result = await listRecommendations({ type: 'systemic' }, { baseDir: recommendationsDir });
+        const result = await listRecommendations(
+          { type: 'systemic' },
+          { baseDir: recommendationsDir }
+        );
 
         expect(result.recommendations).toHaveLength(1);
         expect(result.recommendations[0]?.type).toBe('systemic');
@@ -180,7 +192,10 @@ describe('recommendations/tools/list-recommendations', () => {
         await saveRecommendation(highRec, { baseDir: recommendationsDir });
         await saveRecommendation(lowRec, { baseDir: recommendationsDir });
 
-        const result = await listRecommendations({ priority: 'high' }, { baseDir: recommendationsDir });
+        const result = await listRecommendations(
+          { priority: 'high' },
+          { baseDir: recommendationsDir }
+        );
 
         expect(result.recommendations).toHaveLength(1);
         expect(result.recommendations[0]?.priority).toBe('high');
@@ -192,7 +207,10 @@ describe('recommendations/tools/list-recommendations', () => {
         await saveRecommendation(highRec, { baseDir: recommendationsDir });
         await saveRecommendation(mediumRec, { baseDir: recommendationsDir });
 
-        const result = await listRecommendations({ priority: 'medium' }, { baseDir: recommendationsDir });
+        const result = await listRecommendations(
+          { priority: 'medium' },
+          { baseDir: recommendationsDir }
+        );
 
         expect(result.recommendations).toHaveLength(1);
         expect(result.recommendations[0]?.priority).toBe('medium');
@@ -224,7 +242,10 @@ describe('recommendations/tools/list-recommendations', () => {
       it('should combine status and priority filters', async () => {
         const openHigh = createTestRecommendation({ status: 'open', priority: 'high' });
         const openLow = createTestRecommendation({ status: 'open', priority: 'low' });
-        const implementedHigh = createTestRecommendation({ status: 'implemented', priority: 'high' });
+        const implementedHigh = createTestRecommendation({
+          status: 'implemented',
+          priority: 'high',
+        });
         await saveRecommendation(openHigh, { baseDir: recommendationsDir });
         await saveRecommendation(openLow, { baseDir: recommendationsDir });
         await saveRecommendation(implementedHigh, { baseDir: recommendationsDir });
@@ -242,7 +263,10 @@ describe('recommendations/tools/list-recommendations', () => {
       it('should combine type and status filters', async () => {
         const preventiveOpen = createTestRecommendation({ type: 'preventive', status: 'open' });
         const systemicOpen = createTestRecommendation({ type: 'systemic', status: 'open' });
-        const preventiveImpl = createTestRecommendation({ type: 'preventive', status: 'implemented' });
+        const preventiveImpl = createTestRecommendation({
+          type: 'preventive',
+          status: 'implemented',
+        });
         await saveRecommendation(preventiveOpen, { baseDir: recommendationsDir });
         await saveRecommendation(systemicOpen, { baseDir: recommendationsDir });
         await saveRecommendation(preventiveImpl, { baseDir: recommendationsDir });
@@ -268,7 +292,10 @@ describe('recommendations/tools/list-recommendations', () => {
         await saveRecommendation(openRec, { baseDir: recommendationsDir });
         await saveRecommendation(completedRec, { baseDir: recommendationsDir });
 
-        const result = await listRecommendations({ includeCompleted: false }, { baseDir: recommendationsDir });
+        const result = await listRecommendations(
+          { includeCompleted: false },
+          { baseDir: recommendationsDir }
+        );
 
         expect(result.recommendations).toHaveLength(1);
         expect(result.recommendations[0]?.completedAt).toBeUndefined();
@@ -283,7 +310,10 @@ describe('recommendations/tools/list-recommendations', () => {
         await saveRecommendation(openRec, { baseDir: recommendationsDir });
         await saveRecommendation(completedRec, { baseDir: recommendationsDir });
 
-        const result = await listRecommendations({ includeCompleted: true }, { baseDir: recommendationsDir });
+        const result = await listRecommendations(
+          { includeCompleted: true },
+          { baseDir: recommendationsDir }
+        );
 
         expect(result.recommendations).toHaveLength(2);
       });

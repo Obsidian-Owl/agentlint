@@ -9,10 +9,7 @@
 
 import { z } from 'zod';
 import type { AgentDefinition } from '../../act/types';
-import type {
-  RecommendationSubagentInstructions,
-  RecommendationAdvisorContext,
-} from '../types';
+import type { RecommendationSubagentInstructions, RecommendationAdvisorContext } from '../types';
 
 // =============================================================================
 // Tool Sets
@@ -89,7 +86,9 @@ export const RecommendationSubagentInstructionsSchema = z.object({
  * @param instructions - The recommendation subagent instructions
  * @returns AgentDefinition for SDK registration
  */
-export function toAgentDefinition(instructions: RecommendationSubagentInstructions): AgentDefinition {
+export function toAgentDefinition(
+  instructions: RecommendationSubagentInstructions
+): AgentDefinition {
   const definition: AgentDefinition = {
     description: instructions.description,
     prompt: instructions.prompt,

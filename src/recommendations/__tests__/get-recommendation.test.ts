@@ -233,9 +233,7 @@ describe('recommendations/tools/get-recommendation', () => {
     describe('event context fields', () => {
       it('should preserve event baselineId', async () => {
         const baselineId = crypto.randomUUID();
-        const events = [
-          createTestEvent({ type: 'evidence', content: 'Evidence', baselineId }),
-        ];
+        const events = [createTestEvent({ type: 'evidence', content: 'Evidence', baselineId })];
         const rec = createTestRecommendation({ events });
         await saveRecommendation(rec, { baseDir: recommendationsDir });
 
@@ -258,7 +256,11 @@ describe('recommendations/tools/get-recommendation', () => {
 
       it('should preserve event commitHash', async () => {
         const events = [
-          createTestEvent({ type: 'implementation_signal', content: 'Signal', commitHash: 'abc123' }),
+          createTestEvent({
+            type: 'implementation_signal',
+            content: 'Signal',
+            commitHash: 'abc123',
+          }),
         ];
         const rec = createTestRecommendation({ events });
         await saveRecommendation(rec, { baseDir: recommendationsDir });

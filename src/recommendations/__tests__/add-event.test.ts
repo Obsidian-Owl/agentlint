@@ -296,7 +296,12 @@ describe('recommendations/tools/add-event', () => {
         await saveRecommendation(rec, { baseDir: recommendationsDir });
 
         const result = await addRecommendationEvent(
-          { recommendationId: rec.id, type: 'observation', content: 'Observed', sessionId: 'session-456' },
+          {
+            recommendationId: rec.id,
+            type: 'observation',
+            content: 'Observed',
+            sessionId: 'session-456',
+          },
           { baseDir: recommendationsDir }
         );
 
@@ -308,7 +313,12 @@ describe('recommendations/tools/add-event', () => {
         await saveRecommendation(rec, { baseDir: recommendationsDir });
 
         const result = await addRecommendationEvent(
-          { recommendationId: rec.id, type: 'implementation_signal', content: 'Signal', commitHash: 'abc123def' },
+          {
+            recommendationId: rec.id,
+            type: 'implementation_signal',
+            content: 'Signal',
+            commitHash: 'abc123def',
+          },
           { baseDir: recommendationsDir }
         );
 

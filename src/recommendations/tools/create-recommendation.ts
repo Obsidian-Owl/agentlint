@@ -12,11 +12,7 @@ import { z } from 'zod';
 
 import { saveRecommendation } from '../storage';
 import { CreateRecommendationInputSchema } from '../schemas';
-import type {
-  Recommendation,
-  RecommendationEvent,
-  CreateRecommendationInput,
-} from '../types';
+import type { Recommendation, RecommendationEvent, CreateRecommendationInput } from '../types';
 
 // =============================================================================
 // Input Schema
@@ -28,7 +24,9 @@ import type {
 const createRecommendationInputSchema = {
   type: z
     .enum(['symptomatic', 'preventive', 'systemic'])
-    .describe('Type based on causal depth: symptomatic (quick fix), preventive (prevents recurrence), systemic (structural change)'),
+    .describe(
+      'Type based on causal depth: symptomatic (quick fix), preventive (prevents recurrence), systemic (structural change)'
+    ),
 
   action: z
     .string()
@@ -50,7 +48,9 @@ const createRecommendationInputSchema = {
 
   priority: z
     .enum(['high', 'medium', 'low'])
-    .describe('Priority based on compounding impact: high (blocks work/frequent), medium (improves efficiency), low (nice-to-have)'),
+    .describe(
+      'Priority based on compounding impact: high (blocks work/frequent), medium (improves efficiency), low (nice-to-have)'
+    ),
 
   tracedOrigin: z
     .object({
@@ -61,7 +61,10 @@ const createRecommendationInputSchema = {
     })
     .describe('Causal link to source - at least one field required'),
 
-  projectPath: z.string().optional().describe('Project path (defaults to current working directory)'),
+  projectPath: z
+    .string()
+    .optional()
+    .describe('Project path (defaults to current working directory)'),
 };
 
 // =============================================================================
@@ -239,13 +242,28 @@ Type guide:
   `.trim(),
   createRecommendationInputSchema,
   async (args) => {
+    // Build tracedOrigin without undefined values (exactOptionalPropertyTypes compatibility)
+    const tracedOrigin: CreateRecommendationInput['tracedOrigin'] = {};
+    if (args.tracedOrigin.findingId !== undefined) {
+      tracedOrigin.findingId = args.tracedOrigin.findingId;
+    }
+    if (args.tracedOrigin.sessionId !== undefined) {
+      tracedOrigin.sessionId = args.tracedOrigin.sessionId;
+    }
+    if (args.tracedOrigin.configGap !== undefined) {
+      tracedOrigin.configGap = args.tracedOrigin.configGap;
+    }
+    if (args.tracedOrigin.pattern !== undefined) {
+      tracedOrigin.pattern = args.tracedOrigin.pattern;
+    }
+
     const input: CreateRecommendationInput = {
       type: args.type,
       action: args.action,
       target: args.target,
       rationale: args.rationale,
       priority: args.priority,
-      tracedOrigin: args.tracedOrigin,
+      tracedOrigin,
     };
 
     const result = await createRecommendation(input);

@@ -16,11 +16,12 @@ import { VCR } from '../../lib/vcr';
 import { buildRecommendationAdvisorAgent } from '../../../src/recommendations/subagent/recommendation-advisor';
 import { createRecommendation } from '../../../src/recommendations/tools/create-recommendation';
 import { getRecommendation } from '../../../src/recommendations/tools/get-recommendation';
-import {
-  RecommendationSchema,
-  TracedOriginSchema,
-} from '../../../src/recommendations/schemas';
-import type { Recommendation, TracedOrigin, CreateRecommendationInput } from '../../../src/recommendations/types';
+import { RecommendationSchema, TracedOriginSchema } from '../../../src/recommendations/schemas';
+import type {
+  Recommendation,
+  TracedOrigin,
+  CreateRecommendationInput,
+} from '../../../src/recommendations/types';
 
 // =============================================================================
 // VCR Setup

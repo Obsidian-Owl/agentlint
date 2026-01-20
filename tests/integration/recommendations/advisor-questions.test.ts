@@ -88,9 +88,7 @@ describe('Recommendation Advisor Questions Integration', () => {
         defaultAnswer: 'Error handling (most impactful based on findings)',
       });
 
-      expect(question.defaultAnswer).toBe(
-        'Error handling (most impactful based on findings)'
-      );
+      expect(question.defaultAnswer).toBe('Error handling (most impactful based on findings)');
     });
 
     it('should create complete clarifying question', () => {

@@ -23,7 +23,9 @@ import type { CreateRecommendationInput } from '../types';
 let testDir: string;
 let recommendationsDir: string;
 
-function createValidInput(overrides: Partial<CreateRecommendationInput> = {}): CreateRecommendationInput {
+function createValidInput(
+  overrides: Partial<CreateRecommendationInput> = {}
+): CreateRecommendationInput {
   return {
     type: 'preventive',
     action: 'Add error handling guidance to CLAUDE.md',
@@ -130,7 +132,9 @@ describe('recommendations/tools/create-recommendation', () => {
         const input = createValidInput();
         const result = await createRecommendation(input, { baseDir: recommendationsDir });
 
-        const loaded = await loadRecommendation(result.recommendation!.id, { baseDir: recommendationsDir });
+        const loaded = await loadRecommendation(result.recommendation!.id, {
+          baseDir: recommendationsDir,
+        });
         expect(loaded).toBeDefined();
         expect(loaded?.id).toBe(result.recommendation?.id);
       });

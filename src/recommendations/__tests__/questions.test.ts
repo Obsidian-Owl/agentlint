@@ -9,12 +9,7 @@
 
 import { describe, it, expect } from 'bun:test';
 
-import type {
-  ClarifyingQuestion,
-  QuestionOption,
-  AdvisorOutput,
-  Recommendation,
-} from '../types';
+import type { ClarifyingQuestion, QuestionOption, AdvisorOutput, Recommendation } from '../types';
 import {
   formatClarifyingQuestion,
   formatAdvisorOutput,
@@ -62,8 +57,14 @@ describe('recommendations/subagent/questions', () => {
       const question: ClarifyingQuestion = {
         question: 'Which error handling approach do you prefer?',
         options: [
-          { label: 'Try-catch blocks', description: 'Wrap code in try-catch for explicit handling' },
-          { label: 'Result types', description: 'Use Result<T, E> pattern for functional approach' },
+          {
+            label: 'Try-catch blocks',
+            description: 'Wrap code in try-catch for explicit handling',
+          },
+          {
+            label: 'Result types',
+            description: 'Use Result<T, E> pattern for functional approach',
+          },
         ],
         context: 'This affects how errors are surfaced to users.',
         defaultAnswer: 'Try-catch blocks',

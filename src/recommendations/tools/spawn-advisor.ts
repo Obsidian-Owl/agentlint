@@ -137,7 +137,9 @@ export function buildQueryPrompt(context: RecommendationAdvisorContext): string 
   // Causal traces
   if (context.causalTraceCount > 0) {
     parts.push(`**Causal traces available**: ${context.causalTraceCount}`);
-    parts.push('Use causal traces to identify root causes and generate preventive recommendations.');
+    parts.push(
+      'Use causal traces to identify root causes and generate preventive recommendations.'
+    );
   }
 
   // Historic recommendations
@@ -152,9 +154,7 @@ export function buildQueryPrompt(context: RecommendationAdvisorContext): string 
   switch (context.interactionMode) {
     case 'ask':
       parts.push('**Mode**: Ask first');
-      parts.push(
-        'Prioritize asking clarifying questions when multiple valid approaches exist.'
-      );
+      parts.push('Prioritize asking clarifying questions when multiple valid approaches exist.');
       parts.push('Return questions before generating recommendations if context is ambiguous.');
       break;
 

@@ -146,9 +146,7 @@ export function formatAdvisorOutput(output: AdvisorOutput): string {
  * Parse clarifying questions from subagent output.
  * The subagent returns questions in a structured format.
  */
-export function parseClarifyingQuestions(
-  rawOutput: unknown
-): ClarifyingQuestion[] | undefined {
+export function parseClarifyingQuestions(rawOutput: unknown): ClarifyingQuestion[] | undefined {
   if (!rawOutput || typeof rawOutput !== 'object') {
     return undefined;
   }

@@ -209,7 +209,8 @@ describe('recommendations/tools/spawn-advisor', () => {
         const context = buildAdvisorContext({
           findings: [createMockFinding()],
         });
-        const prompt = buildQueryPrompt(context);
+        // Call buildQueryPrompt to ensure it works (side effect is building the prompt)
+        buildQueryPrompt(context);
 
         // When no causal traces, shouldn't emphasize them
         expect(context.causalTraceCount).toBe(0);

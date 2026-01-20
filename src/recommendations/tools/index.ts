@@ -14,27 +14,15 @@ export {
 } from './spawn-advisor';
 
 // Recommendation CRUD tools
-export {
-  createRecommendationTool,
-  createRecommendation,
-} from './create-recommendation';
+export { createRecommendationTool, createRecommendation } from './create-recommendation';
 
-export {
-  getRecommendationTool,
-  getRecommendation,
-} from './get-recommendation';
+export { getRecommendationTool, getRecommendation } from './get-recommendation';
 
 // Event management tools
-export {
-  addRecommendationEventTool,
-  addRecommendationEvent,
-} from './add-event';
+export { addRecommendationEventTool, addRecommendationEvent } from './add-event';
 
 // Query tools
-export {
-  listRecommendationsTool,
-  listRecommendations,
-} from './list-recommendations';
+export { listRecommendationsTool, listRecommendations } from './list-recommendations';
 
 export {
   getRecommendationSummaryTool,
@@ -42,18 +30,9 @@ export {
 } from './get-recommendation-summary';
 
 // Refinement tools
-export {
-  refineRecommendationTool,
-  refineRecommendation,
-} from './refine-recommendation';
+export { refineRecommendationTool, refineRecommendation } from './refine-recommendation';
 
 // Status management tools
-export {
-  updateRecommendationStatusTool,
-  updateRecommendationStatus,
-} from './update-status';
+export { updateRecommendationStatusTool, updateRecommendationStatus } from './update-status';
 
-export {
-  completeRecommendationTool,
-  completeRecommendation,
-} from './complete-recommendation';
+export { completeRecommendationTool, completeRecommendation } from './complete-recommendation';

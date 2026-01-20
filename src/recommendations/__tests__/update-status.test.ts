@@ -14,7 +14,7 @@ import { tmpdir } from 'node:os';
 
 import { updateRecommendationStatusTool, updateRecommendationStatus } from '../tools/update-status';
 import { saveRecommendation, loadRecommendation } from '../storage';
-import type { Recommendation, RecommendationEvent, RecommendationStatus } from '../types';
+import type { Recommendation, RecommendationEvent } from '../types';
 
 // =============================================================================
 // Test Setup
