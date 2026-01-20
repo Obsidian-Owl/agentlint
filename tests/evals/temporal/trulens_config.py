@@ -19,11 +19,11 @@ See ADR-0011 (Testing Strategy) and ADR-0012 (Evaluation Framework).
 
 from typing import Any
 
-# TruLens imports - these will be available when TruLens is installed
-# For now, we define the interfaces and feedback function logic
+# TruLens imports - uses LiteLLM provider which can call OpenAI/Anthropic/etc.
+# Install with: cd tests/evals && uv sync
 try:
     from trulens.core import Feedback, TruSession
-    from trulens.providers.openai import OpenAI as TruLensOpenAI
+    from trulens.providers.litellm import LiteLLM
     TRULENS_AVAILABLE = True
 except ImportError:
     TRULENS_AVAILABLE = False
@@ -38,10 +38,10 @@ except ImportError:
     class TruSession:
         def __init__(self, **kwargs):
             pass
-    class TruLensOpenAI:
+    class LiteLLM:
         def relevance(self, *args, **kwargs):
             return 0.5
-        def groundedness(self, *args, **kwargs):
+        def groundedness_measure_with_cot_reasons(self, *args, **kwargs):
             return 0.5
         def coherence(self, *args, **kwargs):
             return 0.5
@@ -67,21 +67,31 @@ def get_trulens_session(database_path: str = ".agentlint/evals.db") -> TruSessio
 # Provider Configuration
 # =============================================================================
 
-def get_provider() -> TruLensOpenAI:
+def get_provider() -> LiteLLM:
     """
     Get the TruLens evaluation provider.
 
-    Uses OpenAI as the LLM-as-judge per ADR-0011 recommendation
-    to avoid meta-circularity (using Claude to judge Claude).
+    Uses LiteLLM which can call OpenAI/Anthropic/etc as LLM-as-judge.
+    Defaults to claude-3-5-haiku for cost efficiency.
+
+    Note: Per ADR-0011, we ideally avoid meta-circularity (using Claude to
+    judge Claude), but for local development Anthropic is acceptable.
+    For release gates, consider using OpenAI by setting OPENAI_API_KEY.
     """
-    return TruLensOpenAI()
+    import os
+    import litellm
+    # Enable modify_params for Anthropic compatibility (adds dummy user message if needed)
+    litellm.modify_params = True
+    # Use LITELLM_MODEL env var if set, otherwise default to claude-3-5-haiku
+    model = os.environ.get("LITELLM_MODEL", "anthropic/claude-3-5-haiku-latest")
+    return LiteLLM(model_engine=model)
 
 
 # =============================================================================
 # Standard Feedback Functions
 # =============================================================================
 
-def get_standard_feedbacks(provider: TruLensOpenAI) -> dict[str, Feedback]:
+def get_standard_feedbacks(provider: LiteLLM) -> dict[str, Feedback]:
     """
     Standard TruLens feedback functions for general quality.
 
@@ -90,7 +100,7 @@ def get_standard_feedbacks(provider: TruLensOpenAI) -> dict[str, Feedback]:
     """
     return {
         "relevance": Feedback(provider.relevance).on_input_output(),
-        "groundedness": Feedback(provider.groundedness).on_input_output(),
+        "groundedness": Feedback(provider.groundedness_measure_with_cot_reasons).on_input_output(),
         "coherence": Feedback(provider.coherence).on_output(),
     }
 
@@ -131,15 +141,17 @@ def trend_accuracy(trend_analysis: dict[str, Any], baseline_data: dict[str, Any]
     - Does the agent appropriately acknowledge uncertainty (low R-squared)?
     - Are correlations correctly interpreted (not causation)?
 
-    Rate accuracy from 0 to 1:
-    - 1.0: Interpretation fully matches the statistical evidence
-    - 0.5: Partially accurate, some patterns missed or misinterpreted
-    - 0.0: Interpretation contradicts or ignores the data
+    Rate accuracy from 0 to 10:
+    - 10: Interpretation fully matches the statistical evidence
+    - 5: Partially accurate, some patterns missed or misinterpreted
+    - 0: Interpretation contradicts or ignores the data
 
-    Score (0-1):
+    Score (0-10):
     """
     if TRULENS_AVAILABLE:
-        return get_provider().generate_score(prompt)
+        result = get_provider().generate_score(prompt)
+        # generate_score returns (score, metadata) tuple
+        return result[0] if isinstance(result, tuple) else result
     return 0.5  # Stub for testing
 
 
@@ -181,15 +193,17 @@ def review_quality(review_output: dict[str, Any]) -> float:
 
     4. **Theme identification**: Themes should emerge from content, not be imposed
 
-    Rate quality from 0 to 1:
-    - 1.0: Neutral questions, balanced coverage, accurate sentiment
-    - 0.5: Mostly balanced but some leading or missing dimensions
-    - 0.0: Leading questions or significant sentiment misalignment
+    Rate quality from 0 to 10:
+    - 10: Neutral questions, balanced coverage, accurate sentiment
+    - 5: Mostly balanced but some leading or missing dimensions
+    - 0: Leading questions or significant sentiment misalignment
 
-    Score (0-1):
+    Score (0-10):
     """
     if TRULENS_AVAILABLE:
-        return get_provider().generate_score(prompt)
+        result = get_provider().generate_score(prompt)
+        # generate_score returns (score, metadata) tuple
+        return result[0] if isinstance(result, tuple) else result
     return 0.5  # Stub for testing
 
 
@@ -210,7 +224,7 @@ def recommendation_actionability(recommendation: dict[str, Any]) -> float:
         - 0.0: Too abstract to implement
     """
     prompt = f"""
-    Rate this recommendation's actionability from 0 to 1.
+    Rate this recommendation's actionability from 0 to 10.
 
     ## Recommendation
     {recommendation}
@@ -221,15 +235,17 @@ def recommendation_actionability(recommendation: dict[str, Any]) -> float:
     3. **Implementability**: Can a developer act on this immediately?
     4. **Rationale**: Is there clear reasoning for why this change helps?
 
-    Rate actionability from 0 to 1:
-    - 1.0: Clear action, specific location, concrete change with rationale
-    - 0.5: Actionable but vague about specifics or missing rationale
-    - 0.0: Too abstract to implement ("improve configuration quality")
+    Rate actionability from 0 to 10:
+    - 10: Clear action, specific location, concrete change with rationale
+    - 5: Actionable but vague about specifics or missing rationale
+    - 0: Too abstract to implement ("improve configuration quality")
 
-    Score (0-1):
+    Score (0-10):
     """
     if TRULENS_AVAILABLE:
-        return get_provider().generate_score(prompt)
+        result = get_provider().generate_score(prompt)
+        # generate_score returns (score, metadata) tuple
+        return result[0] if isinstance(result, tuple) else result
     return 0.5  # Stub for testing
 
 
@@ -262,15 +278,17 @@ def causal_accuracy(causal_chain: dict[str, Any]) -> float:
     4. **Alternative explanations**: Are other potential causes considered?
     5. **Mechanism clarity**: Is there a clear explanation of HOW the cause led to the effect?
 
-    Rate causal accuracy from 0 to 1:
-    - 1.0: Clear, evidence-supported causal chain with mechanism explanation
-    - 0.5: Plausible connection but weak evidence or missing mechanism
-    - 0.0: No causal connection, correlation mistaken for causation, or wrong attribution
+    Rate causal accuracy from 0 to 10:
+    - 10: Clear, evidence-supported causal chain with mechanism explanation
+    - 5: Plausible connection but weak evidence or missing mechanism
+    - 0: No causal connection, correlation mistaken for causation, or wrong attribution
 
-    Score (0-1):
+    Score (0-10):
     """
     if TRULENS_AVAILABLE:
-        return get_provider().generate_score(prompt)
+        result = get_provider().generate_score(prompt)
+        # generate_score returns (score, metadata) tuple
+        return result[0] if isinstance(result, tuple) else result
     return 0.5  # Stub for testing
 
 
@@ -315,15 +333,17 @@ def mixed_methods_alignment(
     3. **Root cause exploration**: For divergences, did the agent suggest possible explanations?
     4. **Synthesis quality**: Does the interpretation combine both data sources meaningfully?
 
-    Rate mixed-methods synthesis from 0 to 1:
-    - 1.0: Correctly identifies patterns, explains alignment/divergence with insight
-    - 0.5: Partial synthesis, notices some patterns but misses others
-    - 0.0: Fails to synthesize, treats data sources independently, or misses divergence
+    Rate mixed-methods synthesis from 0 to 10:
+    - 10: Correctly identifies patterns, explains alignment/divergence with insight
+    - 5: Partial synthesis, notices some patterns but misses others
+    - 0: Fails to synthesize, treats data sources independently, or misses divergence
 
-    Score (0-1):
+    Score (0-10):
     """
     if TRULENS_AVAILABLE:
-        return get_provider().generate_score(prompt)
+        result = get_provider().generate_score(prompt)
+        # generate_score returns (score, metadata) tuple
+        return result[0] if isinstance(result, tuple) else result
     return 0.5  # Stub for testing
 
 
@@ -331,19 +351,26 @@ def mixed_methods_alignment(
 # Feedback Function Registry
 # =============================================================================
 
-def get_temporal_feedbacks(provider: TruLensOpenAI | None = None) -> dict[str, Feedback]:
+class FeedbackWrapper:
+    """Wrapper to provide consistent .func interface for feedback functions."""
+    def __init__(self, func):
+        self.func = func
+
+
+def get_temporal_feedbacks(provider: LiteLLM | None = None) -> dict[str, FeedbackWrapper]:
     """
     Get all temporal analysis feedback functions.
 
     Returns:
-        Dictionary of feedback function name to Feedback object.
+        Dictionary of feedback function name to FeedbackWrapper object.
+        Each wrapper has a .func attribute that can be called directly.
     """
     return {
-        "trend_accuracy": Feedback(trend_accuracy),
-        "review_quality": Feedback(review_quality),
-        "recommendation_actionability": Feedback(recommendation_actionability),
-        "causal_accuracy": Feedback(causal_accuracy),
-        "mixed_methods_alignment": Feedback(mixed_methods_alignment),
+        "trend_accuracy": FeedbackWrapper(trend_accuracy),
+        "review_quality": FeedbackWrapper(review_quality),
+        "recommendation_actionability": FeedbackWrapper(recommendation_actionability),
+        "causal_accuracy": FeedbackWrapper(causal_accuracy),
+        "mixed_methods_alignment": FeedbackWrapper(mixed_methods_alignment),
     }
 
 

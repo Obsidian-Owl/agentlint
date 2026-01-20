@@ -126,7 +126,10 @@ def run_evaluations(
 
     # Find scenarios to evaluate
     if golden_dir and golden_dir.exists():
-        scenario_files = list(golden_dir.glob("*.json"))
+        scenario_files = [
+            f for f in golden_dir.glob("scenario-*.json")
+            if f.name != "manifest.json"
+        ]
         if scenario_name:
             scenario_files = [f for f in scenario_files if scenario_name in f.stem]
     else:

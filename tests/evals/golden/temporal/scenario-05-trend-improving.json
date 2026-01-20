@@ -59,6 +59,19 @@
     "trend_summary": "Both findingsCount and avgTokensPerSession show strong, consistent downward trends with high R² values (>0.95), indicating reliable improvement."
   },
 
+  "causal_chains": [
+    {
+      "symptom": "Consistent downward trend in findings and token usage",
+      "traced_cause": "Iterative configuration improvements",
+      "evidence": [
+        "R² > 0.95 indicates systematic improvement, not random variation",
+        "Both metrics improve in lockstep",
+        "Improvement sustained across 5 baselines"
+      ],
+      "mechanism": "Each configuration iteration addressed specific gaps identified in previous baseline, creating compounding improvement"
+    }
+  ],
+
   "recommendations": [
     {
       "id": "rec-006",

@@ -34,6 +34,26 @@
     "warning": "Insufficient data for trend analysis (minimum 3 baselines recommended)"
   },
 
+  "trend_analysis": {
+    "interpretation": "Insufficient data for trend analysis - only 2 baselines available. Metrics show improvement but confidence is low.",
+    "detected_patterns": ["insufficient_data"],
+    "confidence": 0.3,
+    "warning": "Minimum 3 baselines required for meaningful trend analysis"
+  },
+
+  "causal_chains": [
+    {
+      "symptom": "Findings reduced 33% and critical count eliminated",
+      "traced_cause": "Unknown - insufficient data to establish causality",
+      "evidence": [
+        "Only 2 baselines available",
+        "Single comparison provides no trend context",
+        "Could be random variation or genuine improvement"
+      ],
+      "mechanism": "Causal inference requires multiple data points to distinguish signal from noise; current data insufficient for confident attribution"
+    }
+  ],
+
   "recommendations": [
     {
       "id": "rec-019",

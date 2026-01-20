@@ -43,6 +43,14 @@
     }
   },
 
+  "trend_analysis": {
+    "interpretation": "Metrics are completely stable between the two baselines, indicating no change in workflow effectiveness or configuration quality.",
+    "detected_patterns": ["stable", "consistent"],
+    "confidence": 1.0,
+    "slope": 0,
+    "r_squared": 1.0
+  },
+
   "expected_properties": {
     "delta_type": "no_change",
     "metrics_changed": [],
@@ -52,6 +60,32 @@
       "unchanged": 10
     }
   },
+
+  "causal_chains": [
+    {
+      "symptom": "No metric changes between baselines",
+      "traced_cause": "Stable workflow with no configuration changes",
+      "evidence": [
+        "All 10 metrics unchanged",
+        "One week between baselines",
+        "No workflow disruptions detected"
+      ],
+      "mechanism": "Consistent usage patterns and configuration produce consistent results"
+    }
+  ],
+
+  "recommendations": [
+    {
+      "id": "rec-001",
+      "type": "observation",
+      "summary": "Workflow stability confirmed",
+      "action": "No action required; continue current practices",
+      "evidence": [
+        "All metrics stable for 1 week",
+        "No regressions detected"
+      ]
+    }
+  ],
 
   "rubric_weights": {
     "trend_accuracy": 0.4,

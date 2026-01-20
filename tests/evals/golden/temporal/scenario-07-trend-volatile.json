@@ -59,6 +59,19 @@
     "trend_summary": "Both metrics show high volatility with very low R² values (<0.10), indicating no reliable trend. Week-to-week swings of 50%+ suggest unstable conditions or measurement inconsistency."
   },
 
+  "causal_chains": [
+    {
+      "symptom": "High volatility with no discernible trend (R² < 0.10)",
+      "traced_cause": "External factors or inconsistent measurement conditions",
+      "evidence": [
+        "findingsCount varies from 10 to 32 without clear pattern",
+        "Session duration varies from 70 to 150 minutes",
+        "Low R² indicates noise dominates signal"
+      ],
+      "mechanism": "Volatility suggests external factors (task type, team composition, time pressure) may be driving variation more than configuration; or measurement methodology may be inconsistent"
+    }
+  ],
+
   "recommendations": [
     {
       "id": "rec-009",

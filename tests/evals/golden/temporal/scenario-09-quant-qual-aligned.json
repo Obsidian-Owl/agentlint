@@ -74,6 +74,19 @@
     "validation_confidence": "high"
   },
 
+  "causal_chains": [
+    {
+      "symptom": "64% improvement in quantitative metrics + 0.46 improvement in qualitative sentiment",
+      "traced_cause": "Configuration changes addressed root causes of both metric and experience issues",
+      "evidence": [
+        "Critical findings eliminated (3 → 0)",
+        "All sentiment dimensions improved in parallel",
+        "Strong temporal correlation between configuration change and improvements"
+      ],
+      "mechanism": "Configuration improvements reduced agent errors (measured quantitatively) which directly improved user experience (measured qualitatively), demonstrating genuine workflow enhancement rather than metric gaming"
+    }
+  ],
+
   "recommendations": [
     {
       "id": "rec-013",

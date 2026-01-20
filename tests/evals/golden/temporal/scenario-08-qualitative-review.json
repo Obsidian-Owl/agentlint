@@ -61,6 +61,28 @@
     "sentiment_score_alignment": true
   },
 
+  "causal_chains": [
+    {
+      "symptom": "Low configuration confidence (2/5)",
+      "traced_cause": "Incomplete CLAUDE.md documentation",
+      "evidence": [
+        "User explicitly noted 'CLAUDE.md feels incomplete'",
+        "File organization friction indicates missing conventions",
+        "Negative sentiment (-1) only in configurationConfidence dimension"
+      ],
+      "mechanism": "Missing project conventions in CLAUDE.md leads to agent guessing at file organization, causing friction and eroding user confidence"
+    },
+    {
+      "symptom": "Context loss frustration",
+      "traced_cause": "Session continuity not configured",
+      "evidence": [
+        "workflowSatisfaction notes 'context loss between sessions is frustrating'",
+        "Session summaries or checkpoints not in use"
+      ],
+      "mechanism": "Without session continuity mechanisms, each new session starts fresh, requiring user to re-explain context"
+    }
+  ],
+
   "recommendations": [
     {
       "id": "rec-011",
