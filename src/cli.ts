@@ -8,9 +8,11 @@
 
 import { run } from './cli/program';
 import { formatError, getExitCode } from './errors';
+import { redact } from './debug/redaction';
 
 // Run the CLI with error handling
 run().catch((error) => {
-  console.error(formatError(error));
+  // Redact any secrets from error messages before printing
+  console.error(redact(formatError(error)));
   process.exit(getExitCode(error));
 });

@@ -23,6 +23,7 @@ import type {
   SecretScanResult,
   ISecretDetector,
 } from './types';
+import { toSafeSecretCandidates } from './types';
 
 // =============================================================================
 // Constants
@@ -296,12 +297,13 @@ export class SecretDetector implements ISecretDetector {
     const durationMs = performance.now() - startTime;
 
     // Create result WITHOUT the match field for serialization safety
-    const safeCandiates = candidates.map(({ match: _match, ...rest }) => rest);
+    // Using Zod validation to enforce at runtime
+    const safeCandidates = toSafeSecretCandidates(candidates);
 
     return {
       file: filePath,
       candidateCount: candidates.length,
-      candidates: safeCandiates,
+      candidates: safeCandidates,
       durationMs,
     };
   }

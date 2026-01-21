@@ -10,6 +10,7 @@
  */
 
 import { existsSync, readdirSync, unlinkSync } from 'node:fs';
+import { unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 
@@ -296,7 +297,7 @@ export async function cleanup(options: CleanupOptions = {}): Promise<number> {
 
     if (sessionTime < cutoffTime) {
       const filePath = join(baseDir, `${sessionId}.json`);
-      unlinkSync(filePath);
+      await unlink(filePath);
       deleted++;
     }
   }

@@ -15,7 +15,9 @@ export * from './scoring';
 // Re-export feedback collection
 export * from './feedback';
 
-// Graders and runner will be exported after implementation
-// export * from './graders/code-based';
-// export * from './graders/llm-judge';
-// export * from './runner';
+// Re-export graders
+export * from './graders/code-based';
+export * from './graders/llm-judge';
+
+// Re-export evaluation runner
+export * from './runner';

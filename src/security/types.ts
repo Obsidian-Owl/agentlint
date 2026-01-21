@@ -1,10 +1,12 @@
 /**
  * EP11 Quality & Security - Security Type Definitions
  *
- * TypeScript interfaces for secret detection and classification.
+ * TypeScript interfaces and Zod schemas for secret detection and classification.
  *
  * @module security/types
  */
+
+import { z } from 'zod';
 
 // =============================================================================
 // Gitleaks Pattern Types
@@ -276,4 +278,74 @@ export interface ISecretClassifier {
 export interface SecretDetectionCLIOptions {
   /** Disable secret scanning (opt-out) */
   noSecrets?: boolean;
+}
+
+// =============================================================================
+// Zod Schemas for Runtime Validation
+// =============================================================================
+
+/**
+ * Zod schema for FileLocation.
+ */
+export const FileLocationSchema = z.object({
+  file: z.string(),
+  line: z.number().int().positive(),
+  column: z.number().int().nonnegative().optional(),
+});
+
+/**
+ * Zod schema for SecretCandidate.
+ *
+ * IMPORTANT: This schema includes the `match` field which contains
+ * actual secret values. Use SafeSecretCandidateSchema for serialization.
+ */
+export const SecretCandidateSchema = z.object({
+  id: z.string().uuid(),
+  ruleId: z.string(),
+  ruleDescription: z.string(),
+  match: z.string(),
+  redactedContext: z.string(),
+  entropy: z.number().nonnegative(),
+  location: FileLocationSchema,
+  keywords: z.array(z.string()).optional(),
+  detectedAt: z.string().datetime({ offset: true }),
+});
+
+/**
+ * Safe version of SecretCandidate that omits the `match` field.
+ *
+ * Use this schema for:
+ * - Serialization to JSON
+ * - Logging (even debug mode)
+ * - Transmission to external services
+ * - Persistence to disk
+ */
+export const SafeSecretCandidateSchema = SecretCandidateSchema.omit({ match: true });
+
+/**
+ * Type for safe secret candidate without match field.
+ */
+export type SafeSecretCandidate = z.infer<typeof SafeSecretCandidateSchema>;
+
+/**
+ * Validate and strip the match field from a SecretCandidate.
+ * Returns a safe version suitable for serialization.
+ *
+ * @param candidate - The candidate with match field
+ * @returns Safe candidate without match field
+ */
+export function toSafeSecretCandidate(candidate: SecretCandidate): SafeSecretCandidate {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  const { match: _match, ...safe } = candidate;
+  return SafeSecretCandidateSchema.parse(safe);
+}
+
+/**
+ * Validate and strip match fields from an array of candidates.
+ *
+ * @param candidates - Array of candidates with match field
+ * @returns Array of safe candidates without match field
+ */
+export function toSafeSecretCandidates(candidates: SecretCandidate[]): SafeSecretCandidate[] {
+  return candidates.map(toSafeSecretCandidate);
 }

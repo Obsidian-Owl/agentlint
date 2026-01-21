@@ -30,8 +30,10 @@ export {
   countChangesByDirection,
   isInvertedMetric,
   getDirectionSymbol,
-  isDirectionImprovement,
 } from './trends';
+
+// Note: isDirectionImprovement was removed per ADR-0019.
+// The agent determines whether a direction represents improvement based on context.
 
 export type { Direction, TrendIndicatorResult } from './trends';
 

@@ -25,6 +25,9 @@ import type {
 /**
  * Insert a causal chain with its evidence items.
  *
+ * Uses a transaction to ensure atomicity - either all inserts succeed
+ * or the entire operation is rolled back.
+ *
  * @param db - Database instance
  * @param chain - Causal chain to insert
  * @returns The inserted chain ID
@@ -32,81 +35,87 @@ import type {
 export function insertChain(db: Database, chain: CausalChain): string {
   const chainId = chain.id || uuidv4();
 
-  // Insert chain
-  const insertChainStmt = db.prepare(`
-    INSERT INTO causal_chains (
-      id, issue_id, trigger_summary,
-      gap_type, gap_location, gap_expected_guidance, gap_counterfactual,
-      mechanism, effect,
-      confidence_overall, confidence_specificity, confidence_temporal,
-      confidence_mechanistic, confidence_evidence_quality,
-      confidence_reproducibility, confidence_alternatives,
-      depth, depth_limit_reached, project_path, created_at,
-      counterfactual, pattern_id
-    ) VALUES (
-      $id, $issueId, $triggerSummary,
-      $gapType, $gapLocation, $gapExpectedGuidance, $gapCounterfactual,
-      $mechanism, $effect,
-      $confidenceOverall, $confidenceSpecificity, $confidenceTemporal,
-      $confidenceMechanistic, $confidenceEvidenceQuality,
-      $confidenceReproducibility, $confidenceAlternatives,
-      $depth, $depthLimitReached, $projectPath, $createdAt,
-      $counterfactual, $patternId
-    )
-  `);
+  // Wrap in transaction for atomicity
+  const insertTransaction = db.transaction(() => {
+    // Insert chain
+    const insertChainStmt = db.prepare(`
+      INSERT INTO causal_chains (
+        id, issue_id, trigger_summary,
+        gap_type, gap_location, gap_expected_guidance, gap_counterfactual,
+        mechanism, effect,
+        confidence_overall, confidence_specificity, confidence_temporal,
+        confidence_mechanistic, confidence_evidence_quality,
+        confidence_reproducibility, confidence_alternatives,
+        depth, depth_limit_reached, project_path, created_at,
+        counterfactual, pattern_id
+      ) VALUES (
+        $id, $issueId, $triggerSummary,
+        $gapType, $gapLocation, $gapExpectedGuidance, $gapCounterfactual,
+        $mechanism, $effect,
+        $confidenceOverall, $confidenceSpecificity, $confidenceTemporal,
+        $confidenceMechanistic, $confidenceEvidenceQuality,
+        $confidenceReproducibility, $confidenceAlternatives,
+        $depth, $depthLimitReached, $projectPath, $createdAt,
+        $counterfactual, $patternId
+      )
+    `);
 
-  insertChainStmt.run({
-    $id: chainId,
-    $issueId: chain.issueId,
-    $triggerSummary: chain.trigger.content ?? chain.trigger.source,
-    $gapType: chain.gap?.type ?? null,
-    $gapLocation: chain.gap?.location ?? null,
-    $gapExpectedGuidance: chain.gap?.expectedGuidance ?? null,
-    $gapCounterfactual: chain.gap?.counterfactual ?? null,
-    $mechanism: chain.mechanism,
-    $effect: chain.effect,
-    $confidenceOverall: chain.confidence.overall,
-    $confidenceSpecificity: chain.confidence.specificity ? 1 : 0,
-    $confidenceTemporal: chain.confidence.temporal ? 1 : 0,
-    $confidenceMechanistic: chain.confidence.mechanistic ? 1 : 0,
-    $confidenceEvidenceQuality: chain.confidence.evidenceQuality ? 1 : 0,
-    $confidenceReproducibility: chain.confidence.reproducibility ? 1 : 0,
-    $confidenceAlternatives: chain.confidence.alternatives ? 1 : 0,
-    $depth: chain.depth,
-    $depthLimitReached: chain.depthLimitReached ? 1 : 0,
-    $projectPath: chain.projectPath,
-    $createdAt: chain.createdAt,
-    $counterfactual: chain.counterfactual ?? null,
-    $patternId: chain.patternId ?? null,
-  });
+    insertChainStmt.run({
+      $id: chainId,
+      $issueId: chain.issueId,
+      $triggerSummary: chain.trigger.content ?? chain.trigger.source,
+      $gapType: chain.gap?.type ?? null,
+      $gapLocation: chain.gap?.location ?? null,
+      $gapExpectedGuidance: chain.gap?.expectedGuidance ?? null,
+      $gapCounterfactual: chain.gap?.counterfactual ?? null,
+      $mechanism: chain.mechanism,
+      $effect: chain.effect,
+      $confidenceOverall: chain.confidence.overall,
+      $confidenceSpecificity: chain.confidence.specificity ? 1 : 0,
+      $confidenceTemporal: chain.confidence.temporal ? 1 : 0,
+      $confidenceMechanistic: chain.confidence.mechanistic ? 1 : 0,
+      $confidenceEvidenceQuality: chain.confidence.evidenceQuality ? 1 : 0,
+      $confidenceReproducibility: chain.confidence.reproducibility ? 1 : 0,
+      $confidenceAlternatives: chain.confidence.alternatives ? 1 : 0,
+      $depth: chain.depth,
+      $depthLimitReached: chain.depthLimitReached ? 1 : 0,
+      $projectPath: chain.projectPath,
+      $createdAt: chain.createdAt,
+      $counterfactual: chain.counterfactual ?? null,
+      $patternId: chain.patternId ?? null,
+    });
 
-  // Insert evidence items
-  const insertEvidenceStmt = db.prepare(`
-    INSERT INTO evidence_items (
-      id, chain_id, type, source, timestamp, content,
-      file_path, line_number, column_number, snippet, metadata, sequence
-    ) VALUES (
-      $id, $chainId, $type, $source, $timestamp, $content,
-      $filePath, $lineNumber, $columnNumber, $snippet, $metadata, $sequence
-    )
-  `);
+    // Insert evidence items
+    const insertEvidenceStmt = db.prepare(`
+      INSERT INTO evidence_items (
+        id, chain_id, type, source, timestamp, content,
+        file_path, line_number, column_number, snippet, metadata, sequence
+      ) VALUES (
+        $id, $chainId, $type, $source, $timestamp, $content,
+        $filePath, $lineNumber, $columnNumber, $snippet, $metadata, $sequence
+      )
+    `);
 
-  chain.evidence.forEach((evidence, index) => {
-    insertEvidenceStmt.run({
-      $id: evidence.id || uuidv4(),
-      $chainId: chainId,
-      $type: evidence.type,
-      $source: evidence.source,
-      $timestamp: evidence.timestamp ?? null,
-      $content: evidence.content ?? null,
-      $filePath: evidence.position?.filePath ?? null,
-      $lineNumber: evidence.position?.line ?? null,
-      $columnNumber: evidence.position?.column ?? null,
-      $snippet: evidence.position?.snippet ?? null,
-      $metadata: evidence.metadata ? JSON.stringify(evidence.metadata) : null,
-      $sequence: index,
+    chain.evidence.forEach((evidence, index) => {
+      insertEvidenceStmt.run({
+        $id: evidence.id || uuidv4(),
+        $chainId: chainId,
+        $type: evidence.type,
+        $source: evidence.source,
+        $timestamp: evidence.timestamp ?? null,
+        $content: evidence.content ?? null,
+        $filePath: evidence.position?.filePath ?? null,
+        $lineNumber: evidence.position?.line ?? null,
+        $columnNumber: evidence.position?.column ?? null,
+        $snippet: evidence.position?.snippet ?? null,
+        $metadata: evidence.metadata ? JSON.stringify(evidence.metadata) : null,
+        $sequence: index,
+      });
     });
   });
+
+  // Execute the transaction
+  insertTransaction();
 
   return chainId;
 }
@@ -342,37 +351,47 @@ export function deleteChain(db: Database, chainId: string): boolean {
 export function insertPattern(db: Database, pattern: IssuePattern): string {
   const patternId = pattern.id || uuidv4();
 
-  const insertPatternStmt = db.prepare(`
-    INSERT INTO issue_patterns (
-      id, category, frequency, is_systemic,
-      first_occurrence, last_occurrence, project_path, summary
-    ) VALUES (
-      $id, $category, $frequency, $isSystemic,
-      $firstOccurrence, $lastOccurrence, $projectPath, $summary
-    )
-  `);
+  // Wrap in transaction for atomicity
+  const insertTransaction = db.transaction(() => {
+    const insertPatternStmt = db.prepare(`
+      INSERT INTO issue_patterns (
+        id, category, frequency, is_systemic,
+        first_occurrence, last_occurrence, project_path, summary
+      ) VALUES (
+        $id, $category, $frequency, $isSystemic,
+        $firstOccurrence, $lastOccurrence, $projectPath, $summary
+      )
+    `);
 
-  insertPatternStmt.run({
-    $id: patternId,
-    $category: pattern.category,
-    $frequency: pattern.frequency,
-    $isSystemic: pattern.isSystemic ? 1 : 0,
-    $firstOccurrence: pattern.firstOccurrence,
-    $lastOccurrence: pattern.lastOccurrence,
-    $projectPath: pattern.projectPath ?? null,
-    $summary: pattern.summary,
+    insertPatternStmt.run({
+      $id: patternId,
+      $category: pattern.category,
+      $frequency: pattern.frequency,
+      $isSystemic: pattern.isSystemic ? 1 : 0,
+      $firstOccurrence: pattern.firstOccurrence,
+      $lastOccurrence: pattern.lastOccurrence,
+      $projectPath: pattern.projectPath ?? null,
+      $summary: pattern.summary,
+    });
+
+    // Link chains to pattern
+    const insertLinkStmt = db.prepare(`
+      INSERT INTO chain_patterns (chain_id, pattern_id) VALUES ($chainId, $patternId)
+    `);
+
+    const updateChainStmt = db.prepare(
+      'UPDATE causal_chains SET pattern_id = $patternId WHERE id = $chainId'
+    );
+
+    for (const chainId of pattern.chainIds) {
+      insertLinkStmt.run({ $chainId: chainId, $patternId: patternId });
+      // Also update the chain's pattern_id
+      updateChainStmt.run({ $patternId: patternId, $chainId: chainId });
+    }
   });
 
-  // Link chains to pattern
-  const insertLinkStmt = db.prepare(`
-    INSERT INTO chain_patterns (chain_id, pattern_id) VALUES ($chainId, $patternId)
-  `);
-
-  for (const chainId of pattern.chainIds) {
-    insertLinkStmt.run({ $chainId: chainId, $patternId: patternId });
-    // Also update the chain's pattern_id
-    db.run('UPDATE causal_chains SET pattern_id = ? WHERE id = ?', [patternId, chainId]);
-  }
+  // Execute the transaction
+  insertTransaction();
 
   return patternId;
 }

@@ -7,7 +7,8 @@
  * @module persistence/baselines/storage
  */
 
-import { existsSync, readdirSync, unlinkSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
+import { unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 
 import type { Baseline, BaselineFile } from '../types';
@@ -235,7 +236,7 @@ export async function deleteBaseline(
   const wasLatest = latest?.id === id;
 
   // Delete the file
-  unlinkSync(filePath);
+  await unlink(filePath);
 
   // Remove from index if database exists
   try {
@@ -331,7 +332,7 @@ async function rebuildLatestPointer(baseDir: string): Promise<void> {
   if (ids.length === 0) {
     // No baselines left, remove latest pointer
     if (existsSync(latestPath)) {
-      unlinkSync(latestPath);
+      await unlink(latestPath);
     }
     return;
   }

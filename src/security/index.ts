@@ -22,6 +22,16 @@ export type {
   ISecretDetector,
   ISecretClassifier,
   SecretDetectionCLIOptions,
+  SafeSecretCandidate,
+} from './types';
+
+// Zod schemas and validation helpers
+export {
+  FileLocationSchema,
+  SecretCandidateSchema,
+  SafeSecretCandidateSchema,
+  toSafeSecretCandidate,
+  toSafeSecretCandidates,
 } from './types';
 
 // =============================================================================

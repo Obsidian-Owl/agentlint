@@ -140,20 +140,35 @@ src/cli/
 
 ## Level 2: Orchestration Layer
 
+The orchestration layer wraps the **Claude Agent SDK's `query()` function**, which implements the master agent loop internally. The `Orchestrator` class provides:
+
+1. **Configuration** - Model selection, verbosity, timeouts
+2. **Streaming Transformation** - SDK messages → `StreamChunk` objects
+3. **Checkpointing Hooks** - Crash recovery via session state persistence
+4. **Tool Registration** - MCP server integration via `ToolRegistry`
+5. **Subagent Management** - ACT subagent spawning with depth=1 limit
+
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    MASTER AGENT LOOP                            │
-│  while (analysis_active):                                       │
-│    1. Assess context and task state                             │
-│    2. Decide: tool invocation OR direct reasoning               │
-│    3. If tool: invoke → observe result                          │
-│    4. If user input needed: pause for human-in-the-loop         │
-│    5. Update working memory                                     │
-│    6. Check termination                                         │
+│                  ORCHESTRATOR (SDK Wrapper)                     │
+│                                                                 │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │              Claude Agent SDK query()                      │  │
+│  │  • Master loop implemented by SDK                         │  │
+│  │  • Tool execution via MCP protocol                        │  │
+│  │  • Subagent spawning via agents option                    │  │
+│  └───────────────────────────────────────────────────────────┘  │
+│                           ▲                                     │
+│                           │                                     │
+│  ┌────────────┬───────────┴─────────────┬────────────────────┐  │
+│  │ToolRegistry│    OrchestratorConfig    │  CheckpointHandler│  │
+│  │ (MCP tools)│  (model, verbosity, etc) │  (session state)  │  │
+│  └────────────┴─────────────────────────┴────────────────────┘  │
 └─────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────┐
 │               AGENT COGNITIVE WORKSPACE                         │
+│  (Managed by SDK, populated by agentlint tools)                 │
 │  ├─ Task Goal                                                   │
 │  ├─ Project Context (compressed)                                │
 │  ├─ Analysis Progress                                           │
@@ -161,6 +176,49 @@ src/cli/
 │  ├─ Baseline Awareness                                          │
 │  └─ Global Learnings                                            │
 └─────────────────────────────────────────────────────────────────┘
+```
+
+### Orchestrator Module Structure (EP02)
+
+```
+src/orchestration/
+├── index.ts                    Public exports
+├── orchestrator.ts             Orchestrator class wrapping SDK query()
+├── tool-registry.ts            ToolRegistry with MCP server creation
+├── streaming.ts                SDK message → StreamChunk transformation
+├── checkpoint.ts               Session state persistence + recovery
+├── session-state.ts            SessionState management
+├── cognitive-workspace.ts      Context compression for large results
+├── context.ts                  Context utilities
+├── config.ts                   Configuration loading + defaults
+└── types.ts                    Type definitions
+```
+
+| Component | Responsibility |
+|-----------|----------------|
+| `orchestrator.ts` | Wraps SDK `query()`, manages session lifecycle, enforces subagent depth |
+| `tool-registry.ts` | Registers tools, creates MCP server for SDK integration |
+| `streaming.ts` | Transforms `SDKMessage` events to `StreamChunk` with verbosity |
+| `checkpoint.ts` | Emits checkpoints on tool completion, findings, phase changes |
+| `session-state.ts` | Persists/loads session state to JSON for crash recovery |
+| `cognitive-workspace.ts` | Compresses large tool results to fit context window |
+
+### Key Integration Point
+
+```typescript
+import { query } from '@anthropic-ai/claude-agent-sdk';
+import { buildACTSubagents } from '../act';
+
+// SDK handles the master loop internally
+const response = await query({
+  prompt: task,
+  options: {
+    model: config.model,
+    mcpServers: [toolRegistry.toMcpServer()],  // Tool registration
+    agents: buildACTSubagents(),                // Subagent definitions
+    allowedTools: [...],
+  },
+});
 ```
 
 ---
@@ -1150,24 +1208,38 @@ src/security/
 
 ```typescript
 interface SecretCandidate {
+  id: string;                    // UUID
   ruleId: string;
-  match: string;           // The matched secret (redacted before output)
+  ruleDescription: string;
+  match: string;                 // INTERNAL ONLY - never serialized
+  redactedContext: string;       // Context with secret replaced
+  entropy: number;
   location: FileLocation;
-  entropy?: number;
-  context?: string;
+  keywords?: string[];
+  detectedAt: string;
 }
 
+// Zod schemas enforce runtime validation
+const SafeSecretCandidateSchema = SecretCandidateSchema.omit({ match: true });
+type SafeSecretCandidate = z.infer<typeof SafeSecretCandidateSchema>;
+
 interface ClassifiedSecret {
-  candidate: Omit<SecretCandidate, 'match'>;  // match field stripped
+  id: string;
+  candidateId: string;
+  ruleId: string;
   classification: SecretClassification;
   confidence: number;
-  explanation?: string;
+  reasoning: string;
+  recommendation: string;
+  location: FileLocation;
+  validatedAt: string;
 }
 
 interface ISecretDetector {
-  scanFile(filePath: string): Promise<FileScanResult>;
-  scanContent(content: string, filePath?: string): SecretCandidate[];
-  getPatternCount(): number;
+  loadPatterns(tomlPath?: string): Promise<PatternSet>;
+  scanFile(filePath: string, content: string): Promise<FileScanResult>;
+  scanFiles(files: Array<{ path: string; content: string }>): Promise<SecretScanResult>;
+  getPatterns(): PatternSet | null;
 }
 ```
 
@@ -1181,11 +1253,20 @@ Content → Pattern Matching → Entropy Analysis → Classification → Report
                 └─ Gitleaks rules (400+ patterns)
 ```
 
+### Pattern Compatibility
+
+Gitleaks patterns use Go regex syntax, which differs from JavaScript:
+- **Go-specific features**: Some patterns use features not available in JS (e.g., `(?i)` inline case-insensitive)
+- **Pattern loading**: Parser strips `(?i)` flags and applies JS equivalents
+- **Validation**: `isValidRegex()` validates patterns for JS compatibility at runtime
+- **Graceful degradation**: Invalid patterns are logged and skipped
+
 ### Security Considerations
 
 | Aspect | Implementation |
 |--------|---------------|
-| Never store secrets | `match` field stripped before serialization |
+| Never store secrets | `match` field stripped via Zod schema validation before serialization |
+| Runtime enforcement | `SafeSecretCandidateSchema` validates at runtime, not just compile time |
 | Redact in logs | Debug output uses redaction patterns |
 | Entropy threshold | Default 3.5 bits/char filters false positives |
 | Pattern source | Gitleaks community rules (open source) |

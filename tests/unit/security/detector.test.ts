@@ -151,7 +151,7 @@ describe('SecretDetector', () => {
 
       // Some rules have keywords, some don't
       const rulesWithKeywords = patterns!.rules.filter((r) => r.keywords?.length);
-      const rulesWithoutKeywords = patterns!.rules.filter((r) => !r.keywords?.length);
+      const _rulesWithoutKeywords = patterns!.rules.filter((r) => !r.keywords?.length);
 
       expect(rulesWithKeywords.length).toBeGreaterThan(0);
       // It's OK if all rules have keywords

@@ -5,6 +5,9 @@
  * Ensures sensitive data is never exposed in logs, console output,
  * or any external-facing interfaces.
  *
+ * Pattern coverage based on ADR-0013 (Gitleaks patterns) and common secret formats.
+ * This module provides fast, synchronous redaction for runtime use.
+ *
  * @module debug/redaction
  */
 
@@ -106,53 +109,385 @@ export function createRedactedPlaceholder(
 }
 
 // =============================================================================
-// Built-in Redaction Patterns
+// Built-in Redaction Patterns (Comprehensive coverage per ADR-0013)
 // =============================================================================
 
 /**
  * Common patterns for sensitive data that should be redacted.
+ * Patterns based on Gitleaks rules and common secret formats.
  */
 export const BUILTIN_REDACTION_PATTERNS: RedactionPattern[] = [
-  // API Keys (various formats)
+  // =========================================================================
+  // Cloud Provider Keys (AWS, GCP, Azure)
+  // =========================================================================
+
+  // AWS Access Key IDs (AKIA prefix - 20 chars)
   {
-    pattern: /(?:api[_-]?key|apikey)[=:]\s*['"]?([a-zA-Z0-9_-]{16,})['"]?/gi,
-    replacement: (match: string) => match.replace(/[a-zA-Z0-9_-]{16,}/, REDACTED_API_KEY),
-    type: 'api_key',
+    pattern: /\b(AKIA[A-Z0-9]{16})\b/g,
+    replacement: '[REDACTED:AWS_ACCESS_KEY]',
+    type: 'aws_access_key',
   },
+
+  // AWS Secret Access Keys (40 chars, base64-like)
+  {
+    pattern: /(?:aws[_-]?secret[_-]?(?:access[_-]?)?key|secret[_-]?access[_-]?key)[=:]\s*['"]?([A-Za-z0-9/+=]{40})['"]?/gi,
+    replacement: (match: string) => match.replace(/[A-Za-z0-9/+=]{40}/, '[REDACTED:AWS_SECRET]'),
+    type: 'aws_secret_key',
+  },
+
+  // Google API Keys (AIzaSy prefix)
+  {
+    pattern: /\b(AIzaSy[A-Za-z0-9_-]{33})\b/g,
+    replacement: '[REDACTED:GOOGLE_API_KEY]',
+    type: 'google_api_key',
+  },
+
+  // Google Cloud Service Account (JSON with private_key)
+  {
+    pattern: /("private_key":\s*"-----BEGIN[^"]+-----")/g,
+    replacement: '"private_key":"[REDACTED:GCP_PRIVATE_KEY]"',
+    type: 'gcp_service_account',
+  },
+
+  // Azure Storage Account Keys
+  {
+    pattern: /(?:account[_-]?key|azure[_-]?storage[_-]?key)[=:]\s*['"]?([A-Za-z0-9+/=]{88})['"]?/gi,
+    replacement: (match: string) => match.replace(/[A-Za-z0-9+/=]{88}/, '[REDACTED:AZURE_KEY]'),
+    type: 'azure_storage_key',
+  },
+
+  // Azure AD Client Secret
+  {
+    pattern: /(?:client[_-]?secret|azure[_-]?client[_-]?secret)[=:]\s*['"]?([A-Za-z0-9~_.-]{34,40})['"]?/gi,
+    replacement: (match: string) => match.replace(/[A-Za-z0-9~_.-]{34,40}/, '[REDACTED:AZURE_SECRET]'),
+    type: 'azure_client_secret',
+  },
+
+  // =========================================================================
+  // Version Control & DevOps Tokens
+  // =========================================================================
+
+  // GitHub Personal Access Token (ghp_)
+  {
+    pattern: /\b(ghp_[a-zA-Z0-9]{36,})\b/g,
+    replacement: '[REDACTED:GITHUB_PAT]',
+    type: 'github_pat',
+  },
+
+  // GitHub OAuth Access Token (gho_)
+  {
+    pattern: /\b(gho_[a-zA-Z0-9]{36,})\b/g,
+    replacement: '[REDACTED:GITHUB_OAUTH]',
+    type: 'github_oauth',
+  },
+
+  // GitHub App Token (ghu_)
+  {
+    pattern: /\b(ghu_[a-zA-Z0-9]{36,})\b/g,
+    replacement: '[REDACTED:GITHUB_USER_TOKEN]',
+    type: 'github_user_token',
+  },
+
+  // GitHub App Installation Token (ghs_)
+  {
+    pattern: /\b(ghs_[a-zA-Z0-9]{36,})\b/g,
+    replacement: '[REDACTED:GITHUB_SERVER_TOKEN]',
+    type: 'github_server_token',
+  },
+
+  // GitHub Refresh Token (ghr_)
+  {
+    pattern: /\b(ghr_[a-zA-Z0-9]{36,})\b/g,
+    replacement: '[REDACTED:GITHUB_REFRESH]',
+    type: 'github_refresh',
+  },
+
+  // GitLab Personal Access Token (glpat-)
+  {
+    pattern: /\b(glpat-[a-zA-Z0-9_-]{20,})\b/g,
+    replacement: '[REDACTED:GITLAB_PAT]',
+    type: 'gitlab_pat',
+  },
+
+  // GitLab Pipeline Trigger Token
+  {
+    pattern: /\b(glptt-[a-zA-Z0-9_-]{20,})\b/g,
+    replacement: '[REDACTED:GITLAB_TRIGGER]',
+    type: 'gitlab_trigger',
+  },
+
+  // Bitbucket App Password
+  {
+    pattern: /(?:bitbucket[_-]?(?:app[_-]?)?password)[=:]\s*['"]?([A-Za-z0-9]{18,})['"]?/gi,
+    replacement: (match: string) => match.replace(/[A-Za-z0-9]{18,}/, '[REDACTED:BITBUCKET_PASS]'),
+    type: 'bitbucket_app_password',
+  },
+
+  // =========================================================================
+  // AI/LLM Provider Keys
+  // =========================================================================
+
+  // Anthropic API Keys (sk-ant-)
+  {
+    pattern: /\b(sk-ant-[a-zA-Z0-9-]{10,})\b/g,
+    replacement: '[REDACTED:ANTHROPIC_KEY]',
+    type: 'anthropic_key',
+  },
+
+  // OpenAI API Keys (sk-)
+  {
+    pattern: /\b(sk-[a-zA-Z0-9]{32,})\b/g,
+    replacement: '[REDACTED:OPENAI_KEY]',
+    type: 'openai_key',
+  },
+
+  // Cohere API Keys
+  {
+    pattern: /(?:cohere[_-]?api[_-]?key)[=:]\s*['"]?([a-zA-Z0-9]{40})['"]?/gi,
+    replacement: (match: string) => match.replace(/[a-zA-Z0-9]{40}/, '[REDACTED:COHERE_KEY]'),
+    type: 'cohere_key',
+  },
+
+  // Hugging Face API Tokens (hf_)
+  {
+    pattern: /\b(hf_[a-zA-Z0-9]{34,})\b/g,
+    replacement: '[REDACTED:HUGGINGFACE_TOKEN]',
+    type: 'huggingface_token',
+  },
+
+  // =========================================================================
+  // Payment & Financial Services
+  // =========================================================================
+
+  // Stripe API Keys (sk_live_, sk_test_, rk_live_, rk_test_)
+  {
+    pattern: /\b(sk_live_[a-zA-Z0-9]{24,})\b/g,
+    replacement: '[REDACTED:STRIPE_LIVE_KEY]',
+    type: 'stripe_live_key',
+  },
+
+  {
+    pattern: /\b(sk_test_[a-zA-Z0-9]{24,})\b/g,
+    replacement: '[REDACTED:STRIPE_TEST_KEY]',
+    type: 'stripe_test_key',
+  },
+
+  {
+    pattern: /\b(rk_live_[a-zA-Z0-9]{24,})\b/g,
+    replacement: '[REDACTED:STRIPE_RESTRICTED_KEY]',
+    type: 'stripe_restricted_key',
+  },
+
+  // Square API Keys
+  {
+    pattern: /\b(sq0atp-[a-zA-Z0-9_-]{22,})\b/g,
+    replacement: '[REDACTED:SQUARE_ACCESS_TOKEN]',
+    type: 'square_access_token',
+  },
+
+  {
+    pattern: /\b(sq0csp-[a-zA-Z0-9_-]{43,})\b/g,
+    replacement: '[REDACTED:SQUARE_SECRET]',
+    type: 'square_secret',
+  },
+
+  // PayPal (Basic format detection)
+  {
+    pattern: /(?:paypal[_-]?(?:client[_-]?)?(?:secret|id))[=:]\s*['"]?([A-Za-z0-9_-]{32,})['"]?/gi,
+    replacement: (match: string) => match.replace(/[A-Za-z0-9_-]{32,}/, '[REDACTED:PAYPAL]'),
+    type: 'paypal_credential',
+  },
+
+  // =========================================================================
+  // Communication Services
+  // =========================================================================
+
+  // Slack Bot/User OAuth Tokens (xoxb-, xoxp-, xoxs-)
+  {
+    pattern: /\b(xoxb-[0-9]+-[0-9]+-[a-zA-Z0-9]+)\b/g,
+    replacement: '[REDACTED:SLACK_BOT_TOKEN]',
+    type: 'slack_bot_token',
+  },
+
+  {
+    pattern: /\b(xoxp-[0-9]+-[0-9]+-[0-9]+-[a-zA-Z0-9]+)\b/g,
+    replacement: '[REDACTED:SLACK_USER_TOKEN]',
+    type: 'slack_user_token',
+  },
+
+  {
+    pattern: /\b(xoxs-[0-9]+-[0-9]+-[0-9]+-[a-zA-Z0-9]+)\b/g,
+    replacement: '[REDACTED:SLACK_SESSION_TOKEN]',
+    type: 'slack_session_token',
+  },
+
+  // Slack Webhook URLs
+  {
+    pattern: /https:\/\/hooks\.slack\.com\/services\/T[A-Z0-9]+\/B[A-Z0-9]+\/[a-zA-Z0-9]+/g,
+    replacement: '[REDACTED:SLACK_WEBHOOK]',
+    type: 'slack_webhook',
+  },
+
+  // Discord Bot Tokens
+  {
+    pattern: /\b([MN][A-Za-z\d]{23,}\.[\w-]{6}\.[\w-]{27,})\b/g,
+    replacement: '[REDACTED:DISCORD_TOKEN]',
+    type: 'discord_token',
+  },
+
+  // Discord Webhook URLs
+  {
+    pattern: /https:\/\/discord(?:app)?\.com\/api\/webhooks\/[0-9]+\/[A-Za-z0-9_-]+/g,
+    replacement: '[REDACTED:DISCORD_WEBHOOK]',
+    type: 'discord_webhook',
+  },
+
+  // Twilio Account SID and Auth Token
+  {
+    pattern: /\b(AC[a-f0-9]{32})\b/gi,
+    replacement: '[REDACTED:TWILIO_SID]',
+    type: 'twilio_sid',
+  },
+
+  {
+    pattern: /(?:twilio[_-]?auth[_-]?token)[=:]\s*['"]?([a-f0-9]{32})['"]?/gi,
+    replacement: (match: string) => match.replace(/[a-f0-9]{32}/, '[REDACTED:TWILIO_TOKEN]'),
+    type: 'twilio_auth_token',
+  },
+
+  // SendGrid API Keys (SG.)
+  {
+    pattern: /\b(SG\.[a-zA-Z0-9_-]{22}\.[a-zA-Z0-9_-]{43})\b/g,
+    replacement: '[REDACTED:SENDGRID_KEY]',
+    type: 'sendgrid_key',
+  },
+
+  // Mailgun API Keys
+  {
+    pattern: /(?:mailgun[_-]?api[_-]?key)[=:]\s*['"]?(key-[a-f0-9]{32})['"]?/gi,
+    replacement: (match: string) => match.replace(/key-[a-f0-9]{32}/, '[REDACTED:MAILGUN_KEY]'),
+    type: 'mailgun_key',
+  },
+
+  // =========================================================================
+  // Package Registries & CI/CD
+  // =========================================================================
+
+  // NPM Access Tokens
+  {
+    pattern: /\b(npm_[a-zA-Z0-9]{36,})\b/g,
+    replacement: '[REDACTED:NPM_TOKEN]',
+    type: 'npm_token',
+  },
+
+  // PyPI API Tokens
+  {
+    pattern: /\b(pypi-[a-zA-Z0-9_-]{100,})\b/g,
+    replacement: '[REDACTED:PYPI_TOKEN]',
+    type: 'pypi_token',
+  },
+
+  // Docker Hub Access Token (dckr_pat_)
+  {
+    pattern: /\b(dckr_pat_[a-zA-Z0-9_-]{27,})\b/g,
+    replacement: '[REDACTED:DOCKER_TOKEN]',
+    type: 'docker_token',
+  },
+
+  // CircleCI Token
+  {
+    pattern: /(?:circle[_-]?ci[_-]?token)[=:]\s*['"]?([a-f0-9]{40})['"]?/gi,
+    replacement: (match: string) => match.replace(/[a-f0-9]{40}/, '[REDACTED:CIRCLECI_TOKEN]'),
+    type: 'circleci_token',
+  },
+
+  // Travis CI Token
+  {
+    pattern: /(?:travis[_-]?api[_-]?token)[=:]\s*['"]?([A-Za-z0-9]{22,})['"]?/gi,
+    replacement: (match: string) => match.replace(/[A-Za-z0-9]{22,}/, '[REDACTED:TRAVIS_TOKEN]'),
+    type: 'travis_token',
+  },
+
+  // =========================================================================
+  // Infrastructure & Hosting
+  // =========================================================================
+
+  // DigitalOcean Access Token
+  {
+    pattern: /\b(dop_v1_[a-f0-9]{64})\b/g,
+    replacement: '[REDACTED:DIGITALOCEAN_TOKEN]',
+    type: 'digitalocean_token',
+  },
+
+  // Heroku API Key
+  {
+    pattern: /(?:heroku[_-]?api[_-]?key)[=:]\s*['"]?([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})['"]?/gi,
+    replacement: (match: string) => match.replace(/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/, '[REDACTED:HEROKU_KEY]'),
+    type: 'heroku_api_key',
+  },
+
+  // Netlify Access Token
+  {
+    pattern: /(?:netlify[_-]?(?:access[_-]?)?token)[=:]\s*['"]?([a-zA-Z0-9_-]{40,})['"]?/gi,
+    replacement: (match: string) => match.replace(/[a-zA-Z0-9_-]{40,}/, '[REDACTED:NETLIFY_TOKEN]'),
+    type: 'netlify_token',
+  },
+
+  // Vercel Token
+  {
+    pattern: /(?:vercel[_-]?token)[=:]\s*['"]?([a-zA-Z0-9]{24,})['"]?/gi,
+    replacement: (match: string) => match.replace(/[a-zA-Z0-9]{24,}/, '[REDACTED:VERCEL_TOKEN]'),
+    type: 'vercel_token',
+  },
+
+  // =========================================================================
+  // Databases
+  // =========================================================================
+
+  // MongoDB Connection String (preserve username, redact password)
+  {
+    pattern: /(mongodb(?:\+srv)?:\/\/[^:]+):([^@]+)@/g,
+    replacement: `$1:${REDACTED_PASSWORD}@`,
+    type: 'mongodb_password',
+  },
+
+  // PostgreSQL Connection String (preserve username, redact password)
+  {
+    pattern: /(postgres(?:ql)?:\/\/[^:]+):([^@]+)@/g,
+    replacement: `$1:${REDACTED_PASSWORD}@`,
+    type: 'postgres_password',
+  },
+
+  // MySQL Connection String (preserve username, redact password)
+  {
+    pattern: /(mysql:\/\/[^:]+):([^@]+)@/g,
+    replacement: `$1:${REDACTED_PASSWORD}@`,
+    type: 'mysql_password',
+  },
+
+  // Redis Connection String (preserve username, redact password)
+  {
+    pattern: /(redis:\/\/[^:]*):([^@]+)@/g,
+    replacement: `$1:${REDACTED_PASSWORD}@`,
+    type: 'redis_password',
+  },
+
+  // Generic connection strings with credentials (preserve protocol and username)
+  {
+    pattern: /(:\/\/[^:]+):([^@]+)@/g,
+    replacement: `$1:${REDACTED_PASSWORD}@`,
+    type: 'connection_string',
+  },
+
+  // =========================================================================
+  // Authentication & OAuth
+  // =========================================================================
 
   // Bearer tokens
   {
     pattern: /Bearer\s+([a-zA-Z0-9._-]+)/gi,
     replacement: `Bearer ${REDACTED_TOKEN}`,
     type: 'bearer_token',
-  },
-
-  // AWS Access Key IDs (AKIA prefix)
-  {
-    pattern: /\b(AKIA[A-Z0-9]{16})\b/g,
-    replacement: REDACTED_API_KEY,
-    type: 'aws_access_key',
-  },
-
-  // Generic secret/password patterns
-  {
-    pattern: /(?:password|passwd|pwd|secret)[=:]\s*['"]?([^\s'"]+)['"]?/gi,
-    replacement: (match: string) => match.replace(/[^\s'"]+$/, REDACTED_PASSWORD),
-    type: 'password',
-  },
-
-  // Connection strings with credentials
-  {
-    pattern: /:\/\/([^:]+):([^@]+)@/g,
-    replacement: `://$1:${REDACTED_PASSWORD}@`,
-    type: 'connection_string',
-  },
-
-  // Private keys
-  {
-    pattern: /-----BEGIN\s+(?:RSA\s+)?PRIVATE\s+KEY-----[\s\S]*?-----END\s+(?:RSA\s+)?PRIVATE\s+KEY-----/g,
-    replacement: '[REDACTED:PRIVATE_KEY]',
-    type: 'private_key',
   },
 
   // JWT tokens (three base64 segments separated by dots)
@@ -162,34 +497,66 @@ export const BUILTIN_REDACTION_PATTERNS: RedactionPattern[] = [
     type: 'jwt',
   },
 
-  // GitHub tokens
+  // OAuth Client Secrets
   {
-    pattern: /\b(gh[ps]_[a-zA-Z0-9]{36,})\b/g,
-    replacement: REDACTED_TOKEN,
-    type: 'github_token',
+    pattern: /(?:client[_-]?secret|oauth[_-]?secret)[=:]\s*['"]?([a-zA-Z0-9_-]{20,})['"]?/gi,
+    replacement: (match: string) => match.replace(/[a-zA-Z0-9_-]{20,}$/, '[REDACTED:CLIENT_SECRET]'),
+    type: 'oauth_client_secret',
   },
 
-  // Anthropic API keys
+  // =========================================================================
+  // Private Keys & Certificates
+  // =========================================================================
+
+  // RSA/DSA/EC/OpenSSH Private Keys
   {
-    pattern: /\b(sk-ant-[a-zA-Z0-9-]+)\b/g,
-    replacement: REDACTED_API_KEY,
-    type: 'anthropic_key',
+    pattern: /-----BEGIN\s+(?:RSA\s+)?(?:DSA\s+)?(?:EC\s+)?(?:OPENSSH\s+)?PRIVATE\s+KEY-----[\s\S]*?-----END\s+(?:RSA\s+)?(?:DSA\s+)?(?:EC\s+)?(?:OPENSSH\s+)?PRIVATE\s+KEY-----/g,
+    replacement: '[REDACTED:PRIVATE_KEY]',
+    type: 'private_key',
   },
 
-  // OpenAI API keys
+  // PGP Private Keys
   {
-    pattern: /\b(sk-[a-zA-Z0-9]{32,})\b/g,
-    replacement: REDACTED_API_KEY,
-    type: 'openai_key',
+    pattern: /-----BEGIN PGP PRIVATE KEY BLOCK-----[\s\S]*?-----END PGP PRIVATE KEY BLOCK-----/g,
+    replacement: '[REDACTED:PGP_PRIVATE_KEY]',
+    type: 'pgp_private_key',
+  },
+
+  // =========================================================================
+  // Generic Patterns (Lower priority - checked last)
+  // =========================================================================
+
+  // Generic API Keys (various formats)
+  {
+    pattern: /(?:api[_-]?key|apikey)[=:]\s*['"]?([a-zA-Z0-9_-]{16,})['"]?/gi,
+    replacement: (match: string) => match.replace(/[a-zA-Z0-9_-]{16,}$/, '[REDACTED:API_KEY]'),
+    type: 'api_key',
+  },
+
+  // Generic secrets/passwords (min 6 chars to catch common passwords)
+  {
+    pattern: /(?:password|passwd|pwd|secret)[=:]\s*['"]?([^\s'"]{6,})['"]?/gi,
+    replacement: (match: string) => match.replace(/[^\s'"]{6,}$/, REDACTED_PASSWORD),
+    type: 'password',
+  },
+
+  // Generic tokens
+  {
+    pattern: /(?:token|auth[_-]?token|access[_-]?token)[=:]\s*['"]?([a-zA-Z0-9_.-]{16,})['"]?/gi,
+    replacement: (match: string) => match.replace(/[a-zA-Z0-9_.-]{16,}$/, '[REDACTED:TOKEN]'),
+    type: 'token',
   },
 
   // Generic high-entropy strings (32+ chars of base64-like content)
+  // Only applied if mixed case detected (to avoid false positives on UUIDs, hashes)
   {
-    pattern: /\b([A-Za-z0-9+/=]{32,})\b/g,
+    pattern: /\b([A-Za-z0-9+/=]{40,})\b/g,
     replacement: (match: string) => {
-      // Only redact if it looks like encoded data (has mixed case or special chars)
-      if (/[a-z]/.test(match) && /[A-Z]/.test(match)) {
-        return REDACTED_SECRET;
+      // Only redact if it looks like encoded data (has mixed case and special chars)
+      const hasMixedCase = /[a-z]/.test(match) && /[A-Z]/.test(match);
+      const hasSpecial = /[+/=]/.test(match);
+      if (hasMixedCase && hasSpecial) {
+        return '[REDACTED:ENCODED_SECRET]';
       }
       return match;
     },
@@ -369,4 +736,12 @@ export function mergePatterns(
     return [...BUILTIN_REDACTION_PATTERNS, ...customPatterns];
   }
   return customPatterns;
+}
+
+/**
+ * Get the count of built-in redaction patterns.
+ * Useful for verification and testing.
+ */
+export function getPatternCount(): number {
+  return BUILTIN_REDACTION_PATTERNS.length;
 }

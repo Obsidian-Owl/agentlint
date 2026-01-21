@@ -2,9 +2,9 @@
  * T049: Integration tests for quality assessment pipeline
  *
  * Tests the end-to-end quality assessment flow:
- * discovery → parsing → metrics → quality assessment
+ * discovery → parsing → metrics → quality analysis
  *
- * Based on FR-009 (quality scoring) and FR-010 (anti-pattern detection).
+ * Per ADR-0019, tests verify raw metrics extraction, not scoring.
  *
  * @module tests/integration/tools/config/quality.test.ts
  */
@@ -17,7 +17,7 @@ import { discoverConfigs } from '../../../../src/tools/config/discovery';
 import { parseConfig } from '../../../../src/tools/config/parse-config';
 import type { QualityAssessment, ParsedConfig } from '../../../../src/tools/config/types';
 
-// Lazy load quality module (TDD - not yet implemented)
+// Lazy load quality module
 type AssessQualityFn = (config: ParsedConfig) => QualityAssessment;
 let assessQuality: AssessQualityFn;
 
@@ -29,18 +29,12 @@ const HIERARCHY_DIR = path.join(FIXTURES_DIR, 'hierarchy');
 
 describe('Quality Assessment Pipeline Integration', () => {
   beforeAll(async () => {
-    try {
-      const qualityModule = await import('../../../../src/tools/config/quality');
-      assessQuality = qualityModule.assessQuality;
-    } catch {
-      assessQuality = () => {
-        throw new Error('assessQuality not yet implemented');
-      };
-    }
+    const qualityModule = await import('../../../../src/tools/config/quality');
+    assessQuality = qualityModule.assessQuality;
   });
 
   describe('discovery → parse → assess flow', () => {
-    it('should assess quality of discovered configs', async () => {
+    it('should analyze quality of discovered configs', async () => {
       // Discover configs in valid fixtures
       const result = await discoverConfigs({
         cwd: VALID_DIR,
@@ -50,17 +44,17 @@ describe('Quality Assessment Pipeline Integration', () => {
       // Should find at least one config
       expect(result.files.length).toBeGreaterThan(0);
 
-      // Parse and assess each config
+      // Parse and analyze each config
       for (const configFile of result.files) {
         const parsed = await parseConfig(configFile.path);
         const assessment = assessQuality(parsed);
 
-        // Verify assessment structure
-        expect(assessment.score).toBeGreaterThanOrEqual(0);
-        expect(assessment.score).toBeLessThanOrEqual(100);
-        expect(['A', 'B', 'C', 'D', 'F']).toContain(assessment.grade);
-        expect(assessment.dimensions).toBeDefined();
-        expect(assessment.recommendations).toBeInstanceOf(Array);
+        // Verify assessment structure (raw metrics, not scores)
+        expect(assessment.metrics).toBeDefined();
+        expect(assessment.structure).toBeDefined();
+        expect(assessment.sizeAnalysis).toBeDefined();
+        expect(assessment.completeness).toBeDefined();
+        expect(assessment.issues).toBeInstanceOf(Array);
       }
     });
 
@@ -86,14 +80,14 @@ describe('Quality Assessment Pipeline Integration', () => {
 
       // All assessments should be valid
       for (const assessment of assessments) {
-        expect(assessment.score).toBeDefined();
-        expect(assessment.grade).toBeDefined();
+        expect(assessment.metrics).toBeDefined();
+        expect(assessment.structure).toBeDefined();
       }
     });
   });
 
-  describe('quality scoring consistency', () => {
-    it('should score well-structured configs higher than anti-patterns', async () => {
+  describe('quality analysis consistency', () => {
+    it('should detect more issues in anti-pattern configs than well-structured ones', async () => {
       // Parse a good config
       const goodPath = path.join(VALID_DIR, 'claude-complex.md');
       const goodConfig = await parseConfig(goodPath);
@@ -104,22 +98,19 @@ describe('Quality Assessment Pipeline Integration', () => {
       const badConfig = await parseConfig(badPath);
       const badAssessment = assessQuality(badConfig);
 
-      // Good config should score higher
-      expect(goodAssessment.score).toBeGreaterThan(badAssessment.score);
+      // Anti-pattern config should have more issues
+      expect(badAssessment.issues.length).toBeGreaterThan(goodAssessment.issues.length);
     });
 
-    it('should penalize instruction overload configs', async () => {
+    it('should flag instruction overload configs', async () => {
       const overloadPath = path.join(ANTI_PATTERNS_DIR, 'instruction-overload.md');
       if (fs.existsSync(overloadPath)) {
         const config = await parseConfig(overloadPath);
         const assessment = assessQuality(config);
 
-        // Should have penalty and issues
-        expect(assessment.dimensions.antiPatternPenalty).toBeGreaterThan(0);
-        expect(assessment.issues.length).toBeGreaterThan(0);
-
-        // Grade should reflect issues
-        expect(['C', 'D', 'F']).toContain(assessment.grade);
+        // Should have instruction-overload issue
+        const overloadIssues = assessment.issues.filter((i) => i.type === 'instruction-overload');
+        expect(overloadIssues.length).toBeGreaterThan(0);
       }
     });
 
@@ -130,73 +121,67 @@ describe('Quality Assessment Pipeline Integration', () => {
       const assessment1 = assessQuality(config);
       const assessment2 = assessQuality(config);
 
-      expect(assessment1.score).toBe(assessment2.score);
-      expect(assessment1.grade).toBe(assessment2.grade);
-      expect(assessment1.dimensions).toEqual(assessment2.dimensions);
+      expect(assessment1.structure).toEqual(assessment2.structure);
+      expect(assessment1.sizeAnalysis).toEqual(assessment2.sizeAnalysis);
+      expect(assessment1.completeness).toEqual(assessment2.completeness);
+      expect(assessment1.issues.length).toBe(assessment2.issues.length);
     });
   });
 
   describe('metrics integration', () => {
-    it('should use parsed metrics in quality calculation', async () => {
+    it('should include parsed metrics in quality assessment', async () => {
       const filePath = path.join(VALID_DIR, 'claude-complex.md');
       const config = await parseConfig(filePath);
       const assessment = assessQuality(config);
 
-      // Assessment should be influenced by metrics
-      // (Token count, section count, etc.)
-      expect(config.metrics.tokenEstimate).toBeGreaterThan(0);
-      expect(assessment.dimensions.size).toBeDefined();
-
-      // Size scoring should correlate with token count
-      if (config.metrics.tokenEstimate < 3000) {
-        expect(assessment.dimensions.size).toBeGreaterThan(50);
-      }
+      // Assessment should include metrics from parsing
+      expect(assessment.metrics.tokenEstimate).toBeGreaterThan(0);
+      expect(assessment.metrics.lineCount).toBeGreaterThan(0);
     });
 
-    it('should factor section structure into assessment', async () => {
+    it('should report structure observations based on sections', async () => {
       const filePath = path.join(VALID_DIR, 'claude-complex.md');
       const config = await parseConfig(filePath);
       const assessment = assessQuality(config);
 
-      // Config with good section structure should score well
+      // Config with sections should show structure
       if (config.metrics.sectionCount > 2) {
-        expect(assessment.dimensions.structure).toBeGreaterThan(40);
+        expect(assessment.structure.hasStructure).toBe(true);
+        expect(assessment.structure.sectionCount).toBeGreaterThan(0);
       }
     });
   });
 
-  describe('recommendations generation', () => {
-    it('should generate actionable recommendations', async () => {
+  describe('issue detection', () => {
+    it('should detect issues in problematic configs', async () => {
       const badPath = path.join(ANTI_PATTERNS_DIR, 'generic-rules.md');
       const config = await parseConfig(badPath);
       const assessment = assessQuality(config);
 
-      // Should have recommendations for issues
-      if (assessment.issues.length > 0) {
-        expect(assessment.recommendations.length).toBeGreaterThan(0);
+      // Should have issues
+      expect(assessment.issues.length).toBeGreaterThan(0);
 
-        // Recommendations should be strings
-        for (const rec of assessment.recommendations) {
-          expect(typeof rec).toBe('string');
-          expect(rec.length).toBeGreaterThan(0);
-        }
+      // Issues should have required fields
+      for (const issue of assessment.issues) {
+        expect(issue.id).toBeDefined();
+        expect(issue.type).toBeDefined();
+        expect(issue.severity).toBeDefined();
+        expect(issue.message).toBeDefined();
       }
     });
 
-    it('should not generate excessive recommendations for good configs', async () => {
+    it('should have minimal issues for well-structured configs', async () => {
       const goodPath = path.join(VALID_DIR, 'claude-complex.md');
       const config = await parseConfig(goodPath);
       const assessment = assessQuality(config);
 
-      // High-scoring config should have few recommendations
-      if (assessment.score >= 80) {
-        expect(assessment.recommendations.length).toBeLessThanOrEqual(3);
-      }
+      // Well-structured config should have fewer issues
+      expect(assessment.issues.length).toBeLessThan(10);
     });
   });
 
   describe('hierarchy integration', () => {
-    it('should assess configs at different hierarchy levels', async () => {
+    it('should analyze configs at different hierarchy levels', async () => {
       // Check if hierarchy fixtures exist
       const projectDir = path.join(HIERARCHY_DIR, 'project');
       const localDir = path.join(HIERARCHY_DIR, 'local');
@@ -208,7 +193,7 @@ describe('Quality Assessment Pipeline Integration', () => {
           maxDepth: 10,
         });
 
-        // Parse and assess each
+        // Parse and analyze each
         const assessments = await Promise.all(
           result.files.map(async (configFile) => {
             const parsed = await parseConfig(configFile.path);
@@ -221,8 +206,8 @@ describe('Quality Assessment Pipeline Integration', () => {
 
         // All levels should produce valid assessments
         for (const { assessment } of assessments) {
-          expect(assessment.score).toBeGreaterThanOrEqual(0);
-          expect(assessment.grade).toBeDefined();
+          expect(assessment.metrics).toBeDefined();
+          expect(assessment.structure).toBeDefined();
         }
       }
     });
@@ -239,8 +224,8 @@ describe('Quality Assessment Pipeline Integration', () => {
         const assessment = assessQuality(config);
 
         // Should return valid assessment, not crash
-        expect(assessment.score).toBeDefined();
-        expect(assessment.score).toBeLessThan(50); // Empty should score low
+        expect(assessment.structure.isEmpty).toBe(true);
+        expect(assessment.structure.hasStructure).toBe(false);
       } finally {
         fs.rmSync(tempDir, { recursive: true });
       }
@@ -252,15 +237,15 @@ describe('Quality Assessment Pipeline Integration', () => {
         const config = await parseConfig(settingsPath);
         const assessment = assessQuality(config);
 
-        // JSON configs should be assessable
-        expect(assessment.score).toBeDefined();
-        expect(assessment.grade).toBeDefined();
+        // JSON configs should be analyzable
+        expect(assessment.metrics).toBeDefined();
+        expect(assessment.sizeAnalysis).toBeDefined();
       }
     });
   });
 
   describe('performance characteristics', () => {
-    it('should assess large configs without timeout', async () => {
+    it('should analyze large configs without timeout', async () => {
       // Create a large config
       const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agentlint-test-'));
       const filePath = path.join(tempDir, 'CLAUDE.md');
@@ -282,8 +267,8 @@ describe('Quality Assessment Pipeline Integration', () => {
         // Should complete in reasonable time
         expect(elapsed).toBeLessThan(2000);
 
-        // Large config should have size penalty
-        expect(assessment.dimensions.size).toBeLessThan(60);
+        // Large config should be flagged
+        expect(assessment.sizeAnalysis.exceedsMaxLines).toBe(true);
       } finally {
         fs.rmSync(tempDir, { recursive: true });
       }

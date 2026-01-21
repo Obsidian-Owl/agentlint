@@ -201,7 +201,9 @@ describe('analyzeHierarchy', () => {
         expect(result.summary).toHaveProperty('localConfigCount');
         expect(result.summary).toHaveProperty('skillCount');
         expect(result.summary).toHaveProperty('conflictCount');
-        expect(result.summary).toHaveProperty('overallGrade');
+        // Per ADR-0019, summary now includes issue counts instead of grades
+        expect(result.summary).toHaveProperty('totalIssues');
+        expect(result.summary).toHaveProperty('criticalIssues');
       } finally {
         fs.rmSync(tempDir, { recursive: true });
       }
@@ -398,9 +400,9 @@ describe('analyzeHierarchy', () => {
     });
   });
 
-  describe('grade calculation', () => {
-    it('should assign overall grade based on configs', async () => {
-      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agentlint-grade-'));
+  describe('issue counting (per ADR-0019)', () => {
+    it('should count issues in configs', async () => {
+      const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'agentlint-issues-'));
       fs.writeFileSync(
         path.join(tempDir, 'CLAUDE.md'),
         `# Project Config
@@ -427,7 +429,11 @@ The project follows a clean architecture pattern.
           includeGlobal: false,
         });
 
-        expect(['A', 'B', 'C', 'D', 'F']).toContain(result.summary.overallGrade);
+        // Per ADR-0019, summary includes issue counts instead of grades
+        expect(typeof result.summary.totalIssues).toBe('number');
+        expect(typeof result.summary.criticalIssues).toBe('number');
+        expect(result.summary.totalIssues).toBeGreaterThanOrEqual(0);
+        expect(result.summary.criticalIssues).toBeGreaterThanOrEqual(0);
       } finally {
         fs.rmSync(tempDir, { recursive: true });
       }

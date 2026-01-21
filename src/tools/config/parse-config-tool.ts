@@ -27,27 +27,61 @@ const parseConfigInputSchema = {
 
 /**
  * Format quality assessment for tool output.
+ *
+ * Per ADR-0019, presents raw metrics for agent interpretation.
+ * The agent makes quality judgments based on these factual observations.
  */
 function formatQualityOutput(quality: QualityAssessment): string {
   const lines: string[] = [];
 
-  lines.push(`## Quality Assessment\n`);
-  lines.push(`**Score**: ${quality.score}/100`);
-  lines.push(`**Grade**: ${quality.grade}\n`);
+  lines.push(`## Quality Analysis\n`);
 
-  // Dimension scores
-  lines.push(`### Dimension Scores\n`);
-  lines.push(`- **Structure**: ${quality.dimensions.structure}/100`);
-  lines.push(`- **Size**: ${quality.dimensions.size}/100`);
-  lines.push(`- **Completeness**: ${quality.dimensions.completeness}/100`);
-  lines.push(`- **Specificity**: ${quality.dimensions.specificity}/100`);
-  if (quality.dimensions.antiPatternPenalty > 0) {
-    lines.push(`- **Anti-pattern Penalty**: -${quality.dimensions.antiPatternPenalty} points`);
+  // Structure analysis (factual observations)
+  lines.push(`### Structure\n`);
+  lines.push(`- **Sections**: ${quality.structure.sectionCount}`);
+  lines.push(`- **Max heading depth**: ${quality.structure.maxHeadingDepth}`);
+  lines.push(`- **Has nested sections**: ${quality.structure.hasNestedSections ? 'Yes' : 'No'}`);
+  lines.push(`- **Has structure**: ${quality.structure.hasStructure ? 'Yes' : 'No'}`);
+  if (quality.structure.isEmpty) {
+    lines.push(`- **Note**: File is empty`);
   }
 
-  // Issues
+  // Size analysis (factual observations with threshold flags)
+  lines.push(`\n### Size Analysis\n`);
+  lines.push(`- **Lines**: ${quality.sizeAnalysis.lineCount}`);
+  lines.push(`- **Token estimate**: ~${quality.sizeAnalysis.tokenEstimate}`);
+  if (quality.sizeAnalysis.exceedsOptimalLines) {
+    lines.push(`- **Exceeds optimal (60 lines)**: Yes`);
+  }
+  if (quality.sizeAnalysis.exceedsMaxLines) {
+    lines.push(`- **Exceeds max (300 lines)**: Yes`);
+  }
+  if (quality.sizeAnalysis.exceedsLightweightTokens) {
+    lines.push(`- **Exceeds lightweight tokens (3000)**: Yes`);
+  }
+  if (quality.sizeAnalysis.exceedsProblematicTokens) {
+    lines.push(`- **Exceeds problematic tokens (25000)**: Yes`);
+  }
+
+  // Completeness analysis (present/missing sections)
+  lines.push(`\n### Completeness\n`);
+  if (quality.completeness.totalRecommendedSections > 0) {
+    const presentCount = quality.completeness.presentSections.length;
+    const totalCount = quality.completeness.totalRecommendedSections;
+    lines.push(`- **Present sections**: ${presentCount}/${totalCount}`);
+    if (quality.completeness.presentSections.length > 0) {
+      lines.push(`  - ${quality.completeness.presentSections.join(', ')}`);
+    }
+    if (quality.completeness.missingSections.length > 0) {
+      lines.push(`- **Missing sections**: ${quality.completeness.missingSections.join(', ')}`);
+    }
+  } else {
+    lines.push(`- **Note**: Section analysis not applicable for this file type`);
+  }
+
+  // Issues (factual pattern detection)
   if (quality.issues.length > 0) {
-    lines.push(`\n### Issues (${quality.issues.length})\n`);
+    lines.push(`\n### Detected Issues (${quality.issues.length})\n`);
     for (const issue of quality.issues) {
       const pos = issue.position ? ` (L${issue.position.start.line})` : '';
       const severityEmoji = getSeverityEmoji(issue.severity);
@@ -56,14 +90,9 @@ function formatQualityOutput(quality: QualityAssessment): string {
         lines.push(`  - Suggestion: ${issue.suggestion}`);
       }
     }
-  }
-
-  // Recommendations
-  if (quality.recommendations.length > 0) {
-    lines.push(`\n### Recommendations\n`);
-    for (const rec of quality.recommendations) {
-      lines.push(`- ${rec}`);
-    }
+  } else {
+    lines.push(`\n### Detected Issues\n`);
+    lines.push(`- No anti-patterns detected`);
   }
 
   return lines.join('\n');
