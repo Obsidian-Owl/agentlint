@@ -1,0 +1,45 @@
+{
+  "id": "production-langgraph",
+  "version": "1.0",
+  "source": "public-repo",
+  "sourceUrl": "https://github.com/langchain-ai/langgraphjs/blob/main/CLAUDE.md",
+  "difficulty": "medium",
+  "tags": ["production", "typescript", "ai-framework", "langchain"],
+  "description": "Production CLAUDE.md from LangGraph.js - a framework for building stateful agents",
+  "input_data": {
+    "claudeMd": "# CLAUDE.md\n\n## Project Overview\nLangGraph.js is a library for building stateful, multi-actor applications with LLMs, used for creating agent and multi-agent workflows.\n\n**Stack**: TypeScript, Node.js\n**Package Manager**: yarn\n**Test Framework**: Jest\n\n## Development Commands\n\n```bash\n# Install dependencies\nyarn install\n\n# Build\nyarn build\n\n# Run tests\nyarn test\n\n# Lint\nyarn lint\n\n# Format\nyarn format\n```\n\n## Architecture\n\n### Core Concepts\n- **StateGraph**: The main graph abstraction for defining workflows\n- **Nodes**: Functions that process and update state\n- **Edges**: Connections between nodes (conditional or direct)\n- **Checkpointing**: Built-in persistence for long-running workflows\n\n### Directory Structure\n- `/libs/langgraph` - Core library\n- `/libs/checkpoint-*` - Checkpoint implementations\n- `/examples` - Usage examples\n- `/docs` - Documentation\n\n## Key Patterns\n\n### Creating a Graph\n```typescript\nimport { StateGraph, MessagesAnnotation } from '@langchain/langgraph';\n\nconst graph = new StateGraph(MessagesAnnotation)\n  .addNode('agent', agentNode)\n  .addEdge('__start__', 'agent');\n\nconst app = graph.compile();\n```\n\n### Conditional Edges\nUse `addConditionalEdges` for dynamic routing based on state.\n\n## Testing Guidelines\n- Write unit tests for all new nodes and edges\n- Integration tests should use mocked LLM responses\n- Use the test utilities in `/libs/langgraph/src/tests`\n",
+    "projectType": "typescript",
+    "metadata": {
+      "stars": 5000,
+      "contributors": 100,
+      "lastUpdated": "2024-01-10"
+    }
+  },
+  "expected_properties": {
+    "shouldNotDetect": [
+      { "type": "bloated-config", "reason": "Focused and well-organized" },
+      { "type": "secret_exposure", "reason": "No secrets in this fixture" },
+      { "type": "config_antipattern", "reason": "Follows best practices" }
+    ],
+    "qualityScore": { "min": 0.8 },
+    "mustHave": [
+      "development commands",
+      "architecture explanation",
+      "code examples",
+      "testing guidelines"
+    ]
+  },
+  "recommendations": [
+    {
+      "type": "systemic",
+      "action": "Document the relationship between langgraph and langchain packages for developers unfamiliar with the ecosystem",
+      "rationale": "New contributors may not understand the package relationship",
+      "priority": "low",
+      "tracedOrigin": {
+        "configGap": "ecosystem-context-missing",
+        "pattern": "monorepo-without-ecosystem-explanation"
+      }
+    }
+  ],
+  "notes": "This scenario tests that agentlint correctly handles TypeScript/AI framework documentation with code examples."
+}

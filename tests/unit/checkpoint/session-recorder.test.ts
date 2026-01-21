@@ -70,7 +70,7 @@ class MockSessionRecorder implements ISessionRecorder {
     await Bun.write(filePath, JSON.stringify(checkpoint, null, 2));
   }
 
-  async stopRecording(): Promise<void> {
+  stopRecording(): void {
     this.currentSessionId = null;
   }
 
@@ -109,7 +109,7 @@ class MockSessionRecorder implements ISessionRecorder {
     return summaries;
   }
 
-  async deleteSession(sessionId: string): Promise<void> {
+  deleteSession(sessionId: string): void {
     this.sessions.delete(sessionId);
     const sessionDir = join(this.storageDir, sessionId);
     if (existsSync(sessionDir)) {
@@ -128,7 +128,7 @@ class MockSessionRecorder implements ISessionRecorder {
       if (checkpoints.length > 0) {
         const lastCheckpointDate = new Date(checkpoints[checkpoints.length - 1]!.timestamp);
         if (lastCheckpointDate < cutoffDate) {
-          await this.deleteSession(sessionId);
+          this.deleteSession(sessionId);
           deletedCount++;
         }
       }

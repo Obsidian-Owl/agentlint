@@ -28,9 +28,9 @@ import type {
 class MockOutcomeStorage implements IOutcomeStorage {
   private outcomes: Map<string, RecommendationOutcome> = new Map();
 
-  async createOutcome(
+  createOutcome(
     outcome: Omit<RecommendationOutcome, 'id' | 'createdAt' | 'updatedAt'>
-  ): Promise<RecommendationOutcome> {
+  ): RecommendationOutcome {
     const id = randomUUID();
     const createdAt = new Date().toISOString();
 
@@ -45,7 +45,7 @@ class MockOutcomeStorage implements IOutcomeStorage {
     return newOutcome;
   }
 
-  async updateOutcome(id: string, updates: Partial<RecommendationOutcome>): Promise<RecommendationOutcome> {
+  updateOutcome(id: string, updates: Partial<RecommendationOutcome>): RecommendationOutcome {
     const existing = this.outcomes.get(id);
     if (!existing) {
       throw new Error(`Outcome not found: ${id}`);
@@ -63,19 +63,19 @@ class MockOutcomeStorage implements IOutcomeStorage {
     return updated;
   }
 
-  async getOutcome(id: string): Promise<RecommendationOutcome | null> {
+  getOutcome(id: string): RecommendationOutcome | null {
     return this.outcomes.get(id) ?? null;
   }
 
-  async getOutcomesBySession(sessionId: string): Promise<RecommendationOutcome[]> {
+  getOutcomesBySession(sessionId: string): RecommendationOutcome[] {
     return Array.from(this.outcomes.values()).filter((o) => o.sessionId === sessionId);
   }
 
-  async getOutcomesByRecommendation(recommendationId: string): Promise<RecommendationOutcome[]> {
+  getOutcomesByRecommendation(recommendationId: string): RecommendationOutcome[] {
     return Array.from(this.outcomes.values()).filter((o) => o.recommendationId === recommendationId);
   }
 
-  async getPendingFollowUps(olderThanDays: number): Promise<RecommendationOutcome[]> {
+  getPendingFollowUps(olderThanDays: number): RecommendationOutcome[] {
     return Array.from(this.outcomes.values()).filter((o) => {
       // Pending follow-up: implemented but not yet reported if helped
       if (o.implemented && o.helped === null) {
@@ -93,7 +93,7 @@ class MockOutcomeStorage implements IOutcomeStorage {
     });
   }
 
-  async getMetrics(): Promise<OutcomeMetricsByType> {
+  getMetrics(): OutcomeMetricsByType {
     const outcomes = Array.from(this.outcomes.values());
 
     const calculateMetrics = (filtered: RecommendationOutcome[]) => {
@@ -118,14 +118,14 @@ class MockOutcomeStorage implements IOutcomeStorage {
     };
   }
 
-  async recordImplicitEvent(event: ImplicitTrackingEvent): Promise<void> {
-    const outcomes = await this.getOutcomesByRecommendation(event.recommendationId);
+  recordImplicitEvent(event: ImplicitTrackingEvent): void {
+    const outcomes = this.getOutcomesByRecommendation(event.recommendationId);
 
     for (const outcome of outcomes) {
       if (event.type === 'config_changed') {
-        await this.updateOutcome(outcome.id, { configChangedAfter: true });
+        this.updateOutcome(outcome.id, { configChangedAfter: true });
       } else if (event.type === 'issue_recurred') {
-        await this.updateOutcome(outcome.id, { similarIssueRecurred: true });
+        this.updateOutcome(outcome.id, { similarIssueRecurred: true });
       }
     }
   }
@@ -234,8 +234,8 @@ describe('OutcomeStorage', () => {
       expect(updated.createdAt).toBe(originalCreatedAt);
     });
 
-    test('throws error for non-existent outcome', async () => {
-      await expect(storage.updateOutcome('non-existent', { implemented: true })).rejects.toThrow('not found');
+    test('throws error for non-existent outcome', () => {
+      expect(() => storage.updateOutcome('non-existent', { implemented: true })).toThrow('not found');
     });
   });
 

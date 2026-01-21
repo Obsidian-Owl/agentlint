@@ -11,7 +11,6 @@ import type {
   ConfigType,
   ACTType,
   HierarchyLevel,
-  Grade,
   IssueType,
   IssueSeverity,
   ConflictType,

@@ -205,7 +205,7 @@ describe('CodeBasedGrader', () => {
       // Remove origin from first finding
       const modifiedOutput = {
         ...output,
-        findings: output.findings.map(({ origin, ...f }) => f),
+        findings: output.findings.map(({ origin: _origin, ...f }) => f),
       };
 
       const grade = grader.grade(scenario, modifiedOutput);

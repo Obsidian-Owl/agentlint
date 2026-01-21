@@ -217,7 +217,7 @@ describe('parseMarkdown', () => {
 
       expect(result.ast).toBeDefined();
       expect(result.headings.length).toBe(1);
-      expect(result.headings[0].text).toBe('Test');
+      expect(result.headings[0]!.text).toBe('Test');
     });
 
     it('should detect unclosed code blocks synchronously', () => {
@@ -237,7 +237,7 @@ describe('parseMarkdown', () => {
       const result = await parseMarkdown(noLang);
 
       expect(result.codeBlocks.length).toBe(1);
-      expect(result.codeBlocks[0].language).toBeUndefined();
+      expect(result.codeBlocks[0]!.language).toBeUndefined();
     });
 
     it('should handle inline code in headings', async () => {
@@ -245,7 +245,7 @@ describe('parseMarkdown', () => {
       const result = await parseMarkdown(inlineCode);
 
       expect(result.headings.length).toBe(1);
-      expect(result.headings[0].text).toContain('options');
+      expect(result.headings[0]!.text).toContain('options');
     });
 
     it('should handle setext-style headings', async () => {
@@ -253,8 +253,8 @@ describe('parseMarkdown', () => {
       const result = await parseMarkdown(setext);
 
       expect(result.headings.length).toBe(2);
-      expect(result.headings[0].level).toBe(1);
-      expect(result.headings[1].level).toBe(2);
+      expect(result.headings[0]!.level).toBe(1);
+      expect(result.headings[1]!.level).toBe(2);
     });
 
     it('should handle nested lists', async () => {
@@ -276,7 +276,7 @@ describe('parseMarkdown', () => {
       const result = await parseMarkdown(multiLine);
 
       expect(result.codeBlocks.length).toBe(1);
-      expect(result.codeBlocks[0].lineCount).toBe(3);
+      expect(result.codeBlocks[0]!.lineCount).toBe(3);
     });
 
     it('should handle frontmatter', async () => {

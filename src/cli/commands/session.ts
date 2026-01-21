@@ -18,7 +18,7 @@ import type { SessionSummary, ReplayContext } from '../../orchestration/checkpoi
 // Types
 // =============================================================================
 
-export interface SessionListOptions extends GlobalOptions {}
+export type SessionListOptions = GlobalOptions;
 
 export interface SessionReplayOptions extends GlobalOptions {
   sessionId: string;
@@ -171,7 +171,7 @@ export async function runSessionReplay(options: SessionReplayOptions): Promise<n
     }
 
     // Restore context
-    const context = await replayer.restoreFromCheckpoint(checkpoint);
+    const context = replayer.restoreFromCheckpoint(checkpoint);
 
     if (options.json) {
       console.log(JSON.stringify(context, null, 2));
@@ -232,7 +232,7 @@ export async function runSessionDelete(options: SessionDeleteOptions): Promise<n
       }
     }
 
-    await recorder.deleteSession(options.sessionId);
+    recorder.deleteSession(options.sessionId);
 
     if (!options.json) {
       console.log(`✓ Session ${options.sessionId} deleted.`);

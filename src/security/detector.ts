@@ -129,9 +129,9 @@ export class SecretDetector implements ISecretDetector {
    * @param tomlPath - Path to TOML file, or undefined to use bundled patterns
    * @returns Loaded pattern set
    */
-  async loadPatterns(tomlPath?: string): Promise<PatternSet> {
+  loadPatterns(tomlPath?: string): PatternSet {
     const path = tomlPath ?? getBundledPatternsPath();
-    this.patterns = await parseGitleaksToml(path);
+    this.patterns = parseGitleaksToml(path);
     this.compileRules();
     return this.patterns;
   }
@@ -175,7 +175,7 @@ export class SecretDetector implements ISecretDetector {
    * @param content - File content to scan
    * @returns Scan result with candidates
    */
-  async scanFile(filePath: string, content: string): Promise<FileScanResult> {
+  scanFile(filePath: string, content: string): FileScanResult {
     const startTime = performance.now();
 
     if (!this.patterns) {
@@ -314,16 +314,16 @@ export class SecretDetector implements ISecretDetector {
    * @param files - Files to scan
    * @returns Aggregated scan results
    */
-  async scanFiles(
+  scanFiles(
     files: Array<{ path: string; content: string }>
-  ): Promise<SecretScanResult> {
+  ): SecretScanResult {
     const startTime = performance.now();
 
     const fileResults: FileScanResult[] = [];
 
     for (const file of files) {
       try {
-        const result = await this.scanFile(file.path, file.content);
+        const result = this.scanFile(file.path, file.content);
         fileResults.push(result);
 
         // Note: We can't access the full candidates with match field here
@@ -513,8 +513,8 @@ export function createSecretDetector(): SecretDetector {
 /**
  * Create and initialize a SecretDetector with bundled patterns.
  */
-export async function createSecretDetectorWithPatterns(): Promise<SecretDetector> {
+export function createSecretDetectorWithPatterns(): SecretDetector {
   const detector = new SecretDetector();
-  await detector.loadPatterns();
+  detector.loadPatterns();
   return detector;
 }

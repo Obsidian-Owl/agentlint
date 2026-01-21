@@ -135,7 +135,7 @@ function parseRule(raw: RawRule): GitleaksRule {
  * const patterns = await parseGitleaksToml('gitleaks.toml');
  * console.log(`Loaded ${patterns.rules.length} rules`);
  */
-export async function parseGitleaksToml(tomlPath: string): Promise<PatternSet> {
+export function parseGitleaksToml(tomlPath: string): PatternSet {
   // Read the file
   const content = readFileSync(tomlPath, 'utf-8');
 

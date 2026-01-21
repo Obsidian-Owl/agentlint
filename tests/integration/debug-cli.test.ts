@@ -183,7 +183,7 @@ describe('Debug CLI Flags', () => {
       const lines = content.trim().split('\n');
       expect(lines.length).toBe(1);
 
-      const entry = JSON.parse(lines[0]);
+      const entry = JSON.parse(lines[0]!);
       expect(entry.message).toBe('JSON test');
       expect(entry.namespace).toBe('agentlint:test');
       expect(entry.level).toBe('info');
@@ -414,7 +414,7 @@ describe('Debug Output Format', () => {
       const lines = content.trim().split('\n');
 
       for (const line of lines) {
-        expect(() => JSON.parse(line)).not.toThrow();
+        expect(() => JSON.parse(line) as unknown).not.toThrow();
       }
     });
   });

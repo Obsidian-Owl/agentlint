@@ -103,7 +103,7 @@ export class FeedbackCollector implements IFeedbackCollector {
    * Check if we should prompt for feedback this session.
    * Returns true if enabled and haven't hit the prompt limit.
    */
-  async shouldPrompt(): Promise<boolean> {
+  shouldPrompt(): boolean {
     return this.isEnabled() && this.sessionPromptCount < this.config.maxPromptsPerSession;
   }
 
@@ -147,7 +147,7 @@ export class FeedbackCollector implements IFeedbackCollector {
    *
    * @param prompt - The prompt with user's response
    */
-  async recordFeedback(prompt: FeedbackPrompt): Promise<void> {
+  recordFeedback(prompt: FeedbackPrompt): void {
     if (!prompt.response) {
       return; // No response to record
     }
@@ -162,7 +162,7 @@ export class FeedbackCollector implements IFeedbackCollector {
     const recommendationType = this.promptTypes.get(prompt.recommendationId) ?? 'preventive';
 
     // Create outcome record
-    await this.storage.createOutcome({
+    this.storage.createOutcome({
       sessionId: this.currentSessionId ?? `session-${Date.now()}`,
       recommendationId: prompt.recommendationId,
       recommendationType,
@@ -180,8 +180,8 @@ export class FeedbackCollector implements IFeedbackCollector {
    * Get pending follow-up prompts for recommendations
    * that were implemented but not yet rated.
    */
-  async getPendingFollowUps(): Promise<OutcomePrompt[]> {
-    const pending = await this.storage.getPendingFollowUps(this.config.followUpDelayDays);
+  getPendingFollowUps(): OutcomePrompt[] {
+    const pending = this.storage.getPendingFollowUps(this.config.followUpDelayDays);
 
     return pending.map((outcome) => ({
       recommendationId: outcome.recommendationId,
@@ -194,11 +194,11 @@ export class FeedbackCollector implements IFeedbackCollector {
    *
    * @param prompt - The follow-up prompt with user's response
    */
-  async recordFollowUp(prompt: OutcomePrompt): Promise<void> {
-    const outcomes = await this.storage.getOutcomesByRecommendation(prompt.recommendationId);
+  recordFollowUp(prompt: OutcomePrompt): void {
+    const outcomes = this.storage.getOutcomesByRecommendation(prompt.recommendationId);
 
     for (const outcome of outcomes) {
-      await this.storage.updateOutcome(outcome.id, {
+      this.storage.updateOutcome(outcome.id, {
         helped: prompt.helped ?? null,
         outcomeNotes: prompt.notes ?? null,
       });

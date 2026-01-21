@@ -210,42 +210,42 @@ export interface IOutcomeStorage {
   /**
    * Create a new outcome record.
    */
-  createOutcome(outcome: Omit<RecommendationOutcome, 'id' | 'createdAt' | 'updatedAt'>): Promise<RecommendationOutcome>;
+  createOutcome(outcome: Omit<RecommendationOutcome, 'id' | 'createdAt' | 'updatedAt'>): RecommendationOutcome;
 
   /**
    * Update an existing outcome.
    */
-  updateOutcome(id: string, updates: Partial<RecommendationOutcome>): Promise<RecommendationOutcome>;
+  updateOutcome(id: string, updates: Partial<RecommendationOutcome>): RecommendationOutcome;
 
   /**
    * Get outcome by ID.
    */
-  getOutcome(id: string): Promise<RecommendationOutcome | null>;
+  getOutcome(id: string): RecommendationOutcome | null;
 
   /**
    * Get outcomes for a session.
    */
-  getOutcomesBySession(sessionId: string): Promise<RecommendationOutcome[]>;
+  getOutcomesBySession(sessionId: string): RecommendationOutcome[];
 
   /**
    * Get outcomes for a recommendation.
    */
-  getOutcomesByRecommendation(recommendationId: string): Promise<RecommendationOutcome[]>;
+  getOutcomesByRecommendation(recommendationId: string): RecommendationOutcome[];
 
   /**
    * Get outcomes pending follow-up.
    */
-  getPendingFollowUps(olderThanDays: number): Promise<RecommendationOutcome[]>;
+  getPendingFollowUps(olderThanDays: number): RecommendationOutcome[];
 
   /**
    * Get aggregated metrics.
    */
-  getMetrics(): Promise<OutcomeMetricsByType>;
+  getMetrics(): OutcomeMetricsByType;
 
   /**
    * Record an implicit tracking event.
    */
-  recordImplicitEvent(event: ImplicitTrackingEvent): Promise<void>;
+  recordImplicitEvent(event: ImplicitTrackingEvent): void;
 }
 
 // =============================================================================
@@ -264,7 +264,7 @@ export interface IFeedbackCollector {
   /**
    * Should we prompt for feedback this session?
    */
-  shouldPrompt(): Promise<boolean>;
+  shouldPrompt(): boolean;
 
   /**
    * Get recommendations to prompt about.
@@ -276,17 +276,17 @@ export interface IFeedbackCollector {
   /**
    * Record user feedback.
    */
-  recordFeedback(prompt: FeedbackPrompt): Promise<void>;
+  recordFeedback(prompt: FeedbackPrompt): void;
 
   /**
    * Get pending follow-up prompts.
    */
-  getPendingFollowUps(): Promise<OutcomePrompt[]>;
+  getPendingFollowUps(): OutcomePrompt[];
 
   /**
    * Record follow-up outcome.
    */
-  recordFollowUp(prompt: OutcomePrompt): Promise<void>;
+  recordFollowUp(prompt: OutcomePrompt): void;
 }
 
 // =============================================================================

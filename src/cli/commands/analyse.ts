@@ -20,6 +20,10 @@ import { stat } from 'node:fs/promises';
 import { getOutputMode } from '../utils/output';
 import type { GlobalOptions } from '../types';
 import { scanForConfigs, type ScanResult } from './scan';
+import { parseConfigSync } from '../../tools/config/parse-config';
+import { assessQuality } from '../../tools/config/quality';
+import { GapAnalyzer } from '../../tools/causal/gap-analyzer';
+import type { QualityIssue } from '../../tools/config/types';
 
 /**
  * Options for the analyse command.
@@ -62,6 +66,7 @@ export interface AnalyseResult {
 
 /**
  * Simplified finding for JSON output.
+ * Extended to include origin and recommendations for causal tracing.
  */
 export interface AnalyseFinding {
   id: string;
@@ -73,6 +78,214 @@ export interface AnalyseFinding {
     file: string;
     line?: number;
   };
+  /** Traced origin (where the issue originated) */
+  origin?: {
+    type: 'config' | 'session' | 'git';
+    reference: string;
+    description: string;
+  };
+  /** Recommendations for addressing the finding */
+  recommendations?: Array<{
+    type: 'symptomatic' | 'preventive' | 'systemic';
+    action: string;
+    rationale: string;
+    priority?: 'high' | 'medium' | 'low';
+  }>;
+}
+
+/**
+ * Perform static analysis on discovered configs.
+ * Uses quality assessment and gap analysis to produce findings.
+ */
+function performStaticAnalysis(
+  directory: string,
+  configs: ScanResult['configs']
+): AnalyseFinding[] {
+  const findings: AnalyseFinding[] = [];
+  const gapAnalyzer = new GapAnalyzer();
+  let findingId = 1;
+
+  for (const config of configs) {
+    try {
+      // Parse the config
+      const parsed = parseConfigSync(config.path);
+
+      // Run quality assessment
+      const quality = assessQuality(parsed);
+
+      // Convert quality issues to findings
+      for (const issue of quality.issues) {
+        findings.push(convertQualityIssueToFinding(issue, config.path, findingId++));
+      }
+
+      // Check for missing sections (completeness)
+      if (quality.completeness.missingSections.length > 0) {
+        const missingCount = quality.completeness.missingSections.length;
+        const missingList = quality.completeness.missingSections.slice(0, 3).join(', ');
+        findings.push({
+          id: `FND-${String(findingId++).padStart(4, '0')}`,
+          severity: 'medium',
+          type: 'config_gap',
+          title: 'Missing recommended sections',
+          description: `Configuration is missing ${missingCount} recommended sections: ${missingList}${missingCount > 3 ? '...' : ''}. Consider adding sections for development workflow, testing, and architecture.`,
+          location: {
+            file: relative(directory, config.path),
+          },
+          origin: {
+            type: 'config',
+            reference: relative(directory, config.path),
+            description: 'Incomplete configuration structure',
+          },
+          recommendations: [
+            {
+              type: 'preventive',
+              action: `Add missing sections to ${relative(directory, config.path)}: ${missingList}`,
+              rationale:
+                'Complete documentation prevents repeated questions and ensures consistent behavior',
+              priority: 'medium',
+            },
+          ],
+        });
+      }
+    } catch {
+      // Skip files that can't be parsed
+    }
+  }
+
+  // Run gap analysis on the directory
+  const gapResult = gapAnalyzer.analyzeGaps({ projectPath: directory });
+
+  // Convert gaps to findings
+  for (const gap of gapResult.allGaps) {
+    // Avoid duplicates with completeness findings
+    if (gap.type === 'missing_guidance' && findings.some((f) => f.type === 'config_gap')) {
+      continue;
+    }
+
+    findings.push({
+      id: `FND-${String(findingId++).padStart(4, '0')}`,
+      severity: gap.type === 'missing_config' ? 'high' : 'medium',
+      type: 'config_gap',
+      title: formatGapTitle(gap.type),
+      description: gap.expectedGuidance,
+      origin: {
+        type: 'config',
+        reference: formatGapLocation(gap.location),
+        description: gap.counterfactual,
+      },
+      recommendations: [
+        {
+          type: 'preventive',
+          action: `Add ${gap.expectedGuidance.toLowerCase()} to configuration`,
+          rationale: gap.counterfactual,
+          priority: gap.type === 'missing_config' ? 'high' : 'medium',
+        },
+      ],
+    });
+  }
+
+  return findings;
+}
+
+/**
+ * Convert a quality issue to an AnalyseFinding.
+ */
+function convertQualityIssueToFinding(
+  issue: QualityIssue,
+  filePath: string,
+  id: number
+): AnalyseFinding {
+  const severityMap: Record<string, string> = {
+    critical: 'critical',
+    high: 'high',
+    medium: 'medium',
+    low: 'low',
+  };
+
+  const typeMap: Record<string, string> = {
+    'embedded-secret': 'secret_exposure',
+    'generic-rule': 'config_antipattern',
+    'linter-job': 'config_antipattern',
+    'instruction-overload': 'config_antipattern',
+    'code-snippet': 'config_antipattern',
+  };
+
+  const recTypeMap: Record<string, 'symptomatic' | 'preventive' | 'systemic'> = {
+    'embedded-secret': 'systemic',
+    'generic-rule': 'preventive',
+    'linter-job': 'preventive',
+    'instruction-overload': 'preventive',
+    'code-snippet': 'symptomatic',
+  };
+
+  return {
+    id: `FND-${String(id).padStart(4, '0')}`,
+    severity: severityMap[issue.severity] ?? 'medium',
+    type: typeMap[issue.type] ?? 'config_antipattern',
+    title: formatIssueTitle(issue.type),
+    description: issue.message,
+    location: {
+      file: filePath,
+      line: issue.position?.start.line,
+    },
+    origin: {
+      type: 'config',
+      reference: `${filePath}:${issue.position?.start.line ?? 1}`,
+      description: `Issue detected in configuration file`,
+    },
+    recommendations: issue.suggestion
+      ? [
+          {
+            type: recTypeMap[issue.type] ?? 'symptomatic',
+            action: issue.suggestion,
+            rationale: 'Improves configuration quality and reduces token waste',
+            priority: issue.severity === 'critical' ? 'high' : 'medium',
+          },
+        ]
+      : undefined,
+  };
+}
+
+/**
+ * Format issue type as human-readable title.
+ */
+function formatIssueTitle(type: string): string {
+  const titles: Record<string, string> = {
+    'embedded-secret': 'Embedded secret detected',
+    'generic-rule': 'Generic rule wastes tokens',
+    'linter-job': 'Linter/formatter rule in config',
+    'instruction-overload': 'Configuration overload',
+    'code-snippet': 'Large code snippet',
+  };
+  return titles[type] ?? 'Configuration issue';
+}
+
+/**
+ * Format gap type as human-readable title.
+ */
+function formatGapTitle(type: string): string {
+  const titles: Record<string, string> = {
+    missing_config: 'Missing configuration file',
+    missing_guidance: 'Missing guidance section',
+    missing_example: 'Missing code examples',
+    terminology_gap: 'Undefined terminology',
+    context_loss: 'Context loss risk',
+  };
+  return titles[type] ?? 'Configuration gap';
+}
+
+/**
+ * Format gap location as human-readable string.
+ */
+function formatGapLocation(location: string): string {
+  const locations: Record<string, string> = {
+    claude_md: 'CLAUDE.md',
+    global_config: '~/.claude/settings.json',
+    project_config: '.claude/settings.json',
+    mcp_config: '.mcp.json',
+    skill: '.claude/skills/',
+  };
+  return locations[location] ?? location;
 }
 
 /**
@@ -187,19 +400,19 @@ export async function runAnalyse(options: AnalyseOptions): Promise<number> {
     return 0;
   }
 
-  // Full analysis mode - requires orchestrator (not implemented yet)
-  // For now, show a message about needing API key
+  // Full analysis mode - perform static analysis
+  const startTime = Date.now();
   const scanResult = await scanForConfigs(directory);
 
   if (scanResult.configs.length === 0) {
     const result: AnalyseResult = {
-      status: 'error',
-      error: 'No AI configuration files found',
+      status: 'success',
       directory,
       configs: [],
       findings: [],
       summary: { total: 0, bySeverity: {} },
       timestamp: new Date().toISOString(),
+      durationMs: Date.now() - startTime,
     };
 
     if (outputMode === 'json') {
@@ -207,26 +420,63 @@ export async function runAnalyse(options: AnalyseOptions): Promise<number> {
     } else {
       console.log(formatDryRunTerminal(result, verbose));
     }
-    return options.failOnFindings ? 0 : 0; // No findings = success
+    return 0; // No configs = no findings = success
   }
 
-  // TODO: In Phase 6, wire up the orchestrator here
-  // For now, show dry-run style output with a message
+  // Perform static analysis on discovered configs
+  const findings = performStaticAnalysis(directory, scanResult.configs);
+
+  // Calculate summary
+  const bySeverity: Record<string, number> = {};
+  for (const finding of findings) {
+    bySeverity[finding.severity] = (bySeverity[finding.severity] ?? 0) + 1;
+  }
+
   const result: AnalyseResult = {
-    status: 'dry-run',
+    status: 'success',
     directory,
     configs: scanResult.configs,
-    findings: [],
-    summary: { total: 0, bySeverity: {} },
+    findings,
+    summary: { total: findings.length, bySeverity },
     timestamp: new Date().toISOString(),
+    durationMs: Date.now() - startTime,
   };
 
   if (outputMode === 'json') {
-    console.log(formatDryRunJson(result));
+    console.log(JSON.stringify(result, null, 2));
   } else {
-    console.log(formatDryRunTerminal(result, verbose));
-    console.log('Note: Full analysis requires ANTHROPIC_API_KEY to be set.');
-    console.log('Use --dry-run to skip the API-dependent analysis.\n');
+    // Format terminal output with findings
+    const lines: string[] = [];
+    lines.push('');
+    lines.push('Analysis Complete');
+    lines.push('=================');
+    lines.push('');
+    lines.push(`Directory: ${directory}`);
+    lines.push(`Configs analyzed: ${scanResult.configs.length}`);
+    lines.push(`Findings: ${findings.length}`);
+    lines.push('');
+
+    if (findings.length > 0) {
+      lines.push('Findings:');
+      for (const finding of findings) {
+        const severity = finding.severity.toUpperCase().padEnd(8);
+        lines.push(`  [${severity}] ${finding.title}`);
+        if (verbose) {
+          lines.push(`             ${finding.description}`);
+          if (finding.location) {
+            lines.push(`             Location: ${finding.location.file}${finding.location.line ? `:${finding.location.line}` : ''}`);
+          }
+        }
+      }
+      lines.push('');
+    }
+
+    console.log(lines.join('\n'));
+  }
+
+  // Return exit code based on --fail-on-findings flag
+  if (options.failOnFindings && findings.length > 0) {
+    return 1;
   }
 
   return 0;

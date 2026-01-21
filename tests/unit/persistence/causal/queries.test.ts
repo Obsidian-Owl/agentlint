@@ -54,7 +54,7 @@ function createMockChain(overrides: Partial<CausalChain> = {}): CausalChain {
     trigger: createMockEvidence(),
     gap: {
       type: 'missing_config',
-      location: 'project',
+      location: 'project_config',
       expectedGuidance: 'Should have config',
       counterfactual: 'Would have worked',
     },
@@ -165,8 +165,10 @@ describe('causal/queries', () => {
       });
 
       it('should generate ID if not provided', () => {
-        const chain = createMockChain({ id: undefined });
-        const chainId = insertChain(db, chain);
+        const chain = createMockChain();
+        // Remove id to test ID generation
+        const chainWithoutId = { ...chain, id: '' };
+        const chainId = insertChain(db, chainWithoutId);
 
         expect(chainId).toBeTruthy();
         expect(chainId.length).toBeGreaterThan(0);
@@ -218,7 +220,7 @@ describe('causal/queries', () => {
         const chain = createMockChain({
           gap: {
             type: 'missing_example',
-            location: 'global',
+            location: 'global_config',
             expectedGuidance: 'Example needed',
             counterfactual: 'Would have helped',
           },
@@ -229,7 +231,7 @@ describe('causal/queries', () => {
 
         expect(retrieved!.gap).toBeDefined();
         expect(retrieved!.gap!.type).toBe('missing_example');
-        expect(retrieved!.gap!.location).toBe('global');
+        expect(retrieved!.gap!.location).toBe('global_config');
       });
     });
 

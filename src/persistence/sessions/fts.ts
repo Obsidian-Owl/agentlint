@@ -874,10 +874,10 @@ export function searchSessions(
     timestamp: row.timestamp,
     role: row.role,
     content: row.content,
-    toolName: row.tool_name || undefined,
-    filePath: row.file_path || undefined,
+    ...(row.tool_name && { toolName: row.tool_name }),
+    ...(row.file_path && { filePath: row.file_path }),
     rank: row.rank,
-    snippet: row.snippet || undefined,
+    ...(row.snippet && { snippet: row.snippet }),
   }));
 }
 
@@ -972,11 +972,11 @@ export function getSessionEntries(
     timestamp: row.timestamp,
     role: row.role as SessionEntry['role'],
     content: row.content,
-    toolName: row.tool_name || undefined,
-    toolInput: row.tool_input || undefined,
-    toolResult: row.tool_result || undefined,
-    filePath: row.file_path || undefined,
-    lineNumber: row.line_number || undefined,
+    ...(row.tool_name && { toolName: row.tool_name }),
+    ...(row.tool_input && { toolInput: row.tool_input }),
+    ...(row.tool_result && { toolResult: row.tool_result }),
+    ...(row.file_path && { filePath: row.file_path }),
+    ...(row.line_number && { lineNumber: row.line_number }),
   }));
 }
 
@@ -1179,15 +1179,15 @@ function sessionRowToMetadata(row: SessionRow): SessionMetadata {
   return {
     sessionId: row.session_id,
     projectPath: row.project_path,
-    firstTimestamp: row.first_timestamp ?? undefined,
-    lastTimestamp: row.last_timestamp ?? undefined,
+    ...(row.first_timestamp && { firstTimestamp: row.first_timestamp }),
+    ...(row.last_timestamp && { lastTimestamp: row.last_timestamp }),
     entryCount: row.entry_count,
     inputTokens: row.input_tokens,
     outputTokens: row.output_tokens,
     cacheTokens: row.cache_tokens,
     compressionCount: row.compression_count,
-    model: row.model ?? undefined,
-    cliVersion: row.cli_version ?? undefined,
+    ...(row.model && { model: row.model }),
+    ...(row.cli_version && { cliVersion: row.cli_version }),
   };
 }
 

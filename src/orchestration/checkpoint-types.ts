@@ -214,7 +214,7 @@ export interface ISessionRecorder {
   /**
    * Stop recording.
    */
-  stopRecording(): Promise<void>;
+  stopRecording(): void;
 
   /**
    * Get recorded checkpoints for a session.
@@ -234,7 +234,7 @@ export interface ISessionRecorder {
   /**
    * Delete a session's checkpoints.
    */
-  deleteSession(sessionId: string): Promise<void>;
+  deleteSession(sessionId: string): void;
 
   /**
    * Clean up old checkpoints based on retention policy.
@@ -288,7 +288,7 @@ export interface ISessionReplayer {
   /**
    * Restore session state from a checkpoint.
    */
-  restoreFromCheckpoint(checkpoint: SessionCheckpoint): Promise<ReplayContext>;
+  restoreFromCheckpoint(checkpoint: SessionCheckpoint): ReplayContext;
 }
 
 // =============================================================================

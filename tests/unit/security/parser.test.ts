@@ -241,17 +241,17 @@ describe('Security Parser', () => {
       expect(result.version).toBe('8.18.0');
     });
 
-    it('should throw on non-existent file', async () => {
+    it('should throw on non-existent file', () => {
       const filePath = join(testDir, 'nonexistent.toml');
 
-      await expect(parseGitleaksToml(filePath)).rejects.toThrow();
+      expect(() => parseGitleaksToml(filePath)).toThrow();
     });
 
-    it('should throw on malformed TOML file', async () => {
+    it('should throw on malformed TOML file', () => {
       const filePath = join(testDir, 'malformed.toml');
       writeFileSync(filePath, MALFORMED_TOML);
 
-      await expect(parseGitleaksToml(filePath)).rejects.toThrow();
+      expect(() => parseGitleaksToml(filePath)).toThrow();
     });
 
     it('should handle file with empty rules', async () => {

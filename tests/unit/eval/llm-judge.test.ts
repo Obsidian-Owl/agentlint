@@ -6,13 +6,13 @@
  * @module tests/unit/eval/llm-judge.test.ts
  */
 
-import { describe, it, expect, beforeEach, mock } from 'bun:test';
+import { describe, it, expect } from 'bun:test';
 import {
   LLMJudgeGrader,
   createLLMJudgeGrader,
   createTestLLMJudgeGrader,
 } from '../../../src/eval/graders/llm-judge';
-import type { GoldenScenario, LLMJudgeGrade } from '../../../src/eval/types';
+import type { GoldenScenario } from '../../../src/eval/types';
 
 // =============================================================================
 // Test Fixtures

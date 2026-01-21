@@ -46,7 +46,7 @@ const classifySecretInputSchema = {
 /**
  * Zod schema for classification output.
  */
-const classificationResultSchema = z.object({
+const _classificationResultSchema = z.object({
   classification: z
     .enum(['confirmed', 'likely', 'unlikely', 'false_positive', 'needs_review'])
     .describe('Classification result'),
@@ -59,7 +59,7 @@ const classificationResultSchema = z.object({
   recommendation: z.string().describe('Suggested action for the user'),
 });
 
-type ClassificationResult = z.infer<typeof classificationResultSchema>;
+type ClassificationResult = z.infer<typeof _classificationResultSchema>;
 
 // =============================================================================
 // Classification Tool
@@ -315,7 +315,7 @@ export class SecretClassifier implements ISecretClassifier {
   /**
    * Classify a single secret candidate.
    */
-  async classify(candidate: SecretCandidate): Promise<ClassifiedSecret> {
+  classify(candidate: SecretCandidate): ClassifiedSecret {
     const analysisInput: CandidateAnalysis = {
       candidateId: candidate.id,
       ruleId: candidate.ruleId,
@@ -344,11 +344,11 @@ export class SecretClassifier implements ISecretClassifier {
   /**
    * Classify multiple candidates.
    */
-  async classifyBatch(candidates: SecretCandidate[]): Promise<ClassifiedSecret[]> {
+  classifyBatch(candidates: SecretCandidate[]): ClassifiedSecret[] {
     const results: ClassifiedSecret[] = [];
 
     for (const candidate of candidates) {
-      const classified = await this.classify(candidate);
+      const classified = this.classify(candidate);
       results.push(classified);
     }
 

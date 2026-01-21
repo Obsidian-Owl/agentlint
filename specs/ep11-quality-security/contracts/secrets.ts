@@ -296,17 +296,17 @@ export interface ISecretDetector {
   /**
    * Load patterns from a TOML file.
    */
-  loadPatterns(tomlPath: string): Promise<PatternSet>;
+  loadPatterns(tomlPath?: string): PatternSet;
 
   /**
    * Scan a file for secrets.
    */
-  scanFile(filePath: string, content: string): Promise<FileScanResult>;
+  scanFile(filePath: string, content: string): FileScanResult;
 
   /**
    * Scan multiple files.
    */
-  scanFiles(files: Array<{ path: string; content: string }>): Promise<SecretScanResult>;
+  scanFiles(files: Array<{ path: string; content: string }>): SecretScanResult;
 
   /**
    * Get loaded patterns.
@@ -324,12 +324,12 @@ export interface ISecretClassifier {
    * @param candidate - The candidate to classify (match field used internally only)
    * @returns Classification result
    */
-  classify(candidate: SecretCandidate): Promise<ClassifiedSecret>;
+  classify(candidate: SecretCandidate): ClassifiedSecret;
 
   /**
    * Classify multiple candidates.
    */
-  classifyBatch(candidates: SecretCandidate[]): Promise<ClassifiedSecret[]>;
+  classifyBatch(candidates: SecretCandidate[]): ClassifiedSecret[];
 }
 
 // =============================================================================

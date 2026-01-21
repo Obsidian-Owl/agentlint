@@ -22,7 +22,8 @@ import {
 } from '../../src/temporal/delta';
 import { saveBaseline } from '../../src/persistence/baselines/storage';
 import { initBaselineSchema, indexBaseline } from '../../src/persistence/baselines/indexer';
-import type { Baseline, MetricChange } from '../../src/persistence/types';
+import type { Baseline } from '../../src/persistence/types';
+import type { MetricChange } from '../../src/temporal/types';
 import type { Database } from 'bun:sqlite';
 
 // =============================================================================
@@ -97,16 +98,17 @@ function generateMetricChanges(count: number): MetricChange[] {
   ];
 
   for (let i = 0; i < count; i++) {
-    const previousValue = 50 + (Math.random() - 0.5) * 20;
-    const currentValue = previousValue + (Math.random() - 0.5) * 30;
-    const absoluteChange = currentValue - previousValue;
+    const from = 50 + (Math.random() - 0.5) * 20;
+    const to = from + (Math.random() - 0.5) * 30;
+    const change = to - from;
 
     changes.push({
-      metricName: metricNames[i % metricNames.length]!,
-      previousValue,
-      currentValue,
-      absoluteChange,
-      percentChange: (absoluteChange / previousValue) * 100,
+      name: metricNames[i % metricNames.length]!,
+      from,
+      to,
+      change,
+      percentChange: (change / from) * 100,
+      direction: change > 0 ? '↑' : change < 0 ? '↓' : '→',
     });
   }
 

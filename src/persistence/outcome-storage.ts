@@ -142,9 +142,9 @@ export class OutcomeStorage implements IOutcomeStorage {
   /**
    * Create a new outcome record.
    */
-  async createOutcome(
+  createOutcome(
     outcome: Omit<RecommendationOutcome, 'id' | 'createdAt' | 'updatedAt'>
-  ): Promise<RecommendationOutcome> {
+  ): RecommendationOutcome {
     const id = randomUUID();
     const createdAt = new Date().toISOString();
 
@@ -176,11 +176,11 @@ export class OutcomeStorage implements IOutcomeStorage {
   /**
    * Update an existing outcome.
    */
-  async updateOutcome(
+  updateOutcome(
     id: string,
     updates: Partial<RecommendationOutcome>
-  ): Promise<RecommendationOutcome> {
-    const existing = await this.getOutcome(id);
+  ): RecommendationOutcome {
+    const existing = this.getOutcome(id);
     if (!existing) {
       throw new Error(`Outcome not found: ${id}`);
     }
@@ -200,7 +200,7 @@ export class OutcomeStorage implements IOutcomeStorage {
     );
 
     // Re-fetch to get the merged result
-    const updated = await this.getOutcome(id);
+    const updated = this.getOutcome(id);
     if (!updated) {
       throw new Error(`Failed to retrieve updated outcome: ${id}`);
     }
@@ -211,7 +211,7 @@ export class OutcomeStorage implements IOutcomeStorage {
   /**
    * Get outcome by ID.
    */
-  async getOutcome(id: string): Promise<RecommendationOutcome | null> {
+  getOutcome(id: string): RecommendationOutcome | null {
     const stmt = this.db.prepare(GET_OUTCOME_BY_ID_SQL);
     const row = stmt.get(id) as OutcomeRow | null;
 
@@ -222,7 +222,7 @@ export class OutcomeStorage implements IOutcomeStorage {
   /**
    * Get outcomes for a session.
    */
-  async getOutcomesBySession(sessionId: string): Promise<RecommendationOutcome[]> {
+  getOutcomesBySession(sessionId: string): RecommendationOutcome[] {
     const stmt = this.db.prepare(GET_OUTCOMES_BY_SESSION_SQL);
     const rows = stmt.all(sessionId) as OutcomeRow[];
 
@@ -232,7 +232,7 @@ export class OutcomeStorage implements IOutcomeStorage {
   /**
    * Get outcomes for a recommendation.
    */
-  async getOutcomesByRecommendation(recommendationId: string): Promise<RecommendationOutcome[]> {
+  getOutcomesByRecommendation(recommendationId: string): RecommendationOutcome[] {
     const stmt = this.db.prepare(GET_OUTCOMES_BY_RECOMMENDATION_SQL);
     const rows = stmt.all(recommendationId) as OutcomeRow[];
 
@@ -245,7 +245,7 @@ export class OutcomeStorage implements IOutcomeStorage {
    * Returns outcomes that are marked as implemented but have not yet
    * received helped feedback, and are older than the specified days.
    */
-  async getPendingFollowUps(olderThanDays: number): Promise<RecommendationOutcome[]> {
+  getPendingFollowUps(olderThanDays: number): RecommendationOutcome[] {
     // Use special query for 0 days to return all pending regardless of age
     // This is useful for testing
     if (olderThanDays === 0) {
@@ -263,7 +263,7 @@ export class OutcomeStorage implements IOutcomeStorage {
   /**
    * Get aggregated metrics by recommendation type.
    */
-  async getMetrics(): Promise<OutcomeMetricsByType> {
+  getMetrics(): OutcomeMetricsByType {
     // Get metrics by type
     const byTypeStmt = this.db.prepare(GET_METRICS_SQL);
     const byTypeRows = byTypeStmt.all() as MetricsRow[];
@@ -294,14 +294,14 @@ export class OutcomeStorage implements IOutcomeStorage {
    *
    * Updates all outcomes for the given recommendation based on the event type.
    */
-  async recordImplicitEvent(event: ImplicitTrackingEvent): Promise<void> {
-    const outcomes = await this.getOutcomesByRecommendation(event.recommendationId);
+  recordImplicitEvent(event: ImplicitTrackingEvent): void {
+    const outcomes = this.getOutcomesByRecommendation(event.recommendationId);
 
     for (const outcome of outcomes) {
       if (event.type === 'config_changed') {
-        await this.updateOutcome(outcome.id, { configChangedAfter: true });
+        this.updateOutcome(outcome.id, { configChangedAfter: true });
       } else if (event.type === 'issue_recurred') {
-        await this.updateOutcome(outcome.id, { similarIssueRecurred: true });
+        this.updateOutcome(outcome.id, { similarIssueRecurred: true });
       }
     }
   }

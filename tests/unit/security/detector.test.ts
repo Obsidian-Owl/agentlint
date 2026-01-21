@@ -151,7 +151,6 @@ describe('SecretDetector', () => {
 
       // Some rules have keywords, some don't
       const rulesWithKeywords = patterns!.rules.filter((r) => r.keywords?.length);
-      const _rulesWithoutKeywords = patterns!.rules.filter((r) => !r.keywords?.length);
 
       expect(rulesWithKeywords.length).toBeGreaterThan(0);
       // It's OK if all rules have keywords
@@ -212,7 +211,7 @@ describe('SecretDetector', () => {
       const result = await detector.scanFile('test.ts', content);
 
       expect(result.candidateCount).toBe(1);
-      expect(result.candidates[0].location.line).toBe(2);
+      expect(result.candidates[0]!.location.line).toBe(2);
     });
 
     it('should calculate entropy for matches', async () => {
@@ -220,8 +219,8 @@ describe('SecretDetector', () => {
       const result = await detector.scanFile('test.ts', content);
 
       expect(result.candidateCount).toBe(1);
-      expect(result.candidates[0].entropy).toBeGreaterThan(0);
-      expect(typeof result.candidates[0].entropy).toBe('number');
+      expect(result.candidates[0]!.entropy).toBeGreaterThan(0);
+      expect(typeof result.candidates[0]!.entropy).toBe('number');
     });
 
     it('should create redacted context', async () => {
@@ -229,9 +228,9 @@ describe('SecretDetector', () => {
       const result = await detector.scanFile('test.ts', content);
 
       expect(result.candidateCount).toBe(1);
-      expect(result.candidates[0].redactedContext).toBeDefined();
-      expect(result.candidates[0].redactedContext).toContain('[REDACTED:');
-      expect(result.candidates[0].redactedContext).not.toContain('AKIAIOSFODNN7EXAMPLE4');
+      expect(result.candidates[0]!.redactedContext).toBeDefined();
+      expect(result.candidates[0]!.redactedContext).toContain('[REDACTED:');
+      expect(result.candidates[0]!.redactedContext).not.toContain('AKIAIOSFODNN7EXAMPLE4');
     });
 
     it('should never expose raw secret in serializable output', async () => {
@@ -276,7 +275,7 @@ describe('SecretDetector', () => {
       const result = await detector.scanFile('config.ts', content);
 
       expect(result.candidateCount).toBe(1);
-      expect(result.candidates[0].ruleId).toBe('aws-access-key-id');
+      expect(result.candidates[0]!.ruleId).toBe('aws-access-key-id');
     });
 
     it('should detect AWS secret keys when using generic API key pattern', async () => {
@@ -294,7 +293,7 @@ describe('SecretDetector', () => {
       const result = await detector.scanFile('config.ts', content);
 
       expect(result.candidateCount).toBe(1);
-      expect(result.candidates[0].ruleId).toBe('github-pat');
+      expect(result.candidates[0]!.ruleId).toBe('github-pat');
     });
 
     it('should detect generic API keys', async () => {
@@ -302,7 +301,7 @@ describe('SecretDetector', () => {
       const result = await detector.scanFile('config.ts', content);
 
       expect(result.candidateCount).toBe(1);
-      expect(result.candidates[0].ruleId).toBe('generic-api-key');
+      expect(result.candidates[0]!.ruleId).toBe('generic-api-key');
     });
 
     it('should detect private keys', async () => {
@@ -312,7 +311,7 @@ MIIEpAIBAAKCAQEAx...
       const result = await detector.scanFile('key.pem', content);
 
       expect(result.candidateCount).toBe(1);
-      expect(result.candidates[0].ruleId).toBe('private-key');
+      expect(result.candidates[0]!.ruleId).toBe('private-key');
     });
 
     it('should detect JWT tokens', async () => {
@@ -321,7 +320,7 @@ MIIEpAIBAAKCAQEAx...
       const result = await detector.scanFile('auth.ts', content);
 
       expect(result.candidateCount).toBe(1);
-      expect(result.candidates[0].ruleId).toBe('jwt-token');
+      expect(result.candidates[0]!.ruleId).toBe('jwt-token');
     });
 
     it('should detect connection strings', async () => {
@@ -329,7 +328,7 @@ MIIEpAIBAAKCAQEAx...
       const result = await detector.scanFile('db.ts', content);
 
       expect(result.candidateCount).toBe(1);
-      expect(result.candidates[0].ruleId).toBe('connection-string');
+      expect(result.candidates[0]!.ruleId).toBe('connection-string');
     });
 
     it('should detect Slack tokens', async () => {
@@ -341,7 +340,7 @@ MIIEpAIBAAKCAQEAx...
       const result = await detector.scanFile('slack.ts', content);
 
       expect(result.candidateCount).toBe(1);
-      expect(result.candidates[0].ruleId).toBe('slack-token');
+      expect(result.candidates[0]!.ruleId).toBe('slack-token');
     });
   });
 
@@ -531,9 +530,9 @@ describe('SecretCandidate', () => {
     const result = await detector.scanFile('test.ts', content);
 
     expect(result.candidateCount).toBe(2);
-    expect(result.candidates[0].id).not.toBe(result.candidates[1].id);
+    expect(result.candidates[0]!.id).not.toBe(result.candidates[1]!.id);
     // IDs should be UUIDs
-    expect(result.candidates[0].id).toMatch(
+    expect(result.candidates[0]!.id).toMatch(
       /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
     );
   });
@@ -543,8 +542,8 @@ describe('SecretCandidate', () => {
     const result = await detector.scanFile('test.ts', content);
 
     expect(result.candidateCount).toBe(1);
-    expect(result.candidates[0].ruleId).toBe('aws-access-key-id');
-    expect(result.candidates[0].ruleDescription).toBeTruthy();
+    expect(result.candidates[0]!.ruleId).toBe('aws-access-key-id');
+    expect(result.candidates[0]!.ruleDescription).toBeTruthy();
   });
 
   it('should include location information', async () => {
@@ -552,7 +551,7 @@ describe('SecretCandidate', () => {
     const result = await detector.scanFile('src/config.ts', content);
 
     expect(result.candidateCount).toBe(1);
-    const location = result.candidates[0].location;
+    const location = result.candidates[0]!.location;
     expect(location.file).toBe('src/config.ts');
     expect(location.line).toBe(2);
     expect(typeof location.column).toBe('number');
@@ -563,7 +562,7 @@ describe('SecretCandidate', () => {
     const result = await detector.scanFile('test.ts', content);
 
     expect(result.candidateCount).toBe(1);
-    const timestamp = result.candidates[0].detectedAt;
+    const timestamp = result.candidates[0]!.detectedAt;
     expect(timestamp).toBeDefined();
     // Should be valid ISO-8601
     expect(() => new Date(timestamp)).not.toThrow();
@@ -598,8 +597,8 @@ describe('Edge Cases', () => {
     const result = await detector.scanFile('test.ts', content);
 
     expect(result.candidateCount).toBe(1);
-    expect(result.candidates[0].location.line).toBe(1);
-    expect(result.candidates[0].location.column).toBe(0);
+    expect(result.candidates[0]!.location.line).toBe(1);
+    expect(result.candidates[0]!.location.column).toBe(0);
   });
 
   it('should handle secret at end of file', async () => {
@@ -615,8 +614,8 @@ describe('Edge Cases', () => {
     const result = await detector.scanFile('test.ts', content);
 
     expect(result.candidateCount).toBe(2);
-    expect(result.candidates[0].location.line).toBe(1);
-    expect(result.candidates[1].location.line).toBe(1);
+    expect(result.candidates[0]!.location.line).toBe(1);
+    expect(result.candidates[1]!.location.line).toBe(1);
   });
 
   it('should handle unicode in surrounding context', async () => {
@@ -624,7 +623,7 @@ describe('Edge Cases', () => {
     const result = await detector.scanFile('test.ts', content);
 
     expect(result.candidateCount).toBe(1);
-    expect(result.candidates[0].redactedContext).toContain('密钥');
+    expect(result.candidates[0]!.redactedContext).toContain('密钥');
   });
 
   it('should return error when patterns not loaded', async () => {

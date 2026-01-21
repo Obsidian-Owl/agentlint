@@ -63,7 +63,7 @@ class MockSessionRecorder implements ISessionRecorder {
     await Bun.write(filePath, JSON.stringify(checkpoint, null, 2));
   }
 
-  async stopRecording(): Promise<void> {
+  stopRecording(): void {
     this.currentSessionId = null;
   }
 
@@ -118,7 +118,7 @@ class MockSessionRecorder implements ISessionRecorder {
     return summaries;
   }
 
-  async deleteSession(sessionId: string): Promise<void> {
+  deleteSession(sessionId: string): void {
     this.sessions.delete(sessionId);
     const sessionDir = join(this.storageDir, sessionId);
     if (existsSync(sessionDir)) {
@@ -171,7 +171,7 @@ class MockSessionReplayer implements ISessionReplayer {
     return checkpoints.find((c) => c.sequence === sequence) ?? null;
   }
 
-  async restoreFromCheckpoint(checkpoint: SessionCheckpoint): Promise<ReplayContext> {
+  restoreFromCheckpoint(checkpoint: SessionCheckpoint): ReplayContext {
     const context: ReplayContext = {
       sessionId: checkpoint.sessionId,
       phase: checkpoint.phase,

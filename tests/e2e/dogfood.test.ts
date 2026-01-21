@@ -143,7 +143,7 @@ describe('Dogfood: Full Analysis (Live)', () => {
   test('analysis completes successfully', () => {
     expect(analysisResult).not.toBeNull();
     // Analysis succeeds with either 'success' or 'dry-run' status (no orchestrator yet)
-    expect(['success', 'dry-run']).toContain(analysisResult?.status);
+    expect(['success', 'dry-run']).toContain(analysisResult?.status ?? '');
   });
 
   test('no critical findings in own codebase', () => {

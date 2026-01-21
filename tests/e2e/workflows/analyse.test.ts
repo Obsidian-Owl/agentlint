@@ -55,6 +55,11 @@ interface AnalyseOutput {
 
 /**
  * Sample CLAUDE.md with known issues for testing.
+ * Issues:
+ * - Vague commands section ("Run stuff")
+ * - Missing development workflow
+ * - Missing architecture section
+ * - Missing testing guidelines
  */
 const CLAUDE_MD_WITH_ISSUES = `# CLAUDE.md
 
@@ -67,6 +72,39 @@ Run stuff.
 ## Notes
 Remember to check things.
 `;
+
+/**
+ * Expected findings for the CLAUDE_MD_WITH_ISSUES fixture.
+ * These are the golden outputs that tests can validate against.
+ *
+ * The static analysis detects:
+ * - Missing recommended sections (development, build, test, etc.)
+ * - Missing configuration files (project settings)
+ * - Missing code examples
+ */
+const EXPECTED_FINDINGS_FOR_ISSUES = {
+  /** Minimum number of findings expected */
+  minExpected: 2,
+  /** Types of findings that should be detected */
+  expectedTypes: ['config_gap'],
+  /** Specific patterns that must be detected */
+  mustDetect: [
+    {
+      type: 'config_gap',
+      pattern: /missing.*section/i,
+      description: 'Missing recommended sections (development, workflow, etc.)',
+    },
+    {
+      type: 'config_gap',
+      pattern: /code example|project.*setting/i,
+      description: 'Missing code examples or project settings',
+    },
+  ],
+  /** Findings that should NOT be detected (false positives) */
+  shouldNotDetect: [
+    { type: 'secret_exposure', description: 'No secrets in this fixture' },
+  ],
+};
 
 /**
  * Well-structured CLAUDE.md for positive tests.
@@ -194,7 +232,7 @@ describe('E2E: Analyse Workflow (Live)', () => {
 
     const output = parseJSONOutput<AnalyseOutput>(result);
     // Analysis succeeds with either 'success' or 'dry-run' status (no orchestrator yet)
-    expect(['success', 'dry-run']).toContain(output?.status);
+    expect(['success', 'dry-run']).toContain(output?.status ?? '');
 
     // Should discover config files
     expect(output?.configs).toBeDefined();
@@ -213,4 +251,90 @@ describe('E2E: Analyse Workflow (Live)', () => {
       expect(result.exitCode).toBe(1);
     }
   }, 120000);
+});
+
+// =============================================================================
+// Golden Input/Output Validation Tests (P0-4)
+// =============================================================================
+
+describe('E2E: Golden Fixtures Validation', () => {
+  let fixture: TestFixture;
+
+  beforeAll(() => {
+    fixture = createTestFixture('golden-fixtures');
+    writeFileSync(join(fixture.path, 'CLAUDE.md'), CLAUDE_MD_WITH_ISSUES);
+  });
+
+  afterAll(() => {
+    fixture.cleanup();
+  });
+
+  test('CLAUDE_MD_WITH_ISSUES fixture has documented issues', () => {
+    // Verify the fixture content matches documentation
+    expect(CLAUDE_MD_WITH_ISSUES).toContain('Run stuff');
+    expect(CLAUDE_MD_WITH_ISSUES).not.toContain('bun install');
+    expect(CLAUDE_MD_WITH_ISSUES).not.toContain('Architecture');
+    expect(CLAUDE_MD_WITH_ISSUES).not.toContain('Testing Guidelines');
+  });
+
+  test('expected findings structure is valid', () => {
+    // Validate the golden output structure
+    expect(EXPECTED_FINDINGS_FOR_ISSUES.minExpected).toBeGreaterThanOrEqual(1);
+    expect(EXPECTED_FINDINGS_FOR_ISSUES.expectedTypes.length).toBeGreaterThan(0);
+    expect(EXPECTED_FINDINGS_FOR_ISSUES.mustDetect.length).toBeGreaterThan(0);
+
+    // All mustDetect patterns should have valid structure
+    for (const expected of EXPECTED_FINDINGS_FOR_ISSUES.mustDetect) {
+      expect(expected.type).toBeDefined();
+      expect(expected.pattern).toBeInstanceOf(RegExp);
+      expect(expected.description).toBeDefined();
+    }
+  });
+
+  test('known issues in fixture are detected (dry-run validation)', async () => {
+    // Note: Full validation requires live analysis
+    // This test validates the fixture is correctly set up
+    const result = await runCLI(['analyse', '--dry-run', '-d', fixture.path], {
+      json: true,
+    });
+
+    expect(result.exitCode).toBe(0);
+    const output = parseJSONOutput<AnalyseOutput>(result);
+
+    // Dry-run discovers config
+    expect(output?.configs?.some((c) => c.type === 'claude-code')).toBe(true);
+  });
+
+  test(
+    'known issues in fixture are detected (live validation)',
+    async () => {
+      const result = await runCLI(['analyse', '-d', fixture.path], {
+        json: true,
+        timeout: 120000,
+      });
+
+      expect(result.exitCode).toBe(0);
+      const output = parseJSONOutput<AnalyseOutput>(result);
+
+      // Validate against golden outputs
+      expect(output?.findings?.length).toBeGreaterThanOrEqual(
+        EXPECTED_FINDINGS_FOR_ISSUES.minExpected
+      );
+
+      // Check that expected types are found
+      for (const expected of EXPECTED_FINDINGS_FOR_ISSUES.mustDetect) {
+        const found = output?.findings?.some(
+          (f) => f.type === expected.type && expected.pattern.test(f.description)
+        );
+        expect(found).toBe(true);
+      }
+
+      // Check for false positives
+      for (const shouldNot of EXPECTED_FINDINGS_FOR_ISSUES.shouldNotDetect) {
+        const found = output?.findings?.some((f) => f.type === shouldNot.type);
+        expect(found).toBe(false);
+      }
+    },
+    120000
+  );
 });

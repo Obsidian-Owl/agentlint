@@ -31,9 +31,9 @@ import type {
 class MockOutcomeStorage implements IOutcomeStorage {
   private outcomes: Map<string, RecommendationOutcome> = new Map();
 
-  async createOutcome(
+  createOutcome(
     outcome: Omit<RecommendationOutcome, 'id' | 'createdAt' | 'updatedAt'>
-  ): Promise<RecommendationOutcome> {
+  ): RecommendationOutcome {
     const id = randomUUID();
     const newOutcome: RecommendationOutcome = {
       ...outcome,
@@ -45,7 +45,7 @@ class MockOutcomeStorage implements IOutcomeStorage {
     return newOutcome;
   }
 
-  async updateOutcome(id: string, updates: Partial<RecommendationOutcome>): Promise<RecommendationOutcome> {
+  updateOutcome(id: string, updates: Partial<RecommendationOutcome>): RecommendationOutcome {
     const existing = this.outcomes.get(id);
     if (!existing) throw new Error(`Outcome not found: ${id}`);
     const updated = { ...existing, ...updates, id: existing.id, createdAt: existing.createdAt, updatedAt: new Date().toISOString() };
@@ -53,19 +53,19 @@ class MockOutcomeStorage implements IOutcomeStorage {
     return updated;
   }
 
-  async getOutcome(id: string): Promise<RecommendationOutcome | null> {
+  getOutcome(id: string): RecommendationOutcome | null {
     return this.outcomes.get(id) ?? null;
   }
 
-  async getOutcomesBySession(sessionId: string): Promise<RecommendationOutcome[]> {
+  getOutcomesBySession(sessionId: string): RecommendationOutcome[] {
     return Array.from(this.outcomes.values()).filter((o) => o.sessionId === sessionId);
   }
 
-  async getOutcomesByRecommendation(recommendationId: string): Promise<RecommendationOutcome[]> {
+  getOutcomesByRecommendation(recommendationId: string): RecommendationOutcome[] {
     return Array.from(this.outcomes.values()).filter((o) => o.recommendationId === recommendationId);
   }
 
-  async getPendingFollowUps(olderThanDays: number): Promise<RecommendationOutcome[]> {
+  getPendingFollowUps(olderThanDays: number): RecommendationOutcome[] {
     return Array.from(this.outcomes.values()).filter((o) => {
       if (o.implemented && o.helped === null) {
         if (olderThanDays === 0) return true;
@@ -77,7 +77,7 @@ class MockOutcomeStorage implements IOutcomeStorage {
     });
   }
 
-  async getMetrics(): Promise<OutcomeMetricsByType> {
+  getMetrics(): OutcomeMetricsByType {
     const all = Array.from(this.outcomes.values());
     const calc = (arr: RecommendationOutcome[]) => {
       const total = arr.length;
@@ -99,13 +99,13 @@ class MockOutcomeStorage implements IOutcomeStorage {
     };
   }
 
-  async recordImplicitEvent(event: ImplicitTrackingEvent): Promise<void> {
-    const outcomes = await this.getOutcomesByRecommendation(event.recommendationId);
+  recordImplicitEvent(event: ImplicitTrackingEvent): void {
+    const outcomes = this.getOutcomesByRecommendation(event.recommendationId);
     for (const o of outcomes) {
       if (event.type === 'config_changed') {
-        await this.updateOutcome(o.id, { configChangedAfter: true });
+        this.updateOutcome(o.id, { configChangedAfter: true });
       } else if (event.type === 'issue_recurred') {
-        await this.updateOutcome(o.id, { similarIssueRecurred: true });
+        this.updateOutcome(o.id, { similarIssueRecurred: true });
       }
     }
   }
@@ -136,7 +136,7 @@ class MockFeedbackCollector implements IFeedbackCollector {
     return this.config.collectFeedback;
   }
 
-  async shouldPrompt(): Promise<boolean> {
+  shouldPrompt(): boolean {
     return this.isEnabled() && this.sessionPromptCount < this.config.maxPromptsPerSession;
   }
 
@@ -152,7 +152,7 @@ class MockFeedbackCollector implements IFeedbackCollector {
     }));
   }
 
-  async recordFeedback(prompt: FeedbackPrompt): Promise<void> {
+  recordFeedback(prompt: FeedbackPrompt): void {
     this.sessionPromptCount++;
 
     // Map feedback response to outcome fields
@@ -163,7 +163,7 @@ class MockFeedbackCollector implements IFeedbackCollector {
       implemented = false;
     }
 
-    await this.storage.createOutcome({
+    this.storage.createOutcome({
       sessionId: `session-${Date.now()}`,
       recommendationId: prompt.recommendationId,
       recommendationType: 'preventive', // Default for testing
@@ -177,18 +177,18 @@ class MockFeedbackCollector implements IFeedbackCollector {
     });
   }
 
-  async getPendingFollowUps(): Promise<OutcomePrompt[]> {
-    const pending = await this.storage.getPendingFollowUps(this.config.followUpDelayDays);
+  getPendingFollowUps(): OutcomePrompt[] {
+    const pending = this.storage.getPendingFollowUps(this.config.followUpDelayDays);
     return pending.map((o) => ({
       recommendationId: o.recommendationId,
       summary: o.recommendationSummary,
     }));
   }
 
-  async recordFollowUp(prompt: OutcomePrompt): Promise<void> {
-    const outcomes = await this.storage.getOutcomesByRecommendation(prompt.recommendationId);
+  recordFollowUp(prompt: OutcomePrompt): void {
+    const outcomes = this.storage.getOutcomesByRecommendation(prompt.recommendationId);
     for (const o of outcomes) {
-      await this.storage.updateOutcome(o.id, {
+      this.storage.updateOutcome(o.id, {
         helped: prompt.helped ?? null,
         outcomeNotes: prompt.notes ?? null,
       });

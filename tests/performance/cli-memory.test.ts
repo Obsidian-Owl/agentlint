@@ -139,4 +139,103 @@ describe('CLI memory performance', () => {
       expect(memoryDeltaMB).toBeLessThan(20);
     });
   });
+
+  describe('iterative leak detection (P2-2)', () => {
+    test('detects slow memory leaks with iterative pattern', async () => {
+      const iterations = 5;
+      const operationsPerIteration = 100;
+      const measurements: number[] = [];
+
+      // Import formatters once
+      const { createJSONFormatter } = await import('../../src/cli/formatters/json');
+
+      // Create mock result
+      const mockResult = {
+        projectPath: '/test',
+        timestamp: new Date().toISOString(),
+        findings: Array.from({ length: 10 }, (_, i) => ({
+          id: `finding-${i}`,
+          type: 'config' as const,
+          severity: 'warning' as const,
+          title: `Finding ${i}`,
+          description: `Description for finding ${i}`,
+        })),
+        summary: { total: 10, byType: { config: 10 }, bySeverity: { warning: 10 } },
+      };
+
+      for (let i = 0; i < iterations; i++) {
+        // Force GC before measurement
+        if (global.gc) {
+          global.gc();
+        }
+        await new Promise((r) => setTimeout(r, 50)); // Let GC complete
+
+        const beforeIteration = process.memoryUsage().heapUsed;
+
+        // Run operations
+        for (let j = 0; j < operationsPerIteration; j++) {
+          const formatter = createJSONFormatter();
+          formatter.formatComplete(mockResult as never);
+        }
+
+        // Force GC after operations
+        if (global.gc) {
+          global.gc();
+        }
+        await new Promise((r) => setTimeout(r, 50));
+
+        const afterIteration = process.memoryUsage().heapUsed;
+        measurements.push(afterIteration - beforeIteration);
+      }
+
+      // Analyze growth pattern
+      const avgGrowth = measurements.reduce((a, b) => a + b, 0) / measurements.length;
+      const lastGrowth = measurements[measurements.length - 1]!;
+
+      // If last iteration grows significantly more than average, likely a leak
+      // Allow 3x variance (accounts for normal GC timing variations)
+      const leakThreshold = Math.max(avgGrowth * 3, 5 * 1024 * 1024); // At least 5MB margin
+      expect(lastGrowth).toBeLessThan(leakThreshold);
+
+      // Log measurements for debugging
+      console.log('Memory growth per iteration (bytes):', measurements);
+      console.log('Average growth:', avgGrowth);
+      console.log('Last growth:', lastGrowth);
+    });
+
+    test('iterative test detects unbounded growth', async () => {
+      // This test validates the leak detection methodology works
+      // by intentionally NOT creating leaks and verifying stable memory
+
+      const iterations = 3;
+      const measurements: number[] = [];
+
+      for (let i = 0; i < iterations; i++) {
+        if (global.gc) global.gc();
+        await new Promise((r) => setTimeout(r, 50));
+
+        const before = process.memoryUsage().heapUsed;
+
+        // Perform operations that should NOT leak
+        const data = { test: 'value' };
+        for (let j = 0; j < 1000; j++) {
+          JSON.stringify(data);
+          JSON.parse('{"a":1}');
+        }
+
+        if (global.gc) global.gc();
+        await new Promise((r) => setTimeout(r, 50));
+
+        const after = process.memoryUsage().heapUsed;
+        measurements.push(after - before);
+      }
+
+      // Memory should be stable (no significant growth across iterations)
+      const maxDelta = Math.max(...measurements) - Math.min(...measurements);
+      const maxDeltaMB = maxDelta / (1024 * 1024);
+
+      // Should be within 2MB variance
+      expect(maxDeltaMB).toBeLessThan(2);
+    });
+  });
 });

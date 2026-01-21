@@ -1,0 +1,43 @@
+{
+  "id": "production-metabase",
+  "version": "1.0",
+  "source": "public-repo",
+  "sourceUrl": "https://github.com/metabase/metabase/blob/master/CLAUDE.md",
+  "difficulty": "medium",
+  "tags": ["production", "skill-registry", "large-project", "clojure-java"],
+  "description": "Production CLAUDE.md from Metabase - a large open-source BI tool",
+  "input_data": {
+    "claudeMd": "# CLAUDE.md\n\n## Project Overview\nMetabase is an open-source business intelligence tool that lets you create charts and dashboards using data from a variety of databases and data sources.\n\n**Primary Language**: Clojure (backend), JavaScript/TypeScript (frontend)\n**Build System**: deps.edn (Clojure), npm (frontend)\n**Testing**: clojure.test, Jest\n\n## Development Workflow\n\n### Backend (Clojure)\n```bash\n# Start REPL\nclj -M:dev\n\n# Run tests\nclj -M:test\n\n# Build JAR\nclj -M:build\n```\n\n### Frontend (JavaScript/TypeScript)\n```bash\n# Install dependencies\nyarn install\n\n# Start dev server\nyarn dev\n\n# Run tests\nyarn test\n```\n\n## Architecture\n- `/src` - Clojure backend source\n- `/frontend` - React frontend\n- `/modules` - Feature modules\n- `/test` - Test files\n\n## Key Conventions\n- Use kebab-case for Clojure namespaces\n- Follow React hooks patterns in frontend\n- Write tests for all new features\n\n## Database Support\nMetabase supports:\n- PostgreSQL, MySQL, SQL Server\n- MongoDB, BigQuery, Redshift\n- And many more via drivers\n",
+    "projectType": "clojure-java",
+    "metadata": {
+      "stars": 35000,
+      "contributors": 500,
+      "lastUpdated": "2024-01-15"
+    }
+  },
+  "expected_properties": {
+    "shouldNotDetect": [
+      { "type": "bloated-config", "reason": "Well-structured with clear sections" },
+      { "type": "secret_exposure", "reason": "No secrets in this fixture" }
+    ],
+    "qualityScore": { "min": 0.7 },
+    "mustHave": [
+      "development workflow",
+      "architecture section",
+      "testing guidelines"
+    ]
+  },
+  "recommendations": [
+    {
+      "type": "preventive",
+      "action": "Consider adding IDE setup instructions for both Clojure (Cursive/Calva) and JavaScript development",
+      "rationale": "Large polyglot projects benefit from explicit IDE configuration guidance",
+      "priority": "low",
+      "tracedOrigin": {
+        "configGap": "missing-ide-setup",
+        "pattern": "large-polyglot-project-without-ide-guidance"
+      }
+    }
+  ],
+  "notes": "This scenario tests that agentlint correctly identifies well-structured configs and doesn't generate false positives for production-quality documentation."
+}

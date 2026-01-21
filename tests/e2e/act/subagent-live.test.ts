@@ -13,15 +13,12 @@
  * @module tests/e2e/act/subagent-live
  */
 
-import { describe, test, expect, beforeAll } from 'bun:test';
+import { describe, test, expect } from 'bun:test';
 import { query, type AgentDefinition } from '@anthropic-ai/claude-agent-sdk';
 import { buildACTSubagents } from '../../../src/act/index.js';
 
 // Type helper - our AgentDefinition is compatible but TS strictness requires cast
 type SDKAgents = Record<string, AgentDefinition>;
-
-// Skip if no API key
-const SKIP_LIVE_TESTS = !process.env.ANTHROPIC_API_KEY;
 
 /**
  * Extract text content from SDK response messages

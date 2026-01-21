@@ -7,11 +7,7 @@
 import { describe, it, expect, beforeAll } from 'bun:test';
 import { join } from 'node:path';
 import { readFile } from 'node:fs/promises';
-import {
-  parseJsonConfig,
-  parseJsonConfigSync,
-  type JsonConfigParseResult,
-} from '../../../src/parsers/json-config';
+import { parseJsonConfig, parseJsonConfigSync } from '../../../src/parsers/json-config';
 
 const FIXTURES_DIR = join(import.meta.dir, '../../fixtures/configs');
 

@@ -101,11 +101,11 @@ async function callTruLens(
     let stdout = '';
     let stderr = '';
 
-    proc.stdout.on('data', (data) => {
+    proc.stdout.on('data', (data: Buffer) => {
       stdout += data.toString();
     });
 
-    proc.stderr.on('data', (data) => {
+    proc.stderr.on('data', (data: Buffer) => {
       stderr += data.toString();
     });
 
@@ -142,7 +142,7 @@ async function callTruLens(
         }
         resolve(JSON.parse(jsonLine) as TruLensResponse);
       } catch (e) {
-        console.warn(`Failed to parse TruLens output: ${e}`);
+        console.warn(`Failed to parse TruLens output: ${String(e)}`);
         resolve(null);
       }
     });

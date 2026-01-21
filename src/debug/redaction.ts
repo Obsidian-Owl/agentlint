@@ -551,7 +551,7 @@ export const BUILTIN_REDACTION_PATTERNS: RedactionPattern[] = [
   // Only applied if mixed case detected (to avoid false positives on UUIDs, hashes)
   {
     pattern: /\b([A-Za-z0-9+/=]{40,})\b/g,
-    replacement: (match: string) => {
+    replacement: (match: string): string => {
       // Only redact if it looks like encoded data (has mixed case and special chars)
       const hasMixedCase = /[a-z]/.test(match) && /[A-Z]/.test(match);
       const hasSpecial = /[+/=]/.test(match);
@@ -616,7 +616,7 @@ export function redactObject<T>(
   }
 
   if (Array.isArray(obj)) {
-    return obj.map((item) => redactObject(item, patterns)) as T;
+    return obj.map((item: unknown) => redactObject(item, patterns)) as T;
   }
 
   if (typeof obj === 'object') {

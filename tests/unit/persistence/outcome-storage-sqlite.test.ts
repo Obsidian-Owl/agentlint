@@ -135,10 +135,10 @@ describe('SQLite OutcomeStorage', () => {
       expect(updated.createdAt).toBe(created.createdAt);
     });
 
-    test('throws error when updating non-existent outcome', async () => {
-      await expect(
+    test('throws error when updating non-existent outcome', () => {
+      expect(() =>
         storage.updateOutcome('non-existent-id', { implemented: true })
-      ).rejects.toThrow('not found');
+      ).toThrow('not found');
     });
   });
 

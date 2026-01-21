@@ -32,8 +32,10 @@ import { join, dirname } from 'path';
 // =============================================================================
 
 const EVALS_DIR = dirname(import.meta.path);
-const PYTHON_RUNNER = join(EVALS_DIR, 'temporal/run.py');
-const GOLDEN_DIR = join(EVALS_DIR, 'golden/temporal');
+const TEMPORAL_RUNNER = join(EVALS_DIR, 'temporal/run.py');
+const RECOMMENDATIONS_RUNNER = join(EVALS_DIR, 'recommendations/run.py');
+const TEMPORAL_GOLDEN_DIR = join(EVALS_DIR, 'golden/temporal');
+const RECOMMENDATIONS_GOLDEN_DIR = join(EVALS_DIR, 'golden/recommendations');
 const THRESHOLD = 0.7;
 
 // =============================================================================
@@ -102,16 +104,21 @@ Usage:
 
 Options:
   --all-datasets       Run all evaluation datasets
-  --dataset <name>     Run specific dataset (temporal)
+  --dataset <name>     Run specific dataset (temporal, recommendations)
   --all                Run all scenarios in dataset
   --scenario <name>    Run specific scenario
   --release-gate       Fail if thresholds not met
   --json               Output JSON results
   --help, -h           Show this help
 
+Available datasets:
+  temporal             EP09 Temporal analysis evaluations
+  recommendations      EP10 Recommendation advisor evaluations
+
 Examples:
   bun tests/evals/run-evals.ts --all-datasets --all --release-gate
   bun tests/evals/run-evals.ts --dataset temporal --all
+  bun tests/evals/run-evals.ts --dataset recommendations --all
   bun tests/evals/run-evals.ts --dataset temporal --scenario scenario-05
 
 Environment:
@@ -135,13 +142,13 @@ async function runTemporalEvals(options: EvalOptions): Promise<EvalResult> {
   console.log('Running temporal evaluations...');
 
   // Check if Python runner exists
-  if (!existsSync(PYTHON_RUNNER)) {
-    throw new Error(`Python runner not found: ${PYTHON_RUNNER}`);
+  if (!existsSync(TEMPORAL_RUNNER)) {
+    throw new Error(`Python runner not found: ${TEMPORAL_RUNNER}`);
   }
 
   // Check if golden dataset exists
-  if (!existsSync(GOLDEN_DIR)) {
-    throw new Error(`Golden dataset not found: ${GOLDEN_DIR}`);
+  if (!existsSync(TEMPORAL_GOLDEN_DIR)) {
+    throw new Error(`Golden dataset not found: ${TEMPORAL_GOLDEN_DIR}`);
   }
 
   // Build command
@@ -149,7 +156,7 @@ async function runTemporalEvals(options: EvalOptions): Promise<EvalResult> {
     ? join(process.env.UV_PROJECT_ENVIRONMENT, 'bin', 'python')
     : 'python';
 
-  const args: string[] = [PYTHON_RUNNER, '--golden', GOLDEN_DIR, '--json'];
+  const args: string[] = [TEMPORAL_RUNNER, '--golden', TEMPORAL_GOLDEN_DIR, '--json'];
 
   if (options.all) {
     args.push('--all');
@@ -198,6 +205,73 @@ async function runTemporalEvals(options: EvalOptions): Promise<EvalResult> {
   };
 }
 
+async function runRecommendationsEvals(options: EvalOptions): Promise<EvalResult> {
+  console.log('Running recommendations evaluations...');
+
+  // Check if Python runner exists
+  if (!existsSync(RECOMMENDATIONS_RUNNER)) {
+    throw new Error(`Python runner not found: ${RECOMMENDATIONS_RUNNER}`);
+  }
+
+  // Check if golden dataset exists
+  if (!existsSync(RECOMMENDATIONS_GOLDEN_DIR)) {
+    throw new Error(`Golden dataset not found: ${RECOMMENDATIONS_GOLDEN_DIR}`);
+  }
+
+  // Build command
+  const uvPath = process.env.UV_PROJECT_ENVIRONMENT
+    ? join(process.env.UV_PROJECT_ENVIRONMENT, 'bin', 'python')
+    : 'python';
+
+  const args: string[] = [RECOMMENDATIONS_RUNNER, '--golden', RECOMMENDATIONS_GOLDEN_DIR, '--json'];
+
+  if (options.all) {
+    args.push('--all');
+  }
+
+  if (options.scenario) {
+    args.push('--scenario', options.scenario);
+  }
+
+  // Run Python evaluation
+  const result = spawnSync([uvPath, ...args], {
+    cwd: EVALS_DIR,
+    env: {
+      ...process.env,
+      // Use uv's environment
+      VIRTUAL_ENV: process.env.UV_PROJECT_ENVIRONMENT ?? join(EVALS_DIR, '.venv'),
+    },
+  });
+
+  if (result.exitCode !== 0 && result.exitCode !== 1) {
+    const stderr = result.stderr.toString();
+    throw new Error(`Evaluation failed with exit code ${result.exitCode}: ${stderr}`);
+  }
+
+  // Parse JSON output
+  const stdout = result.stdout.toString();
+  const jsonMatch = stdout.match(/\{[\s\S]*\}/);
+
+  if (!jsonMatch) {
+    throw new Error(`Failed to parse evaluation output: ${stdout}`);
+  }
+
+  const evalResult = JSON.parse(jsonMatch[0]) as {
+    passed: boolean;
+    overall_score: number;
+    aggregate_scores: Record<string, number>;
+    failed_metrics: string[];
+  };
+
+  return {
+    dataset: 'recommendations',
+    passed: evalResult.passed,
+    overallScore: evalResult.overall_score,
+    scores: evalResult.aggregate_scores,
+    failedMetrics: evalResult.failed_metrics,
+  };
+}
+
 // =============================================================================
 // Main
 // =============================================================================
@@ -214,9 +288,19 @@ async function main(): Promise<void> {
   let allPassed = true;
 
   try {
-    // Currently only temporal dataset is implemented
+    // Run temporal evaluations
     if (options.allDatasets || options.dataset === 'temporal' || !options.dataset) {
       const result = await runTemporalEvals(options);
+      results.push(result);
+
+      if (!result.passed) {
+        allPassed = false;
+      }
+    }
+
+    // Run recommendations evaluations
+    if (options.allDatasets || options.dataset === 'recommendations') {
+      const result = await runRecommendationsEvals(options);
       results.push(result);
 
       if (!result.passed) {
@@ -263,4 +347,4 @@ async function main(): Promise<void> {
   }
 }
 
-main();
+void main();

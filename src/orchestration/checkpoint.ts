@@ -367,7 +367,7 @@ export class SessionRecorder implements ISessionRecorder {
   /**
    * Stop recording the current session.
    */
-  async stopRecording(): Promise<void> {
+  stopRecording(): void {
     this.currentSessionId = null;
   }
 
@@ -441,7 +441,7 @@ export class SessionRecorder implements ISessionRecorder {
   /**
    * Delete a session's checkpoints.
    */
-  async deleteSession(sessionId: string): Promise<void> {
+  deleteSession(sessionId: string): void {
     const sessionDir = join(this.storageDir, sessionId);
 
     if (existsSync(sessionDir)) {
@@ -476,7 +476,7 @@ export class SessionRecorder implements ISessionRecorder {
       const lastCheckpointDate = new Date(session.lastCheckpointAt);
 
       if (lastCheckpointDate < cutoffDate) {
-        await this.deleteSession(session.sessionId);
+        this.deleteSession(session.sessionId);
         deletedCount++;
       }
     }
@@ -566,7 +566,7 @@ export class SessionReplayer implements ISessionReplayer {
   /**
    * Restore session state from a checkpoint.
    */
-  async restoreFromCheckpoint(checkpoint: SessionCheckpoint): Promise<ReplayContext> {
+  restoreFromCheckpoint(checkpoint: SessionCheckpoint): ReplayContext {
     const context: ReplayContext = {
       sessionId: checkpoint.sessionId,
       phase: checkpoint.phase,

@@ -33,12 +33,13 @@ function formatHierarchyOutput(result: AnalyzeHierarchyResult): string {
   // Summary section
   lines.push('## Summary');
   lines.push('');
-  lines.push(`- **Overall Grade**: ${summary.overallGrade}`);
   lines.push(`- **Project Config**: ${summary.projectConfigExists ? 'Yes' : 'No'}`);
   lines.push(`- **Global Config**: ${summary.globalConfigExists ? 'Yes' : 'No'}`);
   lines.push(`- **Local Configs**: ${summary.localConfigCount}`);
   lines.push(`- **Skills**: ${summary.skillCount}`);
   lines.push(`- **Conflicts**: ${summary.conflictCount}`);
+  lines.push(`- **Total Issues**: ${summary.totalIssues}`);
+  lines.push(`- **Critical Issues**: ${summary.criticalIssues}`);
   lines.push('');
 
   // Project config

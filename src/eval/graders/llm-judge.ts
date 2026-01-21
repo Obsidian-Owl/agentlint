@@ -218,11 +218,11 @@ export class LLMJudgeGrader implements ILLMJudgeGrader {
       let stdout = '';
       let stderr = '';
 
-      proc.stdout.on('data', (data) => {
+      proc.stdout.on('data', (data: Buffer) => {
         stdout += data.toString();
       });
 
-      proc.stderr.on('data', (data) => {
+      proc.stderr.on('data', (data: Buffer) => {
         stderr += data.toString();
       });
 
@@ -246,9 +246,9 @@ export class LLMJudgeGrader implements ILLMJudgeGrader {
             reject(new Error('No JSON output from TruLens check'));
             return;
           }
-          resolve(JSON.parse(jsonLine));
+          resolve(JSON.parse(jsonLine) as { trulensAvailable: boolean; model: string | null });
         } catch (e) {
-          reject(new Error(`Failed to parse TruLens check output: ${e}`));
+          reject(new Error(`Failed to parse TruLens check output: ${String(e)}`));
         }
       });
 
@@ -277,11 +277,11 @@ export class LLMJudgeGrader implements ILLMJudgeGrader {
       let stdout = '';
       let stderr = '';
 
-      proc.stdout.on('data', (data) => {
+      proc.stdout.on('data', (data: Buffer) => {
         stdout += data.toString();
       });
 
-      proc.stderr.on('data', (data) => {
+      proc.stderr.on('data', (data: Buffer) => {
         stderr += data.toString();
       });
 
@@ -308,7 +308,7 @@ export class LLMJudgeGrader implements ILLMJudgeGrader {
           }
           resolve(JSON.parse(jsonLine) as TruLensResponse);
         } catch (e) {
-          reject(new Error(`Failed to parse TruLens output: ${e}`));
+          reject(new Error(`Failed to parse TruLens output: ${String(e)}`));
         }
       });
 

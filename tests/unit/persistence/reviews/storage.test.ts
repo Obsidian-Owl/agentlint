@@ -36,9 +36,9 @@ function createMockReview(overrides: Partial<QualitativeReview> = {}): Qualitati
     createdAt: new Date().toISOString(),
     dimensions: [
       {
-        name: 'relevance',
-        promptText: 'How relevant were the recommendations?',
-        response: 'Very relevant',
+        name: 'taskFit',
+        promptText: 'How well did the recommendations fit your tasks?',
+        response: 'Very well',
         sentiment: 1,
       },
     ],

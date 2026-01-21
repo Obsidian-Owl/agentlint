@@ -211,9 +211,9 @@ describe('SecretClassifier', () => {
 
       const results = await classifier.classifyBatch(candidates);
 
-      expect(results[0].candidateId).toBe('first');
-      expect(results[1].candidateId).toBe('second');
-      expect(results[2].candidateId).toBe('third');
+      expect(results[0]!.candidateId).toBe('first');
+      expect(results[1]!.candidateId).toBe('second');
+      expect(results[2]!.candidateId).toBe('third');
     });
 
     it('should handle empty batch', async () => {
@@ -373,7 +373,7 @@ describe('SecretClassifier', () => {
       const result = await classifier.classify(candidate);
 
       // ClassifiedSecret should not have a 'match' field
-      const resultObj = result as Record<string, unknown>;
+      const resultObj = result as unknown as Record<string, unknown>;
       expect(resultObj.match).toBeUndefined();
 
       // The secret should not appear in reasoning or recommendation

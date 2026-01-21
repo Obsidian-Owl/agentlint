@@ -151,7 +151,9 @@ def trend_accuracy(trend_analysis: dict[str, Any], baseline_data: dict[str, Any]
     if TRULENS_AVAILABLE:
         result = get_provider().generate_score(prompt)
         # generate_score returns (score, metadata) tuple
-        return result[0] if isinstance(result, tuple) else result
+        raw_score = result[0] if isinstance(result, tuple) else result
+        # Normalize 0-10 scale to 0-1 for threshold comparison
+        return raw_score / 10.0 if raw_score > 1.0 else raw_score
     return 0.5  # Stub for testing
 
 
@@ -203,7 +205,9 @@ def review_quality(review_output: dict[str, Any]) -> float:
     if TRULENS_AVAILABLE:
         result = get_provider().generate_score(prompt)
         # generate_score returns (score, metadata) tuple
-        return result[0] if isinstance(result, tuple) else result
+        raw_score = result[0] if isinstance(result, tuple) else result
+        # Normalize 0-10 scale to 0-1 for threshold comparison
+        return raw_score / 10.0 if raw_score > 1.0 else raw_score
     return 0.5  # Stub for testing
 
 
@@ -245,7 +249,9 @@ def recommendation_actionability(recommendation: dict[str, Any]) -> float:
     if TRULENS_AVAILABLE:
         result = get_provider().generate_score(prompt)
         # generate_score returns (score, metadata) tuple
-        return result[0] if isinstance(result, tuple) else result
+        raw_score = result[0] if isinstance(result, tuple) else result
+        # Normalize 0-10 scale to 0-1 for threshold comparison
+        return raw_score / 10.0 if raw_score > 1.0 else raw_score
     return 0.5  # Stub for testing
 
 
@@ -288,7 +294,9 @@ def causal_accuracy(causal_chain: dict[str, Any]) -> float:
     if TRULENS_AVAILABLE:
         result = get_provider().generate_score(prompt)
         # generate_score returns (score, metadata) tuple
-        return result[0] if isinstance(result, tuple) else result
+        raw_score = result[0] if isinstance(result, tuple) else result
+        # Normalize 0-10 scale to 0-1 for threshold comparison
+        return raw_score / 10.0 if raw_score > 1.0 else raw_score
     return 0.5  # Stub for testing
 
 
@@ -343,7 +351,9 @@ def mixed_methods_alignment(
     if TRULENS_AVAILABLE:
         result = get_provider().generate_score(prompt)
         # generate_score returns (score, metadata) tuple
-        return result[0] if isinstance(result, tuple) else result
+        raw_score = result[0] if isinstance(result, tuple) else result
+        # Normalize 0-10 scale to 0-1 for threshold comparison
+        return raw_score / 10.0 if raw_score > 1.0 else raw_score
     return 0.5  # Stub for testing
 
 

@@ -321,7 +321,7 @@ describe('DebugLogger', () => {
 
       // Pretty format should be human-readable (not JSON)
       const output = getLogEntry(consoleLogs, 0).args[0] as string;
-      expect(() => JSON.parse(output)).toThrow();
+      expect(() => JSON.parse(output) as unknown).toThrow();
       expect(output).toContain('Test message');
     });
 
@@ -335,7 +335,7 @@ describe('DebugLogger', () => {
       logger.info('agentlint:test', 'Test message');
 
       const output = getLogEntry(consoleLogs, 0).args[0] as string;
-      expect(() => JSON.parse(output)).not.toThrow();
+      expect(() => JSON.parse(output) as unknown).not.toThrow();
       const parsed = JSON.parse(output) as { message: string };
       expect(parsed.message).toBe('Test message');
     });
