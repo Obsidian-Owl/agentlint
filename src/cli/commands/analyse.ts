@@ -432,22 +432,39 @@ function convertRecommendationToFinding(rec: Recommendation): AnalyseFinding {
  * Load stored recommendations and convert them to findings.
  * This bridges the gap between recommendation tools (which store to disk)
  * and the findings output (which counts StreamChunk findings).
+ *
+ * Note: Due to SDK limitations, tools use process.cwd() for storage, not the
+ * target directory. We check both locations to handle this.
  */
 async function loadRecommendationsAsFindings(directory: string): Promise<AnalyseFinding[]> {
   const findings: AnalyseFinding[] = [];
+  const seenIds = new Set<string>();
 
-  try {
-    const recDir = getRecommendationsDir(directory);
-    const ids = listRecommendationIds({ baseDir: recDir });
+  // Check both target directory and CWD (where tools actually store recommendations)
+  const dirsToCheck = [
+    getRecommendationsDir(directory), // Target project
+    getRecommendationsDir(process.cwd()), // Where tools store (fallback)
+  ];
 
-    for (const id of ids) {
-      const rec = await loadRecommendation(id, { baseDir: recDir });
-      if (rec && rec.status === 'open') {
-        findings.push(convertRecommendationToFinding(rec));
+  // Dedupe if same directory
+  const uniqueDirs = [...new Set(dirsToCheck)];
+
+  for (const recDir of uniqueDirs) {
+    try {
+      const ids = listRecommendationIds({ baseDir: recDir });
+
+      for (const id of ids) {
+        if (seenIds.has(id)) continue;
+        seenIds.add(id);
+
+        const rec = await loadRecommendation(id, { baseDir: recDir });
+        if (rec && rec.status === 'open') {
+          findings.push(convertRecommendationToFinding(rec));
+        }
       }
+    } catch {
+      // Directory doesn't exist or empty - continue to next
     }
-  } catch {
-    // Recommendation storage not initialized or empty - this is fine
   }
 
   return findings;
