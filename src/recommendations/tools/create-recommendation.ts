@@ -13,6 +13,7 @@ import { z } from 'zod';
 import { saveRecommendation } from '../storage';
 import { CreateRecommendationInputSchema } from '../schemas';
 import type { Recommendation, RecommendationEvent, CreateRecommendationInput } from '../types';
+import { getTargetDirectory } from '../../orchestration/execution-context';
 
 // =============================================================================
 // Input Schema
@@ -116,9 +117,11 @@ export async function createRecommendation(
     };
 
     // Build the recommendation
+    // Use getTargetDirectory() to get the correct project path from execution context
+    // Falls back to process.cwd() if no context is available
     const recommendation: Recommendation = {
       id,
-      projectPath: process.cwd(),
+      projectPath: getTargetDirectory(),
       createdAt: now,
       type: input.type,
       action: input.action,

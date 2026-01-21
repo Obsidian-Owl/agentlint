@@ -121,6 +121,9 @@ export class Orchestrator implements IOrchestrator {
   /** Debug logger for orchestration */
   private readonly logger: INamespacedLogger;
 
+  /** Debug logger for LLM calls */
+  private readonly llmLogger: INamespacedLogger;
+
   /**
    * Create a new Orchestrator.
    *
@@ -132,6 +135,7 @@ export class Orchestrator implements IOrchestrator {
     this.config = loadConfig(config);
     this.toolRegistry = toolRegistry;
     this.logger = getDefaultLogger().child(DEBUG_NAMESPACES.ORCHESTRATION);
+    this.llmLogger = getDefaultLogger().child(DEBUG_NAMESPACES.LLM);
 
     // Validate depth limit (T050)
     if (this.config.depth > MAX_SUBAGENT_DEPTH) {
@@ -394,7 +398,7 @@ export class Orchestrator implements IOrchestrator {
         if (block.type === 'text') {
           chunks.push(this.createChunk('text', 'normal', block.text));
         } else if (block.type === 'tool_use') {
-          this.logger.debug('Tool invocation', {
+          this.logger.info('Tool invocation', {
             tool: block.name,
             // Input may contain secrets, rely on redaction
           });
@@ -408,7 +412,7 @@ export class Orchestrator implements IOrchestrator {
       }
     } else if (msg.type === 'tool_result') {
       // Tool result
-      this.logger.debug('Tool completed', {
+      this.logger.info('Tool completed', {
         toolId: msg.tool_use_id,
       });
       chunks.push(
@@ -418,9 +422,14 @@ export class Orchestrator implements IOrchestrator {
         })
       );
     } else if (msg.type === 'result') {
-      // Final result
+      // Final result - also log LLM call metrics
       this.logger.info('Session result', {
         sessionId: msg.session_id,
+        inputTokens: msg.input_tokens,
+        outputTokens: msg.output_tokens,
+      });
+      this.llmLogger.info('LLM call completed', {
+        model: this.config.model,
         inputTokens: msg.input_tokens,
         outputTokens: msg.output_tokens,
       });

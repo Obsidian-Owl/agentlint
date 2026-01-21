@@ -26,7 +26,12 @@ import { GapAnalyzer } from '../../tools/causal/gap-analyzer';
 import type { QualityIssue } from '../../tools/config/types';
 
 // Orchestration imports
-import { createToolRegistry, createOrchestrator, shouldDisplay } from '../../orchestration';
+import {
+  createToolRegistry,
+  createOrchestrator,
+  shouldDisplay,
+  runWithExecutionContext,
+} from '../../orchestration';
 import type { VerbosityLevel, StreamChunk } from '../../orchestration/types';
 import { registerAllTools } from '../../tools';
 import { createLoggerFromCLIOptions, setDefaultLogger } from '../../debug/logger';
@@ -43,6 +48,10 @@ import type { Recommendation } from '../../recommendations/types';
 
 // Database initialization import (Issue 4 fix)
 import { initializeDatabases } from '../../persistence';
+
+// Session indexing imports (Issue 2 fix: auto-index sessions before analysis)
+import { discoverSessions } from '../../tools/sessions/discovery';
+import { indexSessions } from '../../tools/sessions/indexer';
 
 /**
  * Options for the analyse command.
@@ -532,6 +541,21 @@ async function runOrchestratedAnalysis(
   // This ensures baselines, learnings, recommendations directories and DBs exist
   await initializeDatabases({ projectPath: directory });
 
+  // Issue 2 fix: Auto-index sessions before analysis so session tools have data
+  // This populates the sessions database with any discovered session files
+  try {
+    const discovered = await discoverSessions({ projectPath: directory });
+    if (discovered.files.length > 0) {
+      await indexSessions(
+        discovered.files.map((f) => ({ path: f.path, projectPath: f.projectPath })),
+        { force: false }
+      );
+    }
+  } catch {
+    // Don't block analysis if session indexing fails - it's supplementary
+    // The agent can still analyze configs without session data
+  }
+
   // Create tool registry and register all tools
   const registry = createToolRegistry();
   registerAllTools(registry);
@@ -576,45 +600,49 @@ async function runOrchestratedAnalysis(
   process.on('SIGINT', handleInterrupt);
 
   try {
-    // Run the orchestrator and stream output
-    for await (const chunk of orchestrator.run(prompt)) {
-      // Check for interruption
-      if (interrupted) {
-        break;
-      }
+    // Run the orchestrator with execution context so tools know the target directory
+    // This ensures create_recommendation stores files in the target project, not cwd
+    return await runWithExecutionContext({ targetDirectory: directory }, async () => {
+      // Run the orchestrator and stream output
+      for await (const chunk of orchestrator.run(prompt)) {
+        // Check for interruption
+        if (interrupted) {
+          break;
+        }
 
-      // Filter by verbosity and render
-      if (shouldDisplay(chunk.level, verbosity)) {
-        renderer.renderChunk(chunk);
-      }
+        // Filter by verbosity and render
+        if (shouldDisplay(chunk.level, verbosity)) {
+          renderer.renderChunk(chunk);
+        }
 
-      // Collect findings from chunks
-      if (chunk.type === 'finding') {
-        const finding = convertChunkToFinding(chunk);
-        if (finding) {
-          findings.push(finding);
-          renderer.renderFinding(finding);
+        // Collect findings from chunks
+        if (chunk.type === 'finding') {
+          const finding = convertChunkToFinding(chunk);
+          if (finding) {
+            findings.push(finding);
+            renderer.renderFinding(finding);
+          }
         }
       }
-    }
 
-    // Bridge recommendations to findings (Issue 2 fix)
-    // Agent calls create_recommendation → stored to disk → we collect them here
-    const storedRecFindings = await loadRecommendationsAsFindings(directory);
-    for (const recFinding of storedRecFindings) {
-      // Only add if not already in findings (avoid duplicates from chunk findings)
-      if (!findings.some((f) => f.id === recFinding.id)) {
-        findings.push(recFinding);
-        renderer.renderFinding(recFinding);
+      // Bridge recommendations to findings (Issue 2 fix)
+      // Agent calls create_recommendation → stored to disk → we collect them here
+      const storedRecFindings = await loadRecommendationsAsFindings(directory);
+      for (const recFinding of storedRecFindings) {
+        // Only add if not already in findings (avoid duplicates from chunk findings)
+        if (!findings.some((f) => f.id === recFinding.id)) {
+          findings.push(recFinding);
+          renderer.renderFinding(recFinding);
+        }
       }
-    }
 
-    // Build and output final result
-    const result = buildAnalyseResult(directory, scanResult, findings, startTime);
-    renderer.renderComplete(result);
-    renderer.flush();
+      // Build and output final result
+      const result = buildAnalyseResult(directory, scanResult, findings, startTime);
+      renderer.renderComplete(result);
+      renderer.flush();
 
-    return result;
+      return result;
+    });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     renderer.renderError(error instanceof Error ? error : new Error(errorMessage));

@@ -44,7 +44,7 @@ export * from './adapters';
 export { discoverConfigsTool, parseConfigTool, analyzeHierarchyTool } from './config';
 
 // EP06 Session tools
-export { searchSessionsTool, getSessionStatsTool } from './sessions';
+export { searchSessionsTool, getSessionStatsTool, indexSessionsTool } from './sessions';
 
 // EP07 Causal tools
 export { traceIssueOriginTool, getIssuePatternsTool } from './causal';
@@ -85,7 +85,7 @@ export { classifySecretTool } from '../security';
 import { discoverConfigsTool, parseConfigTool, analyzeHierarchyTool } from './config';
 
 // EP06 Session tools
-import { searchSessionsTool, getSessionStatsTool } from './sessions';
+import { searchSessionsTool, getSessionStatsTool, indexSessionsTool } from './sessions';
 
 // EP07 Causal tools
 import { traceIssueOriginTool, getIssuePatternsTool } from './causal';
@@ -134,6 +134,7 @@ export const EP05_CONFIG_TOOLS: ToolDefinition[] = [
 export const EP06_SESSION_TOOLS: ToolDefinition[] = [
   searchSessionsTool,
   getSessionStatsTool,
+  indexSessionsTool,
 ] as ToolDefinition[];
 
 /**
@@ -286,13 +287,13 @@ export function registerEP11SecurityTools(registry: IToolRegistry): void {
  * Register all agentlint tools with a ToolRegistry.
  * Includes EP05-EP11 tools:
  * - EP05: Config analysis (3 tools)
- * - EP06: Session analysis (2 tools)
+ * - EP06: Session analysis (3 tools)
  * - EP07: Causal tracing (2 tools)
  * - EP09: Temporal analysis (8 tools)
  * - EP10: Recommendations (9 tools)
  * - EP11: Security (1 tool)
  *
- * Total: 25 tools
+ * Total: 26 tools
  *
  * @param registry - The ToolRegistry to register tools with
  */

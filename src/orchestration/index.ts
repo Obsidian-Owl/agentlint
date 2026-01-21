@@ -165,3 +165,15 @@ export {
   DEFAULT_RETRY_CONFIG,
   RETRYABLE_STATUS_CODES,
 } from './retry';
+
+// =============================================================================
+// Execution Context - EP11 Debug Infrastructure Fix
+// =============================================================================
+
+export type { ExecutionContext } from './execution-context';
+export {
+  runWithExecutionContext,
+  getTargetDirectory,
+  getExecutionContext,
+  hasExecutionContext,
+} from './execution-context';
