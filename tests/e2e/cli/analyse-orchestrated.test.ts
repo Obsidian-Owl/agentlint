@@ -80,7 +80,7 @@ const CLAUDE_MD_WITH_SECRET = `# CLAUDE.md
 Test project.
 
 ## Configuration
-API_KEY=sk-ant-api03-secret-key-here-1234567890
+password = mysupersecretpassword123
 `;
 
 // =============================================================================
@@ -211,111 +211,139 @@ describe('E2E: Static Analysis Mode (--static)', () => {
 // =============================================================================
 
 describe('E2E: Orchestrated Analysis Mode (Default)', () => {
-  let fixture: TestFixture;
-
-  beforeAll(() => {
-    fixture = createTestFixture('orchestrated-analysis');
-    writeFileSync(join(fixture.path, 'CLAUDE.md'), CLAUDE_MD_FIXTURE);
-  });
-
-  afterAll(() => {
-    fixture.cleanup();
-  });
-
   // Skip these tests if no API key
   const skipIfNoKey = !hasAPIKey();
 
+  // Live API tests are slow and flaky - require explicit opt-in
+  // Run with: AGENTLINT_LIVE_TESTS=1 bun test analyse-orchestrated
+  const skipLiveTests = skipIfNoKey || !process.env.AGENTLINT_LIVE_TESTS;
+
   test('falls back to static analysis without API key', async () => {
-    // Run with API key removed
-    const result = await runCLI(['analyse', '-d', fixture.path], {
-      json: true,
-      env: { ANTHROPIC_API_KEY: '' },
-    });
+    // Each test gets its own isolated fixture to prevent cross-test contamination
+    const fixture = createTestFixture('fallback-test');
+    try {
+      writeFileSync(join(fixture.path, 'CLAUDE.md'), CLAUDE_MD_FIXTURE);
 
-    // Should succeed by falling back to static
-    expect(result.exitCode).toBe(0);
-
-    const output = parseJSONOutput<AnalyseOutput>(result);
-    expect(output?.status).toBe('success');
-  });
-
-  test.skipIf(skipIfNoKey)(
-    'orchestrated analysis produces intelligent findings',
-    async () => {
       const result = await runCLI(['analyse', '-d', fixture.path], {
         json: true,
-        timeout: 120000, // Agent analysis takes time
+        env: { ANTHROPIC_API_KEY: '' },
       });
 
+      // Should succeed by falling back to static
       expect(result.exitCode).toBe(0);
 
       const output = parseJSONOutput<AnalyseOutput>(result);
       expect(output?.status).toBe('success');
-      expect(output?.configs?.length).toBeGreaterThan(0);
+    } finally {
+      fixture.cleanup();
+    }
+  });
 
-      // Orchestrated analysis should produce findings
-      expect(output?.findings?.length).toBeGreaterThanOrEqual(0);
+  test.skipIf(skipLiveTests)(
+    'orchestrated analysis produces intelligent findings',
+    async () => {
+      const fixture = createTestFixture('orchestrated-findings');
+      try {
+        writeFileSync(join(fixture.path, 'CLAUDE.md'), CLAUDE_MD_FIXTURE);
+
+        const result = await runCLI(['analyse', '-d', fixture.path], {
+          json: true,
+          timeout: 180000, // 3 minutes for agent analysis
+        });
+
+        expect(result.exitCode).toBe(0);
+
+        const output = parseJSONOutput<AnalyseOutput>(result);
+        expect(output?.status).toBe('success');
+        expect(output?.configs?.length).toBeGreaterThan(0);
+
+        // Orchestrated analysis should produce findings
+        expect(output?.findings?.length).toBeGreaterThanOrEqual(0);
+      } finally {
+        fixture.cleanup();
+      }
     },
-    120000
+    180000
   );
 
-  test.skipIf(skipIfNoKey)(
+  test.skipIf(skipLiveTests)(
     'orchestrated analysis includes causal tracing',
     async () => {
-      const result = await runCLI(['analyse', '-d', fixture.path], {
-        json: true,
-        timeout: 120000,
-      });
+      const fixture = createTestFixture('orchestrated-causal');
+      try {
+        writeFileSync(join(fixture.path, 'CLAUDE.md'), CLAUDE_MD_FIXTURE);
 
-      const output = parseJSONOutput<AnalyseOutput>(result);
+        const result = await runCLI(['analyse', '-d', fixture.path], {
+          json: true,
+          timeout: 180000,
+        });
 
-      // Findings should include origin tracing
-      const findingsWithOrigin = output?.findings?.filter((f) => f.origin);
-      if (output?.findings?.length && output.findings.length > 0) {
-        expect(findingsWithOrigin?.length).toBeGreaterThanOrEqual(0);
+        const output = parseJSONOutput<AnalyseOutput>(result);
+
+        // Findings should include origin tracing
+        const findingsWithOrigin = output?.findings?.filter((f) => f.origin);
+        if (output?.findings?.length && output.findings.length > 0) {
+          expect(findingsWithOrigin?.length).toBeGreaterThanOrEqual(0);
+        }
+      } finally {
+        fixture.cleanup();
       }
     },
-    120000
+    180000
   );
 
-  test.skipIf(skipIfNoKey)(
+  test.skipIf(skipLiveTests)(
     '--verbose shows tool calls during analysis',
     async () => {
-      const result = await runCLI(['analyse', '-d', fixture.path, '--verbose'], {
-        timeout: 120000,
-      });
+      const fixture = createTestFixture('orchestrated-verbose');
+      try {
+        writeFileSync(join(fixture.path, 'CLAUDE.md'), CLAUDE_MD_FIXTURE);
 
-      expect(result.exitCode).toBe(0);
+        const result = await runCLI(['analyse', '-d', fixture.path, '--verbose'], {
+          timeout: 180000,
+        });
 
-      // Verbose mode should show tool invocations
-      // (Tool names may appear in output)
-    },
-    120000
-  );
+        expect(result.exitCode).toBe(0);
 
-  test.skipIf(skipIfNoKey)(
-    'JSON output streams NDJSON events',
-    async () => {
-      const result = await runCLI(['analyse', '-d', fixture.path, '--json'], {
-        timeout: 120000,
-      });
-
-      expect(result.exitCode).toBe(0);
-
-      // Output should be valid JSON (either single object or NDJSON)
-      const lines = result.stdout.trim().split('\n');
-      for (const line of lines) {
-        if (line.trim()) {
-          // Verify it's valid JSON by parsing it
-          let parsed: unknown;
-          expect(() => {
-            parsed = JSON.parse(line) as unknown;
-          }).not.toThrow();
-          expect(parsed).toBeDefined();
-        }
+        // Verbose mode should show tool invocations
+        // (Tool names may appear in output)
+      } finally {
+        fixture.cleanup();
       }
     },
-    120000
+    180000
+  );
+
+  test.skipIf(skipLiveTests)(
+    'JSON output streams NDJSON events',
+    async () => {
+      const fixture = createTestFixture('orchestrated-json');
+      try {
+        writeFileSync(join(fixture.path, 'CLAUDE.md'), CLAUDE_MD_FIXTURE);
+
+        const result = await runCLI(['analyse', '-d', fixture.path, '--json'], {
+          timeout: 180000,
+        });
+
+        expect(result.exitCode).toBe(0);
+
+        // Output should be valid JSON (either single object or NDJSON)
+        const lines = result.stdout.trim().split('\n');
+        for (const line of lines) {
+          if (line.trim()) {
+            // Verify it's valid JSON by parsing it
+            let parsed: unknown;
+            expect(() => {
+              parsed = JSON.parse(line) as unknown;
+            }).not.toThrow();
+            expect(parsed).toBeDefined();
+          }
+        }
+      } finally {
+        fixture.cleanup();
+      }
+    },
+    180000
   );
 });
 
@@ -324,38 +352,41 @@ describe('E2E: Orchestrated Analysis Mode (Default)', () => {
 // =============================================================================
 
 describe('E2E: Analysis Mode Selection', () => {
-  let fixture: TestFixture;
-
-  beforeAll(() => {
-    fixture = createTestFixture('mode-selection');
-    writeFileSync(join(fixture.path, 'CLAUDE.md'), CLAUDE_MD_FIXTURE);
-  });
-
-  afterAll(() => {
-    fixture.cleanup();
-  });
-
   test('--dry-run takes precedence over --static', async () => {
-    const result = await runCLI(['analyse', '--dry-run', '--static', '-d', fixture.path], {
-      json: true,
-    });
+    const fixture = createTestFixture('mode-dryrun');
+    try {
+      writeFileSync(join(fixture.path, 'CLAUDE.md'), CLAUDE_MD_FIXTURE);
 
-    const output = parseJSONOutput<AnalyseOutput>(result);
-    expect(output?.status).toBe('dry-run');
-    expect(output?.findings?.length).toBe(0); // Dry run has no findings
+      const result = await runCLI(['analyse', '--dry-run', '--static', '-d', fixture.path], {
+        json: true,
+      });
+
+      const output = parseJSONOutput<AnalyseOutput>(result);
+      expect(output?.status).toBe('dry-run');
+      expect(output?.findings?.length).toBe(0); // Dry run has no findings
+    } finally {
+      fixture.cleanup();
+    }
   });
 
   test('--static is faster than orchestrated', async () => {
-    // Static should complete quickly
-    const staticResult = await runCLI(['analyse', '--static', '-d', fixture.path], {
-      json: true,
-      timeout: 10000,
-    });
+    const fixture = createTestFixture('mode-static');
+    try {
+      writeFileSync(join(fixture.path, 'CLAUDE.md'), CLAUDE_MD_FIXTURE);
 
-    expect(staticResult.exitCode).toBe(0);
+      // Static should complete quickly
+      const staticResult = await runCLI(['analyse', '--static', '-d', fixture.path], {
+        json: true,
+        timeout: 10000,
+      });
 
-    const output = parseJSONOutput<AnalyseOutput>(staticResult);
-    expect(output?.durationMs ?? 0).toBeLessThan(10000);
+      expect(staticResult.exitCode).toBe(0);
+
+      const output = parseJSONOutput<AnalyseOutput>(staticResult);
+      expect(output?.durationMs ?? 0).toBeLessThan(10000);
+    } finally {
+      fixture.cleanup();
+    }
   });
 
   test('help text shows all modes', async () => {
