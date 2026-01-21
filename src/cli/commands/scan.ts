@@ -15,12 +15,28 @@ import { colorByStatus, bold } from '../utils/colors';
 
 /**
  * Supported AI configuration file patterns.
+ * Extended for AGE-666 to include more Claude config types.
  */
 export const CONFIG_PATTERNS = [
   {
     type: 'claude-code' as const,
     pattern: 'CLAUDE.md',
     description: 'Claude Code project instructions',
+  },
+  {
+    type: 'claude-code' as const,
+    pattern: '.mcp.json',
+    description: 'MCP server configuration',
+  },
+  {
+    type: 'claude-code' as const,
+    pattern: '.claude/settings.json',
+    description: 'Claude Code project settings',
+  },
+  {
+    type: 'claude-code' as const,
+    pattern: '.claude/settings.local.json',
+    description: 'Claude Code local settings',
   },
   {
     type: 'cursor' as const,

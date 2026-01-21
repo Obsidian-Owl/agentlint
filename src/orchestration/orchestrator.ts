@@ -212,8 +212,8 @@ export class Orchestrator implements IOrchestrator {
         phase: this._sessionState.phase,
       });
 
-      // Yield session start status
-      yield this.createChunk('status', 'normal', `Starting analysis: ${task}`);
+      // Yield session start status (don't dump the full prompt)
+      yield this.createChunk('status', 'normal', `Starting analysis...`);
 
       // Get MCP server from tool registry
       const mcpServer = this.toolRegistry.toMcpServer();
@@ -231,6 +231,8 @@ export class Orchestrator implements IOrchestrator {
         agents: buildACTSubagents(),
         // T032: Include 'Task' in allowedTools to enable subagent invocation
         allowedTools: this.config.allowedTools,
+        // Enable real-time streaming of agent text (AGE-662)
+        includePartialMessages: true,
       };
 
       // Only add systemPrompt if we have custom content
@@ -242,6 +244,9 @@ export class Orchestrator implements IOrchestrator {
         };
       }
       // Call SDK query() with our configuration
+      // Note: Retry logic (AGE-665) is available via withRetry() but not applied here
+      // since query() returns an AsyncIterable. Network errors during streaming
+      // would need to be handled at a higher level or with SDK support.
       // eslint-disable-next-line @typescript-eslint/await-thenable, @typescript-eslint/no-unsafe-assignment
       const response = await query({
         prompt: task,
@@ -369,6 +374,18 @@ export class Orchestrator implements IOrchestrator {
     // SDK messages have various structures depending on type - disable strict checks for interop
     /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument */
     const msg = message as any;
+
+    // Handle stream_event for real-time streaming (AGE-662)
+    if (msg.type === 'stream_event') {
+      const event = msg.event;
+      if (event?.type === 'content_block_delta' && event.delta?.type === 'text_delta') {
+        const text = event.delta.text as string;
+        if (text) {
+          chunks.push(this.createChunk('text', 'normal', text));
+        }
+      }
+      return chunks;
+    }
 
     if (msg.type === 'assistant' && msg.content) {
       // Assistant text content

@@ -8,12 +8,16 @@
 
 /**
  * Type of configuration file.
+ * Extended for AGE-666 to include more Claude config types.
  */
 export type ConfigType =
   | 'claude-md' // CLAUDE.md
   | 'agents-md' // AGENTS.md
   | 'claude-settings' // .claude/settings.json
-  | 'skill-md' // SKILL.md
+  | 'claude-settings-local' // .claude/settings.local.json (AGE-666)
+  | 'mcp-json' // .mcp.json (AGE-666)
+  | 'claude-hook' // .claude/hooks/* (AGE-666)
+  | 'skill-md' // SKILL.md or .claude/skills/*.md
   | 'cursor-rules' // .cursor/rules/*.mdc (future)
   | 'unknown'; // Unrecognized format
 

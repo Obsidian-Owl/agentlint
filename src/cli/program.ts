@@ -230,22 +230,27 @@ function addAnalyseCommand(program: Command): void {
     .option('--config-only', 'Only analyze configuration files')
     .option('--sessions-only', 'Only analyze session logs')
     .option('--dry-run', 'Scan only, do not run full analysis')
+    .option('--static', 'Run static analysis without LLM (fast mode)')
     .addHelpText(
       'after',
       `
 Examples:
-  $ agentlint analyse                Run full analysis
+  $ agentlint analyse                Run full agent-based analysis
+  $ agentlint analyse --static       Fast static analysis (no LLM)
   $ agentlint analyse --config-only  Analyze only config files
   $ agentlint analyse --json         Output as JSON for CI
-  $ agentlint analyse --verbose      Show agent reasoning
+  $ agentlint analyse --verbose      Show agent reasoning and tool calls
   $ agentlint analyse --dry-run      Scan configs without full analysis
 
-The analyse command runs the full agentlint analysis pipeline:
+The analyse command runs the agentlint analysis pipeline:
   1. Discovers AI configuration files
   2. Parses and validates configurations
   3. Analyzes session logs (if available)
   4. Identifies issues and traces to root causes
-  5. Generates recommendations`
+  5. Generates recommendations
+
+By default, uses Claude agent for intelligent analysis (requires ANTHROPIC_API_KEY).
+Use --static for fast analysis without LLM.`
     )
     .action(
       async (options: {
@@ -253,6 +258,7 @@ The analyse command runs the full agentlint analysis pipeline:
         configOnly?: boolean;
         sessionsOnly?: boolean;
         dryRun?: boolean;
+        static?: boolean;
       }) => {
         const { runAnalyse } = await import('./commands/analyse');
         const globalOpts = extractGlobalOptions(program.opts());

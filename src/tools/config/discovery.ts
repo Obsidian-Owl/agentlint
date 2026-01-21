@@ -53,20 +53,26 @@ export const DEFAULT_EXCLUSIONS = [
 
 /**
  * Config file patterns to search for.
+ * Extended for AGE-666 to include more Claude config types.
  */
 const CONFIG_PATTERNS = {
   claudeMd: ['**/CLAUDE.md', '**/claude.md'],
   agentsMd: ['**/AGENTS.md', '**/agents.md'],
   settings: ['**/settings.json', '**/.claude/settings.json'],
-  skillMd: ['**/SKILL.md', '**/skill.md'],
+  settingsLocal: ['**/.claude/settings.local.json'],
+  mcpJson: ['**/.mcp.json'],
+  hooks: ['**/.claude/hooks/*'],
+  skillMd: ['**/SKILL.md', '**/skill.md', '**/.claude/skills/*.md'],
 } as const;
 
 /**
  * Determine ConfigType from file path.
+ * Extended for AGE-666 to handle more Claude config types.
  */
 function getConfigType(filePath: string): ConfigType {
   const basename = path.basename(filePath).toLowerCase();
   const parentDir = path.basename(path.dirname(filePath));
+  const grandparentDir = path.basename(path.dirname(path.dirname(filePath)));
 
   if (basename === 'claude.md') {
     return 'claude-md';
@@ -74,13 +80,27 @@ function getConfigType(filePath: string): ConfigType {
   if (basename === 'agents.md') {
     return 'agents-md';
   }
+  // .claude/settings.local.json (AGE-666)
+  if (basename === 'settings.local.json' && parentDir === '.claude') {
+    return 'claude-settings-local';
+  }
+  // .claude/settings.json or any settings.json
   if (basename === 'settings.json' && parentDir === '.claude') {
     return 'claude-settings';
   }
   if (basename === 'settings.json') {
     return 'claude-settings';
   }
-  if (basename === 'skill.md') {
+  // .mcp.json (AGE-666)
+  if (basename === '.mcp.json') {
+    return 'mcp-json';
+  }
+  // .claude/hooks/* (AGE-666)
+  if (parentDir === 'hooks' && grandparentDir === '.claude') {
+    return 'claude-hook';
+  }
+  // .claude/skills/*.md or SKILL.md (AGE-666)
+  if (basename === 'skill.md' || (basename.endsWith('.md') && parentDir === 'skills' && grandparentDir === '.claude')) {
     return 'skill-md';
   }
 
@@ -89,11 +109,15 @@ function getConfigType(filePath: string): ConfigType {
 
 /**
  * Determine ACTType from ConfigType.
+ * Extended for AGE-666 to handle more Claude config types.
  */
 function getACTType(configType: ConfigType): ACTType {
   switch (configType) {
     case 'claude-md':
     case 'claude-settings':
+    case 'claude-settings-local':
+    case 'mcp-json':
+    case 'claude-hook':
     case 'skill-md':
       return 'claude-code';
     case 'agents-md':
@@ -236,11 +260,14 @@ export async function discoverConfigs(input: DiscoverConfigsInput): Promise<Disc
     }
   }
 
-  // Build glob patterns for all config types
+  // Build glob patterns for all config types (AGE-666: expanded patterns)
   const allPatterns = [
     ...CONFIG_PATTERNS.claudeMd,
     ...CONFIG_PATTERNS.agentsMd,
     ...CONFIG_PATTERNS.settings,
+    ...CONFIG_PATTERNS.settingsLocal,
+    ...CONFIG_PATTERNS.mcpJson,
+    ...CONFIG_PATTERNS.hooks,
     ...CONFIG_PATTERNS.skillMd,
   ];
 
@@ -372,11 +399,14 @@ export function discoverConfigsSync(input: DiscoverConfigsInput): DiscoverConfig
     }
   }
 
-  // Build glob patterns
+  // Build glob patterns (AGE-666: expanded patterns)
   const allPatterns = [
     ...CONFIG_PATTERNS.claudeMd,
     ...CONFIG_PATTERNS.agentsMd,
     ...CONFIG_PATTERNS.settings,
+    ...CONFIG_PATTERNS.settingsLocal,
+    ...CONFIG_PATTERNS.mcpJson,
+    ...CONFIG_PATTERNS.hooks,
     ...CONFIG_PATTERNS.skillMd,
   ];
 

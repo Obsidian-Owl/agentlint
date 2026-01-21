@@ -6,11 +6,10 @@
  * Implements FR-015: Support --config-only and --sessions-only flags.
  *
  * The analyse command is the primary entry point for agentlint analysis.
- * It:
- * 1. Discovers AI configuration files
- * 2. Runs the orchestrator to analyze configs and sessions
- * 3. Streams progress and findings to the terminal
- * 4. Outputs results in the requested format
+ * It supports three modes:
+ * - Orchestrated (default): Uses Claude agent for intelligent analysis
+ * - Static (--static): Fast analysis without LLM
+ * - Dry-run (--dry-run): Scan only
  *
  * @module cli/commands/analyse
  */
@@ -18,12 +17,20 @@
 import { resolve, relative } from 'node:path';
 import { stat } from 'node:fs/promises';
 import { getOutputMode } from '../utils/output';
-import type { GlobalOptions } from '../types';
+import type { GlobalOptions, OutputMode } from '../types';
 import { scanForConfigs, type ScanResult } from './scan';
 import { parseConfigSync } from '../../tools/config/parse-config';
 import { assessQuality } from '../../tools/config/quality';
 import { GapAnalyzer } from '../../tools/causal/gap-analyzer';
 import type { QualityIssue } from '../../tools/config/types';
+
+// Orchestration imports
+import { createToolRegistry, createOrchestrator, shouldDisplay } from '../../orchestration';
+import type { VerbosityLevel, StreamChunk } from '../../orchestration/types';
+import { registerAllTools } from '../../tools';
+import { createLoggerFromCLIOptions, setDefaultLogger } from '../../debug/logger';
+import { createRenderer } from '../renderers';
+import { buildAnalysisPrompt } from './analyse-prompt';
 
 /**
  * Options for the analyse command.
@@ -37,6 +44,8 @@ export interface AnalyseOptions extends GlobalOptions {
   sessionsOnly?: boolean;
   /** Dry run mode - scan only, don't run full analysis */
   dryRun?: boolean;
+  /** Static analysis mode - no LLM, fast pattern matching only */
+  static?: boolean;
 }
 
 /**
@@ -218,7 +227,7 @@ function convertQualityIssueToFinding(
     'code-snippet': 'symptomatic',
   };
 
-  return {
+  const finding: AnalyseFinding = {
     id: `FND-${String(id).padStart(4, '0')}`,
     severity: severityMap[issue.severity] ?? 'medium',
     type: typeMap[issue.type] ?? 'config_antipattern',
@@ -226,24 +235,32 @@ function convertQualityIssueToFinding(
     description: issue.message,
     location: {
       file: filePath,
-      line: issue.position?.start.line,
     },
     origin: {
       type: 'config',
       reference: `${filePath}:${issue.position?.start.line ?? 1}`,
       description: `Issue detected in configuration file`,
     },
-    recommendations: issue.suggestion
-      ? [
-          {
-            type: recTypeMap[issue.type] ?? 'symptomatic',
-            action: issue.suggestion,
-            rationale: 'Improves configuration quality and reduces token waste',
-            priority: issue.severity === 'critical' ? 'high' : 'medium',
-          },
-        ]
-      : undefined,
   };
+
+  // Add line number if available
+  if (issue.position?.start.line !== undefined) {
+    finding.location = { file: filePath, line: issue.position.start.line };
+  }
+
+  // Add recommendations if suggestion is available
+  if (issue.suggestion) {
+    finding.recommendations = [
+      {
+        type: recTypeMap[issue.type] ?? 'symptomatic',
+        action: issue.suggestion,
+        rationale: 'Improves configuration quality and reduces token waste',
+        priority: issue.severity === 'critical' ? 'high' : 'medium',
+      },
+    ];
+  }
+
+  return finding;
 }
 
 /**
@@ -286,6 +303,269 @@ function formatGapLocation(location: string): string {
     skill: '.claude/skills/',
   };
   return locations[location] ?? location;
+}
+
+// =============================================================================
+// Orchestrated Analysis (Default Mode)
+// =============================================================================
+
+/**
+ * Determine the verbosity level from CLI options.
+ */
+function getVerbosityLevel(options: AnalyseOptions): VerbosityLevel {
+  if (options.debug) return 'debug';
+  if (options.verbose) return 'verbose';
+  if (options.quiet) return 'quiet';
+  return 'normal';
+}
+
+/**
+ * Convert a StreamChunk finding to an AnalyseFinding.
+ */
+function convertChunkToFinding(chunk: StreamChunk): AnalyseFinding | null {
+  if (chunk.type !== 'finding' || !chunk.metadata?.finding) {
+    return null;
+  }
+
+  const finding = chunk.metadata.finding as Record<string, unknown>;
+  const result: AnalyseFinding = {
+    id: (finding.id as string) ?? `FND-${Date.now()}`,
+    severity: (finding.severity as string) ?? 'medium',
+    type: (finding.type as string) ?? 'quality_issue',
+    title: (finding.title as string) ?? 'Unknown finding',
+    description: (finding.description as string) ?? '',
+  };
+
+  // Add optional fields only if they're defined
+  if (finding.location) {
+    result.location = finding.location as { file: string; line?: number };
+  }
+  if (finding.origin) {
+    result.origin = finding.origin as {
+      type: 'config' | 'session' | 'git';
+      reference: string;
+      description: string;
+    };
+  }
+  if (finding.recommendations) {
+    result.recommendations = finding.recommendations as Array<{
+      type: 'symptomatic' | 'preventive' | 'systemic';
+      action: string;
+      rationale: string;
+      priority?: 'high' | 'medium' | 'low';
+    }>;
+  }
+
+  return result;
+}
+
+/**
+ * Build the final result from collected findings.
+ */
+function buildAnalyseResult(
+  directory: string,
+  scanResult: ScanResult,
+  findings: AnalyseFinding[],
+  startTime: number,
+  error?: string
+): AnalyseResult {
+  const bySeverity: Record<string, number> = {};
+  for (const finding of findings) {
+    bySeverity[finding.severity] = (bySeverity[finding.severity] ?? 0) + 1;
+  }
+
+  const result: AnalyseResult = {
+    status: error ? 'error' : 'success',
+    directory,
+    configs: scanResult.configs,
+    findings,
+    summary: { total: findings.length, bySeverity },
+    timestamp: new Date().toISOString(),
+    durationMs: Date.now() - startTime,
+  };
+
+  // Add error only if defined
+  if (error) {
+    result.error = error;
+  }
+
+  return result;
+}
+
+/**
+ * Run orchestrated analysis using the Claude agent.
+ *
+ * This is the default mode when ANTHROPIC_API_KEY is available.
+ * The agent uses tools to discover, parse, and analyze configurations,
+ * then provides intelligent recommendations.
+ */
+async function runOrchestratedAnalysis(
+  directory: string,
+  options: AnalyseOptions,
+  scanResult: ScanResult,
+  outputMode: OutputMode
+): Promise<AnalyseResult> {
+  const startTime = Date.now();
+  const findings: AnalyseFinding[] = [];
+
+  // Initialize debug logger from CLI options
+  const loggerOpts: { verbose?: boolean; debug?: string; quiet?: boolean; logFile?: string } = {};
+  if (options.verbose !== undefined) loggerOpts.verbose = options.verbose;
+  if (options.debug !== undefined) loggerOpts.debug = options.debug;
+  if (options.quiet !== undefined) loggerOpts.quiet = options.quiet;
+  if (options.logFile !== undefined) loggerOpts.logFile = options.logFile;
+  const logger = createLoggerFromCLIOptions(loggerOpts);
+  setDefaultLogger(logger);
+
+  // Create tool registry and register all tools
+  const registry = createToolRegistry();
+  registerAllTools(registry);
+
+  // Create orchestrator with configuration
+  const verbosity = getVerbosityLevel(options);
+  const orchestrator = createOrchestrator(
+    {
+      verbosity,
+      cwd: directory,
+      // Load project settings to get CLAUDE.md context
+      settingSources: ['project'],
+    },
+    registry
+  );
+
+  // Build the analysis prompt
+  const prompt = buildAnalysisPrompt(directory, scanResult, options);
+
+  // Create renderer for output
+  const renderer = createRenderer(outputMode, options);
+
+  // Set up interrupt handler
+  let interrupted = false;
+  const handleInterrupt = (): void => {
+    if (!interrupted) {
+      interrupted = true;
+      void orchestrator.interrupt().then(() => {
+        renderer.renderChunk({
+          type: 'status',
+          level: 'normal',
+          content: 'Analysis interrupted by user',
+          timestamp: new Date().toISOString(),
+        });
+      });
+    }
+  };
+
+  // Bind interrupt handler
+  process.on('SIGINT', handleInterrupt);
+
+  try {
+    // Run the orchestrator and stream output
+    for await (const chunk of orchestrator.run(prompt)) {
+      // Check for interruption
+      if (interrupted) {
+        break;
+      }
+
+      // Filter by verbosity and render
+      if (shouldDisplay(chunk.level, verbosity)) {
+        renderer.renderChunk(chunk);
+      }
+
+      // Collect findings from chunks
+      if (chunk.type === 'finding') {
+        const finding = convertChunkToFinding(chunk);
+        if (finding) {
+          findings.push(finding);
+          renderer.renderFinding(finding);
+        }
+      }
+    }
+
+    // Build and output final result
+    const result = buildAnalyseResult(directory, scanResult, findings, startTime);
+    renderer.renderComplete(result);
+    renderer.flush();
+
+    return result;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    renderer.renderError(error instanceof Error ? error : new Error(errorMessage));
+    renderer.flush();
+
+    // Return result with error
+    return buildAnalyseResult(directory, scanResult, findings, startTime, errorMessage);
+  } finally {
+    // Clean up interrupt handler
+    process.removeListener('SIGINT', handleInterrupt);
+  }
+}
+
+/**
+ * Run static analysis and output results.
+ */
+function runStaticAnalysisMode(
+  directory: string,
+  _options: AnalyseOptions,
+  scanResult: ScanResult,
+  outputMode: OutputMode,
+  verbose: boolean
+): AnalyseResult {
+  const startTime = Date.now();
+
+  // Perform static analysis on discovered configs
+  const findings = performStaticAnalysis(directory, scanResult.configs);
+
+  // Calculate summary
+  const bySeverity: Record<string, number> = {};
+  for (const finding of findings) {
+    bySeverity[finding.severity] = (bySeverity[finding.severity] ?? 0) + 1;
+  }
+
+  const result: AnalyseResult = {
+    status: 'success',
+    directory,
+    configs: scanResult.configs,
+    findings,
+    summary: { total: findings.length, bySeverity },
+    timestamp: new Date().toISOString(),
+    durationMs: Date.now() - startTime,
+  };
+
+  if (outputMode === 'json') {
+    console.log(JSON.stringify(result, null, 2));
+  } else {
+    // Format terminal output with findings
+    const lines: string[] = [];
+    lines.push('');
+    lines.push('Static Analysis Complete');
+    lines.push('========================');
+    lines.push('');
+    lines.push(`Directory: ${directory}`);
+    lines.push(`Configs analyzed: ${scanResult.configs.length}`);
+    lines.push(`Findings: ${findings.length}`);
+    lines.push('');
+
+    if (findings.length > 0) {
+      lines.push('Findings:');
+      for (const finding of findings) {
+        const severity = finding.severity.toUpperCase().padEnd(8);
+        lines.push(`  [${severity}] ${finding.title}`);
+        if (verbose) {
+          lines.push(`             ${finding.description}`);
+          if (finding.location) {
+            lines.push(
+              `             Location: ${finding.location.file}${finding.location.line ? `:${finding.location.line}` : ''}`
+            );
+          }
+        }
+      }
+      lines.push('');
+    }
+
+    console.log(lines.join('\n'));
+  }
+
+  return result;
 }
 
 /**
@@ -346,7 +626,20 @@ function formatDryRunJson(result: AnalyseResult): string {
 }
 
 /**
+ * Check if orchestrated analysis is available.
+ * Requires ANTHROPIC_API_KEY environment variable.
+ */
+function canUseOrchestratedAnalysis(): boolean {
+  return !!process.env['ANTHROPIC_API_KEY'];
+}
+
+/**
  * Runs the analyse command.
+ *
+ * Modes:
+ * - --dry-run: Scan only, no analysis
+ * - --static: Static analysis without LLM
+ * - (default): Orchestrated analysis with Claude agent (requires API key)
  *
  * @param options - Command options
  * @returns Exit code (0 for success, non-zero for failure)
@@ -378,9 +671,11 @@ export async function runAnalyse(options: AnalyseOptions): Promise<number> {
     return 1;
   }
 
+  // Scan for configurations (needed for all modes)
+  const scanResult = await scanForConfigs(directory);
+
   // Dry run mode: just scan and report
   if (options.dryRun) {
-    const scanResult = await scanForConfigs(directory);
     const result: AnalyseResult = {
       status: 'dry-run',
       directory,
@@ -400,10 +695,7 @@ export async function runAnalyse(options: AnalyseOptions): Promise<number> {
     return 0;
   }
 
-  // Full analysis mode - perform static analysis
-  const startTime = Date.now();
-  const scanResult = await scanForConfigs(directory);
-
+  // Handle empty config case for all modes
   if (scanResult.configs.length === 0) {
     const result: AnalyseResult = {
       status: 'success',
@@ -412,7 +704,7 @@ export async function runAnalyse(options: AnalyseOptions): Promise<number> {
       findings: [],
       summary: { total: 0, bySeverity: {} },
       timestamp: new Date().toISOString(),
-      durationMs: Date.now() - startTime,
+      durationMs: 0,
     };
 
     if (outputMode === 'json') {
@@ -423,59 +715,33 @@ export async function runAnalyse(options: AnalyseOptions): Promise<number> {
     return 0; // No configs = no findings = success
   }
 
-  // Perform static analysis on discovered configs
-  const findings = performStaticAnalysis(directory, scanResult.configs);
+  // Route based on mode
+  let result: AnalyseResult;
 
-  // Calculate summary
-  const bySeverity: Record<string, number> = {};
-  for (const finding of findings) {
-    bySeverity[finding.severity] = (bySeverity[finding.severity] ?? 0) + 1;
-  }
-
-  const result: AnalyseResult = {
-    status: 'success',
-    directory,
-    configs: scanResult.configs,
-    findings,
-    summary: { total: findings.length, bySeverity },
-    timestamp: new Date().toISOString(),
-    durationMs: Date.now() - startTime,
-  };
-
-  if (outputMode === 'json') {
-    console.log(JSON.stringify(result, null, 2));
-  } else {
-    // Format terminal output with findings
-    const lines: string[] = [];
-    lines.push('');
-    lines.push('Analysis Complete');
-    lines.push('=================');
-    lines.push('');
-    lines.push(`Directory: ${directory}`);
-    lines.push(`Configs analyzed: ${scanResult.configs.length}`);
-    lines.push(`Findings: ${findings.length}`);
-    lines.push('');
-
-    if (findings.length > 0) {
-      lines.push('Findings:');
-      for (const finding of findings) {
-        const severity = finding.severity.toUpperCase().padEnd(8);
-        lines.push(`  [${severity}] ${finding.title}`);
-        if (verbose) {
-          lines.push(`             ${finding.description}`);
-          if (finding.location) {
-            lines.push(`             Location: ${finding.location.file}${finding.location.line ? `:${finding.location.line}` : ''}`);
-          }
-        }
-      }
-      lines.push('');
+  if (options.static) {
+    // Static analysis mode (explicit --static flag)
+    result = runStaticAnalysisMode(directory, options, scanResult, outputMode, verbose);
+  } else if (!canUseOrchestratedAnalysis()) {
+    // No API key - fall back to static with warning
+    if (outputMode !== 'json' && !options.quiet) {
+      console.warn(
+        'ANTHROPIC_API_KEY not set. Falling back to static analysis.\n' +
+          'Set ANTHROPIC_API_KEY for intelligent agent-based analysis.\n'
+      );
     }
-
-    console.log(lines.join('\n'));
+    result = runStaticAnalysisMode(directory, options, scanResult, outputMode, verbose);
+  } else {
+    // Default: Orchestrated analysis with Claude agent
+    result = await runOrchestratedAnalysis(directory, options, scanResult, outputMode);
   }
 
   // Return exit code based on --fail-on-findings flag
-  if (options.failOnFindings && findings.length > 0) {
+  if (options.failOnFindings && result.findings.length > 0) {
+    return 1;
+  }
+
+  // Return error exit code if analysis failed
+  if (result.status === 'error') {
     return 1;
   }
 

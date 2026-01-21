@@ -26,9 +26,11 @@ import { redact, redactObject, BUILTIN_REDACTION_PATTERNS } from './redaction';
 
 /**
  * Default debug configuration.
+ * Note: Default level is 'warn' to avoid polluting CLI output (AGE-663).
+ * Use --verbose or --debug flags to see more detailed logs.
  */
 export const DEFAULT_DEBUG_CONFIG: DebugConfig = {
-  level: 'info',
+  level: 'warn',
   namespaces: [],
   output: 'console',
   format: 'pretty',
@@ -227,10 +229,11 @@ export class DebugLogger implements IDebugLogger {
   }
 
   private outputToConsole(entry: LogEntry, format: 'pretty' | 'json'): void {
+    // Use stderr for debug output to avoid polluting stdout (AGE-663)
     if (format === 'json') {
-      console.log(JSON.stringify(entry));
+      console.error(JSON.stringify(entry));
     } else {
-      console.log(this.formatPretty(entry));
+      console.error(this.formatPretty(entry));
     }
   }
 
