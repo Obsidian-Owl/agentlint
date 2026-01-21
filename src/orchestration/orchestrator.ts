@@ -224,6 +224,7 @@ export class Orchestrator implements IOrchestrator {
       const queryOptions: any = {
         model: this.config.model,
         maxTurns: 100, // Reasonable default for analysis
+        cwd: this.config.cwd, // Scope file access to this directory
         settingSources: this.config.settingSources,
         mcpServers: { agentlint: mcpServer },
         abortController: this.abortController,

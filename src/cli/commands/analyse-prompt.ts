@@ -34,6 +34,8 @@ export function buildAnalysisPrompt(
   const configList = formatConfigList(directory, scanResult);
   const focusInstructions = buildFocusInstructions(options);
   const toolInstructions = buildToolInstructions();
+  const subagentGuidance = buildSubagentGuidance(scanResult);
+  const outputGuidance = buildOutputGuidance();
 
   return `
 You are analyzing an AI-assisted development project at: ${directory}
@@ -41,6 +43,10 @@ You are analyzing an AI-assisted development project at: ${directory}
 ${configList}
 
 ${focusInstructions}
+
+${subagentGuidance}
+
+${outputGuidance}
 
 ## Your Task
 
@@ -71,14 +77,28 @@ ${toolInstructions}
 
 ## Output Requirements
 
-For each finding, explain:
-- **What**: Clear description of the issue
-- **Where**: File and location where detected
-- **Origin**: Where the issue originated (causal trace)
-- **Why it matters**: Impact on development workflow
-- **How to fix**: Specific, actionable recommendation
+**CRITICAL: Recording Findings**
+
+You MUST use the \`create_recommendation\` tool to formally record each finding you discover.
+Findings are only counted in the analysis summary if they are recorded via this tool.
+
+For each finding:
+1. First, call \`create_recommendation\` with:
+   - \`type\`: "symptomatic" | "preventive" | "systemic"
+   - \`action\`: The specific change to make
+   - \`target\`: File path where the change should be made
+   - \`rationale\`: Why this matters and what happens if ignored
+   - \`priority\`: "high" | "medium" | "low"
+   - \`tracedOrigin\`: Where the issue originated
+
+2. Then, in your text output explain:
+   - **What**: Clear description of the issue
+   - **Where**: File and location where detected
+   - **Why it matters**: Impact on development workflow
+   - **How to fix**: Specific, actionable recommendation
 
 Be thorough but concise. Focus on issues that provide value when addressed.
+Do NOT skip the create_recommendation step - findings without tool calls will not be counted.
 `.trim();
 }
 
@@ -146,13 +166,124 @@ function buildToolInstructions(): string {
 - \`search_sessions\`: Search session logs for patterns
 - \`get_session_stats\`: Get statistics about sessions
 
+**Causal Tracing:**
+- \`trace_issue_origin\`: Trace an issue back to its root cause
+- \`get_issue_patterns\`: Detect systemic patterns across issues
+
 **Temporal Analysis:**
 - \`store_baseline\`: Store current analysis as a baseline
 - \`query_baseline\`: Query stored baselines
 - \`calculate_delta\`: Compare current state to a baseline
 - \`query_trends\`: Analyze trends over time
+- \`spawn_temporal_analyst\`: Spawn subagent for deep temporal analysis
+
+**Recording Findings:**
+- \`create_recommendation\`: Formally record each finding as a recommendation
+- \`list_recommendations\`: List all recorded recommendations
+- \`get_recommendation_summary\`: Get summary statistics
+
+**Security Analysis:**
+- \`classify_secret\`: Classify potential secrets with LLM validation
+
+## Critical Thinking - Verify Before Flagging
+
+**ALWAYS use \`WebSearch\` to verify information that may change over time:**
+- Model names (e.g., "Is claude-opus-4-5-20251101 a valid model?")
+- API versions and features
+- Library versions and compatibility
+- Feature availability and deprecation status
+
+**Never assume something is wrong without verification.** When uncertain, investigate first.
+
+**Fact Verification Protocol:**
+1. Identify claims about external systems (models, APIs, versions)
+2. Use WebSearch to verify current status
+3. Only flag as an issue if verification confirms the problem
+4. Include verification source in your finding
 
 Use tools proactively to gather evidence. Don't guess - investigate.`;
+}
+
+/**
+ * Build output formatting guidance for clear, readable terminal output.
+ */
+function buildOutputGuidance(): string {
+  return `## Response Formatting
+
+Your output will be displayed in a command line interface. Follow these rules:
+
+**Conciseness:**
+- Be direct and to the point
+- Avoid introductions, conclusions, or unnecessary elaboration
+- Use short paragraphs (2-3 sentences max)
+
+**Structure:**
+- Use markdown headers (##, ###) to organize sections
+- Use bullet points for lists of 3+ items
+- Add blank lines between sections for readability
+
+**Clarity:**
+- Write in active voice
+- Explain technical concepts simply
+- For each finding, state: What → Where → Why → How to fix
+
+**Verification:**
+- Use WebSearch to verify facts you're uncertain about (model names, API versions, etc.)
+- Don't guess at technical details - investigate first
+
+**Avoid:**
+- Excessive markdown formatting (don't bold everything)
+- Long unbroken paragraphs
+- Repeating information
+- Self-congratulatory language ("Great question!", "Excellent!")`;
+}
+
+/**
+ * Build subagent guidance based on detected ACT types.
+ *
+ * This informs the agent about available specialist subagents
+ * that can be delegated to for deep ACT-specific analysis.
+ */
+function buildSubagentGuidance(scanResult: ScanResult): string {
+  // Extract unique ACT types from configs
+  const actTypes = new Set<string>();
+  for (const config of scanResult.configs) {
+    if (config.actType) {
+      actTypes.add(config.actType);
+    }
+  }
+
+  const lines: string[] = ['## Specialist Subagents', ''];
+
+  if (actTypes.size === 0) {
+    lines.push('No specific AI Coding Tool type was detected.');
+    lines.push('You can delegate to **generalized-analyzer** for heuristic analysis.');
+  } else {
+    lines.push(
+      'Detected AI Coding Tool types: ' +
+        Array.from(actTypes)
+          .map((t) => `**${t}**`)
+          .join(', ')
+    );
+    lines.push('');
+
+    if (actTypes.has('claude-code')) {
+      lines.push('**claude-code-analyzer** - Deep analysis of Claude Code configs,');
+      lines.push('settings hierarchies, CLAUDE.md, and session logs.');
+    }
+
+    lines.push('**generalized-analyzer** - Fallback for unknown tools or AGENTS.md.');
+  }
+
+  lines.push('');
+  lines.push('To delegate: `Task(subagent_type="<name>", prompt="<request>")`');
+  lines.push('');
+  lines.push(
+    'Delegate when: Deep ACT-specific analysis needed, session log patterns, config hierarchy issues.'
+  );
+  lines.push('Do NOT delegate for: Simple config checks, surface-level review.');
+
+  return lines.join('\n');
 }
 
 /**

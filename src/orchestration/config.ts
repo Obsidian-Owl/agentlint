@@ -44,8 +44,56 @@ const CONFIG_FILE = path.join(CONFIG_DIR, 'config.json');
 // Default Configuration
 // =============================================================================
 
-/** Default allowed tools - includes 'Task' for subagent invocation (EP08) */
-const DEFAULT_ALLOWED_TOOLS: string[] = ['Task'];
+/**
+ * Default allowed tools.
+ * Includes 'Task' for subagent invocation (EP08) and all agentlint MCP tools.
+ * MCP tools use the prefix 'mcp__agentlint__' per SDK convention.
+ *
+ * Built-in SDK tools:
+ * - Read-only tools (Read, Glob, Grep) are auto-allowed for analysis
+ * - Write/Edit/Bash are NOT included - SDK will prompt user for these
+ */
+const DEFAULT_ALLOWED_TOOLS: string[] = [
+  // Subagent invocation
+  'Task',
+  // Built-in SDK read-only tools (safe for analysis)
+  'Read',
+  'Glob',
+  'Grep',
+  // WebSearch for fact verification (model names, API versions, etc.)
+  'WebSearch',
+  // EP05 Config analysis tools
+  'mcp__agentlint__discover_configs',
+  'mcp__agentlint__parse_config',
+  'mcp__agentlint__analyze_hierarchy',
+  // EP06 Session analysis tools
+  'mcp__agentlint__search_sessions',
+  'mcp__agentlint__get_session_stats',
+  // EP09 Temporal analysis tools
+  'mcp__agentlint__store_baseline',
+  'mcp__agentlint__query_baseline',
+  'mcp__agentlint__list_baselines',
+  'mcp__agentlint__calculate_delta',
+  'mcp__agentlint__query_trends',
+  'mcp__agentlint__conduct_review',
+  'mcp__agentlint__get_review_history',
+  'mcp__agentlint__spawn_temporal_analyst',
+  // Causal analysis tools
+  'mcp__agentlint__get_issue_patterns',
+  'mcp__agentlint__trace_issue_origin',
+  // Security tools
+  'mcp__agentlint__classify_secret',
+  // EP10 Recommendation tools
+  'mcp__agentlint__create_recommendation',
+  'mcp__agentlint__list_recommendations',
+  'mcp__agentlint__refine_recommendation',
+  'mcp__agentlint__add_recommendation_event',
+  'mcp__agentlint__complete_recommendation',
+  'mcp__agentlint__get_recommendation_summary',
+  'mcp__agentlint__update_recommendation_status',
+  'mcp__agentlint__get_recommendation',
+  'mcp__agentlint__spawn_recommendation_advisor',
+];
 
 /**
  * Get the default orchestrator configuration.

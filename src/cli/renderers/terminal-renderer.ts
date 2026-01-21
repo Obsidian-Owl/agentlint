@@ -8,11 +8,24 @@
  */
 
 import ora, { type Ora } from 'ora';
+import { marked } from 'marked';
+import { markedTerminal } from 'marked-terminal';
 import type { StreamChunk } from '../../orchestration/types';
 import type { AnalyseFinding, AnalyseResult } from '../commands/analyse';
 import type { IStreamRenderer } from './stream-renderer';
 import { bold, colorByStatus, colorBySeverity, dim } from '../utils/colors';
+import { formatDuration } from '../utils/terminal';
 import type { GlobalOptions } from '../types';
+
+// Configure marked with terminal renderer for markdown-to-ANSI conversion
+// Note: Type assertion needed because @types/marked-terminal is out of sync with the library
+marked.use(
+  markedTerminal({
+    showSectionPrefix: false,
+    tab: 2,
+    emoji: false, // Respect agentlint's no-emoji-by-default policy
+  }) as Parameters<typeof marked.use>[0]
+);
 
 /**
  * Options for the TerminalRenderer.
@@ -40,6 +53,12 @@ export class TerminalRenderer implements IStreamRenderer {
   private spinner: Ora | null = null;
   private currentToolName: string | null = null;
   private hasOutput = false;
+  /** Buffer for accumulating text for sentence boundary output */
+  private textBuffer = '';
+  /** Current analysis phase for status display */
+  private currentPhase: string = 'Initializing';
+  /** Persistent status spinner for phase tracking */
+  private statusSpinner: Ora | null = null;
 
   constructor(options: TerminalRendererOptions = {}) {
     this.options = options;
@@ -160,7 +179,7 @@ export class TerminalRenderer implements IStreamRenderer {
     }
 
     if (result.durationMs !== undefined) {
-      console.log(`Duration:    ${result.durationMs}ms`);
+      console.log(`Duration:    ${formatDuration(result.durationMs)}`);
     }
 
     console.log('');
@@ -172,6 +191,14 @@ export class TerminalRenderer implements IStreamRenderer {
    */
   flush(): void {
     this.stopSpinner();
+    this.stopStatusLine();
+
+    // Flush any remaining buffered text with markdown rendering
+    if (this.textBuffer.length > 0) {
+      const rendered = this.renderMarkdown(this.textBuffer);
+      process.stdout.write(rendered);
+      this.textBuffer = '';
+    }
   }
 
   // ===========================================================================
@@ -180,20 +207,111 @@ export class TerminalRenderer implements IStreamRenderer {
 
   private renderText(content: string): void {
     this.stopSpinner();
-    // Stream text directly - this is the agent's reasoning
-    process.stdout.write(content);
+
+    // Accumulate text for sentence-boundary output
+    this.textBuffer += content;
+
+    // Process complete lines first (newlines always flush)
+    const lines = this.textBuffer.split('\n');
+
+    // Keep the last incomplete line in the buffer
+    this.textBuffer = lines.pop() ?? '';
+
+    // Output complete lines with word wrapping
+    for (const line of lines) {
+      this.outputLine(line);
+    }
+
+    // Also flush complete sentences from the remaining buffer
+    // Sentence ends with . ! ? followed by space (or end of buffer before newline)
+    this.flushCompleteSentences();
+
     this.hasOutput = true;
+  }
+
+  /**
+   * Flush complete sentences from the text buffer.
+   * A sentence is considered complete when it ends with . ! ? followed by a space.
+   */
+  private flushCompleteSentences(): void {
+    const text = this.textBuffer;
+    if (!text) return;
+
+    // Pattern: sentence-ending punctuation followed by whitespace
+    // This ensures we don't break on abbreviations like "e.g." or "Dr."
+    const sentenceEndPattern = /([.!?])(\s+)/g;
+    let match;
+    let lastEnd = 0;
+    const sentences: string[] = [];
+
+    while ((match = sentenceEndPattern.exec(text)) !== null) {
+      // Include the punctuation AND the following space to preserve spacing
+      const sentence = text.slice(lastEnd, match.index + match[0].length);
+      sentences.push(sentence);
+      lastEnd = match.index + match[0].length;
+    }
+
+    // Output complete sentences (join without adding extra space)
+    if (sentences.length > 0) {
+      const completedText = sentences.join('');
+      this.outputLine(completedText);
+      // Keep incomplete sentence in buffer
+      this.textBuffer = text.slice(lastEnd);
+    }
+  }
+
+  /**
+   * Output a line with markdown rendering and word wrapping if needed.
+   */
+  private outputLine(line: string): void {
+    if (line.length === 0) {
+      process.stdout.write('\n');
+      return;
+    }
+
+    // Render markdown to ANSI escape sequences for terminal display
+    const rendered = this.renderMarkdown(line);
+
+    // Output the rendered text (markdown renderer handles its own formatting)
+    process.stdout.write(rendered);
+  }
+
+  /**
+   * Render markdown text to terminal-formatted output with ANSI codes.
+   * Handles bold, italic, headers, code blocks, and lists.
+   *
+   * Issue 6 fix: Dedupe excessive newlines from marked-terminal to prevent
+   * blank lines from accumulating.
+   */
+  private renderMarkdown(text: string): string {
+    try {
+      // Use marked to convert markdown to ANSI-formatted terminal output
+      const rendered = marked.parse(text) as string;
+      // Issue 6 fix: Dedupe excessive newlines (3+ becomes 2)
+      return rendered.replace(/\n{3,}/g, '\n\n');
+    } catch {
+      // Fall back to plain text on any error
+      return text + '\n';
+    }
   }
 
   private renderToolStart(chunk: StreamChunk): void {
     const toolName = (chunk.metadata?.toolName as string) ?? 'tool';
     this.currentToolName = toolName;
 
-    if (this.options.verbose) {
-      // In verbose mode, show the tool call with a spinner
+    // Stop the status line while showing tool spinner (avoid conflicts)
+    this.stopStatusLine();
+
+    if (this.options.verbose || this.options.debug) {
+      // Issue 5 fix: In verbose/debug mode, show tool name AND input preview
       this.stopSpinner();
+      const input = chunk.metadata?.input;
+      const inputPreview = input ? JSON.stringify(input).slice(0, 100) : '';
+      const statusText = inputPreview
+        ? `${this.currentPhase}: ${toolName} (${inputPreview}${inputPreview.length >= 100 ? '...' : ''})`
+        : `${this.currentPhase}: ${toolName}...`;
       this.spinner = ora({
-        text: `Calling ${toolName}...`,
+        text: statusText,
         color: 'cyan',
       }).start();
     } else {
@@ -210,7 +328,7 @@ export class TerminalRenderer implements IStreamRenderer {
   private renderToolResult(chunk: StreamChunk): void {
     if (this.spinner) {
       const toolName = this.currentToolName ?? 'tool';
-      if (this.options.verbose) {
+      if (this.options.verbose || this.options.debug) {
         this.spinner.succeed(`${toolName} completed`);
       } else {
         this.spinner.stop();
@@ -219,12 +337,19 @@ export class TerminalRenderer implements IStreamRenderer {
     }
     this.currentToolName = null;
 
-    // In debug mode, show the result
-    if (this.options.debug && chunk.metadata?.result) {
+    // Issue 5 fix: Show result in verbose mode, not just debug mode
+    // Use shorter preview for verbose, longer for debug
+    if ((this.options.verbose || this.options.debug) && chunk.metadata?.result) {
       const result = chunk.metadata.result;
+      const maxLen = this.options.debug ? 1000 : 200;
       const preview =
-        typeof result === 'string' ? result.slice(0, 200) : JSON.stringify(result).slice(0, 200);
-      console.log(dim(`  → ${preview}${preview.length >= 200 ? '...' : ''}`));
+        typeof result === 'string' ? result.slice(0, maxLen) : JSON.stringify(result).slice(0, maxLen);
+      console.log(dim(`  → ${preview}${preview.length >= maxLen ? '...' : ''}`));
+    }
+
+    // Restart the status line in verbose mode (after tool completion)
+    if (this.options.verbose) {
+      this.updateStatusLine(this.currentPhase);
     }
   }
 
@@ -233,8 +358,45 @@ export class TerminalRenderer implements IStreamRenderer {
 
     this.stopSpinner();
     const newPhase = (chunk.metadata?.newPhase as string) ?? chunk.content;
+    this.currentPhase = newPhase;
+
+    // Show phase change as text output
     console.log(colorByStatus(`\n▸ ${newPhase}`, 'info'));
+
+    // Start/update the persistent status spinner
+    this.updateStatusLine(newPhase);
+
     this.hasOutput = true;
+  }
+
+  /**
+   * Update the persistent status line showing current phase and operation.
+   */
+  private updateStatusLine(phase: string, detail?: string): void {
+    // Only show status line in verbose mode
+    if (!this.options.verbose) return;
+
+    const text = detail ? `${phase}: ${detail}` : phase;
+
+    if (!this.statusSpinner) {
+      this.statusSpinner = ora({
+        text,
+        color: 'cyan',
+        spinner: 'dots',
+      }).start();
+    } else {
+      this.statusSpinner.text = text;
+    }
+  }
+
+  /**
+   * Stop the persistent status spinner.
+   */
+  private stopStatusLine(): void {
+    if (this.statusSpinner) {
+      this.statusSpinner.stop();
+      this.statusSpinner = null;
+    }
   }
 
   private renderCheckpoint(chunk: StreamChunk): void {

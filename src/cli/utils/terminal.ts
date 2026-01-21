@@ -131,6 +131,83 @@ export function wrapText(text: string, maxWidth: number): string[] {
 }
 
 /**
+ * Formats a duration in milliseconds to a human-readable string.
+ *
+ * @param ms - Duration in milliseconds
+ * @returns Human-readable duration string (e.g., "1.5s", "2m 30s", "1h 5m")
+ */
+export function formatDuration(ms: number): string {
+  if (ms < 1000) {
+    return `${ms}ms`;
+  }
+
+  const seconds = ms / 1000;
+  if (seconds < 60) {
+    // Show one decimal place for durations under a minute
+    return `${seconds.toFixed(1)}s`;
+  }
+
+  const minutes = Math.floor(seconds / 60);
+  const remainingSeconds = Math.round(seconds % 60);
+
+  if (minutes < 60) {
+    if (remainingSeconds === 0) {
+      return `${minutes}m`;
+    }
+    return `${minutes}m ${remainingSeconds}s`;
+  }
+
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+
+  if (remainingMinutes === 0) {
+    return `${hours}h`;
+  }
+  return `${hours}h ${remainingMinutes}m`;
+}
+
+/**
+ * Wraps text to fit within a maximum width with optional indent.
+ * Breaks on word boundaries when possible.
+ *
+ * @param text - Text to wrap
+ * @param maxWidth - Maximum width in characters
+ * @param indent - Indent string for continuation lines (default: '')
+ * @returns Array of wrapped lines
+ */
+export function wrapTextWithIndent(text: string, maxWidth: number, indent = ''): string[] {
+  const effectiveMaxWidth = maxWidth - indent.length;
+  if (effectiveMaxWidth <= 0) {
+    return [text];
+  }
+
+  const words = text.split(/\s+/);
+  const lines: string[] = [];
+  let currentLine = '';
+  let isFirstLine = true;
+
+  for (const word of words) {
+    const lineMaxWidth = isFirstLine ? maxWidth : effectiveMaxWidth;
+
+    if (currentLine.length === 0) {
+      currentLine = word;
+    } else if (currentLine.length + 1 + word.length <= lineMaxWidth) {
+      currentLine += ' ' + word;
+    } else {
+      lines.push(isFirstLine ? currentLine : indent + currentLine);
+      currentLine = word;
+      isFirstLine = false;
+    }
+  }
+
+  if (currentLine.length > 0) {
+    lines.push(isFirstLine ? currentLine : indent + currentLine);
+  }
+
+  return lines;
+}
+
+/**
  * Pads text to a fixed width.
  *
  * @param text - Text to pad

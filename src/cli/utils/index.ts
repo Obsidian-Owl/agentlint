@@ -29,5 +29,7 @@ export {
   supportsCursor,
   truncateText,
   wrapText,
+  wrapTextWithIndent,
   padText,
+  formatDuration,
 } from './terminal';

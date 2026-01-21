@@ -12,6 +12,7 @@ import { join, resolve } from 'node:path';
 import type { GlobalOptions } from '../types';
 import { getOutputMode } from '../utils/output';
 import { colorByStatus, bold } from '../utils/colors';
+import type { ACTType } from '../../tools/types';
 
 /**
  * Supported AI configuration file patterns.
@@ -96,6 +97,8 @@ export interface ConfigFile {
   description: string;
   /** File size in bytes */
   size: number;
+  /** AI Coding Tool type (from discovery) */
+  actType?: ACTType;
 }
 
 /**

@@ -18,7 +18,8 @@ import { resolve, relative } from 'node:path';
 import { stat } from 'node:fs/promises';
 import { getOutputMode } from '../utils/output';
 import type { GlobalOptions, OutputMode } from '../types';
-import { scanForConfigs, type ScanResult } from './scan';
+import { scanForConfigs, type ScanResult, type ConfigFile as ScanConfigFile } from './scan';
+import { discoverConfigs, type DiscoverConfigsResult } from '../../tools/config';
 import { parseConfigSync } from '../../tools/config/parse-config';
 import { assessQuality } from '../../tools/config/quality';
 import { GapAnalyzer } from '../../tools/causal/gap-analyzer';
@@ -31,6 +32,17 @@ import { registerAllTools } from '../../tools';
 import { createLoggerFromCLIOptions, setDefaultLogger } from '../../debug/logger';
 import { createRenderer } from '../renderers';
 import { buildAnalysisPrompt } from './analyse-prompt';
+
+// Recommendation storage imports for findings bridge
+import {
+  listRecommendationIds,
+  loadRecommendation,
+  getRecommendationsDir,
+} from '../../recommendations/storage';
+import type { Recommendation } from '../../recommendations/types';
+
+// Database initialization import (Issue 4 fix)
+import { initializeDatabases } from '../../persistence';
 
 /**
  * Options for the analyse command.
@@ -360,6 +372,88 @@ function convertChunkToFinding(chunk: StreamChunk): AnalyseFinding | null {
 }
 
 /**
+ * Convert a stored recommendation to an AnalyseFinding.
+ * This bridges the recommendation storage to the findings output.
+ */
+function convertRecommendationToFinding(rec: Recommendation): AnalyseFinding {
+  // Map recommendation priority to severity
+  const priorityToSeverity: Record<string, string> = {
+    high: 'high',
+    medium: 'medium',
+    low: 'low',
+  };
+
+  // Map recommendation type to finding type
+  const typeMap: Record<string, string> = {
+    symptomatic: 'quick_fix',
+    preventive: 'config_improvement',
+    systemic: 'architecture_issue',
+  };
+
+  const finding: AnalyseFinding = {
+    id: rec.id,
+    severity: priorityToSeverity[rec.priority] ?? 'medium',
+    type: typeMap[rec.type] ?? 'recommendation',
+    title: `[${rec.type}] ${rec.action.slice(0, 60)}${rec.action.length > 60 ? '...' : ''}`,
+    description: rec.rationale,
+  };
+
+  // Add location from target
+  if (rec.target) {
+    finding.location = {
+      file: rec.target,
+    };
+  }
+
+  // Add origin from tracedOrigin
+  if (rec.tracedOrigin) {
+    finding.origin = {
+      type: rec.tracedOrigin.sessionId ? 'session' : 'config',
+      reference:
+        rec.tracedOrigin.configGap ?? rec.tracedOrigin.findingId ?? rec.target ?? 'unknown',
+      description: rec.tracedOrigin.pattern ?? 'Recommendation from analysis',
+    };
+  }
+
+  // Add as a recommendation
+  finding.recommendations = [
+    {
+      type: rec.type,
+      action: rec.action,
+      rationale: rec.rationale,
+      priority: rec.priority,
+    },
+  ];
+
+  return finding;
+}
+
+/**
+ * Load stored recommendations and convert them to findings.
+ * This bridges the gap between recommendation tools (which store to disk)
+ * and the findings output (which counts StreamChunk findings).
+ */
+async function loadRecommendationsAsFindings(directory: string): Promise<AnalyseFinding[]> {
+  const findings: AnalyseFinding[] = [];
+
+  try {
+    const recDir = getRecommendationsDir(directory);
+    const ids = listRecommendationIds({ baseDir: recDir });
+
+    for (const id of ids) {
+      const rec = await loadRecommendation(id, { baseDir: recDir });
+      if (rec && rec.status === 'open') {
+        findings.push(convertRecommendationToFinding(rec));
+      }
+    }
+  } catch {
+    // Recommendation storage not initialized or empty - this is fine
+  }
+
+  return findings;
+}
+
+/**
  * Build the final result from collected findings.
  */
 function buildAnalyseResult(
@@ -417,18 +511,24 @@ async function runOrchestratedAnalysis(
   const logger = createLoggerFromCLIOptions(loggerOpts);
   setDefaultLogger(logger);
 
+  // Issue 4 fix: Initialize databases before tools can use them
+  // This ensures baselines, learnings, recommendations directories and DBs exist
+  await initializeDatabases({ projectPath: directory });
+
   // Create tool registry and register all tools
   const registry = createToolRegistry();
   registerAllTools(registry);
 
   // Create orchestrator with configuration
+  // Issue 3 fix: Use agentlint's cwd, NOT target directory, to avoid loading
+  // target's .mcp.json which causes MCP connection timeouts (90s+ delays)
   const verbosity = getVerbosityLevel(options);
   const orchestrator = createOrchestrator(
     {
       verbosity,
-      cwd: directory,
-      // Load project settings to get CLAUDE.md context
-      settingSources: ['project'],
+      cwd: process.cwd(), // Agentlint's directory, NOT target
+      settingSources: [], // Don't load ANY .mcp.json files
+      systemPromptAppend: `\nAnalysis target directory: ${directory}`,
     },
     registry
   );
@@ -478,6 +578,17 @@ async function runOrchestratedAnalysis(
           findings.push(finding);
           renderer.renderFinding(finding);
         }
+      }
+    }
+
+    // Bridge recommendations to findings (Issue 2 fix)
+    // Agent calls create_recommendation → stored to disk → we collect them here
+    const storedRecFindings = await loadRecommendationsAsFindings(directory);
+    for (const recFinding of storedRecFindings) {
+      // Only add if not already in findings (avoid duplicates from chunk findings)
+      if (!findings.some((f) => f.id === recFinding.id)) {
+        findings.push(recFinding);
+        renderer.renderFinding(recFinding);
       }
     }
 
@@ -634,6 +745,91 @@ function canUseOrchestratedAnalysis(): boolean {
 }
 
 /**
+ * Type description map for config types (from discovery module).
+ * Extended for remediation to include rules, agents, and commands.
+ */
+const CONFIG_TYPE_DESCRIPTIONS: Record<string, string> = {
+  'claude-md': 'Claude Code project instructions',
+  'agents-md': 'Multi-agent configuration',
+  'claude-settings': 'Claude Code settings',
+  'claude-settings-local': 'Claude Code local settings',
+  'mcp-json': 'MCP server configuration',
+  'claude-hook': 'Claude Code hook script',
+  'skill-md': 'Claude Code skill definition',
+  'claude-rule': 'Claude Code rule file',
+  'claude-agent': 'Claude Code agent/subagent definition',
+  'claude-command': 'Claude Code legacy command',
+  'cursor-rules': 'Cursor AI rules',
+  unknown: 'Unknown configuration',
+};
+
+/**
+ * Map discovery ConfigType to scan ConfigType.
+ * Discovery uses specific types (claude-md, claude-settings) while
+ * scan uses broader categories (claude-code, cursor).
+ * Extended for remediation to handle rules, agents, and commands.
+ */
+function mapDiscoveryTypeToScanType(discoveryType: string): ScanConfigFile['type'] {
+  switch (discoveryType) {
+    case 'claude-md':
+    case 'claude-settings':
+    case 'claude-settings-local':
+    case 'mcp-json':
+    case 'claude-hook':
+    case 'skill-md':
+    case 'claude-rule':
+    case 'claude-agent':
+    case 'claude-command':
+      return 'claude-code';
+    case 'agents-md':
+      return 'claude-code'; // AGENTS.md is also Claude ecosystem
+    case 'cursor-rules':
+      return 'cursor';
+    default:
+      return 'unknown';
+  }
+}
+
+/**
+ * Convert comprehensive discovery result to ScanResult format.
+ * This allows orchestrated analysis to use the full discovery while
+ * maintaining compatibility with the rest of the analysis pipeline.
+ */
+function convertDiscoveryToScanResult(
+  discovery: DiscoverConfigsResult,
+  directory: string
+): ScanResult {
+  const configs: ScanConfigFile[] = discovery.files.map((file) => ({
+    path: file.path,
+    relativePath: file.relativePath,
+    type: mapDiscoveryTypeToScanType(file.type),
+    description: CONFIG_TYPE_DESCRIPTIONS[file.type] ?? 'Configuration file',
+    size: file.size,
+    actType: file.actType,
+  }));
+
+  return {
+    directory,
+    configs,
+    scannedAt: new Date().toISOString(),
+  };
+}
+
+/**
+ * Run comprehensive config discovery using the tools module.
+ * This finds all configs including skills, hooks, and nested configs.
+ */
+async function runComprehensiveDiscovery(directory: string): Promise<ScanResult> {
+  const discovery = await discoverConfigs({
+    cwd: directory,
+    includeGlobal: false,
+    parseSkills: true,
+  });
+
+  return convertDiscoveryToScanResult(discovery, directory);
+}
+
+/**
  * Runs the analyse command.
  *
  * Modes:
@@ -671,8 +867,12 @@ export async function runAnalyse(options: AnalyseOptions): Promise<number> {
     return 1;
   }
 
-  // Scan for configurations (needed for all modes)
-  const scanResult = await scanForConfigs(directory);
+  // Scan for configurations
+  // Use basic scan for dry-run/static modes, comprehensive discovery for orchestrated
+  const useComprehensive = !options.dryRun && !options.static && canUseOrchestratedAnalysis();
+  const scanResult = useComprehensive
+    ? await runComprehensiveDiscovery(directory)
+    : await scanForConfigs(directory);
 
   // Dry run mode: just scan and report
   if (options.dryRun) {
