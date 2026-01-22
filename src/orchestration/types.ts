@@ -37,7 +37,8 @@ export type StreamChunkType =
   | 'phase_change' // Phase transition
   | 'checkpoint' // Checkpoint saved
   | 'error' // Error occurred
-  | 'status'; // Status update
+  | 'status' // Status update
+  | 'user_question'; // Agent requesting user input (human-in-the-loop)
 
 // =============================================================================
 // Stream Chunk (T011)

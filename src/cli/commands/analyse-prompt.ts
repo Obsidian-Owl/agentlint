@@ -8,7 +8,7 @@
  * @module cli/commands/analyse-prompt
  */
 
-import { relative } from 'node:path';
+import { relative, resolve } from 'node:path';
 import type { ScanResult } from './scan';
 import type { AnalyseOptions } from './analyse';
 import {
@@ -16,6 +16,15 @@ import {
   getRecommendationsDir,
 } from '../../recommendations/storage';
 import type { RecommendationSummary } from '../../recommendations/types';
+
+// Debug logging for recommendation loading - write to stderr to avoid polluting output
+const DEBUG_RECS = process.env['DEBUG']?.includes('agentlint:recs') ?? false;
+function debugLog(message: string, data?: unknown): void {
+  if (DEBUG_RECS) {
+    const dataStr = data !== undefined ? ` ${JSON.stringify(data)}` : '';
+    console.error(`[DEBUG:recs] ${message}${dataStr}`);
+  }
+}
 
 // =============================================================================
 // Existing Recommendations Context
@@ -32,62 +41,80 @@ import type { RecommendationSummary } from '../../recommendations/types';
  * @returns Formatted context string with existing recommendations
  */
 async function buildExistingRecommendationsContext(directory: string): Promise<string> {
-  try {
-    // Try target directory first, then fall back to cwd
-    const dirsToCheck = [
-      getRecommendationsDir(directory),
-      getRecommendationsDir(process.cwd()),
-    ];
+  const errors: string[] = [];
 
-    let summaries: RecommendationSummary[] = [];
-    for (const baseDir of [...new Set(dirsToCheck)]) {
-      try {
-        const loaded = await loadRecommendationsForContext({
-          baseDir,
-          status: 'open',
-          tokenBudget: 4000, // Half of 8K budget for context
-        });
-        if (loaded.length > 0) {
-          summaries = loaded;
-          break;
-        }
-      } catch {
-        // Continue to next directory
+  // Resolve directory to absolute path to handle relative paths correctly
+  const resolvedDir = resolve(directory);
+  debugLog('Building recommendations context', { directory, resolvedDir });
+
+  // Try target directory first, then fall back to cwd
+  const dirsToCheck = [
+    getRecommendationsDir(resolvedDir),
+    getRecommendationsDir(process.cwd()),
+  ];
+
+  // Dedupe directories (may be same if running from target)
+  const uniqueDirs = [...new Set(dirsToCheck)];
+  debugLog('Checking recommendation directories', { dirs: uniqueDirs });
+
+  let summaries: RecommendationSummary[] = [];
+  for (const baseDir of uniqueDirs) {
+    try {
+      debugLog('Loading from directory', { baseDir });
+      const loaded = await loadRecommendationsForContext({
+        baseDir,
+        status: 'open',
+        tokenBudget: 4000, // Half of 8K budget for context
+      });
+      debugLog('Loaded recommendations', { baseDir, count: loaded.length });
+      if (loaded.length > 0) {
+        summaries = loaded;
+        break;
       }
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : String(err);
+      errors.push(`${baseDir}: ${errorMsg}`);
+      debugLog('Error loading recommendations', { baseDir, error: errorMsg });
+      // Continue to next directory
     }
-
-    if (summaries.length === 0) {
-      return `## Existing Recommendations
-
-No open recommendations found. Create new ones as needed, but avoid duplicating the same issue.`;
-    }
-
-    const lines: string[] = [
-      `## Existing Open Recommendations (${summaries.length})`,
-      '',
-      '**Review these BEFORE creating new recommendations.** Use `get_recommendation` for full details.',
-      '',
-      '| ID | Type/Priority | Target | Action (summary) |',
-      '|-----|---------------|--------|------------------|',
-    ];
-
-    for (const summary of summaries) {
-      const shortId = summary.id.slice(0, 8);
-      const typePriority = `${summary.type}/${summary.priority}`;
-      const shortTarget = summary.target.length > 25
-        ? '...' + summary.target.slice(-22)
-        : summary.target;
-      const shortAction = summary.actionSummary.length > 40
-        ? summary.actionSummary.slice(0, 37) + '...'
-        : summary.actionSummary;
-      lines.push(`| ${shortId} | ${typePriority} | \`${shortTarget}\` | ${shortAction} |`);
-    }
-
-    return lines.join('\n');
-  } catch {
-    // If loading fails, return minimal context
-    return '';
   }
+
+  if (summaries.length === 0) {
+    // Include error info if loading failed (helps debugging)
+    const errorContext = errors.length > 0
+      ? `\n\n_Note: Failed to load from: ${errors.join(', ')}_`
+      : '';
+
+    debugLog('No recommendations found', { errors });
+    return `## Existing Recommendations
+
+No open recommendations found. Create new ones as needed, but avoid duplicating the same issue.${errorContext}`;
+  }
+
+  debugLog('Building recommendations table', { count: summaries.length });
+
+  const lines: string[] = [
+    `## Existing Open Recommendations (${summaries.length})`,
+    '',
+    '**Review these BEFORE creating new recommendations.** Use `get_recommendation` for full details.',
+    '',
+    '| ID | Type/Priority | Target | Action (summary) |',
+    '|-----|---------------|--------|------------------|',
+  ];
+
+  for (const summary of summaries) {
+    const shortId = summary.id.slice(0, 8);
+    const typePriority = `${summary.type}/${summary.priority}`;
+    const shortTarget = summary.target.length > 25
+      ? '...' + summary.target.slice(-22)
+      : summary.target;
+    const shortAction = summary.actionSummary.length > 40
+      ? summary.actionSummary.slice(0, 37) + '...'
+      : summary.actionSummary;
+    lines.push(`| ${shortId} | ${typePriority} | \`${shortTarget}\` | ${shortAction} |`);
+  }
+
+  return lines.join('\n');
 }
 
 // =============================================================================

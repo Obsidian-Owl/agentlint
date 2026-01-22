@@ -394,20 +394,25 @@ export class Orchestrator implements IOrchestrator {
 
     if (msg.type === 'assistant' && msg.content) {
       // Assistant text content
+      this.logger.debug('Processing assistant message', { blockCount: msg.content?.length ?? 0 });
       for (const block of msg.content) {
         if (block.type === 'text') {
           chunks.push(this.createChunk('text', 'normal', block.text));
         } else if (block.type === 'tool_use') {
-          this.logger.info('Tool invocation', {
+          this.logger.info('Tool invocation detected', {
             tool: block.name,
+            blockType: block.type,
             // Input may contain secrets, rely on redaction
           });
+          // Emit tool_start chunk at 'verbose' level so it shows in verbose mode
           chunks.push(
             this.createChunk('tool_start', 'verbose', `Calling tool: ${block.name}`, {
               toolName: block.name,
               input: block.input,
             })
           );
+        } else {
+          this.logger.debug('Unknown block type', { blockType: block.type });
         }
       }
     } else if (msg.type === 'tool_result') {
@@ -421,6 +426,22 @@ export class Orchestrator implements IOrchestrator {
           result: msg.content,
         })
       );
+
+      // Check for clarifying questions in tool result (human-in-the-loop)
+      // Tool results may be a JSON string or an object with clarifyingQuestions
+      const toolContent = msg.content;
+      if (toolContent && typeof toolContent === 'object' && 'clarifyingQuestions' in toolContent) {
+        const questions = (toolContent as { clarifyingQuestions?: unknown[] }).clarifyingQuestions;
+        if (Array.isArray(questions) && questions.length > 0) {
+          this.logger.info('Clarifying questions detected', { count: questions.length });
+          chunks.push(
+            this.createChunk('user_question', 'normal', 'Agent has questions for you', {
+              questions,
+              toolId: msg.tool_use_id,
+            })
+          );
+        }
+      }
     } else if (msg.type === 'result') {
       // Final result - also log LLM call metrics
       this.logger.info('Session result', {

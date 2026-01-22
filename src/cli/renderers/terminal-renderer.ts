@@ -105,6 +105,13 @@ export class TerminalRenderer implements IStreamRenderer {
       case 'error':
         this.renderErrorChunk(chunk);
         break;
+
+      case 'user_question':
+        // Questions are handled by the analyse command directly
+        // Just stop any spinners so the prompt is clear
+        this.stopSpinner();
+        this.stopStatusLine();
+        break;
     }
   }
 
@@ -299,24 +306,29 @@ export class TerminalRenderer implements IStreamRenderer {
     const toolName = (chunk.metadata?.toolName as string) ?? 'tool';
     this.currentToolName = toolName;
 
-    // Stop the status line while showing tool spinner (avoid conflicts)
+    // Stop any existing spinners first to prevent output conflicts
+    this.stopSpinner();
     this.stopStatusLine();
 
     if (this.options.verbose || this.options.debug) {
-      // Issue 5 fix: In verbose/debug mode, show tool name AND input preview
-      this.stopSpinner();
+      // In verbose/debug mode, print tool call directly (not just spinner)
+      // This ensures the tool call is visible in the output log
       const input = chunk.metadata?.input;
       const inputPreview = input ? JSON.stringify(input).slice(0, 100) : '';
-      const statusText = inputPreview
-        ? `${this.currentPhase}: ${toolName} (${inputPreview}${inputPreview.length >= 100 ? '...' : ''})`
-        : `${this.currentPhase}: ${toolName}...`;
+      const inputStr = inputPreview
+        ? ` (${inputPreview}${inputPreview.length >= 100 ? '...' : ''})`
+        : '';
+
+      // Direct console output so it's captured in logs
+      console.log(`\n${bold('Tool:')} ${toolName}${inputStr}`);
+
+      // Also start a spinner for ongoing indication
       this.spinner = ora({
-        text: statusText,
+        text: dim(`${toolName} running...`),
         color: 'cyan',
       }).start();
     } else {
-      // In normal mode, just show a subtle indicator
-      this.stopSpinner();
+      // In normal mode, just show a subtle spinner
       this.spinner = ora({
         text: dim(`[${toolName}]`),
         color: 'gray',
@@ -326,10 +338,12 @@ export class TerminalRenderer implements IStreamRenderer {
   }
 
   private renderToolResult(chunk: StreamChunk): void {
+    const toolName = this.currentToolName ?? 'tool';
+
+    // Stop the spinner
     if (this.spinner) {
-      const toolName = this.currentToolName ?? 'tool';
       if (this.options.verbose || this.options.debug) {
-        this.spinner.succeed(`${toolName} completed`);
+        this.spinner.succeed(dim(`${toolName} done`));
       } else {
         this.spinner.stop();
       }
@@ -337,14 +351,21 @@ export class TerminalRenderer implements IStreamRenderer {
     }
     this.currentToolName = null;
 
-    // Issue 5 fix: Show result in verbose mode, not just debug mode
-    // Use shorter preview for verbose, longer for debug
+    // Show result preview in verbose/debug mode
     if ((this.options.verbose || this.options.debug) && chunk.metadata?.result) {
       const result = chunk.metadata.result;
       const maxLen = this.options.debug ? 1000 : 200;
-      const preview =
-        typeof result === 'string' ? result.slice(0, maxLen) : JSON.stringify(result).slice(0, maxLen);
-      console.log(dim(`  → ${preview}${preview.length >= maxLen ? '...' : ''}`));
+      let preview: string;
+      if (typeof result === 'string') {
+        preview = result.slice(0, maxLen);
+      } else {
+        try {
+          preview = JSON.stringify(result).slice(0, maxLen);
+        } catch {
+          preview = '[Unable to serialize result]';
+        }
+      }
+      console.log(dim(`  Result: ${preview}${preview.length >= maxLen ? '...' : ''}`));
     }
 
     // Restart the status line in verbose mode (after tool completion)

@@ -37,6 +37,8 @@ import { registerAllTools } from '../../tools';
 import { createLoggerFromCLIOptions, setDefaultLogger } from '../../debug/logger';
 import { createRenderer } from '../renderers';
 import { buildAnalysisPrompt } from './analyse-prompt';
+import { presentQuestionsInteractive } from '../components/question-presenter';
+import type { ClarifyingQuestion } from '../../recommendations/types';
 
 // Recommendation storage imports for findings bridge
 import {
@@ -612,6 +614,14 @@ async function runOrchestratedAnalysis(
           break;
         }
 
+        // Debug logging for chunk flow - helps diagnose rendering issues
+        if (options.debug) {
+          console.error(
+            `[CHUNK] type=${chunk.type} level=${chunk.level}` +
+            (chunk.metadata?.toolName ? ` tool=${chunk.metadata.toolName}` : '')
+          );
+        }
+
         // Filter by verbosity and render
         if (shouldDisplay(chunk.level, verbosity)) {
           renderer.renderChunk(chunk);
@@ -623,6 +633,26 @@ async function runOrchestratedAnalysis(
           if (finding) {
             findings.push(finding);
             renderer.renderFinding(finding);
+          }
+        }
+
+        // Handle human-in-the-loop questions
+        if (chunk.type === 'user_question') {
+          const questions = chunk.metadata?.questions as ClarifyingQuestion[] | undefined;
+          if (questions && questions.length > 0) {
+            if (options.nonInteractive) {
+              // In non-interactive mode, skip questions and use defaults
+              if (!options.quiet) {
+                console.log('\n[Non-interactive mode: Skipping questions, using default answers]');
+              }
+            } else {
+              // Present questions to user and collect answers
+              // Note: The answers aren't fed back to the agent in this implementation
+              // because the SDK doesn't support injecting user responses mid-session.
+              // This is primarily for user awareness/logging.
+              renderer.flush(); // Ensure any pending output is shown
+              await presentQuestionsInteractive(questions, { allowSkip: true });
+            }
           }
         }
       }
