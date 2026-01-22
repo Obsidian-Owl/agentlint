@@ -139,7 +139,10 @@ export interface AssessQualityOptions {
  * @param options - Optional assessment options
  * @returns Raw quality metrics for agent interpretation
  */
-export function assessQuality(config: ParsedConfig, options?: AssessQualityOptions): QualityAssessment {
+export function assessQuality(
+  config: ParsedConfig,
+  options?: AssessQualityOptions
+): QualityAssessment {
   const { validateFormat = false } = options ?? {};
 
   // Analyze structure (factual observations)

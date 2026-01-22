@@ -142,8 +142,13 @@ describe('sessions/fts', () => {
     it('should throw on schema version mismatch', async () => {
       // Create database manually with wrong version
       const db = new Database(dbPath);
-      db.exec('CREATE TABLE IF NOT EXISTS schema_version (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)');
-      db.run('INSERT INTO schema_version (version, applied_at) VALUES (?, ?)', [999, new Date().toISOString()]);
+      db.exec(
+        'CREATE TABLE IF NOT EXISTS schema_version (version INTEGER PRIMARY KEY, applied_at TEXT NOT NULL)'
+      );
+      db.run('INSERT INTO schema_version (version, applied_at) VALUES (?, ?)', [
+        999,
+        new Date().toISOString(),
+      ]);
       db.close();
 
       expect(() => openDatabase(dbPath)).toThrow('schema version mismatch');
@@ -263,10 +268,7 @@ describe('sessions/fts', () => {
     describe('deleteSessionEntries', () => {
       it('should delete entries for a session', () => {
         const sessionId = 'to-delete';
-        insertSessionEntries(db, [
-          createTestEntry({ sessionId }),
-          createTestEntry({ sessionId }),
-        ]);
+        insertSessionEntries(db, [createTestEntry({ sessionId }), createTestEntry({ sessionId })]);
 
         // Verify entries were inserted
         const entriesBefore = getSessionEntries(db, sessionId);
@@ -364,9 +366,18 @@ describe('sessions/fts', () => {
       });
 
       it('should filter by project path', () => {
-        upsertSession(db, createTestMetadata({ sessionId: 'session-1', projectPath: '/project/a' }));
-        upsertSession(db, createTestMetadata({ sessionId: 'session-2', projectPath: '/project/b' }));
-        upsertSession(db, createTestMetadata({ sessionId: 'session-3', projectPath: '/project/a' }));
+        upsertSession(
+          db,
+          createTestMetadata({ sessionId: 'session-1', projectPath: '/project/a' })
+        );
+        upsertSession(
+          db,
+          createTestMetadata({ sessionId: 'session-2', projectPath: '/project/b' })
+        );
+        upsertSession(
+          db,
+          createTestMetadata({ sessionId: 'session-3', projectPath: '/project/a' })
+        );
 
         const sessions = listSessions(db, { projectPath: '/project/a' });
         expect(sessions.length).toBe(2);
@@ -389,7 +400,13 @@ describe('sessions/fts', () => {
         // Create session with entries and tool usage
         upsertSession(db, createTestMetadata({ sessionId }));
         insertSessionEntry(db, createTestEntry({ sessionId }));
-        upsertToolUsage(db, { sessionId, toolName: 'Read', category: 'file', callCount: 1, errorCount: 0 });
+        upsertToolUsage(db, {
+          sessionId,
+          toolName: 'Read',
+          category: 'file',
+          callCount: 1,
+          errorCount: 0,
+        });
 
         const deleted = deleteSession(db, sessionId);
 
@@ -463,9 +480,27 @@ describe('sessions/fts', () => {
       });
 
       it('should order by call count descending', () => {
-        upsertToolUsage(db, { sessionId: 'tool-session', toolName: 'Read', category: 'file', callCount: 10, errorCount: 0 });
-        upsertToolUsage(db, { sessionId: 'tool-session', toolName: 'Write', category: 'file', callCount: 50, errorCount: 0 });
-        upsertToolUsage(db, { sessionId: 'tool-session', toolName: 'Bash', category: 'shell', callCount: 5, errorCount: 0 });
+        upsertToolUsage(db, {
+          sessionId: 'tool-session',
+          toolName: 'Read',
+          category: 'file',
+          callCount: 10,
+          errorCount: 0,
+        });
+        upsertToolUsage(db, {
+          sessionId: 'tool-session',
+          toolName: 'Write',
+          category: 'file',
+          callCount: 50,
+          errorCount: 0,
+        });
+        upsertToolUsage(db, {
+          sessionId: 'tool-session',
+          toolName: 'Bash',
+          category: 'shell',
+          callCount: 5,
+          errorCount: 0,
+        });
 
         const tools = getToolUsage(db, 'tool-session');
 
@@ -498,7 +533,8 @@ describe('sessions/fts', () => {
           sessionId,
           timestamp: '2024-01-01T10:01:00Z',
           role: 'assistant',
-          content: 'You can use try-catch blocks for error handling. Here is an example with async/await.',
+          content:
+            'You can use try-catch blocks for error handling. Here is an example with async/await.',
         }),
         createTestEntry({
           sessionId,
@@ -512,19 +548,26 @@ describe('sessions/fts', () => {
           sessionId,
           timestamp: '2024-01-01T10:03:00Z',
           role: 'assistant',
-          content: 'Based on the error handling code in the file, you should use custom error classes.',
+          content:
+            'Based on the error handling code in the file, you should use custom error classes.',
         }),
       ]);
 
       // Add another session for cross-session search
       const otherSession = 'other-session';
-      upsertSession(db, createTestMetadata({ sessionId: otherSession, projectPath: '/other/project' }));
-      insertSessionEntry(db, createTestEntry({
-        sessionId: otherSession,
-        projectPath: '/other/project',  // Must match session metadata for filtering
-        role: 'user',
-        content: 'What is the best database for storing errors?',
-      }));
+      upsertSession(
+        db,
+        createTestMetadata({ sessionId: otherSession, projectPath: '/other/project' })
+      );
+      insertSessionEntry(
+        db,
+        createTestEntry({
+          sessionId: otherSession,
+          projectPath: '/other/project', // Must match session metadata for filtering
+          role: 'user',
+          content: 'What is the best database for storing errors?',
+        })
+      );
     });
 
     afterEach(() => {
@@ -782,10 +825,13 @@ describe('sessions/fts', () => {
 
     it('should handle special characters in search query', () => {
       upsertSession(db, createTestMetadata({ sessionId: 'special-session' }));
-      insertSessionEntry(db, createTestEntry({
-        sessionId: 'special-session',
-        content: 'Error: Cannot find module "lodash"',
-      }));
+      insertSessionEntry(
+        db,
+        createTestEntry({
+          sessionId: 'special-session',
+          content: 'Error: Cannot find module "lodash"',
+        })
+      );
 
       // Should not throw
       const results = searchSessions(db, 'Cannot find module');
@@ -794,10 +840,13 @@ describe('sessions/fts', () => {
 
     it('should handle empty content', () => {
       upsertSession(db, createTestMetadata({ sessionId: 'empty-session' }));
-      insertSessionEntry(db, createTestEntry({
-        sessionId: 'empty-session',
-        content: '',
-      }));
+      insertSessionEntry(
+        db,
+        createTestEntry({
+          sessionId: 'empty-session',
+          content: '',
+        })
+      );
 
       const entries = getSessionEntries(db, 'empty-session');
       expect(entries.length).toBe(1);
@@ -807,10 +856,13 @@ describe('sessions/fts', () => {
     it('should handle very long content', () => {
       const longContent = 'word '.repeat(10000);
       upsertSession(db, createTestMetadata({ sessionId: 'long-session' }));
-      insertSessionEntry(db, createTestEntry({
-        sessionId: 'long-session',
-        content: longContent,
-      }));
+      insertSessionEntry(
+        db,
+        createTestEntry({
+          sessionId: 'long-session',
+          content: longContent,
+        })
+      );
 
       const results = searchSessions(db, 'word');
       expect(results.length).toBeGreaterThan(0);
@@ -818,10 +870,13 @@ describe('sessions/fts', () => {
 
     it('should handle unicode content', () => {
       upsertSession(db, createTestMetadata({ sessionId: 'unicode-session' }));
-      insertSessionEntry(db, createTestEntry({
-        sessionId: 'unicode-session',
-        content: 'Testing unicode: 你好世界 🚀 αβγ',
-      }));
+      insertSessionEntry(
+        db,
+        createTestEntry({
+          sessionId: 'unicode-session',
+          content: 'Testing unicode: 你好世界 🚀 αβγ',
+        })
+      );
 
       const entries = getSessionEntries(db, 'unicode-session');
       expect(entries[0]?.content).toContain('你好世界');

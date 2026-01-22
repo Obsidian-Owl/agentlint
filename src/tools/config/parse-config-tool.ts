@@ -26,7 +26,9 @@ const parseConfigInputSchema = {
   includeFormatValidation: z
     .boolean()
     .optional()
-    .describe('Include ACT format validation (frontmatter requirements) in quality assessment (default: false)'),
+    .describe(
+      'Include ACT format validation (frontmatter requirements) in quality assessment (default: false)'
+    ),
 };
 
 /**

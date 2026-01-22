@@ -206,10 +206,7 @@ function zodErrorToQualityIssue(
 /**
  * Gets a helpful suggestion based on the Zod issue.
  */
-function getSuggestionForZodIssue(
-  configType: ConfigType,
-  zodIssue: ZodError['errors'][0]
-): string {
+function getSuggestionForZodIssue(configType: ConfigType, zodIssue: ZodError['errors'][0]): string {
   const path = zodIssue.path.join('.');
 
   // Skill-specific suggestions

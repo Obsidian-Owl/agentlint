@@ -79,10 +79,9 @@ async function callTruLens(
   output: unknown,
   options: EvaluationRunnerOptions
 ): Promise<TruLensResponse | null> {
-  const runnerPath = options.trulensRunnerPath ??
-    resolve(__dirname, '../../tests/evals/trulens-runner.py');
-  const workingDir = options.trulensWorkingDir ??
-    resolve(__dirname, '../../tests/evals');
+  const runnerPath =
+    options.trulensRunnerPath ?? resolve(__dirname, '../../tests/evals/trulens-runner.py');
+  const workingDir = options.trulensWorkingDir ?? resolve(__dirname, '../../tests/evals');
   const timeoutMs = options.trulensTimeoutMs ?? 60000;
 
   if (!existsSync(runnerPath)) {
@@ -134,7 +133,7 @@ async function callTruLens(
       try {
         // Find the JSON line (skip bytecode compilation messages)
         const lines = stdout.trim().split('\n');
-        const jsonLine = lines.find(line => line.startsWith('{'));
+        const jsonLine = lines.find((line) => line.startsWith('{'));
         if (!jsonLine) {
           console.warn('No JSON output from TruLens');
           resolve(null);
@@ -229,11 +228,7 @@ export class EvaluationRunner implements IEvaluationRunner {
     let llmJudge: LLMJudgeGrade | undefined;
 
     if (!this.options.skipLLMJudge) {
-      const trulensResponse = await callTruLens(
-        scenario,
-        analysisOutput,
-        this.options
-      );
+      const trulensResponse = await callTruLens(scenario, analysisOutput, this.options);
 
       if (trulensResponse && !trulensResponse.error) {
         llmJudge = {
@@ -306,9 +301,7 @@ export class EvaluationRunner implements IEvaluationRunner {
 /**
  * Create an evaluation runner with default options.
  */
-export function createEvaluationRunner(
-  options?: EvaluationRunnerOptions
-): EvaluationRunner {
+export function createEvaluationRunner(options?: EvaluationRunnerOptions): EvaluationRunner {
   return new EvaluationRunner(options);
 }
 

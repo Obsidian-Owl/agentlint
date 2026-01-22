@@ -8,11 +8,7 @@
  * @module eval/graders/code-based
  */
 
-import type {
-  GoldenScenario,
-  CodeBasedGrade,
-  ICodeBasedGrader,
-} from '../types';
+import type { GoldenScenario, CodeBasedGrade, ICodeBasedGrader } from '../types';
 
 // =============================================================================
 // Types
@@ -105,10 +101,7 @@ export class CodeBasedGrader implements ICodeBasedGrader {
     }
 
     const o = output as AnalysisOutput;
-    return (
-      typeof o.format_version === 'string' &&
-      typeof o.success === 'boolean'
-    );
+    return typeof o.format_version === 'string' && typeof o.success === 'boolean';
   }
 
   /**
@@ -120,12 +113,7 @@ export class CodeBasedGrader implements ICodeBasedGrader {
     }
 
     const o = output as AnalysisOutput;
-    return (
-      'format_version' in o &&
-      'command' in o &&
-      'timestamp' in o &&
-      'success' in o
-    );
+    return 'format_version' in o && 'command' in o && 'timestamp' in o && 'success' in o;
   }
 
   /**
@@ -134,10 +122,7 @@ export class CodeBasedGrader implements ICodeBasedGrader {
    * For now, this is a simple check that validates files are from the input.
    * A real implementation would cross-reference against actual project files.
    */
-  private checkNoHallucinatedFiles(
-    scenario: GoldenScenario,
-    output: unknown
-  ): boolean {
+  private checkNoHallucinatedFiles(scenario: GoldenScenario, output: unknown): boolean {
     if (typeof output !== 'object' || output === null) {
       return true; // No output = no hallucinations
     }

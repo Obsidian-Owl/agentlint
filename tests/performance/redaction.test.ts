@@ -214,7 +214,9 @@ describe('Debug Redaction Performance', () => {
       // Every line has secrets that match actual patterns
       // OpenAI: sk-[a-zA-Z0-9]{32,}  GitHub: ghp_[a-zA-Z0-9]{36,}
       const secretContent = Array(1000)
-        .fill('API: sk-abcdefghijklmnopqrstuvwxyz123456 and ghp_abcdefghijklmnopqrstuvwxyz1234567890')
+        .fill(
+          'API: sk-abcdefghijklmnopqrstuvwxyz123456 and ghp_abcdefghijklmnopqrstuvwxyz1234567890'
+        )
         .join('\n');
 
       const startTime = performance.now();

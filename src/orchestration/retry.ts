@@ -124,14 +124,21 @@ export function isRetryableError(error: unknown): boolean {
     const err = error as Record<string, unknown>;
 
     // Check status code
-    const status = err.status ?? err.statusCode ?? (err.response as Record<string, unknown>)?.status;
-    if (typeof status === 'number' && RETRYABLE_STATUS_CODES.includes(status as (typeof RETRYABLE_STATUS_CODES)[number])) {
+    const status =
+      err.status ?? err.statusCode ?? (err.response as Record<string, unknown>)?.status;
+    if (
+      typeof status === 'number' &&
+      RETRYABLE_STATUS_CODES.includes(status as (typeof RETRYABLE_STATUS_CODES)[number])
+    ) {
       return true;
     }
 
     // Check error code
     const code = err.code ?? err.errno;
-    if (typeof code === 'string' && RETRYABLE_ERROR_CODES.includes(code as (typeof RETRYABLE_ERROR_CODES)[number])) {
+    if (
+      typeof code === 'string' &&
+      RETRYABLE_ERROR_CODES.includes(code as (typeof RETRYABLE_ERROR_CODES)[number])
+    ) {
       return true;
     }
   }
@@ -163,7 +170,10 @@ export function isRetryableError(error: unknown): boolean {
  * @param config - Retry configuration
  * @returns Delay in milliseconds
  */
-export function calculateBackoff(attempt: number, config: RetryConfig = DEFAULT_RETRY_CONFIG): number {
+export function calculateBackoff(
+  attempt: number,
+  config: RetryConfig = DEFAULT_RETRY_CONFIG
+): number {
   // Exponential backoff: initialDelay * multiplier^attempt
   const exponentialDelay = config.initialDelayMs * Math.pow(config.backoffMultiplier, attempt);
 

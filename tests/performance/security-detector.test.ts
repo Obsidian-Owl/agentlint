@@ -163,7 +163,9 @@ describe('Security Detector Performance', () => {
 
       expect(results).toBeDefined();
       expect(elapsed).toBeLessThan(50);
-      console.log(`Scanned 1KB in ${elapsed.toFixed(2)}ms, found ${results.candidateCount} candidates`);
+      console.log(
+        `Scanned 1KB in ${elapsed.toFixed(2)}ms, found ${results.candidateCount} candidates`
+      );
     });
 
     it('should scan 10KB content in < 100ms', async () => {
@@ -175,7 +177,9 @@ describe('Security Detector Performance', () => {
 
       expect(results).toBeDefined();
       expect(elapsed).toBeLessThan(100);
-      console.log(`Scanned 10KB in ${elapsed.toFixed(2)}ms, found ${results.candidateCount} candidates`);
+      console.log(
+        `Scanned 10KB in ${elapsed.toFixed(2)}ms, found ${results.candidateCount} candidates`
+      );
     });
 
     it('should scan 100KB content in < 500ms', async () => {
@@ -187,7 +191,9 @@ describe('Security Detector Performance', () => {
 
       expect(results).toBeDefined();
       expect(elapsed).toBeLessThan(500);
-      console.log(`Scanned 100KB in ${elapsed.toFixed(2)}ms, found ${results.candidateCount} candidates`);
+      console.log(
+        `Scanned 100KB in ${elapsed.toFixed(2)}ms, found ${results.candidateCount} candidates`
+      );
     });
 
     it('should scan 500KB content in < 2000ms', async () => {
@@ -199,7 +205,9 @@ describe('Security Detector Performance', () => {
 
       expect(results).toBeDefined();
       expect(elapsed).toBeLessThan(2000);
-      console.log(`Scanned 500KB in ${elapsed.toFixed(2)}ms, found ${results.candidateCount} candidates`);
+      console.log(
+        `Scanned 500KB in ${elapsed.toFixed(2)}ms, found ${results.candidateCount} candidates`
+      );
     });
   });
 
@@ -341,10 +349,7 @@ describe('Security Detector Performance', () => {
       // Every line has a potential secret-like pattern
       const secretLines = Array(500)
         .fill(null)
-        .map(
-          (_, i) =>
-            `const KEY_${i} = "sk-proj-${crypto.randomUUID().replace(/-/g, '')}";`
-        )
+        .map((_, i) => `const KEY_${i} = "sk-proj-${crypto.randomUUID().replace(/-/g, '')}";`)
         .join('\n');
 
       const startTime = performance.now();
@@ -353,16 +358,14 @@ describe('Security Detector Performance', () => {
 
       expect(results.candidateCount).toBeGreaterThanOrEqual(0);
       expect(elapsed).toBeLessThan(1000);
-      console.log(`500 potential secrets scan: ${elapsed.toFixed(2)}ms, found ${results.candidateCount}`);
+      console.log(
+        `500 potential secrets scan: ${elapsed.toFixed(2)}ms, found ${results.candidateCount}`
+      );
     });
 
     it('should handle mixed content efficiently', async () => {
       const content =
-        generateSourceFile(1000, true) +
-        '\n' +
-        generateConfigFile(true) +
-        '\n' +
-        generateEnvFile();
+        generateSourceFile(1000, true) + '\n' + generateConfigFile(true) + '\n' + generateEnvFile();
 
       const startTime = performance.now();
       const results = await detector.scanFile('mixed.ts', content);

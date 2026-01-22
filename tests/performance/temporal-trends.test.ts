@@ -307,7 +307,7 @@ describe('Temporal Delta Performance', () => {
               // getTrendIndicator(from, to, metricName)
               trends[key] = getTrendIndicator(
                 before.metrics[key as keyof typeof before.metrics] as number,
-                before.metrics[key as keyof typeof before.metrics] as number + value,
+                (before.metrics[key as keyof typeof before.metrics] as number) + value,
                 key
               );
             }

@@ -21,9 +21,7 @@ import type { SecretCandidate } from '../../../src/security/types';
 /**
  * Create a test secret candidate with default values.
  */
-function createTestCandidate(
-  overrides: Partial<SecretCandidate> = {}
-): SecretCandidate {
+function createTestCandidate(overrides: Partial<SecretCandidate> = {}): SecretCandidate {
   return {
     id: 'test-candidate-id',
     ruleId: 'generic-api-key',
@@ -92,9 +90,7 @@ describe('SecretClassifier', () => {
 
       const result = await classifier.classify(candidate);
 
-      expect(['unlikely', 'false_positive', 'needs_review']).toContain(
-        result.classification
-      );
+      expect(['unlikely', 'false_positive', 'needs_review']).toContain(result.classification);
       expect(result.confidence).toBeLessThan(0.7);
     });
 
@@ -324,7 +320,8 @@ describe('SecretClassifier', () => {
       const candidate = createTestCandidate({
         ruleId: 'private-key',
         entropy: 3.5,
-        redactedContext: '-----BEGIN RSA PRIVATE KEY-----\n[REDACTED]\n-----END RSA PRIVATE KEY-----',
+        redactedContext:
+          '-----BEGIN RSA PRIVATE KEY-----\n[REDACTED]\n-----END RSA PRIVATE KEY-----',
         location: { file: 'src/keys/server.pem', line: 1 },
       });
 

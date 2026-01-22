@@ -322,7 +322,13 @@ describe('Session Replay Integration', () => {
 
       expect(checkpoints).toHaveLength(5);
       expect(checkpoints.map((c) => c.sequence)).toEqual([1, 2, 3, 4, 5]);
-      expect(checkpoints.map((c) => c.phase)).toEqual(['init', 'scan', 'analyze', 'recommend', 'complete']);
+      expect(checkpoints.map((c) => c.phase)).toEqual([
+        'init',
+        'scan',
+        'analyze',
+        'recommend',
+        'complete',
+      ]);
     });
 
     test('getStateAt retrieves specific checkpoint', async () => {
@@ -391,7 +397,11 @@ describe('Session Replay Integration', () => {
       const sessions = await recorder.listSessions();
 
       expect(sessions).toHaveLength(3);
-      expect(sessions.map((s) => s.sessionId).sort()).toEqual(['session-1', 'session-2', 'session-3']);
+      expect(sessions.map((s) => s.sessionId).sort()).toEqual([
+        'session-1',
+        'session-2',
+        'session-3',
+      ]);
     });
 
     test('deleteSession removes session from disk', async () => {

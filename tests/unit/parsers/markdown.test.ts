@@ -118,9 +118,7 @@ describe('parseMarkdown', () => {
       const block = result.codeBlocks[0];
 
       expect(block?.position?.start?.line).toBeGreaterThan(0);
-      expect(block?.position?.end?.line).toBeGreaterThan(
-        block!.position!.start.line
-      );
+      expect(block?.position?.end?.line).toBeGreaterThan(block!.position!.start.line);
     });
   });
 
@@ -159,9 +157,7 @@ describe('parseMarkdown', () => {
 
     it('should return warning for unclosed code block', async () => {
       const result = await parseMarkdown(unclosedCodeblock);
-      const warning = result.warnings.find(
-        (w) => w.code === 'UNCLOSED_CODE_BLOCK'
-      );
+      const warning = result.warnings.find((w) => w.code === 'UNCLOSED_CODE_BLOCK');
 
       expect(warning).toBeDefined();
       expect(warning?.recoverable).toBe(true);

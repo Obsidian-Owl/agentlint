@@ -129,9 +129,7 @@ class SQLiteOutcomeStorage {
     }
     if (updates.configChangedAfter !== undefined) {
       updateFields.push('config_changed_after = ?');
-      values.push(
-        updates.configChangedAfter === null ? null : updates.configChangedAfter ? 1 : 0
-      );
+      values.push(updates.configChangedAfter === null ? null : updates.configChangedAfter ? 1 : 0);
     }
     if (updates.similarIssueRecurred !== undefined) {
       updateFields.push('similar_issue_recurred = ?');
@@ -143,18 +141,16 @@ class SQLiteOutcomeStorage {
     values.push(id);
 
     this.db
-      .prepare(
-        `UPDATE recommendation_outcomes SET ${updateFields.join(', ')} WHERE id = ?`
-      )
+      .prepare(`UPDATE recommendation_outcomes SET ${updateFields.join(', ')} WHERE id = ?`)
       .run(...values);
 
     return this.getOutcome(id)!;
   }
 
   getOutcome(id: string): RecommendationOutcome | null {
-    const row = this.db
-      .prepare('SELECT * FROM recommendation_outcomes WHERE id = ?')
-      .get(id) as Record<string, unknown> | undefined;
+    const row = this.db.prepare('SELECT * FROM recommendation_outcomes WHERE id = ?').get(id) as
+      | Record<string, unknown>
+      | undefined;
 
     if (!row) return null;
 
@@ -195,9 +191,10 @@ class SQLiteOutcomeStorage {
   }
 
   getMetrics(): OutcomeMetricsByType {
-    const allRows = this.db
-      .prepare('SELECT * FROM recommendation_outcomes')
-      .all() as Record<string, unknown>[];
+    const allRows = this.db.prepare('SELECT * FROM recommendation_outcomes').all() as Record<
+      string,
+      unknown
+    >[];
 
     const all = allRows.map((row) => this.rowToOutcome(row));
 
@@ -233,8 +230,10 @@ class SQLiteOutcomeStorage {
       implementationDate: row.implementation_date as string | null,
       helped: row.helped === null ? null : Boolean(row.helped),
       outcomeNotes: row.outcome_notes as string | null,
-      configChangedAfter: row.config_changed_after === null ? null : Boolean(row.config_changed_after),
-      similarIssueRecurred: row.similar_issue_recurred === null ? null : Boolean(row.similar_issue_recurred),
+      configChangedAfter:
+        row.config_changed_after === null ? null : Boolean(row.config_changed_after),
+      similarIssueRecurred:
+        row.similar_issue_recurred === null ? null : Boolean(row.similar_issue_recurred),
       createdAt: row.created_at as string,
       updatedAt: row.updated_at as string | null,
     };

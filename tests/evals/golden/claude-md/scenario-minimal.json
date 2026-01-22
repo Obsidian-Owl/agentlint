@@ -13,10 +13,7 @@
       "missing-architecture",
       "missing-testing-guidelines"
     ],
-    "shouldNotDetect": [
-      "secret-exposure",
-      "anti-pattern"
-    ],
+    "shouldNotDetect": ["secret-exposure", "anti-pattern"],
     "recommendationTypes": ["preventive"]
   },
   "rubricWeights": {

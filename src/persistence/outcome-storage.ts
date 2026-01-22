@@ -176,10 +176,7 @@ export class OutcomeStorage implements IOutcomeStorage {
   /**
    * Update an existing outcome.
    */
-  updateOutcome(
-    id: string,
-    updates: Partial<RecommendationOutcome>
-  ): RecommendationOutcome {
+  updateOutcome(id: string, updates: Partial<RecommendationOutcome>): RecommendationOutcome {
     const existing = this.getOutcome(id);
     if (!existing) {
       throw new Error(`Outcome not found: ${id}`);

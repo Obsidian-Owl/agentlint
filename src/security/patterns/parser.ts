@@ -92,22 +92,13 @@ function parseRule(raw: RawRule): GitleaksRule {
 
     for (const al of allowlists) {
       if (al.regexes && al.regexes.length > 0) {
-        mergedAllowlist.regexes = [
-          ...(mergedAllowlist.regexes || []),
-          ...al.regexes,
-        ];
+        mergedAllowlist.regexes = [...(mergedAllowlist.regexes || []), ...al.regexes];
       }
       if (al.paths && al.paths.length > 0) {
-        mergedAllowlist.paths = [
-          ...(mergedAllowlist.paths || []),
-          ...al.paths,
-        ];
+        mergedAllowlist.paths = [...(mergedAllowlist.paths || []), ...al.paths];
       }
       if (al.commits && al.commits.length > 0) {
-        mergedAllowlist.commits = [
-          ...(mergedAllowlist.commits || []),
-          ...al.commits,
-        ];
+        mergedAllowlist.commits = [...(mergedAllowlist.commits || []), ...al.commits];
       }
     }
 

@@ -13,10 +13,7 @@
       "anti-pattern-copy-paste",
       "anti-pattern-skip-error-handling"
     ],
-    "shouldNotDetect": [
-      "missing-project-overview",
-      "missing-development-workflow"
-    ],
+    "shouldNotDetect": ["missing-project-overview", "missing-development-workflow"],
     "recommendationTypes": ["systemic", "preventive"]
   },
   "rubricWeights": {

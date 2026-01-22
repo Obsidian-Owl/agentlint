@@ -100,12 +100,7 @@ describe('calculateNormalizedEntropy', () => {
   });
 
   it('should be between 0 and 1', () => {
-    const testStrings = [
-      'hello',
-      'password123',
-      'aB3$fG9!kL2@mN5',
-      'AAAAAAAAAA',
-    ];
+    const testStrings = ['hello', 'password123', 'aB3$fG9!kL2@mN5', 'AAAAAAAAAA'];
 
     for (const str of testStrings) {
       const normalized = calculateNormalizedEntropy(str);

@@ -107,10 +107,8 @@ export class LLMJudgeGrader implements ILLMJudgeGrader {
 
   constructor(options: LLMJudgeGraderOptions = {}) {
     this.runnerPath =
-      options.runnerPath ??
-      resolve(__dirname, '../../../tests/evals/trulens-runner.py');
-    this.workingDir =
-      options.workingDir ?? resolve(__dirname, '../../../tests/evals');
+      options.runnerPath ?? resolve(__dirname, '../../../tests/evals/trulens-runner.py');
+    this.workingDir = options.workingDir ?? resolve(__dirname, '../../../tests/evals');
     this.timeoutMs = options.timeoutMs ?? 60000;
     this.retryCount = options.retryCount ?? 2;
     this.retryDelayMs = options.retryDelayMs ?? 1000;
@@ -262,10 +260,7 @@ export class LLMJudgeGrader implements ILLMJudgeGrader {
   /**
    * Call the TruLens Python subprocess.
    */
-  private async callTruLens(
-    scenario: GoldenScenario,
-    output: unknown
-  ): Promise<TruLensResponse> {
+  private async callTruLens(scenario: GoldenScenario, output: unknown): Promise<TruLensResponse> {
     const request = JSON.stringify({ scenario, output });
 
     return new Promise((resolve, reject) => {
@@ -338,9 +333,7 @@ export class LLMJudgeGrader implements ILLMJudgeGrader {
 /**
  * Create a new LLMJudgeGrader instance with default options.
  */
-export function createLLMJudgeGrader(
-  options?: LLMJudgeGraderOptions
-): LLMJudgeGrader {
+export function createLLMJudgeGrader(options?: LLMJudgeGraderOptions): LLMJudgeGrader {
   return new LLMJudgeGrader(options);
 }
 

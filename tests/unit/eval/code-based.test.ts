@@ -10,9 +10,7 @@
 
 import { describe, test, expect } from 'bun:test';
 import { CodeBasedGrader } from '../../../src/eval/graders/code-based';
-import type {
-  GoldenScenario,
-} from '../../../src/eval/types';
+import type { GoldenScenario } from '../../../src/eval/types';
 
 // =============================================================================
 // Test Fixtures

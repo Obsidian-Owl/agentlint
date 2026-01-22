@@ -113,9 +113,7 @@ describe('LLMJudgeGrader', () => {
         retryCount: 0,
       });
 
-      await expect(grader.grade(mockScenario, mockOutput)).rejects.toThrow(
-        'not found'
-      );
+      await expect(grader.grade(mockScenario, mockOutput)).rejects.toThrow('not found');
     });
   });
 

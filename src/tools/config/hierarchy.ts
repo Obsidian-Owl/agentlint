@@ -262,7 +262,10 @@ function buildEffectiveConfig(configs: ParsedConfig[]): EffectiveConfig {
  * Get issue summary from multiple configs for hierarchy summary.
  * Per ADR-0019, returns raw counts instead of grades.
  */
-function getIssuesSummary(configs: ParsedConfig[]): { totalIssues: number; criticalIssues: number } {
+function getIssuesSummary(configs: ParsedConfig[]): {
+  totalIssues: number;
+  criticalIssues: number;
+} {
   let totalIssues = 0;
   let criticalIssues = 0;
 

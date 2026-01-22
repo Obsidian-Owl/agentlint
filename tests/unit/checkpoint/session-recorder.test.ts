@@ -240,7 +240,9 @@ describe('SessionRecorder', () => {
     test('throws error if no active session', async () => {
       const checkpoint = createTestCheckpoint('any-session', 1);
 
-      await expect(recorder.recordCheckpoint(checkpoint)).rejects.toThrow('No active recording session');
+      await expect(recorder.recordCheckpoint(checkpoint)).rejects.toThrow(
+        'No active recording session'
+      );
     });
 
     test('throws error if session ID mismatch', async () => {

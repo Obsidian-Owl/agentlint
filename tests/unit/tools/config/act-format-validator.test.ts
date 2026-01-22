@@ -9,7 +9,10 @@
 
 import { describe, it, expect, beforeAll } from 'bun:test';
 import type { ConfigType } from '../../../../src/tools/types';
-import type { ACTFormatValidationInput, ACTFormatValidationResult } from '../../../../src/tools/config/act-format-validator';
+import type {
+  ACTFormatValidationInput,
+  ACTFormatValidationResult,
+} from '../../../../src/tools/config/act-format-validator';
 
 // Lazy load to allow tests to be written first (TDD)
 let validateACTFormat: (input: ACTFormatValidationInput) => ACTFormatValidationResult;
@@ -172,7 +175,8 @@ describe('validateACTFormat', () => {
       const result = validateACTFormat({
         configType: 'skill-md',
         filePath: '.claude/skills/my-skill/SKILL.md',
-        content: '---\nname: my-skill\ndescription: A skill\nallowed_tools:\n  - Read\n  - Glob\nuser_invocable: true\n---',
+        content:
+          '---\nname: my-skill\ndescription: A skill\nallowed_tools:\n  - Read\n  - Glob\nuser_invocable: true\n---',
         frontmatter: {
           name: 'my-skill',
           description: 'A skill',

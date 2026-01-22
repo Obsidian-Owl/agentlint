@@ -67,7 +67,11 @@ export const SkillFrontmatterSchema = z.object({
     .max(1024, 'Skill description must be 1024 characters or less'),
   allowed_tools: z.array(z.string()).optional().describe('List of tools this skill can use'),
   model: z.string().optional().describe('Model to use for this skill'),
-  user_invocable: z.boolean().optional().default(true).describe('Whether user can invoke via slash command'),
+  user_invocable: z
+    .boolean()
+    .optional()
+    .default(true)
+    .describe('Whether user can invoke via slash command'),
   disable_model_invocation: z
     .boolean()
     .optional()

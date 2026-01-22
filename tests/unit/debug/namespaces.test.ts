@@ -86,15 +86,13 @@ describe('isNamespaceEnabled', () => {
   });
 
   it('should return true when namespace matches any pattern', () => {
-    expect(
-      isNamespaceEnabled('agentlint:llm', ['agentlint:tools', 'agentlint:llm'])
-    ).toBe(true);
+    expect(isNamespaceEnabled('agentlint:llm', ['agentlint:tools', 'agentlint:llm'])).toBe(true);
   });
 
   it('should return false when namespace matches no patterns', () => {
-    expect(
-      isNamespaceEnabled('agentlint:secrets', ['agentlint:tools', 'agentlint:llm'])
-    ).toBe(false);
+    expect(isNamespaceEnabled('agentlint:secrets', ['agentlint:tools', 'agentlint:llm'])).toBe(
+      false
+    );
   });
 });
 
@@ -128,9 +126,7 @@ describe('parseDebugEnv', () => {
   });
 
   it('should filter out non-agentlint namespaces from mixed input', () => {
-    expect(parseDebugEnv('express:*,agentlint:tools,socket')).toEqual([
-      'agentlint:tools',
-    ]);
+    expect(parseDebugEnv('express:*,agentlint:tools,socket')).toEqual(['agentlint:tools']);
   });
 
   it('should trim whitespace', () => {

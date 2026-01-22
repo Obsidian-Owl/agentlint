@@ -25,6 +25,7 @@ uv run python -m tests.evals.recommendations.run --all
 ## Architecture
 
 Per ADR-0011 and ADR-0012, evaluations use:
+
 - **TruLens** for LLM-as-judge feedback functions
 - **LiteLLM** with Anthropic for evaluation (avoiding meta-circularity)
 - **Golden datasets** in `golden/` for consistent evaluation scenarios

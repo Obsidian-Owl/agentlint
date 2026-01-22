@@ -72,7 +72,7 @@
     "relevance": 0.3
   },
   "thresholds": {
-    "pass": 0.70,
+    "pass": 0.7,
     "dogfoodTarget": 0.95
   }
 }

@@ -141,9 +141,10 @@ describe('causal/queries', () => {
         insertChain(db, chain);
 
         const count = db
-          .query<{ count: number }, [string]>(
-            'SELECT COUNT(*) as count FROM evidence_items WHERE chain_id = ?'
-          )
+          .query<
+            { count: number },
+            [string]
+          >('SELECT COUNT(*) as count FROM evidence_items WHERE chain_id = ?')
           .get(chain.id);
 
         expect(count?.count).toBe(3);
@@ -156,9 +157,10 @@ describe('causal/queries', () => {
         expect(chainId).toBe(chain.id);
 
         const row = db
-          .query<{ gap_type: string | null }, [string]>(
-            'SELECT gap_type FROM causal_chains WHERE id = ?'
-          )
+          .query<
+            { gap_type: string | null },
+            [string]
+          >('SELECT gap_type FROM causal_chains WHERE id = ?')
           .get(chainId);
 
         expect(row?.gap_type).toBeNull();
@@ -311,9 +313,10 @@ describe('causal/queries', () => {
 
         // Evidence should also be deleted (cascade)
         const evidenceCount = db
-          .query<{ count: number }, [string]>(
-            'SELECT COUNT(*) as count FROM evidence_items WHERE chain_id = ?'
-          )
+          .query<
+            { count: number },
+            [string]
+          >('SELECT COUNT(*) as count FROM evidence_items WHERE chain_id = ?')
           .get(chain.id);
         expect(evidenceCount?.count).toBe(0);
       });
@@ -341,9 +344,10 @@ describe('causal/queries', () => {
 
         // Verify chain links
         const links = db
-          .query<{ chain_id: string }, [string]>(
-            'SELECT chain_id FROM chain_patterns WHERE pattern_id = ?'
-          )
+          .query<
+            { chain_id: string },
+            [string]
+          >('SELECT chain_id FROM chain_patterns WHERE pattern_id = ?')
           .all(patternId);
 
         expect(links.length).toBe(2);
@@ -357,9 +361,10 @@ describe('causal/queries', () => {
         const patternId = insertPattern(db, pattern);
 
         const row = db
-          .query<{ pattern_id: string }, [string]>(
-            'SELECT pattern_id FROM causal_chains WHERE id = ?'
-          )
+          .query<
+            { pattern_id: string },
+            [string]
+          >('SELECT pattern_id FROM causal_chains WHERE id = ?')
           .get(chain.id);
 
         expect(row?.pattern_id).toBe(patternId);
@@ -411,15 +416,17 @@ describe('causal/queries', () => {
       });
 
       it('should filter by minimum frequency', () => {
-        const chains = [
-          createMockChain(),
-          createMockChain(),
-          createMockChain(),
-        ];
+        const chains = [createMockChain(), createMockChain(), createMockChain()];
         chains.forEach((c) => insertChain(db, c));
 
-        const pattern1 = createMockPattern(chains.slice(0, 1).map((c) => c.id), { frequency: 1 });
-        const pattern2 = createMockPattern(chains.slice(0, 3).map((c) => c.id), { frequency: 3 });
+        const pattern1 = createMockPattern(
+          chains.slice(0, 1).map((c) => c.id),
+          { frequency: 1 }
+        );
+        const pattern2 = createMockPattern(
+          chains.slice(0, 3).map((c) => c.id),
+          { frequency: 3 }
+        );
         insertPattern(db, pattern1);
         insertPattern(db, pattern2);
 
@@ -541,9 +548,10 @@ describe('causal/queries', () => {
 
         // Chain's pattern_id should be cleared
         const row = db
-          .query<{ pattern_id: string | null }, [string]>(
-            'SELECT pattern_id FROM causal_chains WHERE id = ?'
-          )
+          .query<
+            { pattern_id: string | null },
+            [string]
+          >('SELECT pattern_id FROM causal_chains WHERE id = ?')
           .get(chain.id);
 
         expect(row?.pattern_id).toBeNull();
@@ -576,9 +584,7 @@ describe('causal/queries', () => {
 
     it('should handle evidence without position', () => {
       const chain = createMockChain({
-        evidence: [
-          createMockEvidence({ position: undefined }),
-        ],
+        evidence: [createMockEvidence({ position: undefined })],
       });
       insertChain(db, chain);
 

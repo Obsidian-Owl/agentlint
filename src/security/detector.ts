@@ -214,9 +214,7 @@ export class SecretDetector implements ISecretDetector {
       // Keyword pre-filtering for performance
       if (rule.keywords && rule.keywords.length > 0) {
         const contentLower = content.toLowerCase();
-        const hasKeyword = rule.keywords.some((kw) =>
-          contentLower.includes(kw.toLowerCase())
-        );
+        const hasKeyword = rule.keywords.some((kw) => contentLower.includes(kw.toLowerCase()));
         if (!hasKeyword) continue;
       }
 
@@ -241,9 +239,7 @@ export class SecretDetector implements ISecretDetector {
         }
 
         // Check allowlist regexes
-        const isAllowlisted = allowlistRegexes.some((al) =>
-          al.test(secretValue)
-        );
+        const isAllowlisted = allowlistRegexes.some((al) => al.test(secretValue));
         if (isAllowlisted) continue;
 
         // Find line number
@@ -314,9 +310,7 @@ export class SecretDetector implements ISecretDetector {
    * @param files - Files to scan
    * @returns Aggregated scan results
    */
-  scanFiles(
-    files: Array<{ path: string; content: string }>
-  ): SecretScanResult {
+  scanFiles(files: Array<{ path: string; content: string }>): SecretScanResult {
     const startTime = performance.now();
 
     const fileResults: FileScanResult[] = [];
@@ -341,10 +335,7 @@ export class SecretDetector implements ISecretDetector {
     }
 
     const durationMs = performance.now() - startTime;
-    const totalCandidates = fileResults.reduce(
-      (sum, r) => sum + r.candidateCount,
-      0
-    );
+    const totalCandidates = fileResults.reduce((sum, r) => sum + r.candidateCount, 0);
 
     return {
       scannedFiles: files.length,
@@ -371,10 +362,7 @@ export class SecretDetector implements ISecretDetector {
     ruleId: string
   ): string {
     const contextStart = Math.max(0, matchStart - CONTEXT_SIZE);
-    const contextEnd = Math.min(
-      content.length,
-      matchStart + matchLength + CONTEXT_SIZE
-    );
+    const contextEnd = Math.min(content.length, matchStart + matchLength + CONTEXT_SIZE);
 
     const before = content.slice(contextStart, matchStart);
     const redacted = createRedactedPlaceholder(ruleId, matchLength);
@@ -424,9 +412,7 @@ export class SecretDetector implements ISecretDetector {
 
       if (rule.keywords && rule.keywords.length > 0) {
         const contentLower = content.toLowerCase();
-        const hasKeyword = rule.keywords.some((kw) =>
-          contentLower.includes(kw.toLowerCase())
-        );
+        const hasKeyword = rule.keywords.some((kw) => contentLower.includes(kw.toLowerCase()));
         if (!hasKeyword) continue;
       }
 
@@ -447,9 +433,7 @@ export class SecretDetector implements ISecretDetector {
           if (entropy < rule.entropy) continue;
         }
 
-        const isAllowlisted = allowlistRegexes.some((al) =>
-          al.test(secretValue)
-        );
+        const isAllowlisted = allowlistRegexes.some((al) => al.test(secretValue));
         if (isAllowlisted) continue;
 
         const matchStart = match.index;

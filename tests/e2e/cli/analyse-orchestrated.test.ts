@@ -172,12 +172,9 @@ describe('E2E: Static Analysis Mode (--static)', () => {
   });
 
   test('--fail-on-findings returns exit code 1', async () => {
-    const result = await runCLI(
-      ['analyse', '--static', '-d', fixture.path, '--fail-on-findings'],
-      {
-        json: true,
-      }
-    );
+    const result = await runCLI(['analyse', '--static', '-d', fixture.path, '--fail-on-findings'], {
+      json: true,
+    });
 
     const output = parseJSONOutput<AnalyseOutput>(result);
     if (output?.findings?.length && output.findings.length > 0) {

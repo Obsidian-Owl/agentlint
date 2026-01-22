@@ -7,10 +7,7 @@
 import { describe, it, expect, beforeAll } from 'bun:test';
 import { join } from 'node:path';
 import { readFile } from 'node:fs/promises';
-import {
-  parseFrontmatter,
-  parseFrontmatterSync,
-} from '../../../src/parsers/frontmatter';
+import { parseFrontmatter, parseFrontmatterSync } from '../../../src/parsers/frontmatter';
 
 const FIXTURES_DIR = join(import.meta.dir, '../../fixtures/configs');
 
@@ -21,14 +18,8 @@ describe('parseFrontmatter', () => {
 
   beforeAll(async () => {
     skillContent = await readFile(join(FIXTURES_DIR, 'valid/skill/SKILL.md'), 'utf-8');
-    invalidYamlContent = await readFile(
-      join(FIXTURES_DIR, 'malformed/invalid-yaml.md'),
-      'utf-8'
-    );
-    noFrontmatterContent = await readFile(
-      join(FIXTURES_DIR, 'valid/claude-simple.md'),
-      'utf-8'
-    );
+    invalidYamlContent = await readFile(join(FIXTURES_DIR, 'malformed/invalid-yaml.md'), 'utf-8');
+    noFrontmatterContent = await readFile(join(FIXTURES_DIR, 'valid/claude-simple.md'), 'utf-8');
   });
 
   // =============================================================================
@@ -195,9 +186,7 @@ describe('parseFrontmatter', () => {
         requiredFields: ['name'],
       });
 
-      expect(
-        result.warnings.some((w) => w.code === 'MISSING_REQUIRED_FIELD')
-      ).toBe(true);
+      expect(result.warnings.some((w) => w.code === 'MISSING_REQUIRED_FIELD')).toBe(true);
     });
 
     it('should validate name length constraint', async () => {
@@ -208,8 +197,7 @@ describe('parseFrontmatter', () => {
     });
 
     it('should validate description length constraint', async () => {
-      const longDesc =
-        '---\nname: test\ndescription: ' + 'a'.repeat(300) + '\n---\n# Content';
+      const longDesc = '---\nname: test\ndescription: ' + 'a'.repeat(300) + '\n---\n# Content';
       const result = await parseFrontmatter(longDesc, {
         maxDescriptionLength: 200,
       });

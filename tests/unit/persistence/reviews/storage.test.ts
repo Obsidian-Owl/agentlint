@@ -58,7 +58,10 @@ describe('reviews/storage', () => {
   let testDir: string;
 
   beforeEach(() => {
-    testDir = join(tmpdir(), `agentlint-reviews-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+    testDir = join(
+      tmpdir(),
+      `agentlint-reviews-test-${Date.now()}-${Math.random().toString(36).slice(2)}`
+    );
     mkdirSync(testDir, { recursive: true });
   });
 
@@ -100,7 +103,11 @@ describe('reviews/storage', () => {
     });
 
     it('should throw on missing required fields', async () => {
-      const invalidReview = { overallSentiment: 0, dimensions: [], themes: [] } as unknown as QualitativeReview;
+      const invalidReview = {
+        overallSentiment: 0,
+        dimensions: [],
+        themes: [],
+      } as unknown as QualitativeReview;
 
       await expect(saveReview(invalidReview, { baseDir: testDir })).rejects.toThrow(
         'missing required fields'

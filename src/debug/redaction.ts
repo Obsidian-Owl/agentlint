@@ -130,7 +130,8 @@ export const BUILTIN_REDACTION_PATTERNS: RedactionPattern[] = [
 
   // AWS Secret Access Keys (40 chars, base64-like)
   {
-    pattern: /(?:aws[_-]?secret[_-]?(?:access[_-]?)?key|secret[_-]?access[_-]?key)[=:]\s*['"]?([A-Za-z0-9/+=]{40})['"]?/gi,
+    pattern:
+      /(?:aws[_-]?secret[_-]?(?:access[_-]?)?key|secret[_-]?access[_-]?key)[=:]\s*['"]?([A-Za-z0-9/+=]{40})['"]?/gi,
     replacement: (match: string) => match.replace(/[A-Za-z0-9/+=]{40}/, '[REDACTED:AWS_SECRET]'),
     type: 'aws_secret_key',
   },
@@ -158,8 +159,10 @@ export const BUILTIN_REDACTION_PATTERNS: RedactionPattern[] = [
 
   // Azure AD Client Secret
   {
-    pattern: /(?:client[_-]?secret|azure[_-]?client[_-]?secret)[=:]\s*['"]?([A-Za-z0-9~_.-]{34,40})['"]?/gi,
-    replacement: (match: string) => match.replace(/[A-Za-z0-9~_.-]{34,40}/, '[REDACTED:AZURE_SECRET]'),
+    pattern:
+      /(?:client[_-]?secret|azure[_-]?client[_-]?secret)[=:]\s*['"]?([A-Za-z0-9~_.-]{34,40})['"]?/gi,
+    replacement: (match: string) =>
+      match.replace(/[A-Za-z0-9~_.-]{34,40}/, '[REDACTED:AZURE_SECRET]'),
     type: 'azure_client_secret',
   },
 
@@ -421,8 +424,13 @@ export const BUILTIN_REDACTION_PATTERNS: RedactionPattern[] = [
 
   // Heroku API Key
   {
-    pattern: /(?:heroku[_-]?api[_-]?key)[=:]\s*['"]?([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})['"]?/gi,
-    replacement: (match: string) => match.replace(/[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/, '[REDACTED:HEROKU_KEY]'),
+    pattern:
+      /(?:heroku[_-]?api[_-]?key)[=:]\s*['"]?([a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12})['"]?/gi,
+    replacement: (match: string) =>
+      match.replace(
+        /[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}/,
+        '[REDACTED:HEROKU_KEY]'
+      ),
     type: 'heroku_api_key',
   },
 
@@ -500,7 +508,8 @@ export const BUILTIN_REDACTION_PATTERNS: RedactionPattern[] = [
   // OAuth Client Secrets
   {
     pattern: /(?:client[_-]?secret|oauth[_-]?secret)[=:]\s*['"]?([a-zA-Z0-9_-]{20,})['"]?/gi,
-    replacement: (match: string) => match.replace(/[a-zA-Z0-9_-]{20,}$/, '[REDACTED:CLIENT_SECRET]'),
+    replacement: (match: string) =>
+      match.replace(/[a-zA-Z0-9_-]{20,}$/, '[REDACTED:CLIENT_SECRET]'),
     type: 'oauth_client_secret',
   },
 
@@ -510,7 +519,8 @@ export const BUILTIN_REDACTION_PATTERNS: RedactionPattern[] = [
 
   // RSA/DSA/EC/OpenSSH Private Keys
   {
-    pattern: /-----BEGIN\s+(?:RSA\s+)?(?:DSA\s+)?(?:EC\s+)?(?:OPENSSH\s+)?PRIVATE\s+KEY-----[\s\S]*?-----END\s+(?:RSA\s+)?(?:DSA\s+)?(?:EC\s+)?(?:OPENSSH\s+)?PRIVATE\s+KEY-----/g,
+    pattern:
+      /-----BEGIN\s+(?:RSA\s+)?(?:DSA\s+)?(?:EC\s+)?(?:OPENSSH\s+)?PRIVATE\s+KEY-----[\s\S]*?-----END\s+(?:RSA\s+)?(?:DSA\s+)?(?:EC\s+)?(?:OPENSSH\s+)?PRIVATE\s+KEY-----/g,
     replacement: '[REDACTED:PRIVATE_KEY]',
     type: 'private_key',
   },

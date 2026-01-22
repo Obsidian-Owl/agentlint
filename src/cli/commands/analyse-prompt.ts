@@ -48,10 +48,7 @@ async function buildExistingRecommendationsContext(directory: string): Promise<s
   debugLog('Building recommendations context', { directory, resolvedDir });
 
   // Try target directory first, then fall back to cwd
-  const dirsToCheck = [
-    getRecommendationsDir(resolvedDir),
-    getRecommendationsDir(process.cwd()),
-  ];
+  const dirsToCheck = [getRecommendationsDir(resolvedDir), getRecommendationsDir(process.cwd())];
 
   // Dedupe directories (may be same if running from target)
   const uniqueDirs = [...new Set(dirsToCheck)];
@@ -81,9 +78,8 @@ async function buildExistingRecommendationsContext(directory: string): Promise<s
 
   if (summaries.length === 0) {
     // Include error info if loading failed (helps debugging)
-    const errorContext = errors.length > 0
-      ? `\n\n_Note: Failed to load from: ${errors.join(', ')}_`
-      : '';
+    const errorContext =
+      errors.length > 0 ? `\n\n_Note: Failed to load from: ${errors.join(', ')}_` : '';
 
     debugLog('No recommendations found', { errors });
     return `## Existing Recommendations
@@ -105,12 +101,12 @@ No open recommendations found. Create new ones as needed, but avoid duplicating 
   for (const summary of summaries) {
     const shortId = summary.id.slice(0, 8);
     const typePriority = `${summary.type}/${summary.priority}`;
-    const shortTarget = summary.target.length > 25
-      ? '...' + summary.target.slice(-22)
-      : summary.target;
-    const shortAction = summary.actionSummary.length > 40
-      ? summary.actionSummary.slice(0, 37) + '...'
-      : summary.actionSummary;
+    const shortTarget =
+      summary.target.length > 25 ? '...' + summary.target.slice(-22) : summary.target;
+    const shortAction =
+      summary.actionSummary.length > 40
+        ? summary.actionSummary.slice(0, 37) + '...'
+        : summary.actionSummary;
     lines.push(`| ${shortId} | ${typePriority} | \`${shortTarget}\` | ${shortAction} |`);
   }
 
@@ -500,10 +496,7 @@ function buildSubagentGuidance(scanResult: ScanResult): string {
  * @param lastPhase - The phase when analysis was interrupted
  * @returns Continuation prompt
  */
-export function buildContinuationPrompt(
-  previousFindings: string[],
-  lastPhase: string
-): string {
+export function buildContinuationPrompt(previousFindings: string[], lastPhase: string): string {
   return `
 ## Resuming Analysis
 

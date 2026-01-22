@@ -28,7 +28,10 @@ import { EVAL_THRESHOLDS } from '../../src/eval/types';
 /**
  * Create a test golden scenario.
  */
-function createTestScenario(id: string, difficulty: 'easy' | 'medium' | 'hard' = 'easy'): GoldenScenario {
+function createTestScenario(
+  id: string,
+  difficulty: 'easy' | 'medium' | 'hard' = 'easy'
+): GoldenScenario {
   return {
     id,
     version: '1.0.0',

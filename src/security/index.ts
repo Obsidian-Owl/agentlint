@@ -69,18 +69,10 @@ export {
 // Secret Detector
 // =============================================================================
 
-export {
-  SecretDetector,
-  createSecretDetector,
-  createSecretDetectorWithPatterns,
-} from './detector';
+export { SecretDetector, createSecretDetector, createSecretDetectorWithPatterns } from './detector';
 
 // =============================================================================
 // Secret Classifier
 // =============================================================================
 
-export {
-  SecretClassifier,
-  createSecretClassifier,
-  classifySecretTool,
-} from './classifier';
+export { SecretClassifier, createSecretClassifier, classifySecretTool } from './classifier';

@@ -48,7 +48,13 @@ class MockOutcomeStorage implements IOutcomeStorage {
   updateOutcome(id: string, updates: Partial<RecommendationOutcome>): RecommendationOutcome {
     const existing = this.outcomes.get(id);
     if (!existing) throw new Error(`Outcome not found: ${id}`);
-    const updated = { ...existing, ...updates, id: existing.id, createdAt: existing.createdAt, updatedAt: new Date().toISOString() };
+    const updated = {
+      ...existing,
+      ...updates,
+      id: existing.id,
+      createdAt: existing.createdAt,
+      updatedAt: new Date().toISOString(),
+    };
     this.outcomes.set(id, updated);
     return updated;
   }
@@ -62,7 +68,9 @@ class MockOutcomeStorage implements IOutcomeStorage {
   }
 
   getOutcomesByRecommendation(recommendationId: string): RecommendationOutcome[] {
-    return Array.from(this.outcomes.values()).filter((o) => o.recommendationId === recommendationId);
+    return Array.from(this.outcomes.values()).filter(
+      (o) => o.recommendationId === recommendationId
+    );
   }
 
   getPendingFollowUps(olderThanDays: number): RecommendationOutcome[] {

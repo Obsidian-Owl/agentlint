@@ -361,9 +361,7 @@ MIIEpAIBAAKCAQEAx...
       const result = await detector.scanFile('config.ts', content);
 
       // Should be filtered by the EXAMPLE allowlist regex
-      const withAllowlistMatches = result.candidates.filter(
-        (c) => c.ruleId === 'with-allowlist'
-      );
+      const withAllowlistMatches = result.candidates.filter((c) => c.ruleId === 'with-allowlist');
       expect(withAllowlistMatches.length).toBe(0);
     });
 
@@ -372,9 +370,7 @@ MIIEpAIBAAKCAQEAx...
       const content = 'const key = "TEST_SECRET_PLACEHOLDER00000"';
       const result = await detector.scanFile('config.ts', content);
 
-      const withAllowlistMatches = result.candidates.filter(
-        (c) => c.ruleId === 'with-allowlist'
-      );
+      const withAllowlistMatches = result.candidates.filter((c) => c.ruleId === 'with-allowlist');
       expect(withAllowlistMatches.length).toBe(0);
     });
 
@@ -383,9 +379,7 @@ MIIEpAIBAAKCAQEAx...
       const content = 'const key = "TEST_SECRET_HASEXAMPLEINIT"';
       const result = await detector.scanFile('config.ts', content);
 
-      const withAllowlistMatches = result.candidates.filter(
-        (c) => c.ruleId === 'with-allowlist'
-      );
+      const withAllowlistMatches = result.candidates.filter((c) => c.ruleId === 'with-allowlist');
       expect(withAllowlistMatches.length).toBe(0);
     });
 
@@ -394,9 +388,7 @@ MIIEpAIBAAKCAQEAx...
       const content = 'const key = "TEST_SECRET_REALVALUE12345"';
       const result = await detector.scanFile('test/config.ts', content);
 
-      const withAllowlistMatches = result.candidates.filter(
-        (c) => c.ruleId === 'with-allowlist'
-      );
+      const withAllowlistMatches = result.candidates.filter((c) => c.ruleId === 'with-allowlist');
       expect(withAllowlistMatches.length).toBe(0);
     });
 
@@ -406,9 +398,7 @@ MIIEpAIBAAKCAQEAx...
       const content = 'api_key = "aaaaaaaaaaaaaaaaaaaaaaaaaa"'; // Low entropy, all same char
       const result = await detector.scanFile('config.ts', content);
 
-      const genericMatches = result.candidates.filter(
-        (c) => c.ruleId === 'generic-api-key'
-      );
+      const genericMatches = result.candidates.filter((c) => c.ruleId === 'generic-api-key');
       expect(genericMatches.length).toBe(0);
     });
   });
@@ -489,8 +479,7 @@ MIIEpAIBAAKCAQEAx...
       const durationNoKeywords = performance.now() - startNoKeywords;
 
       // Content with keywords that don't match regex
-      const contentWithKeywords =
-        'const AKIA = 1;\nconst api_key = 1;\n'.repeat(1000);
+      const contentWithKeywords = 'const AKIA = 1;\nconst api_key = 1;\n'.repeat(1000);
       const startWithKeywords = performance.now();
       await detector.scanFile('large2.ts', contentWithKeywords);
       const durationWithKeywords = performance.now() - startWithKeywords;
@@ -525,8 +514,7 @@ describe('SecretCandidate', () => {
   });
 
   it('should have unique id', async () => {
-    const content =
-      'const a = "AKIAIOSFODNN7EXAMPLEA";\nconst b = "AKIAIOSFODNN7EXAMPLEB";';
+    const content = 'const a = "AKIAIOSFODNN7EXAMPLEA";\nconst b = "AKIAIOSFODNN7EXAMPLEB";';
     const result = await detector.scanFile('test.ts', content);
 
     expect(result.candidateCount).toBe(2);
@@ -609,8 +597,7 @@ describe('Edge Cases', () => {
   });
 
   it('should handle multiple secrets on same line', async () => {
-    const content =
-      'const a = "AKIAIOSFODNN7EXAMPLEH"; const b = "AKIAIOSFODNN7EXAMPLEI";';
+    const content = 'const a = "AKIAIOSFODNN7EXAMPLEH"; const b = "AKIAIOSFODNN7EXAMPLEI";';
     const result = await detector.scanFile('test.ts', content);
 
     expect(result.candidateCount).toBe(2);

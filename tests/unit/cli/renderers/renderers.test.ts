@@ -276,7 +276,10 @@ describe('JsonRenderer', () => {
       renderer.renderFinding(finding);
 
       const logLine = logs[0]!;
-      const parsed = JSON.parse(logLine) as { type: string; data: { id: string; severity: string } };
+      const parsed = JSON.parse(logLine) as {
+        type: string;
+        data: { id: string; severity: string };
+      };
       expect(parsed.type).toBe('finding');
       expect(parsed.data.id).toBe('FND-0001');
       expect(parsed.data.severity).toBe('high');

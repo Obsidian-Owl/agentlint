@@ -284,10 +284,7 @@ export interface IEvaluationRunner {
   /**
    * Evaluate a single scenario.
    */
-  evaluateScenario(
-    scenario: GoldenScenario,
-    analysisOutput: unknown
-  ): Promise<EvaluationResult>;
+  evaluateScenario(scenario: GoldenScenario, analysisOutput: unknown): Promise<EvaluationResult>;
 
   /**
    * Evaluate all scenarios in the dataset.

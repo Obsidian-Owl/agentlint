@@ -133,7 +133,9 @@ export async function runSessionList(options: SessionListOptions): Promise<numbe
 
     return 0;
   } catch (error) {
-    console.error(`Error listing sessions: ${error instanceof Error ? error.message : String(error)}`);
+    console.error(
+      `Error listing sessions: ${error instanceof Error ? error.message : String(error)}`
+    );
     return 1;
   }
 }
@@ -158,7 +160,9 @@ export async function runSessionReplay(options: SessionReplayOptions): Promise<n
     if (options.sequence !== undefined) {
       checkpoint = await replayer.getStateAt(options.sessionId, options.sequence);
       if (!checkpoint) {
-        console.error(`Checkpoint sequence ${options.sequence} not found in session ${options.sessionId}`);
+        console.error(
+          `Checkpoint sequence ${options.sequence} not found in session ${options.sessionId}`
+        );
         return 1;
       }
     } else {
@@ -185,7 +189,9 @@ export async function runSessionReplay(options: SessionReplayOptions): Promise<n
     if (context.findings.length > 0) {
       console.log('\nFindings at checkpoint:');
       for (const finding of context.findings) {
-        console.log(`  - ${finding.id}: ${finding.type} at ${finding.location.file}:${finding.location.line}`);
+        console.log(
+          `  - ${finding.id}: ${finding.type} at ${finding.location.file}:${finding.location.line}`
+        );
       }
     }
 
@@ -193,7 +199,9 @@ export async function runSessionReplay(options: SessionReplayOptions): Promise<n
 
     return 0;
   } catch (error) {
-    console.error(`Error replaying session: ${error instanceof Error ? error.message : String(error)}`);
+    console.error(
+      `Error replaying session: ${error instanceof Error ? error.message : String(error)}`
+    );
     return 1;
   }
 }
@@ -242,7 +250,9 @@ export async function runSessionDelete(options: SessionDeleteOptions): Promise<n
 
     return 0;
   } catch (error) {
-    console.error(`Error deleting session: ${error instanceof Error ? error.message : String(error)}`);
+    console.error(
+      `Error deleting session: ${error instanceof Error ? error.message : String(error)}`
+    );
     return 1;
   }
 }
@@ -284,7 +294,9 @@ export async function runSessionCleanup(options: SessionCleanupOptions): Promise
 
       console.log(`Would delete ${toDelete.length} session(s) older than ${options.days} days:\n`);
       for (const session of toDelete) {
-        console.log(`  - ${session.sessionId} (last checkpoint: ${formatTimestamp(session.lastCheckpointAt)})`);
+        console.log(
+          `  - ${session.sessionId} (last checkpoint: ${formatTimestamp(session.lastCheckpointAt)})`
+        );
       }
 
       return 0;
@@ -306,7 +318,9 @@ export async function runSessionCleanup(options: SessionCleanupOptions): Promise
 
     return 0;
   } catch (error) {
-    console.error(`Error cleaning up sessions: ${error instanceof Error ? error.message : String(error)}`);
+    console.error(
+      `Error cleaning up sessions: ${error instanceof Error ? error.message : String(error)}`
+    );
     return 1;
   }
 }

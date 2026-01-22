@@ -31,16 +31,11 @@ const classifySecretInputSchema = {
   candidateId: z.string().describe('Unique ID of the candidate'),
   ruleId: z.string().describe('ID of the rule that detected this candidate'),
   ruleDescription: z.string().describe('Description of what the rule detects'),
-  redactedContext: z
-    .string()
-    .describe('Surrounding code context with the actual value redacted'),
+  redactedContext: z.string().describe('Surrounding code context with the actual value redacted'),
   entropy: z.number().describe('Shannon entropy of the matched value (0-8)'),
   filePath: z.string().describe('Path to the file containing the candidate'),
   line: z.number().describe('Line number in the file'),
-  keywords: z
-    .array(z.string())
-    .optional()
-    .describe('Keywords that triggered the match'),
+  keywords: z.array(z.string()).optional().describe('Keywords that triggered the match'),
 };
 
 /**
@@ -50,11 +45,7 @@ const _classificationResultSchema = z.object({
   classification: z
     .enum(['confirmed', 'likely', 'unlikely', 'false_positive', 'needs_review'])
     .describe('Classification result'),
-  confidence: z
-    .number()
-    .min(0)
-    .max(1)
-    .describe('Confidence score (0.0 to 1.0)'),
+  confidence: z.number().min(0).max(1).describe('Confidence score (0.0 to 1.0)'),
   reasoning: z.string().describe('Explanation for the classification'),
   recommendation: z.string().describe('Suggested action for the user'),
 });
@@ -285,8 +276,7 @@ function analyzeCandidate(candidate: CandidateAnalysis): ClassificationResult {
         'Manual review required. Check if this is a real credential or a placeholder value.';
       break;
     case 'unlikely':
-      recommendation =
-        'This is probably a false positive, but verify it is not a real credential.';
+      recommendation = 'This is probably a false positive, but verify it is not a real credential.';
       break;
     case 'false_positive':
       recommendation = 'This appears to be a false positive. No action needed.';

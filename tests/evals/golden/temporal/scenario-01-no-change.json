@@ -80,10 +80,7 @@
       "type": "observation",
       "summary": "Workflow stability confirmed",
       "action": "No action required; continue current practices",
-      "evidence": [
-        "All metrics stable for 1 week",
-        "No regressions detected"
-      ]
+      "evidence": ["All metrics stable for 1 week", "No regressions detected"]
     }
   ],
 

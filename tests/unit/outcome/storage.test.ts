@@ -72,7 +72,9 @@ class MockOutcomeStorage implements IOutcomeStorage {
   }
 
   getOutcomesByRecommendation(recommendationId: string): RecommendationOutcome[] {
-    return Array.from(this.outcomes.values()).filter((o) => o.recommendationId === recommendationId);
+    return Array.from(this.outcomes.values()).filter(
+      (o) => o.recommendationId === recommendationId
+    );
   }
 
   getPendingFollowUps(olderThanDays: number): RecommendationOutcome[] {
@@ -235,7 +237,9 @@ describe('OutcomeStorage', () => {
     });
 
     test('throws error for non-existent outcome', () => {
-      expect(() => storage.updateOutcome('non-existent', { implemented: true })).toThrow('not found');
+      expect(() => storage.updateOutcome('non-existent', { implemented: true })).toThrow(
+        'not found'
+      );
     });
   });
 
@@ -289,7 +293,9 @@ describe('OutcomeStorage', () => {
   describe('getPendingFollowUps', () => {
     test('returns implemented outcomes pending follow-up', async () => {
       // Create an outcome marked as implemented but not yet followed up
-      const outcome = await storage.createOutcome(createTestOutcome('session-1', 'preventive', true));
+      const outcome = await storage.createOutcome(
+        createTestOutcome('session-1', 'preventive', true)
+      );
 
       // With olderThanDays=0, return all pending follow-ups regardless of age
       const followUps = await storage.getPendingFollowUps(0);
@@ -299,7 +305,9 @@ describe('OutcomeStorage', () => {
     });
 
     test('excludes outcomes with helped already set', async () => {
-      const outcome = await storage.createOutcome(createTestOutcome('session-1', 'preventive', true));
+      const outcome = await storage.createOutcome(
+        createTestOutcome('session-1', 'preventive', true)
+      );
       await storage.updateOutcome(outcome.id, { helped: true });
 
       const followUps = await storage.getPendingFollowUps(0);
@@ -320,10 +328,19 @@ describe('OutcomeStorage', () => {
   describe('getMetrics', () => {
     test('calculates metrics by type', async () => {
       // Create varied outcomes
-      await storage.createOutcome({ ...createTestOutcome('s1', 'symptomatic', true), helped: true });
-      await storage.createOutcome({ ...createTestOutcome('s1', 'symptomatic', true), helped: false });
+      await storage.createOutcome({
+        ...createTestOutcome('s1', 'symptomatic', true),
+        helped: true,
+      });
+      await storage.createOutcome({
+        ...createTestOutcome('s1', 'symptomatic', true),
+        helped: false,
+      });
       await storage.createOutcome({ ...createTestOutcome('s1', 'preventive', true), helped: true });
-      await storage.createOutcome({ ...createTestOutcome('s1', 'preventive', false), helped: null });
+      await storage.createOutcome({
+        ...createTestOutcome('s1', 'preventive', false),
+        helped: null,
+      });
       await storage.createOutcome({ ...createTestOutcome('s1', 'systemic', null), helped: null });
 
       const metrics = await storage.getMetrics();

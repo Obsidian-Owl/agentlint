@@ -21,11 +21,7 @@
       { "type": "secret_exposure", "reason": "No secrets in this fixture" }
     ],
     "qualityScore": { "min": 0.7 },
-    "mustHave": [
-      "development workflow",
-      "architecture section",
-      "testing guidelines"
-    ]
+    "mustHave": ["development workflow", "architecture section", "testing guidelines"]
   },
   "recommendations": [
     {

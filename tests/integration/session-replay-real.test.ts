@@ -17,10 +17,7 @@ import { tmpdir } from 'os';
 import { randomUUID } from 'crypto';
 
 // Import real implementations
-import type {
-  SessionCheckpoint,
-  AnalysisPhase,
-} from '../../src/orchestration/checkpoint-types';
+import type { SessionCheckpoint, AnalysisPhase } from '../../src/orchestration/checkpoint-types';
 
 // =============================================================================
 // Test Fixtures
@@ -235,7 +232,10 @@ describe('Session Replay (Real Implementation)', () => {
       ];
 
       for (const checkpoint of checkpointsBeforeCrash) {
-        const filePath = join(sessionDir, `${checkpoint.sequence.toString().padStart(4, '0')}.json`);
+        const filePath = join(
+          sessionDir,
+          `${checkpoint.sequence.toString().padStart(4, '0')}.json`
+        );
         await Bun.write(filePath, JSON.stringify(checkpoint));
       }
 

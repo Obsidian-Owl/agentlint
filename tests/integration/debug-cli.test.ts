@@ -11,11 +11,7 @@ import { describe, it, expect, afterEach, beforeEach, spyOn } from 'bun:test';
 import { existsSync, unlinkSync, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
 import { tmpdir } from 'os';
-import {
-  DebugLogger,
-  createLoggerFromCLIOptions,
-  createDebugLogger,
-} from '../../src/debug/logger';
+import { DebugLogger, createLoggerFromCLIOptions, createDebugLogger } from '../../src/debug/logger';
 import { redact, redactObject, isSensitiveKey } from '../../src/debug/redaction';
 
 describe('Debug CLI Flags', () => {

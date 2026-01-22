@@ -13,10 +13,7 @@
       "missing-lint-commands",
       "vague-architecture-description"
     ],
-    "shouldNotDetect": [
-      "missing-project-overview",
-      "secret-exposure"
-    ],
+    "shouldNotDetect": ["missing-project-overview", "secret-exposure"],
     "recommendationTypes": ["preventive", "symptomatic"]
   },
   "rubricWeights": {

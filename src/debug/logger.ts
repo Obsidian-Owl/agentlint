@@ -9,13 +9,7 @@
 
 import { appendFileSync, existsSync, mkdirSync } from 'fs';
 import { dirname } from 'path';
-import type {
-  DebugConfig,
-  LogLevel,
-  LogEntry,
-  IDebugLogger,
-  INamespacedLogger,
-} from './types';
+import type { DebugConfig, LogLevel, LogEntry, IDebugLogger, INamespacedLogger } from './types';
 import { LOG_LEVEL_VALUES } from './types';
 import { isNamespaceEnabled, parseDebugEnv } from './namespaces';
 import { redact, redactObject, BUILTIN_REDACTION_PATTERNS } from './redaction';
@@ -125,11 +119,7 @@ export class DebugLogger implements IDebugLogger {
   // Timed Operations
   // ===========================================================================
 
-  async time<T>(
-    namespace: string,
-    message: string,
-    operation: () => Promise<T>
-  ): Promise<T> {
+  async time<T>(namespace: string, message: string, operation: () => Promise<T>): Promise<T> {
     const start = performance.now();
 
     try {

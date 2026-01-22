@@ -9,14 +9,9 @@
 
 import { describe, test, expect, beforeEach, afterEach } from 'bun:test';
 import { randomUUID } from 'crypto';
-import {
-  FeedbackCollector,
-  createFeedbackCollector,
-} from '../../../src/eval/feedback';
+import { FeedbackCollector, createFeedbackCollector } from '../../../src/eval/feedback';
 import { OutcomeStorage } from '../../../src/persistence/outcome-storage';
-import type {
-  RecommendationType,
-} from '../../../specs/ep11-quality-security/contracts/outcome';
+import type { RecommendationType } from '../../../specs/ep11-quality-security/contracts/outcome';
 
 // =============================================================================
 // Test Fixtures

@@ -262,10 +262,7 @@ import type {
   ReplayContext,
   CheckpointRetentionConfig,
 } from './checkpoint-types';
-import {
-  MAX_RETENTION_DAYS,
-  getCheckpointStorageDir,
-} from './checkpoint-types';
+import { MAX_RETENTION_DAYS, getCheckpointStorageDir } from './checkpoint-types';
 
 // =============================================================================
 // Session Recording Configuration

@@ -82,9 +82,7 @@ describe('SQLite OutcomeStorage', () => {
       const input = createTestOutcome();
       const outcome = await storage.createOutcome(input);
 
-      expect(outcome.id).toMatch(
-        /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
-      );
+      expect(outcome.id).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/);
       expect(outcome.sessionId).toBe(input.sessionId);
       expect(outcome.createdAt).toBeDefined();
       expect(outcome.updatedAt).toBeNull();
@@ -136,9 +134,9 @@ describe('SQLite OutcomeStorage', () => {
     });
 
     test('throws error when updating non-existent outcome', () => {
-      expect(() =>
-        storage.updateOutcome('non-existent-id', { implemented: true })
-      ).toThrow('not found');
+      expect(() => storage.updateOutcome('non-existent-id', { implemented: true })).toThrow(
+        'not found'
+      );
     });
   });
 
@@ -159,9 +157,7 @@ describe('SQLite OutcomeStorage', () => {
       const outcome1 = await storage.createOutcome(createTestOutcome());
       await storage.createOutcome(createTestOutcome());
 
-      const results = await storage.getOutcomesByRecommendation(
-        outcome1.recommendationId
-      );
+      const results = await storage.getOutcomesByRecommendation(outcome1.recommendationId);
 
       expect(results).toHaveLength(1);
       expect(results[0]!.id).toBe(outcome1.id);
@@ -169,14 +165,10 @@ describe('SQLite OutcomeStorage', () => {
 
     test('getPendingFollowUps filters correctly', async () => {
       // Implemented, no helped feedback = pending
-      await storage.createOutcome(
-        createTestOutcome('session-1', 'preventive', true)
-      );
+      await storage.createOutcome(createTestOutcome('session-1', 'preventive', true));
 
       // Not implemented = not pending
-      await storage.createOutcome(
-        createTestOutcome('session-1', 'preventive', false)
-      );
+      await storage.createOutcome(createTestOutcome('session-1', 'preventive', false));
 
       // Implemented with helped = not pending
       const withHelped = await storage.createOutcome(

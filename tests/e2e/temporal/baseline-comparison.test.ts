@@ -278,55 +278,51 @@ describe('E2E: Baseline Comparison', () => {
       expect(trend).toBe('improving');
     });
 
-    test(
-      'live analysis detects quality improvements',
-      async () => {
-        // Given: Start with degraded config
-        writeFileSync(join(fixture.path, 'CLAUDE.md'), DEGRADED_CONFIG);
+    test('live analysis detects quality improvements', async () => {
+      // Given: Start with degraded config
+      writeFileSync(join(fixture.path, 'CLAUDE.md'), DEGRADED_CONFIG);
 
-        // When: Run baseline analysis
-        const baselineResult = await runCLI(['analyse', '-d', fixture.path], {
-          json: true,
-          timeout: 120000,
-        });
+      // When: Run baseline analysis
+      const baselineResult = await runCLI(['analyse', '-d', fixture.path], {
+        json: true,
+        timeout: 120000,
+      });
 
-        const baselineOutput = parseJSONOutput<AnalyseOutput>(baselineResult);
-        const baselineFindings = baselineOutput?.summary?.total ?? 0;
+      const baselineOutput = parseJSONOutput<AnalyseOutput>(baselineResult);
+      const baselineFindings = baselineOutput?.summary?.total ?? 0;
 
-        // And: Improve config
-        writeFileSync(join(fixture.path, 'CLAUDE.md'), IMPROVED_CONFIG);
+      // And: Improve config
+      writeFileSync(join(fixture.path, 'CLAUDE.md'), IMPROVED_CONFIG);
 
-        // And: Run new analysis
-        const improvedResult = await runCLI(['analyse', '-d', fixture.path], {
-          json: true,
-          timeout: 120000,
-        });
+      // And: Run new analysis
+      const improvedResult = await runCLI(['analyse', '-d', fixture.path], {
+        json: true,
+        timeout: 120000,
+      });
 
-        const improvedOutput = parseJSONOutput<AnalyseOutput>(improvedResult);
-        const improvedFindings = improvedOutput?.summary?.total ?? 0;
+      const improvedOutput = parseJSONOutput<AnalyseOutput>(improvedResult);
+      const improvedFindings = improvedOutput?.summary?.total ?? 0;
 
-        // Then: Findings count should be lower or equal (improvement)
-        // Note: We can't guarantee fewer findings without knowing exact analysis
-        // but the improved config should not have MORE issues
-        expect(typeof improvedFindings).toBe('number');
+      // Then: Findings count should be lower or equal (improvement)
+      // Note: We can't guarantee fewer findings without knowing exact analysis
+      // but the improved config should not have MORE issues
+      expect(typeof improvedFindings).toBe('number');
 
-        // Track the trend
-        let qualityTrend: 'improving' | 'degrading' | 'stable';
-        if (improvedFindings < baselineFindings) {
-          qualityTrend = 'improving';
-        } else if (improvedFindings > baselineFindings) {
-          qualityTrend = 'degrading';
-        } else {
-          qualityTrend = 'stable';
-        }
+      // Track the trend
+      let qualityTrend: 'improving' | 'degrading' | 'stable';
+      if (improvedFindings < baselineFindings) {
+        qualityTrend = 'improving';
+      } else if (improvedFindings > baselineFindings) {
+        qualityTrend = 'degrading';
+      } else {
+        qualityTrend = 'stable';
+      }
 
-        // Log for visibility
-        console.log(
-          `Quality trend: ${qualityTrend} (${baselineFindings} → ${improvedFindings} findings)`
-        );
-      },
-      240000
-    );
+      // Log for visibility
+      console.log(
+        `Quality trend: ${qualityTrend} (${baselineFindings} → ${improvedFindings} findings)`
+      );
+    }, 240000);
   });
 
   describe('Edge Cases', () => {

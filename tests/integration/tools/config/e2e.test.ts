@@ -215,7 +215,9 @@ Use this skill when deploying the application.
       expect(quality.sizeAnalysis.lineCount).toBeGreaterThan(0);
       expect(typeof quality.sizeAnalysis.exceedsOptimalLines).toBe('boolean');
 
-      console.log(`Project config: ${quality.sizeAnalysis.lineCount} lines, ${quality.issues.length} issues`);
+      console.log(
+        `Project config: ${quality.sizeAnalysis.lineCount} lines, ${quality.issues.length} issues`
+      );
     });
   });
 

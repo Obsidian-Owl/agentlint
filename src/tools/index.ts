@@ -177,9 +177,7 @@ export const EP10_RECOMMENDATION_TOOLS: ToolDefinition[] = [
 /**
  * All EP11 security tools as an array for bulk registration.
  */
-export const EP11_SECURITY_TOOLS: ToolDefinition[] = [
-  classifySecretTool,
-] as ToolDefinition[];
+export const EP11_SECURITY_TOOLS: ToolDefinition[] = [classifySecretTool] as ToolDefinition[];
 
 /**
  * Register all EP05 config analysis tools with a ToolRegistry.
@@ -298,10 +296,10 @@ export function registerEP11SecurityTools(registry: IToolRegistry): void {
  * @param registry - The ToolRegistry to register tools with
  */
 export function registerAllTools(registry: IToolRegistry): void {
-  registerEP05Tools(registry);    // Config (3)
-  registerEP06Tools(registry);    // Sessions (2)
-  registerEP07Tools(registry);    // Causal (2)
-  registerEP09Tools(registry);    // Temporal (8)
-  registerEP10Tools(registry);    // Recommendations (9)
-  registerEP11SecurityTools(registry);  // Security (1)
+  registerEP05Tools(registry); // Config (3)
+  registerEP06Tools(registry); // Sessions (2)
+  registerEP07Tools(registry); // Causal (2)
+  registerEP09Tools(registry); // Temporal (8)
+  registerEP10Tools(registry); // Recommendations (9)
+  registerEP11SecurityTools(registry); // Security (1)
 }

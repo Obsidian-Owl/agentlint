@@ -14,9 +14,7 @@
       "missing-secret-rotation-guidance",
       "unsafe-deployment-practice"
     ],
-    "shouldNotDetect": [
-      "missing-project-overview"
-    ],
+    "shouldNotDetect": ["missing-project-overview"],
     "recommendationTypes": ["preventive", "systemic"]
   },
   "rubricWeights": {

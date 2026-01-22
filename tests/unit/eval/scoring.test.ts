@@ -63,10 +63,7 @@ function createLLMJudgeGrade(overrides: Partial<LLMJudgeGrade> = {}): LLMJudgeGr
   };
 }
 
-function createGrades(
-  codeBasedPassed: boolean,
-  llmJudge?: LLMJudgeGrade
-): EvaluationGrades {
+function createGrades(codeBasedPassed: boolean, llmJudge?: LLMJudgeGrade): EvaluationGrades {
   const grades: EvaluationGrades = {
     codeBased: createCodeBasedGrade(codeBasedPassed),
   };
@@ -243,14 +240,26 @@ describe('calculateAverageScores', () => {
 
   test('calculates averages from multiple results', () => {
     const results = [
-      createEvaluationResult(0.8, true, createLLMJudgeGrade({
-        actionability: 0.8, causalAccuracy: 0.7, relevance: 0.9,
-        reasoning: { actionability: '', causalAccuracy: '', relevance: '' },
-      })),
-      createEvaluationResult(0.7, true, createLLMJudgeGrade({
-        actionability: 0.6, causalAccuracy: 0.8, relevance: 0.7,
-        reasoning: { actionability: '', causalAccuracy: '', relevance: '' },
-      })),
+      createEvaluationResult(
+        0.8,
+        true,
+        createLLMJudgeGrade({
+          actionability: 0.8,
+          causalAccuracy: 0.7,
+          relevance: 0.9,
+          reasoning: { actionability: '', causalAccuracy: '', relevance: '' },
+        })
+      ),
+      createEvaluationResult(
+        0.7,
+        true,
+        createLLMJudgeGrade({
+          actionability: 0.6,
+          causalAccuracy: 0.8,
+          relevance: 0.7,
+          reasoning: { actionability: '', causalAccuracy: '', relevance: '' },
+        })
+      ),
     ];
 
     const scores = calculateAverageScores(results);
@@ -282,19 +291,13 @@ describe('calculatePassRate', () => {
   });
 
   test('returns 1 when all pass', () => {
-    const results = [
-      createEvaluationResult(0.8, true),
-      createEvaluationResult(0.9, true),
-    ];
+    const results = [createEvaluationResult(0.8, true), createEvaluationResult(0.9, true)];
 
     expect(calculatePassRate(results)).toBe(1);
   });
 
   test('returns 0 when all fail', () => {
-    const results = [
-      createEvaluationResult(0.5, false),
-      createEvaluationResult(0.4, false),
-    ];
+    const results = [createEvaluationResult(0.5, false), createEvaluationResult(0.4, false)];
 
     expect(calculatePassRate(results)).toBe(0);
   });
@@ -457,11 +460,15 @@ describe('validateWeights', () => {
   });
 
   test('returns true for weights summing close to 1.0 (floating point)', () => {
-    expect(validateWeights({ actionability: 0.33, causalAccuracy: 0.33, relevance: 0.34 })).toBe(true);
+    expect(validateWeights({ actionability: 0.33, causalAccuracy: 0.33, relevance: 0.34 })).toBe(
+      true
+    );
   });
 
   test('returns false for weights not summing to 1.0', () => {
-    expect(validateWeights({ actionability: 0.5, causalAccuracy: 0.5, relevance: 0.5 })).toBe(false);
+    expect(validateWeights({ actionability: 0.5, causalAccuracy: 0.5, relevance: 0.5 })).toBe(
+      false
+    );
   });
 
   test('validates default weights', () => {

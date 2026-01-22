@@ -1016,9 +1016,10 @@ export function countSearchResults(
   const whereClause = whereClauses.join(' AND ');
 
   const result = db
-    .query<{ count: number }, (string | number)[]>(
-      `SELECT COUNT(*) as count FROM session_entries WHERE ${whereClause}`
-    )
+    .query<
+      { count: number },
+      (string | number)[]
+    >(`SELECT COUNT(*) as count FROM session_entries WHERE ${whereClause}`)
     .get(...params);
 
   return result?.count ?? 0;
@@ -1066,9 +1067,10 @@ export function recordIndexedFile(
  */
 export function needsReindex(db: Database, filePath: string, lastModified: number): boolean {
   const row = db
-    .query<{ last_modified: number }, [string]>(
-      'SELECT last_modified FROM indexed_files WHERE file_path = ?'
-    )
+    .query<
+      { last_modified: number },
+      [string]
+    >('SELECT last_modified FROM indexed_files WHERE file_path = ?')
     .get(filePath);
 
   return !row || row.last_modified < lastModified;

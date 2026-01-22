@@ -101,9 +101,7 @@ const EXPECTED_FINDINGS_FOR_ISSUES = {
     },
   ],
   /** Findings that should NOT be detected (false positives) */
-  shouldNotDetect: [
-    { type: 'secret_exposure', description: 'No secrets in this fixture' },
-  ],
+  shouldNotDetect: [{ type: 'secret_exposure', description: 'No secrets in this fixture' }],
 };
 
 /**
@@ -305,36 +303,32 @@ describe('E2E: Golden Fixtures Validation', () => {
     expect(output?.configs?.some((c) => c.type === 'claude-code')).toBe(true);
   });
 
-  test(
-    'known issues in fixture are detected (live validation)',
-    async () => {
-      const result = await runCLI(['analyse', '-d', fixture.path], {
-        json: true,
-        timeout: 120000,
-      });
+  test('known issues in fixture are detected (live validation)', async () => {
+    const result = await runCLI(['analyse', '-d', fixture.path], {
+      json: true,
+      timeout: 120000,
+    });
 
-      expect(result.exitCode).toBe(0);
-      const output = parseJSONOutput<AnalyseOutput>(result);
+    expect(result.exitCode).toBe(0);
+    const output = parseJSONOutput<AnalyseOutput>(result);
 
-      // Validate against golden outputs
-      expect(output?.findings?.length).toBeGreaterThanOrEqual(
-        EXPECTED_FINDINGS_FOR_ISSUES.minExpected
+    // Validate against golden outputs
+    expect(output?.findings?.length).toBeGreaterThanOrEqual(
+      EXPECTED_FINDINGS_FOR_ISSUES.minExpected
+    );
+
+    // Check that expected types are found
+    for (const expected of EXPECTED_FINDINGS_FOR_ISSUES.mustDetect) {
+      const found = output?.findings?.some(
+        (f) => f.type === expected.type && expected.pattern.test(f.description)
       );
+      expect(found).toBe(true);
+    }
 
-      // Check that expected types are found
-      for (const expected of EXPECTED_FINDINGS_FOR_ISSUES.mustDetect) {
-        const found = output?.findings?.some(
-          (f) => f.type === expected.type && expected.pattern.test(f.description)
-        );
-        expect(found).toBe(true);
-      }
-
-      // Check for false positives
-      for (const shouldNot of EXPECTED_FINDINGS_FOR_ISSUES.shouldNotDetect) {
-        const found = output?.findings?.some((f) => f.type === shouldNot.type);
-        expect(found).toBe(false);
-      }
-    },
-    120000
-  );
+    // Check for false positives
+    for (const shouldNot of EXPECTED_FINDINGS_FOR_ISSUES.shouldNotDetect) {
+      const found = output?.findings?.some((f) => f.type === shouldNot.type);
+      expect(found).toBe(false);
+    }
+  }, 120000);
 });

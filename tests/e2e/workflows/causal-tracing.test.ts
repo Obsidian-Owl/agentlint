@@ -155,34 +155,30 @@ describe('E2E: Causal Tracing', () => {
       // This test validates the structure is in place
     });
 
-    test(
-      'live analysis traces findings to config origin',
-      async () => {
-        // Given: CLAUDE.md with known secret pattern
-        writeFileSync(join(fixture.path, 'CLAUDE.md'), CLAUDE_MD_WITH_SECRET);
+    test('live analysis traces findings to config origin', async () => {
+      // Given: CLAUDE.md with known secret pattern
+      writeFileSync(join(fixture.path, 'CLAUDE.md'), CLAUDE_MD_WITH_SECRET);
 
-        // When: Run full analysis
-        const result = await runCLI(['analyse', '-d', fixture.path], {
-          json: true,
-          timeout: 120000,
-        });
+      // When: Run full analysis
+      const result = await runCLI(['analyse', '-d', fixture.path], {
+        json: true,
+        timeout: 120000,
+      });
 
-        expect(result.exitCode).toBe(0);
-        const output = parseJSONOutput<CausalAnalyseOutput>(result);
+      expect(result.exitCode).toBe(0);
+      const output = parseJSONOutput<CausalAnalyseOutput>(result);
 
-        // Then: Finding has origin trace pointing to config
-        if (output?.findings && output.findings.length > 0) {
-          const findingWithOrigin = output.findings.find((f) => f.origin !== undefined);
+      // Then: Finding has origin trace pointing to config
+      if (output?.findings && output.findings.length > 0) {
+        const findingWithOrigin = output.findings.find((f) => f.origin !== undefined);
 
-          if (findingWithOrigin?.origin) {
-            expect(findingWithOrigin.origin.type).toBe('config');
-            expect(findingWithOrigin.origin.reference).toContain('CLAUDE.md');
-            expect(findingWithOrigin.origin.description).toBeDefined();
-          }
+        if (findingWithOrigin?.origin) {
+          expect(findingWithOrigin.origin.type).toBe('config');
+          expect(findingWithOrigin.origin.reference).toContain('CLAUDE.md');
+          expect(findingWithOrigin.origin.description).toBeDefined();
         }
-      },
-      120000
-    );
+      }
+    }, 120000);
 
     test('origin structure matches Finding type definition', async () => {
       // This test validates the TypeScript types are correct
@@ -224,40 +220,36 @@ describe('E2E: Causal Tracing', () => {
       expect(typeof validRecommendation.rationale).toBe('string');
     });
 
-    test(
-      'live analysis generates preventive recommendations',
-      async () => {
-        // Given: Config with structural issue (not just a typo)
-        writeFileSync(join(fixture.path, 'CLAUDE.md'), CLAUDE_MD_VAGUE);
+    test('live analysis generates preventive recommendations', async () => {
+      // Given: Config with structural issue (not just a typo)
+      writeFileSync(join(fixture.path, 'CLAUDE.md'), CLAUDE_MD_VAGUE);
 
-        // When: Run full analysis
-        const result = await runCLI(['analyse', '-d', fixture.path], {
-          json: true,
-          timeout: 120000,
-        });
+      // When: Run full analysis
+      const result = await runCLI(['analyse', '-d', fixture.path], {
+        json: true,
+        timeout: 120000,
+      });
 
-        expect(result.exitCode).toBe(0);
-        const output = parseJSONOutput<CausalAnalyseOutput>(result);
+      expect(result.exitCode).toBe(0);
+      const output = parseJSONOutput<CausalAnalyseOutput>(result);
 
-        // Then: At least one recommendation exists
-        if (output?.findings && output.findings.length > 0) {
-          const allRecs = output.findings.flatMap((f) => f.recommendations ?? []);
+      // Then: At least one recommendation exists
+      if (output?.findings && output.findings.length > 0) {
+        const allRecs = output.findings.flatMap((f) => f.recommendations ?? []);
 
-          if (allRecs.length > 0) {
-            // Check for preventive recommendations
-            const preventive = allRecs.filter((r) => r.type === 'preventive');
+        if (allRecs.length > 0) {
+          // Check for preventive recommendations
+          const preventive = allRecs.filter((r) => r.type === 'preventive');
 
-            // At least some recommendations should be preventive
-            // (symptomatic-only would indicate poor analysis quality)
-            if (preventive.length > 0) {
-              expect(preventive[0]?.action).toBeDefined();
-              expect(preventive[0]?.rationale).toBeDefined();
-            }
+          // At least some recommendations should be preventive
+          // (symptomatic-only would indicate poor analysis quality)
+          if (preventive.length > 0) {
+            expect(preventive[0]?.action).toBeDefined();
+            expect(preventive[0]?.rationale).toBeDefined();
           }
         }
-      },
-      120000
-    );
+      }
+    }, 120000);
 
     test('recommendation types follow Constitution principle III', async () => {
       // Per Constitution: Recommendations should be typed by their impact
@@ -301,43 +293,39 @@ describe('E2E: Causal Tracing', () => {
       expect(output?.summary).toBeDefined();
     });
 
-    test(
-      'complete chain produces actionable output',
-      async () => {
-        // Given: Config with known issues
-        writeFileSync(join(fixture.path, 'CLAUDE.md'), CLAUDE_MD_VAGUE);
+    test('complete chain produces actionable output', async () => {
+      // Given: Config with known issues
+      writeFileSync(join(fixture.path, 'CLAUDE.md'), CLAUDE_MD_VAGUE);
 
-        // When: Run full analysis
-        const result = await runCLI(['analyse', '-d', fixture.path], {
-          json: true,
-          timeout: 120000,
-        });
+      // When: Run full analysis
+      const result = await runCLI(['analyse', '-d', fixture.path], {
+        json: true,
+        timeout: 120000,
+      });
 
-        const output = parseJSONOutput<CausalAnalyseOutput>(result);
+      const output = parseJSONOutput<CausalAnalyseOutput>(result);
 
-        if (output?.findings && output.findings.length > 0) {
-          for (const finding of output.findings) {
-            // DETECT: Finding has ID and type
-            expect(finding.id).toBeDefined();
-            expect(finding.type).toBeDefined();
+      if (output?.findings && output.findings.length > 0) {
+        for (const finding of output.findings) {
+          // DETECT: Finding has ID and type
+          expect(finding.id).toBeDefined();
+          expect(finding.type).toBeDefined();
 
-            // TRACE: Origin should be present (when available)
-            // Not all findings have traceable origins, so this is informational
+          // TRACE: Origin should be present (when available)
+          // Not all findings have traceable origins, so this is informational
 
-            // UNDERSTAND: Description explains the issue
-            expect(finding.description).toBeDefined();
-            expect(finding.description.length).toBeGreaterThan(10);
+          // UNDERSTAND: Description explains the issue
+          expect(finding.description).toBeDefined();
+          expect(finding.description.length).toBeGreaterThan(10);
 
-            // RECOMMEND: At least one recommendation per actionable finding
-            if (finding.recommendations && finding.recommendations.length > 0) {
-              const rec = finding.recommendations[0]!;
-              expect(rec.action).toBeDefined();
-              expect(rec.rationale).toBeDefined();
-            }
+          // RECOMMEND: At least one recommendation per actionable finding
+          if (finding.recommendations && finding.recommendations.length > 0) {
+            const rec = finding.recommendations[0]!;
+            expect(rec.action).toBeDefined();
+            expect(rec.rationale).toBeDefined();
           }
         }
-      },
-      120000
-    );
+      }
+    }, 120000);
   });
 });

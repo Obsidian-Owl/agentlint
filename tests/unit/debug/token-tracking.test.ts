@@ -133,10 +133,18 @@ describe('TokenTracker', () => {
     });
 
     test('calculates correct cache hit rate', () => {
-      tracker.recordCall(createTestCall('call-1', 'claude-sonnet-4-20250514', 1000, 500, 1000, true));
-      tracker.recordCall(createTestCall('call-2', 'claude-sonnet-4-20250514', 1000, 500, 1000, false));
-      tracker.recordCall(createTestCall('call-3', 'claude-sonnet-4-20250514', 1000, 500, 1000, true));
-      tracker.recordCall(createTestCall('call-4', 'claude-sonnet-4-20250514', 1000, 500, 1000, false));
+      tracker.recordCall(
+        createTestCall('call-1', 'claude-sonnet-4-20250514', 1000, 500, 1000, true)
+      );
+      tracker.recordCall(
+        createTestCall('call-2', 'claude-sonnet-4-20250514', 1000, 500, 1000, false)
+      );
+      tracker.recordCall(
+        createTestCall('call-3', 'claude-sonnet-4-20250514', 1000, 500, 1000, true)
+      );
+      tracker.recordCall(
+        createTestCall('call-4', 'claude-sonnet-4-20250514', 1000, 500, 1000, false)
+      );
 
       const summary = tracker.getSummary();
 
@@ -219,11 +227,16 @@ describe('Latency Tracking', () => {
     const recorded = tracker.getCallById('latency-test');
 
     expect(recorded!.latency.durationMs).toBe(1500);
-    expect(new Date(recorded!.latency.endTime).getTime() - new Date(recorded!.latency.startTime).getTime()).toBe(1500);
+    expect(
+      new Date(recorded!.latency.endTime).getTime() -
+        new Date(recorded!.latency.startTime).getTime()
+    ).toBe(1500);
   });
 
   test('cached calls have lower latency impact', () => {
-    tracker.recordCall(createTestCall('uncached', 'claude-sonnet-4-20250514', 1000, 500, 1500, false));
+    tracker.recordCall(
+      createTestCall('uncached', 'claude-sonnet-4-20250514', 1000, 500, 1500, false)
+    );
     tracker.recordCall(createTestCall('cached', 'claude-sonnet-4-20250514', 1000, 500, 50, true));
 
     const uncached = tracker.getCallById('uncached');

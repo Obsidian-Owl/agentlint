@@ -126,9 +126,7 @@ export function calculateNormalizedEntropy(input: string): number {
  * @param input - The string to analyze
  * @returns The detected character set type
  */
-export function detectCharacterSet(
-  input: string
-): 'hex' | 'base64' | 'alphanumeric' | 'mixed' {
+export function detectCharacterSet(input: string): 'hex' | 'base64' | 'alphanumeric' | 'mixed' {
   if (!input || input.length === 0) {
     return 'mixed';
   }
@@ -277,11 +275,7 @@ export function isLikelySecret(
  * @param length - Window length
  * @returns Entropy of the window, or 0 if out of bounds
  */
-export function calculateWindowEntropy(
-  input: string,
-  start: number,
-  length: number
-): number {
+export function calculateWindowEntropy(input: string, start: number, length: number): number {
   if (start < 0 || start + length > input.length) {
     return 0;
   }

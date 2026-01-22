@@ -399,7 +399,10 @@ export function useVCR(cassettePath: string, options?: VCROptions): void {
  * });
  * ```
  */
-export function useStrictVCR(cassettePath: string, additionalOptions?: Omit<VCROptions, 'strict'>): void {
+export function useStrictVCR(
+  cassettePath: string,
+  additionalOptions?: Omit<VCROptions, 'strict'>
+): void {
   useVCR(cassettePath, { ...additionalOptions, strict: true });
 }
 

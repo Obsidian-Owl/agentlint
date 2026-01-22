@@ -87,9 +87,12 @@ function validateFile(file: ConfigFile): FileValidationResult {
 
     // Filter to only format-related issues
     const formatIssues = quality.issues.filter((issue) =>
-      ['missing-frontmatter', 'invalid-frontmatter', 'missing-required-field', 'invalid-field-value'].includes(
-        issue.type
-      )
+      [
+        'missing-frontmatter',
+        'invalid-frontmatter',
+        'missing-required-field',
+        'invalid-field-value',
+      ].includes(issue.type)
     );
 
     return {
@@ -171,9 +174,7 @@ function formatMarkdownOutput(result: ValidateResult): string {
   if (result.totalIssues === 0) {
     lines.push(`✅ **All ${result.filesChecked} files passed validation**`);
   } else {
-    lines.push(
-      `❌ **Found ${result.totalIssues} issue(s) in ${result.filesWithIssues} file(s)**`
-    );
+    lines.push(`❌ **Found ${result.totalIssues} issue(s) in ${result.filesWithIssues} file(s)**`);
     lines.push('');
     lines.push('## Issues');
     lines.push('');
