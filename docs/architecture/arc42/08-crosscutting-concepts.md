@@ -279,6 +279,7 @@ function estimateTokens(input: string | object): number {
 |------|-------|----------|
 | **Unit** | Functions, parsers | Jest/Vitest patterns |
 | **Integration** | Tool + adapter | Fixture-based |
+| **Wiring** | Entry point reachability | Static import graph analysis |
 | **Evaluation** | Agent reasoning | LLM-as-judge ([ADR-0012](../adr/0012-evaluation-framework-for-analysis-quality.md)) |
 | **E2E** | Full CLI | Real project fixtures |
 | **Snapshot** | Output format | Golden file comparison |

@@ -147,6 +147,7 @@ The orchestration layer wraps the **Claude Agent SDK's `query()` function**, whi
 3. **Checkpointing Hooks** - Crash recovery via session state persistence
 4. **Tool Registration** - MCP server integration via `ToolRegistry`
 5. **Subagent Management** - ACT subagent spawning with depth=1 limit
+6. **Human-in-the-Loop** - `canUseTool` callback for user interaction ([ADR-0021](../adr/0021-conversational-interaction-model.md))
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -157,6 +158,7 @@ The orchestration layer wraps the **Claude Agent SDK's `query()` function**, whi
 │  │  • Master loop implemented by SDK                         │  │
 │  │  • Tool execution via MCP protocol                        │  │
 │  │  • Subagent spawning via agents option                    │  │
+│  │  • canUseTool callback for human-in-the-loop (ADR-0021)   │  │
 │  └───────────────────────────────────────────────────────────┘  │
 │                           ▲                                     │
 │                           │                                     │
@@ -191,6 +193,7 @@ src/orchestration/
 ├── cognitive-workspace.ts      Context compression for large results
 ├── context.ts                  Context utilities
 ├── config.ts                   Configuration loading + defaults
+├── can-use-tool.ts             Human-in-the-loop callback (ADR-0021)
 └── types.ts                    Type definitions
 ```
 
@@ -202,6 +205,7 @@ src/orchestration/
 | `checkpoint.ts` | Emits checkpoints on tool completion, findings, phase changes |
 | `session-state.ts` | Persists/loads session state to JSON for crash recovery |
 | `cognitive-workspace.ts` | Compresses large tool results to fit context window |
+| `can-use-tool.ts` | Human-in-the-loop: tool approval prompts, AskUserQuestion routing |
 
 ### Key Integration Point
 
