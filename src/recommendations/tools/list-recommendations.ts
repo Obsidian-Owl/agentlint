@@ -36,7 +36,9 @@ const listRecommendationsInputSchema = {
   target: z
     .string()
     .optional()
-    .describe('Filter by target (partial match). Use to find duplicates targeting the same file/area.'),
+    .describe(
+      'Filter by target (partial match). Use to find duplicates targeting the same file/area.'
+    ),
 
   limit: z
     .number()

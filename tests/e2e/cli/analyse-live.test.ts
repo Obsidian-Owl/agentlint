@@ -81,110 +81,94 @@ Run stuff.
 // =============================================================================
 
 describe('E2E: Live Orchestrated Analysis', () => {
-  test(
-    'orchestrated analysis produces intelligent findings',
-    async () => {
-      const fixture = createTestFixture('orchestrated-findings');
-      try {
-        writeFileSync(join(fixture.path, 'CLAUDE.md'), CLAUDE_MD_FIXTURE);
+  test('orchestrated analysis produces intelligent findings', async () => {
+    const fixture = createTestFixture('orchestrated-findings');
+    try {
+      writeFileSync(join(fixture.path, 'CLAUDE.md'), CLAUDE_MD_FIXTURE);
 
-        const result = await runCLI(['analyse', '-d', fixture.path], {
-          json: true,
-          timeout: 180000, // 3 minutes for agent analysis
-        });
+      const result = await runCLI(['analyse', '-d', fixture.path], {
+        json: true,
+        timeout: 180000, // 3 minutes for agent analysis
+      });
 
-        expect(result.exitCode).toBe(0);
+      expect(result.exitCode).toBe(0);
 
-        const output = parseJSONOutput<AnalyseOutput>(result);
-        expect(output?.status).toBe('success');
-        expect(output?.configs?.length).toBeGreaterThan(0);
+      const output = parseJSONOutput<AnalyseOutput>(result);
+      expect(output?.status).toBe('success');
+      expect(output?.configs?.length).toBeGreaterThan(0);
 
-        // Orchestrated analysis should produce findings
-        expect(output?.findings?.length).toBeGreaterThanOrEqual(0);
-      } finally {
-        fixture.cleanup();
+      // Orchestrated analysis should produce findings
+      expect(output?.findings?.length).toBeGreaterThanOrEqual(0);
+    } finally {
+      fixture.cleanup();
+    }
+  }, 180000);
+
+  test('orchestrated analysis includes causal tracing', async () => {
+    const fixture = createTestFixture('orchestrated-causal');
+    try {
+      writeFileSync(join(fixture.path, 'CLAUDE.md'), CLAUDE_MD_FIXTURE);
+
+      const result = await runCLI(['analyse', '-d', fixture.path], {
+        json: true,
+        timeout: 180000,
+      });
+
+      const output = parseJSONOutput<AnalyseOutput>(result);
+
+      // Findings should include origin tracing
+      const findingsWithOrigin = output?.findings?.filter((f) => f.origin);
+      if (output?.findings?.length && output.findings.length > 0) {
+        expect(findingsWithOrigin?.length).toBeGreaterThanOrEqual(0);
       }
-    },
-    180000
-  );
+    } finally {
+      fixture.cleanup();
+    }
+  }, 180000);
 
-  test(
-    'orchestrated analysis includes causal tracing',
-    async () => {
-      const fixture = createTestFixture('orchestrated-causal');
-      try {
-        writeFileSync(join(fixture.path, 'CLAUDE.md'), CLAUDE_MD_FIXTURE);
+  test('--verbose shows tool calls during analysis', async () => {
+    const fixture = createTestFixture('orchestrated-verbose');
+    try {
+      writeFileSync(join(fixture.path, 'CLAUDE.md'), CLAUDE_MD_FIXTURE);
 
-        const result = await runCLI(['analyse', '-d', fixture.path], {
-          json: true,
-          timeout: 180000,
-        });
+      const result = await runCLI(['analyse', '-d', fixture.path, '--verbose'], {
+        timeout: 180000,
+      });
 
-        const output = parseJSONOutput<AnalyseOutput>(result);
+      expect(result.exitCode).toBe(0);
 
-        // Findings should include origin tracing
-        const findingsWithOrigin = output?.findings?.filter((f) => f.origin);
-        if (output?.findings?.length && output.findings.length > 0) {
-          expect(findingsWithOrigin?.length).toBeGreaterThanOrEqual(0);
+      // Verbose mode should show tool invocations
+      // (Tool names may appear in output)
+    } finally {
+      fixture.cleanup();
+    }
+  }, 180000);
+
+  test('JSON output streams NDJSON events', async () => {
+    const fixture = createTestFixture('orchestrated-json');
+    try {
+      writeFileSync(join(fixture.path, 'CLAUDE.md'), CLAUDE_MD_FIXTURE);
+
+      const result = await runCLI(['analyse', '-d', fixture.path, '--json'], {
+        timeout: 180000,
+      });
+
+      expect(result.exitCode).toBe(0);
+
+      // Output should be valid JSON (either single object or NDJSON)
+      const lines = result.stdout.trim().split('\n');
+      for (const line of lines) {
+        if (line.trim()) {
+          // Verify it's valid JSON by parsing it
+          let parsed: unknown;
+          expect(() => {
+            parsed = JSON.parse(line) as unknown;
+          }).not.toThrow();
+          expect(parsed).toBeDefined();
         }
-      } finally {
-        fixture.cleanup();
       }
-    },
-    180000
-  );
-
-  test(
-    '--verbose shows tool calls during analysis',
-    async () => {
-      const fixture = createTestFixture('orchestrated-verbose');
-      try {
-        writeFileSync(join(fixture.path, 'CLAUDE.md'), CLAUDE_MD_FIXTURE);
-
-        const result = await runCLI(['analyse', '-d', fixture.path, '--verbose'], {
-          timeout: 180000,
-        });
-
-        expect(result.exitCode).toBe(0);
-
-        // Verbose mode should show tool invocations
-        // (Tool names may appear in output)
-      } finally {
-        fixture.cleanup();
-      }
-    },
-    180000
-  );
-
-  test(
-    'JSON output streams NDJSON events',
-    async () => {
-      const fixture = createTestFixture('orchestrated-json');
-      try {
-        writeFileSync(join(fixture.path, 'CLAUDE.md'), CLAUDE_MD_FIXTURE);
-
-        const result = await runCLI(['analyse', '-d', fixture.path, '--json'], {
-          timeout: 180000,
-        });
-
-        expect(result.exitCode).toBe(0);
-
-        // Output should be valid JSON (either single object or NDJSON)
-        const lines = result.stdout.trim().split('\n');
-        for (const line of lines) {
-          if (line.trim()) {
-            // Verify it's valid JSON by parsing it
-            let parsed: unknown;
-            expect(() => {
-              parsed = JSON.parse(line) as unknown;
-            }).not.toThrow();
-            expect(parsed).toBeDefined();
-          }
-        }
-      } finally {
-        fixture.cleanup();
-      }
-    },
-    180000
-  );
+    } finally {
+      fixture.cleanup();
+    }
+  }, 180000);
 });

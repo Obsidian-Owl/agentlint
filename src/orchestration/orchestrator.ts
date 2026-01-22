@@ -419,7 +419,9 @@ export class Orchestrator implements IOrchestrator {
       // Assistant message - content is inside msg.message per SDK types
       // Text and tool_use blocks are already emitted via stream events (content_block_delta
       // and content_block_start). We only log here for debugging, don't emit duplicate chunks.
-      this.logger.debug('Processing assistant message', { blockCount: msg.message.content?.length ?? 0 });
+      this.logger.debug('Processing assistant message', {
+        blockCount: msg.message.content?.length ?? 0,
+      });
       for (const block of msg.message.content) {
         if (block.type === 'text') {
           // Text already emitted via content_block_delta stream events (AGE-672)
@@ -470,11 +472,16 @@ export class Orchestrator implements IOrchestrator {
         elapsed: msg.elapsed_time_seconds,
       });
       chunks.push(
-        this.createChunk('tool_start', 'verbose', `Tool running: ${msg.tool_name} (${msg.elapsed_time_seconds}s)`, {
-          toolName: msg.tool_name,
-          toolId: msg.tool_use_id,
-          elapsedSeconds: msg.elapsed_time_seconds,
-        })
+        this.createChunk(
+          'tool_start',
+          'verbose',
+          `Tool running: ${msg.tool_name} (${msg.elapsed_time_seconds}s)`,
+          {
+            toolName: msg.tool_name,
+            toolId: msg.tool_use_id,
+            elapsedSeconds: msg.elapsed_time_seconds,
+          }
+        )
       );
     } else if (msg.type === 'result') {
       // Final result - also log LLM call metrics
