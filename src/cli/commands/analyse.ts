@@ -510,6 +510,8 @@ async function runOrchestratedAnalysis(
       cwd: process.cwd(), // Agentlint's directory, NOT target
       settingSources: [], // Don't load ANY .mcp.json files
       systemPromptAppend: `\nAnalysis target directory: ${directory}`,
+      // ADR-0021: Pass nonInteractive for CI/automation mode
+      nonInteractive: options.nonInteractive ?? false,
     },
     registry
   );

@@ -177,3 +177,10 @@ export {
   getExecutionContext,
   hasExecutionContext,
 } from './execution-context';
+
+// =============================================================================
+// Human-in-the-Loop - ADR-0021 Conversational Interaction
+// =============================================================================
+
+export type { CanUseToolOptions } from './can-use-tool';
+export { createCanUseToolCallback } from './can-use-tool';

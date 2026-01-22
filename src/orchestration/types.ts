@@ -104,6 +104,12 @@ export interface OrchestratorConfig {
    * If undefined, all tools are allowed.
    */
   allowedTools?: string[];
+  /**
+   * Non-interactive mode (default: false)
+   * When true, auto-allows all tool calls without user prompts.
+   * Used for CI/CD and automation scenarios.
+   */
+  nonInteractive?: boolean;
 }
 
 /**

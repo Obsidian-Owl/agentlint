@@ -109,6 +109,7 @@ export function getDefaultConfig(): Required<OrchestratorConfig> {
     settingSources: DEFAULT_SETTING_SOURCES,
     depth: DEFAULT_DEPTH,
     allowedTools: DEFAULT_ALLOWED_TOOLS,
+    nonInteractive: false,
   };
 }
 
@@ -154,6 +155,7 @@ export function loadConfig(overrides?: Partial<OrchestratorConfig>): Required<Or
     settingSources: overrides?.settingSources ?? defaults.settingSources,
     depth: overrides?.depth ?? defaults.depth,
     allowedTools: overrides?.allowedTools ?? defaults.allowedTools,
+    nonInteractive: overrides?.nonInteractive ?? defaults.nonInteractive,
   };
 }
 
@@ -300,5 +302,6 @@ export function mergeWithDefaults(
     settingSources: partial.settingSources ?? defaults.settingSources,
     depth: partial.depth ?? defaults.depth,
     allowedTools: partial.allowedTools ?? defaults.allowedTools,
+    nonInteractive: partial.nonInteractive ?? defaults.nonInteractive,
   };
 }

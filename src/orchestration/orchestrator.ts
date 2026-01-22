@@ -20,6 +20,7 @@ import { SubagentDepthError } from '../errors';
 import { buildACTSubagents } from '../act/index.js';
 import { getDefaultLogger } from '../debug/logger';
 import { DEBUG_NAMESPACES } from '../debug/namespaces';
+import { createCanUseToolCallback } from './can-use-tool';
 import type { INamespacedLogger } from '../debug/types';
 
 // =============================================================================
@@ -225,6 +226,14 @@ export class Orchestrator implements IOrchestrator {
       // Build query options
       // SDK types don't perfectly align with runtime behavior - use any for interop
       /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment */
+
+      // ADR-0021: Create canUseTool callback for human-in-the-loop interactions
+      const canUseTool = createCanUseToolCallback({
+        nonInteractive: this.config.nonInteractive,
+        verbose: this.config.verbosity === 'verbose' || this.config.verbosity === 'debug',
+        log: (msg) => this.logger.debug(msg),
+      });
+
       const queryOptions: any = {
         model: this.config.model,
         maxTurns: 100, // Reasonable default for analysis
@@ -238,6 +247,8 @@ export class Orchestrator implements IOrchestrator {
         allowedTools: this.config.allowedTools,
         // Enable real-time streaming of agent text (AGE-662)
         includePartialMessages: true,
+        // ADR-0021: Enable human-in-the-loop via canUseTool callback
+        canUseTool,
       };
 
       // Only add systemPrompt if we have custom content
