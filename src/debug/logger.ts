@@ -366,7 +366,8 @@ export function createLoggerFromCLIOptions(options: {
   }
 
   if (options.logFile) {
-    config.output = config.output === 'console' ? 'both' : 'file';
+    // Always use 'both' when log file is specified - write to file AND console
+    config.output = 'both';
     config.logFile = options.logFile;
   }
 
