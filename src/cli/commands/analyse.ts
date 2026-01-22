@@ -573,8 +573,9 @@ async function runOrchestratedAnalysis(
           if (shouldLog) {
             // Build debug line with content preview for text chunks
             let debugLine = `[CHUNK] type=${chunk.type} level=${chunk.level}`;
-            if (chunk.metadata?.toolName) {
-              debugLine += ` tool=${chunk.metadata.toolName}`;
+            const toolNameValue = chunk.metadata?.toolName;
+            if (typeof toolNameValue === 'string') {
+              debugLine += ` tool=${toolNameValue}`;
             }
             // Show content preview for text chunks (escape special chars for readability)
             if (chunk.type === 'text' && chunk.content) {

@@ -147,7 +147,7 @@ export function extractGlobalOptions(options: Record<string, unknown>): GlobalOp
     result.debug = typeof options['debug'] === 'string' ? options['debug'] : '*';
   }
   if (typeof options['debugLevel'] === 'string') {
-    const level = options['debugLevel'] as string;
+    const level = options['debugLevel'];
     if (level === 'minimal' || level === 'normal' || level === 'verbose') {
       result.debugLevel = level;
     }

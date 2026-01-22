@@ -10,6 +10,7 @@
  * @module persistence/init
  */
 
+import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { ensureDir, getProjectDir, getGlobalDir } from './common/directories';
@@ -91,7 +92,7 @@ export async function initializeDatabases(
       await ensureDir(dir);
       result.directoriesCreated.push(dir);
     } catch (error) {
-      result.warnings.push(`Failed to create directory ${dir}: ${error}`);
+      result.warnings.push(`Failed to create directory ${dir}: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -100,14 +101,14 @@ export async function initializeDatabases(
     await initBaselineSchema({ baseDir: join(projectDir, 'baselines') });
     result.databasesInitialized.push('baselines');
   } catch (error) {
-    result.warnings.push(`Failed to initialize baselines database: ${error}`);
+    result.warnings.push(`Failed to initialize baselines database: ${error instanceof Error ? error.message : String(error)}`);
   }
 
   try {
     await initLearningsIndex({ baseDir: join(projectDir, 'learnings') });
     result.databasesInitialized.push('learnings');
   } catch (error) {
-    result.warnings.push(`Failed to initialize learnings database: ${error}`);
+    result.warnings.push(`Failed to initialize learnings database: ${error instanceof Error ? error.message : String(error)}`);
   }
 
   // Initialize global databases (sessions FTS5 is always global)
@@ -115,7 +116,7 @@ export async function initializeDatabases(
     await ensureDir(globalDir);
     result.directoriesCreated.push(globalDir);
   } catch (error) {
-    result.warnings.push(`Failed to create global directory ${globalDir}: ${error}`);
+    result.warnings.push(`Failed to create global directory ${globalDir}: ${error instanceof Error ? error.message : String(error)}`);
   }
 
   // Initialize sessions FTS5 database (global, always needed)
@@ -123,7 +124,7 @@ export async function initializeDatabases(
     await initSessionsDatabase({ dbPath: join(globalDir, 'sessions.db') });
     result.databasesInitialized.push('sessions');
   } catch (error) {
-    result.warnings.push(`Failed to initialize sessions database: ${error}`);
+    result.warnings.push(`Failed to initialize sessions database: ${error instanceof Error ? error.message : String(error)}`);
   }
 
   // Initialize additional global databases if requested
@@ -134,14 +135,14 @@ export async function initializeDatabases(
       await ensureDir(globalLearningsDir);
       result.directoriesCreated.push(globalLearningsDir);
     } catch (error) {
-      result.warnings.push(`Failed to create global learnings directory: ${error}`);
+      result.warnings.push(`Failed to create global learnings directory: ${error instanceof Error ? error.message : String(error)}`);
     }
 
     try {
       await initLearningsIndex({ baseDir: globalLearningsDir });
       result.databasesInitialized.push('global-learnings');
     } catch (error) {
-      result.warnings.push(`Failed to initialize global learnings database: ${error}`);
+      result.warnings.push(`Failed to initialize global learnings database: ${error instanceof Error ? error.message : String(error)}`);
     }
   }
 
@@ -166,8 +167,7 @@ export function areDatabasesInitialized(projectPath: string): boolean {
 
   // Check if either database file exists
   try {
-    const fs = require('node:fs');
-    return fs.existsSync(baselinesDb) || fs.existsSync(learningsDb);
+    return existsSync(baselinesDb) || existsSync(learningsDb);
   } catch {
     return false;
   }

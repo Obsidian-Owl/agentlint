@@ -19,7 +19,8 @@ describe('Debug CLI Flags', () => {
   let consoleSpy: ReturnType<typeof spyOn>;
 
   beforeEach(() => {
-    consoleSpy = spyOn(console, 'log').mockImplementation(() => {});
+    // Logger uses console.error for debug output to avoid polluting stdout (AGE-663)
+    consoleSpy = spyOn(console, 'error').mockImplementation(() => {});
   });
 
   afterEach(() => {
@@ -281,7 +282,8 @@ describe('Debug Output Format', () => {
     let consoleSpy: ReturnType<typeof spyOn>;
 
     beforeEach(() => {
-      consoleSpy = spyOn(console, 'log').mockImplementation(() => {});
+      // Logger uses console.error for debug output to avoid polluting stdout (AGE-663)
+      consoleSpy = spyOn(console, 'error').mockImplementation(() => {});
     });
 
     afterEach(() => {

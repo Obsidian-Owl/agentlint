@@ -72,15 +72,19 @@ async function promptForToolApproval(
     console.log(`Tool: ${toolName}`);
 
     // Show relevant details based on tool type
-    if (toolName === 'Bash' && input.command) {
-      console.log(`Command: ${input.command}`);
-      if (input.description) {
-        console.log(`Description: ${input.description}`);
+    const command = input.command;
+    const description = input.description;
+    const filePath = input.file_path;
+
+    if (toolName === 'Bash' && typeof command === 'string') {
+      console.log(`Command: ${command}`);
+      if (typeof description === 'string') {
+        console.log(`Description: ${description}`);
       }
-    } else if (toolName === 'Write' && input.file_path) {
-      console.log(`File: ${input.file_path}`);
-    } else if (toolName === 'Edit' && input.file_path) {
-      console.log(`File: ${input.file_path}`);
+    } else if (toolName === 'Write' && typeof filePath === 'string') {
+      console.log(`File: ${filePath}`);
+    } else if (toolName === 'Edit' && typeof filePath === 'string') {
+      console.log(`File: ${filePath}`);
     } else {
       // Generic input display
       const preview = JSON.stringify(input).slice(0, 200);
