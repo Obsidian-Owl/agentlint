@@ -159,7 +159,7 @@ Read: .specify/memory/constitution.md
 ### Step 6: Validate
 
 Run ALL checks - ALL MUST PASS:
-- `bun test` - Tests pass (zero failures)
+- `bun run test` - Tests pass (zero failures) - NEVER use raw `bun test`
 - `bun run typecheck` - Types pass (zero errors)
 - `bun run lint` - Lint pass (zero errors)
 - `bun run format:check` - Format pass

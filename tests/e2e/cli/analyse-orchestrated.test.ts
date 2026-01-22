@@ -1,11 +1,12 @@
 /**
- * E2E Tests for Orchestrated Analysis
+ * E2E Tests for Static and Fallback Analysis
  *
- * Tests the orchestrated analysis mode (default) which uses the Claude agent
- * to provide intelligent, causal analysis of AI configurations.
+ * Tests the static analysis mode (--static) and fallback behavior when
+ * orchestrated analysis is unavailable. These tests do NOT require
+ * ANTHROPIC_API_KEY and make no live API calls.
  *
- * These tests require ANTHROPIC_API_KEY for live testing, and test both
- * the orchestrated and static analysis modes.
+ * For live orchestrated analysis tests, see: analyse-live.test.ts
+ * Run live tests with: bun run test:live
  *
  * @module tests/e2e/cli/analyse-orchestrated
  */
@@ -13,7 +14,7 @@
 import { describe, test, expect, beforeAll, afterAll } from 'bun:test';
 import { writeFileSync } from 'fs';
 import { join } from 'path';
-import { createTestFixture, runCLI, parseJSONOutput, hasAPIKey } from '../helpers';
+import { createTestFixture, runCLI, parseJSONOutput } from '../helpers';
 import type { TestFixture } from '../helpers';
 
 // =============================================================================
@@ -204,17 +205,10 @@ describe('E2E: Static Analysis Mode (--static)', () => {
 });
 
 // =============================================================================
-// Orchestrated Analysis Tests (Requires API Key)
+// Orchestrated Analysis Fallback Tests
 // =============================================================================
 
-describe('E2E: Orchestrated Analysis Mode (Default)', () => {
-  // Skip these tests if no API key
-  const skipIfNoKey = !hasAPIKey();
-
-  // Live API tests are slow and flaky - require explicit opt-in
-  // Run with: AGENTLINT_LIVE_TESTS=1 bun test analyse-orchestrated
-  const skipLiveTests = skipIfNoKey || !process.env.AGENTLINT_LIVE_TESTS;
-
+describe('E2E: Orchestrated Analysis Fallback', () => {
   test('falls back to static analysis without API key', async () => {
     // Each test gets its own isolated fixture to prevent cross-test contamination
     const fixture = createTestFixture('fallback-test');
@@ -235,114 +229,10 @@ describe('E2E: Orchestrated Analysis Mode (Default)', () => {
       fixture.cleanup();
     }
   });
-
-  test.skipIf(skipLiveTests)(
-    'orchestrated analysis produces intelligent findings',
-    async () => {
-      const fixture = createTestFixture('orchestrated-findings');
-      try {
-        writeFileSync(join(fixture.path, 'CLAUDE.md'), CLAUDE_MD_FIXTURE);
-
-        const result = await runCLI(['analyse', '-d', fixture.path], {
-          json: true,
-          timeout: 180000, // 3 minutes for agent analysis
-        });
-
-        expect(result.exitCode).toBe(0);
-
-        const output = parseJSONOutput<AnalyseOutput>(result);
-        expect(output?.status).toBe('success');
-        expect(output?.configs?.length).toBeGreaterThan(0);
-
-        // Orchestrated analysis should produce findings
-        expect(output?.findings?.length).toBeGreaterThanOrEqual(0);
-      } finally {
-        fixture.cleanup();
-      }
-    },
-    180000
-  );
-
-  test.skipIf(skipLiveTests)(
-    'orchestrated analysis includes causal tracing',
-    async () => {
-      const fixture = createTestFixture('orchestrated-causal');
-      try {
-        writeFileSync(join(fixture.path, 'CLAUDE.md'), CLAUDE_MD_FIXTURE);
-
-        const result = await runCLI(['analyse', '-d', fixture.path], {
-          json: true,
-          timeout: 180000,
-        });
-
-        const output = parseJSONOutput<AnalyseOutput>(result);
-
-        // Findings should include origin tracing
-        const findingsWithOrigin = output?.findings?.filter((f) => f.origin);
-        if (output?.findings?.length && output.findings.length > 0) {
-          expect(findingsWithOrigin?.length).toBeGreaterThanOrEqual(0);
-        }
-      } finally {
-        fixture.cleanup();
-      }
-    },
-    180000
-  );
-
-  test.skipIf(skipLiveTests)(
-    '--verbose shows tool calls during analysis',
-    async () => {
-      const fixture = createTestFixture('orchestrated-verbose');
-      try {
-        writeFileSync(join(fixture.path, 'CLAUDE.md'), CLAUDE_MD_FIXTURE);
-
-        const result = await runCLI(['analyse', '-d', fixture.path, '--verbose'], {
-          timeout: 180000,
-        });
-
-        expect(result.exitCode).toBe(0);
-
-        // Verbose mode should show tool invocations
-        // (Tool names may appear in output)
-      } finally {
-        fixture.cleanup();
-      }
-    },
-    180000
-  );
-
-  test.skipIf(skipLiveTests)(
-    'JSON output streams NDJSON events',
-    async () => {
-      const fixture = createTestFixture('orchestrated-json');
-      try {
-        writeFileSync(join(fixture.path, 'CLAUDE.md'), CLAUDE_MD_FIXTURE);
-
-        const result = await runCLI(['analyse', '-d', fixture.path, '--json'], {
-          timeout: 180000,
-        });
-
-        expect(result.exitCode).toBe(0);
-
-        // Output should be valid JSON (either single object or NDJSON)
-        const lines = result.stdout.trim().split('\n');
-        for (const line of lines) {
-          if (line.trim()) {
-            // Verify it's valid JSON by parsing it
-            let parsed: unknown;
-            expect(() => {
-              parsed = JSON.parse(line) as unknown;
-            }).not.toThrow();
-            expect(parsed).toBeDefined();
-          }
-        }
-      } finally {
-        fixture.cleanup();
-      }
-    },
-    180000
-  );
 });
+
+// NOTE: Live orchestrated analysis tests are in analyse-live.test.ts
+// Run with: bun run test:live
 
 // =============================================================================
 // Mode Selection Tests

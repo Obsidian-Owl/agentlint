@@ -12,22 +12,21 @@
  *   - SDK round-trip communication
  *   - Constitution principle compliance
  *
- * Setup:
- *   export ANTHROPIC_API_KEY="sk-ant-..."
- *   bun test tests/e2e/temporal/workflow-live.test.ts
+ * Run with: bun run test:live
  *
  * @module tests/e2e/temporal/workflow-live
  */
 
-import { describe, test, expect, beforeAll } from 'bun:test';
+import { describe, test, expect } from 'bun:test';
 import { query, type AgentDefinition } from '@anthropic-ai/claude-agent-sdk';
 import { buildTemporalSubagents } from '../../../src/temporal/subagent';
+import { requireAPIKey } from '../../lib/require-api-key';
+
+// Fail fast if API key is missing - no silent skips
+requireAPIKey();
 
 // Type helper - our AgentDefinition is compatible but TS strictness requires cast
 type SDKAgents = Record<string, AgentDefinition>;
-
-// Skip if no API key
-const SKIP_LIVE_TESTS = !process.env.ANTHROPIC_API_KEY;
 
 /**
  * Extract text content from SDK response messages
@@ -67,27 +66,10 @@ async function extractResponseText(
 }
 
 // =============================================================================
-// Setup
-// =============================================================================
-
-beforeAll(() => {
-  if (SKIP_LIVE_TESTS) {
-    console.log('\n⚠️  Skipping live tests - set ANTHROPIC_API_KEY to run\n');
-  }
-});
-
-// =============================================================================
 // Subagent Configuration Tests
 // =============================================================================
 
 describe('Temporal Subagent Configuration', () => {
-  test('requires ANTHROPIC_API_KEY', () => {
-    expect(
-      process.env.ANTHROPIC_API_KEY,
-      'ANTHROPIC_API_KEY environment variable not set - live tests require API access'
-    ).toBeTruthy();
-  });
-
   test('SDK accepts agents from buildTemporalSubagents()', async () => {
     const agents = buildTemporalSubagents();
 
@@ -129,13 +111,6 @@ describe('Temporal Subagent Configuration', () => {
 // =============================================================================
 
 describe('Temporal API Integration', () => {
-  test('requires ANTHROPIC_API_KEY', () => {
-    expect(
-      process.env.ANTHROPIC_API_KEY,
-      'ANTHROPIC_API_KEY environment variable not set - live tests require API access'
-    ).toBeTruthy();
-  });
-
   test('simple query with temporal agents configured works', async () => {
     const agents = buildTemporalSubagents() as unknown as SDKAgents;
 
@@ -198,13 +173,6 @@ describe('Temporal API Integration', () => {
 // =============================================================================
 
 describe('Temporal Workflow Structure', () => {
-  test('requires ANTHROPIC_API_KEY', () => {
-    expect(
-      process.env.ANTHROPIC_API_KEY,
-      'ANTHROPIC_API_KEY environment variable not set - live tests require API access'
-    ).toBeTruthy();
-  });
-
   test('temporal analyzer prompt follows output format specification', () => {
     const agents = buildTemporalSubagents();
     const analyzer = agents['temporal-analyzer'];
@@ -246,13 +214,6 @@ describe('Temporal Workflow Structure', () => {
 // =============================================================================
 
 describe('Temporal Behavioral Validation', () => {
-  test('requires ANTHROPIC_API_KEY', () => {
-    expect(
-      process.env.ANTHROPIC_API_KEY,
-      'ANTHROPIC_API_KEY environment variable not set - live tests require API access'
-    ).toBeTruthy();
-  });
-
   test('analyzer prompt instructs interpretation not repetition', () => {
     const agents = buildTemporalSubagents();
     const analyzer = agents['temporal-analyzer'];
@@ -286,13 +247,6 @@ describe('Temporal Behavioral Validation', () => {
 // =============================================================================
 
 describe('Temporal Smoke Test', () => {
-  test('requires ANTHROPIC_API_KEY', () => {
-    expect(
-      process.env.ANTHROPIC_API_KEY,
-      'ANTHROPIC_API_KEY environment variable not set - live tests require API access'
-    ).toBeTruthy();
-  });
-
   test('complete round-trip: build agents → pass to SDK → get response', async () => {
     // 1. Build agents
     const agents = buildTemporalSubagents();
@@ -321,13 +275,6 @@ describe('Temporal Smoke Test', () => {
 // =============================================================================
 
 describe('Full Temporal Workflow E2E', () => {
-  test('requires ANTHROPIC_API_KEY', () => {
-    expect(
-      process.env.ANTHROPIC_API_KEY,
-      'ANTHROPIC_API_KEY environment variable not set - live tests require API access'
-    ).toBeTruthy();
-  });
-
   test('can invoke temporal-analyzer for trend analysis', async () => {
     const agents = buildTemporalSubagents() as unknown as SDKAgents;
 
@@ -377,13 +324,6 @@ describe('Full Temporal Workflow E2E', () => {
 // =============================================================================
 
 describe('Constitution Alignment', () => {
-  test('requires ANTHROPIC_API_KEY', () => {
-    expect(
-      process.env.ANTHROPIC_API_KEY,
-      'ANTHROPIC_API_KEY environment variable not set - live tests require API access'
-    ).toBeTruthy();
-  });
-
   test('temporal analyzer respects C8 single subagent depth', () => {
     const agents = buildTemporalSubagents();
     const analyzer = agents['temporal-analyzer'];

@@ -73,8 +73,8 @@ bun run lint
 # Format check - MUST pass
 bun run format:check
 
-# Tests - ZERO failures allowed
-bun test
+# Tests - ZERO failures allowed (NEVER use raw `bun test`)
+bun run test
 
 # Build - MUST succeed
 bun run build

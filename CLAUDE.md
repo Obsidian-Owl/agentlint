@@ -39,6 +39,20 @@ All work must align with the 9-principle Constitution at `.specify/memory/consti
 
 The existence of the state file IS the user's instruction to continue. Remove the file only when the epic completes or is explicitly cancelled.
 
+## Testing Rules (CRITICAL)
+
+**NEVER run `bun test` directly.** Always use npm scripts:
+
+| Command | What it does |
+|---------|--------------|
+| `bun run test` | Safe - unit/integration only, no API calls |
+| `bun run test:live` | E2E tests (requires API key, costs money) |
+| `bun run test:evals` | Evaluations (requires API key, costs money) |
+
+**Why**: `bun test` runs ALL tests including expensive live API tests. A preload in `bunfig.toml` blocks live tests unless `RUN_LIVE_TESTS=1` is set, but use the npm scripts to be safe.
+
+**When verifying code**: Use `bun run test` (not `bun test`).
+
 ## Development Workflow
 
 Use the dev.* skills in `.claude/skills/` for structured feature development:

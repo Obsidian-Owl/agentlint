@@ -23,6 +23,21 @@ Use this skill when:
 
 ---
 
+## CRITICAL: Test Execution Rules
+
+**NEVER run `bun test` directly.** Use npm scripts:
+
+| Command | Safe? | What it does |
+|---------|-------|--------------|
+| `bun run test` | ✓ Yes | Unit + integration (no API calls) |
+| `bun run test:live` | Costs $ | E2E tests (requires API key) |
+| `bun run test:evals` | Costs $ | Evaluations (requires API key) |
+| `bun test` | ✗ BLOCKED | Triggers preload safety check |
+
+A global preload in `bunfig.toml` blocks e2e/evals unless `RUN_LIVE_TESTS=1` is set.
+
+---
+
 ## Decision Framework
 
 **Ask: What am I testing?**

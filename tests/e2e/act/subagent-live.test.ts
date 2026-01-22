@@ -6,9 +6,7 @@
  *
  * Per ADR-0011: E2E tests run on release tags only
  *
- * Setup:
- *   export ANTHROPIC_API_KEY="sk-ant-..."
- *   bun test tests/e2e/act/subagent-live.test.ts
+ * Run with: bun run test:live
  *
  * @module tests/e2e/act/subagent-live
  */
@@ -16,6 +14,10 @@
 import { describe, test, expect } from 'bun:test';
 import { query, type AgentDefinition } from '@anthropic-ai/claude-agent-sdk';
 import { buildACTSubagents } from '../../../src/act/index.js';
+import { requireAPIKey } from '../../lib/require-api-key';
+
+// Fail fast if API key is missing - no silent skips
+requireAPIKey();
 
 // Type helper - our AgentDefinition is compatible but TS strictness requires cast
 type SDKAgents = Record<string, AgentDefinition>;
@@ -59,13 +61,6 @@ async function extractResponseText(
 }
 
 describe('Live Subagent E2E Tests', () => {
-  test('requires ANTHROPIC_API_KEY', () => {
-    expect(
-      process.env.ANTHROPIC_API_KEY,
-      'ANTHROPIC_API_KEY environment variable not set - live tests require API access'
-    ).toBeTruthy();
-  });
-
   test('SDK accepts agents from buildACTSubagents()', async () => {
     const agents = buildACTSubagents();
 
@@ -127,13 +122,6 @@ describe('Live Subagent E2E Tests', () => {
 // =============================================================================
 
 describe('Subagent Behavioral Validation', () => {
-  test('requires ANTHROPIC_API_KEY', () => {
-    expect(
-      process.env.ANTHROPIC_API_KEY,
-      'ANTHROPIC_API_KEY environment variable not set - live tests require API access'
-    ).toBeTruthy();
-  });
-
   test('claude-code-analyzer prompt produces structured output format', async () => {
     const agents = buildACTSubagents();
     const claudeCodeAgent = agents['claude-code-analyzer'];
@@ -163,13 +151,6 @@ describe('Subagent Behavioral Validation', () => {
 // =============================================================================
 
 describe('Smoke Test', () => {
-  test('requires ANTHROPIC_API_KEY', () => {
-    expect(
-      process.env.ANTHROPIC_API_KEY,
-      'ANTHROPIC_API_KEY environment variable not set - live tests require API access'
-    ).toBeTruthy();
-  });
-
   test('complete round-trip: build agents → pass to SDK → get response', async () => {
     // 1. Build agents
     const agents = buildACTSubagents();
@@ -198,13 +179,6 @@ describe('Smoke Test', () => {
 // =============================================================================
 
 describe('Subagent Invocation', () => {
-  test('requires ANTHROPIC_API_KEY', () => {
-    expect(
-      process.env.ANTHROPIC_API_KEY,
-      'ANTHROPIC_API_KEY environment variable not set - live tests require API access'
-    ).toBeTruthy();
-  });
-
   test('Task tool is available when agents configured', async () => {
     const agents = buildACTSubagents() as unknown as SDKAgents;
 
