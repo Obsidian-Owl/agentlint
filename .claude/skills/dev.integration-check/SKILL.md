@@ -101,6 +101,62 @@ Code Quality (ZERO TOLERANCE):
 - ESLint errors are NOT optional to fix
 - The quality bar is absolute
 
+### Phase 3.5: Integration Wiring Verification (CRITICAL)
+
+**CRITICAL: Features must be USED, not just BUILT.**
+
+This phase verifies that built components are actually integrated into the system.
+A component that compiles and passes tests but is never called is a failed delivery.
+
+#### Step 3.5.1: Exported Symbol Analysis
+
+For each new/modified TypeScript file:
+```bash
+# Find all exports from changed files
+git diff --name-only main...HEAD | grep '\.tsx\?$' | while read file; do
+  grep -E "^export (function|const|class|interface|type)" "$file"
+done
+```
+
+#### Step 3.5.2: Import Verification
+
+For each export, verify it is imported somewhere in src/:
+```bash
+grep -r "from ['\""].*${module}['\"]" src/ --include="*.ts" --include="*.tsx"
+```
+
+**Red Flags (AUTO-FAIL):**
+- Exported React component never imported in src/
+- Exported function never called anywhere
+- Index file exports symbols never imported elsewhere
+
+#### Step 3.5.3: Entry Point Path Verification
+
+For UI components, verify path to entry point:
+- Ink components → must reach `render(<Component>)` call
+- CLI commands → must be registered in `program.ts`
+- Tools → must be registered in tool registry
+
+#### Output Format
+
+```markdown
+Integration Wiring:
+  Exports Found:    15 symbols across 5 files
+  Imports Verified: 12/15 (80%)
+
+  UNINTEGRATED (AUTO-FAIL):
+  ✗ App.tsx exports App → NOT IMPORTED
+  ✗ Progress.tsx exports Progress → NOT IMPORTED
+
+  Integration Status: FAIL (2 unintegrated exports)
+```
+
+**FAILURE RESPONSE:**
+- ANY unintegrated export → FAIL the integration check
+- This is NOT a warning - unintegrated code is a delivery failure
+
+---
+
 ### Phase 4: Acceptance Criteria Validation
 
 For each user story in spec.md:
@@ -174,14 +230,15 @@ Create comprehensive integration report:
 | Lint | ✓ | 0 errors (ZERO tolerance) |
 | Tests | ✓ | XX/XX pass, 0 fail |
 | Build | ✓ | Pass |
+| Wiring | ✓ | X/X exports integrated (ZERO orphans) |
 | Acceptance | ✓ | X/X criteria met |
 | Constitution | ✓ | All principles pass |
 | Linear Sync | ✓ | All synced |
 
 **Overall Status**: READY FOR MERGE (or BLOCKED if ANY errors)
 
-**NOTE**: Any status showing ⚠️ or ✗ for Types, Lint, or Tests = BLOCKED.
-The quality bar is absolute - we do NOT accept issues into main.
+**NOTE**: Any status showing ⚠️ or ✗ for Types, Lint, Tests, or Wiring = BLOCKED.
+The quality bar is absolute - we do NOT accept issues or unintegrated code into main.
 
 ## Blockers
 
@@ -214,6 +271,7 @@ Integration check complete!
     Lint:       Pass ✓
     Tests:      45/45 ✓
     Build:      Pass ✓
+    Wiring:     15/15 ✓
     Acceptance: 8/9 ⚠️
     Constitution: Pass ✓
     Linear:     Synced ✓
