@@ -23,6 +23,10 @@ const parseConfigInputSchema = {
     .optional()
     .describe('Include quality assessment in output (default: true)'),
   includeRaw: z.boolean().optional().describe('Include raw file content in output (default: true)'),
+  includeFormatValidation: z
+    .boolean()
+    .optional()
+    .describe('Include ACT format validation (frontmatter requirements) in quality assessment (default: false)'),
 };
 
 /**
@@ -315,9 +319,12 @@ Handles malformed files gracefully by returning partial results with warnings.`,
       const result = await parseConfig(args.filePath);
       const includeRaw = args.includeRaw !== false; // Default true
       const includeQuality = args.includeQuality !== false; // Default true
+      const includeFormatValidation = args.includeFormatValidation === true; // Default false
 
-      // Optionally assess quality
-      const quality = includeQuality ? assessQuality(result) : undefined;
+      // Optionally assess quality (with optional format validation)
+      const quality = includeQuality
+        ? assessQuality(result, { validateFormat: includeFormatValidation })
+        : undefined;
 
       const output = formatToolOutput(result, includeRaw, quality);
 

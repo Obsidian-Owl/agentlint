@@ -441,18 +441,30 @@ stored learnings.`
 function addValidateCommand(program: Command): void {
   program
     .command('validate')
-    .description('Validate AI configuration files')
+    .description('Validate AI configuration files for ACT format requirements')
+    .option('-d, --directory <path>', 'Directory to validate', '.')
     .addHelpText(
       'after',
       `
 Examples:
-  $ agentlint validate               Validate all config files
-  $ agentlint validate --json        Output validation results as JSON
+  $ agentlint validate                     Validate all config files
+  $ agentlint validate -d ./my-project     Validate specific directory
+  $ agentlint validate --json              Output validation results as JSON
+  $ agentlint validate --fail-on-findings  Exit 1 if issues found (CI mode)
 
-Validates syntax and schema of discovered AI configuration files.`
+Validates ACT format requirements for AI configuration files:
+  - Agent files (.claude/agents/*.md) - requires YAML frontmatter
+  - Skill files (.claude/skills/*/SKILL.md) - requires name and description
+
+Fast static check that runs without LLM, suitable for CI/pre-commit hooks.`
     )
-    .action(() => {
-      console.log('validate command not yet implemented (EP05+)');
+    .action(async (options: { directory?: string }) => {
+      const { runValidate } = await import('./commands/validate');
+      const globalOpts = extractGlobalOptions(program.opts());
+      const exitCode = await runValidate({ ...globalOpts, ...options });
+      if (exitCode !== 0) {
+        process.exit(exitCode);
+      }
     });
 }
 

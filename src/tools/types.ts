@@ -58,6 +58,12 @@ export type Grade = 'A' | 'B' | 'C' | 'D' | 'F';
  * - instruction-overload: >150-200 instructions become unreliable
  * - embedded-secret: API keys, passwords in config
  * - code-snippet: Large code blocks instead of file:line references
+ *
+ * ACT format validation types:
+ * - missing-frontmatter: File type requires frontmatter but has none
+ * - invalid-frontmatter: Frontmatter exists but is malformed
+ * - missing-required-field: Required field not present in frontmatter
+ * - invalid-field-value: Field value doesn't match schema
  */
 export type IssueType =
   | 'generic-rule' // Generic rule anti-pattern
@@ -67,7 +73,11 @@ export type IssueType =
   | 'code-snippet' // Large code block
   | 'missing-section' // Expected section not found
   | 'size-warning' // Too large or too small
-  | 'structure-warning'; // Malformed structure
+  | 'structure-warning' // Malformed structure
+  | 'missing-frontmatter' // File type requires frontmatter but has none
+  | 'invalid-frontmatter' // Frontmatter exists but is malformed
+  | 'missing-required-field' // Required field not present in frontmatter
+  | 'invalid-field-value'; // Field value doesn't match schema
 
 /**
  * Severity of a quality issue.

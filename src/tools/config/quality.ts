@@ -25,6 +25,7 @@ import type {
   SizeAnalysis,
   CompletenessAnalysis,
 } from './types';
+import { validateACTFormat } from './act-format-validator';
 
 // =============================================================================
 // Constants (from ADR-0007)
@@ -120,6 +121,14 @@ const RECOMMENDED_SECTIONS = [
 // =============================================================================
 
 /**
+ * Options for quality assessment.
+ */
+export interface AssessQualityOptions {
+  /** Include ACT format validation (frontmatter requirements). Default: false */
+  validateFormat?: boolean;
+}
+
+/**
  * Analyze the quality characteristics of a parsed configuration.
  *
  * Per ADR-0019, returns raw metrics for agent interpretation.
@@ -127,9 +136,12 @@ const RECOMMENDED_SECTIONS = [
  * based on context.
  *
  * @param config - Parsed configuration to analyze
+ * @param options - Optional assessment options
  * @returns Raw quality metrics for agent interpretation
  */
-export function assessQuality(config: ParsedConfig): QualityAssessment {
+export function assessQuality(config: ParsedConfig, options?: AssessQualityOptions): QualityAssessment {
+  const { validateFormat = false } = options ?? {};
+
   // Analyze structure (factual observations)
   const structure = analyzeStructure(config);
 
@@ -141,6 +153,18 @@ export function assessQuality(config: ParsedConfig): QualityAssessment {
 
   // Detect anti-patterns (factual pattern matching)
   const issues = detectAntiPatterns(config);
+
+  // Optionally validate ACT format requirements (frontmatter, required fields)
+  if (validateFormat) {
+    const formatResult = validateACTFormat({
+      configType: config.file.type,
+      filePath: config.file.path,
+      content: config.raw,
+      frontmatter: config.frontmatter,
+      hasFrontmatter: config.frontmatter !== undefined,
+    });
+    issues.push(...formatResult.issues);
+  }
 
   return {
     metrics: config.metrics,
