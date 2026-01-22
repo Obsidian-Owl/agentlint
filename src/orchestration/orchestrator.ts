@@ -385,32 +385,42 @@ export class Orchestrator implements IOrchestrator {
       const event = msg.event;
       if (event?.type === 'content_block_delta' && event.delta?.type === 'text_delta') {
         const text = event.delta.text as string;
-        if (text) {
+        // Skip empty or whitespace-only text chunks to reduce noise (AGE-671)
+        if (text && text.trim()) {
           chunks.push(this.createChunk('text', 'normal', text));
         }
+      }
+      // Also detect tool_use blocks starting in stream events
+      if (event?.type === 'content_block_start' && event.content_block?.type === 'tool_use') {
+        const toolBlock = event.content_block;
+        this.logger.info('Tool invocation starting (stream)', { tool: toolBlock.name });
+        chunks.push(
+          this.createChunk('tool_start', 'verbose', `Calling tool: ${toolBlock.name}`, {
+            toolName: toolBlock.name,
+            toolId: toolBlock.id,
+          })
+        );
       }
       return chunks;
     }
 
-    if (msg.type === 'assistant' && msg.content) {
-      // Assistant text content
-      this.logger.debug('Processing assistant message', { blockCount: msg.content?.length ?? 0 });
-      for (const block of msg.content) {
+    if (msg.type === 'assistant' && msg.message?.content) {
+      // Assistant message - content is inside msg.message per SDK types
+      // Text and tool_use blocks are already emitted via stream events (content_block_delta
+      // and content_block_start). We only log here for debugging, don't emit duplicate chunks.
+      this.logger.debug('Processing assistant message', { blockCount: msg.message.content?.length ?? 0 });
+      for (const block of msg.message.content) {
         if (block.type === 'text') {
-          chunks.push(this.createChunk('text', 'normal', block.text));
-        } else if (block.type === 'tool_use') {
-          this.logger.info('Tool invocation detected', {
-            tool: block.name,
-            blockType: block.type,
-            // Input may contain secrets, rely on redaction
+          // Text already emitted via content_block_delta stream events (AGE-672)
+          this.logger.debug('Text block in assistant message (already emitted via stream)', {
+            length: block.text.length,
           });
-          // Emit tool_start chunk at 'verbose' level so it shows in verbose mode
-          chunks.push(
-            this.createChunk('tool_start', 'verbose', `Calling tool: ${block.name}`, {
-              toolName: block.name,
-              input: block.input,
-            })
-          );
+        } else if (block.type === 'tool_use') {
+          // Tool_use blocks are already emitted via content_block_start stream events
+          // (see line 393-402). We only log here for debugging, don't emit duplicate chunk.
+          this.logger.debug('Tool use block in assistant message (already emitted via stream)', {
+            tool: block.name,
+          });
         } else {
           this.logger.debug('Unknown block type', { blockType: block.type });
         }
@@ -442,6 +452,19 @@ export class Orchestrator implements IOrchestrator {
           );
         }
       }
+    } else if (msg.type === 'tool_progress') {
+      // Real-time progress for long-running tools
+      this.logger.debug('Tool progress', {
+        tool: msg.tool_name,
+        elapsed: msg.elapsed_time_seconds,
+      });
+      chunks.push(
+        this.createChunk('tool_start', 'verbose', `Tool running: ${msg.tool_name} (${msg.elapsed_time_seconds}s)`, {
+          toolName: msg.tool_name,
+          toolId: msg.tool_use_id,
+          elapsedSeconds: msg.elapsed_time_seconds,
+        })
+      );
     } else if (msg.type === 'result') {
       // Final result - also log LLM call metrics
       this.logger.info('Session result', {

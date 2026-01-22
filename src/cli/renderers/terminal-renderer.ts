@@ -73,6 +73,13 @@ export class TerminalRenderer implements IStreamRenderer {
       return;
     }
 
+    // AGE-676: Flush text buffer before non-text chunks to ensure proper line breaks
+    // When agent outputs "...sentence." then calls a tool, then outputs "Next sentence...",
+    // we need to flush with a newline so they don't concatenate as "sentence.Next"
+    if (chunk.type !== 'text') {
+      this.flushTextBufferWithNewline();
+    }
+
     switch (chunk.type) {
       case 'text':
         this.renderText(chunk.content);
@@ -265,6 +272,31 @@ export class TerminalRenderer implements IStreamRenderer {
       // Keep incomplete sentence in buffer
       this.textBuffer = text.slice(lastEnd);
     }
+  }
+
+  /**
+   * AGE-676: Flush text buffer before non-text chunks to prevent sentence concatenation.
+   * When agent outputs "...sentence." then calls a tool, then outputs "Next...",
+   * without this flush they would concatenate as "sentence.Next" without spacing.
+   */
+  private flushTextBufferWithNewline(): void {
+    if (this.textBuffer.length === 0) return;
+
+    // Check if buffer ends with sentence-ending punctuation
+    const endsWithSentence = /[.!?:]\s*$/.test(this.textBuffer);
+
+    // Output the buffered text with markdown rendering
+    const rendered = this.renderMarkdown(this.textBuffer);
+    process.stdout.write(rendered);
+
+    // If it ended with a sentence, ensure we have a newline for separation
+    // (markdown renderer usually adds one, but we ensure it here)
+    if (endsWithSentence && !rendered.endsWith('\n')) {
+      process.stdout.write('\n');
+    }
+
+    this.textBuffer = '';
+    this.hasOutput = true;
   }
 
   /**

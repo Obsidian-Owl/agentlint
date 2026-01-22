@@ -145,6 +145,9 @@ Based on your review:
 | Yes                           | Yes                 | Add observation to existing |
 | Yes                           | Needs update        | Refine existing |
 | Yes                           | Completely different| Create new  |
+| Yes                           | **Contradicts**     | Resolve first (see RECONCILE) |
+
+**Contradiction detection**: Before creating, ask: "Does this contradict any existing recommendation?" If yes, you MUST resolve the conflict first—either complete the old one as 'obsolete' or discard your finding after verification.
 
 ### Step 3: ACT using the appropriate tool
 - \`add_recommendation_event\` - Add observation to existing (use ID from table above)
@@ -252,7 +255,7 @@ ${outputGuidance}
 
 ## Your Task
 
-Perform a comprehensive analysis following the DETECT → TRACE → UNDERSTAND → RECOMMEND workflow:
+Perform a comprehensive analysis following the DETECT → TRACE → UNDERSTAND → RECONCILE → RECOMMEND workflow:
 
 ### 1. DETECT: Discover Issues
 - Use \`discover_configs\` to find all AI configuration files
@@ -270,12 +273,30 @@ Perform a comprehensive analysis following the DETECT → TRACE → UNDERSTAND �
 - Consider how issues affect developer productivity and AI effectiveness
 - Look for patterns across multiple issues
 
-### 4. RECOMMEND: Record Improvements
+### 4. RECONCILE: Resolve Contradictions (AGE-678)
+**Before creating ANY recommendations, check for contradictions:**
+
+- Do your findings contradict each other? (e.g., "file too large" AND "file too small")
+- Do they contradict existing recommendations in the table above?
+- Are the claims about file sizes, line counts, or states consistent?
+
+**When contradictions are found:**
+1. State the contradiction explicitly: "Finding A says X, but Finding B says Y"
+2. Investigate to determine which is correct (re-read the file, check actual state)
+3. Discard the incorrect finding - do NOT create recommendations for both
+4. If existing recommendation contradicts your verified finding, complete it with reason 'obsolete'
+
+**Examples of contradictions to catch:**
+- "Expand CLAUDE.md" vs "Reduce CLAUDE.md" → Only one can be correct
+- "File has 11 lines" vs "File has 762 lines" → Verify actual state
+- "Missing error handling" vs "Error handling present but verbose" → Verify actual code
+
+### 5. RECOMMEND: Record Improvements
 **CRITICAL: Follow the Review → Decide → Act protocol above for EVERY finding.**
 
 - Check existing recommendations table FIRST
 - Consolidate similar findings into existing recommendations when appropriate
-- Only create NEW recommendations when truly distinct
+- Only create NEW recommendations when truly distinct AND verified in RECONCILE step
 - Prefer preventive over symptomatic fixes
 - Provide clear rationale for each recommendation
 
@@ -291,6 +312,7 @@ Use the appropriate recommendation tool based on your Review → Decide → Act 
 |----------|-------------|
 | Similar recommendation exists | \`add_recommendation_event\` to add observation |
 | Existing rec needs update | \`refine_recommendation\` to update action/target |
+| **Contradicts existing** | \`complete_recommendation\` with reason 'obsolete' first |
 | Truly new finding | \`create_recommendation\` to create new |
 
 For each finding, explain briefly:

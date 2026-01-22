@@ -98,6 +98,14 @@ export interface CLIConfig {
 // =============================================================================
 
 /**
+ * Debug output verbosity level.
+ * - minimal: Only errors, tool calls, phase changes
+ * - normal: Above + aggregated text chunks (skips small chunks)
+ * - verbose: Everything including per-character chunks
+ */
+export type DebugLevel = 'minimal' | 'normal' | 'verbose';
+
+/**
  * Common options available on all commands.
  */
 export interface GlobalOptions {
@@ -113,6 +121,8 @@ export interface GlobalOptions {
   failOnFindings?: boolean;
   /** Debug mode - enable specific debug namespaces (e.g., "tools,llm" or "*" for all) */
   debug?: string;
+  /** Debug output verbosity: minimal, normal, verbose (default: verbose for backwards compat) */
+  debugLevel?: DebugLevel;
   /** Quiet mode - suppress non-error output */
   quiet?: boolean;
   /** Log file path - write debug output to file */

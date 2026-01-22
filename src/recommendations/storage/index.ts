@@ -17,9 +17,10 @@ export {
   getRecommendationsDir,
   getCurrentVersion,
   clearRecommendations,
+  resolveRecommendationId,
 } from './storage';
 
-export type { StorageOptions } from './storage';
+export type { StorageOptions, ResolveIdResult } from './storage';
 
 // Compression utilities
 export {

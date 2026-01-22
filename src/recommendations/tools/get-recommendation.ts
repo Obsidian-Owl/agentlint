@@ -10,7 +10,7 @@
 import { tool } from '@anthropic-ai/claude-agent-sdk';
 import { z } from 'zod';
 
-import { loadRecommendation as loadFromStorage } from '../storage';
+import { loadRecommendation as loadFromStorage, resolveRecommendationId } from '../storage';
 import type { Recommendation } from '../types';
 
 // =============================================================================
@@ -21,7 +21,11 @@ import type { Recommendation } from '../types';
  * Input schema for get_recommendation tool.
  */
 const getRecommendationInputSchema = {
-  id: z.string().describe('The UUID of the recommendation to retrieve'),
+  id: z
+    .string()
+    .describe(
+      'The recommendation ID or prefix. Full UUIDs and short prefixes (like "d9a63822") are both supported.'
+    ),
 };
 
 // =============================================================================
@@ -43,21 +47,34 @@ interface GetRecommendationResult {
 // =============================================================================
 
 /**
- * Retrieve a recommendation by ID.
+ * Retrieve a recommendation by ID or prefix.
+ *
+ * Supports short ID prefixes like 'd9a63822' (AGE-673).
+ *
  * @internal Exported for testing
  */
 export async function getRecommendation(
-  id: string,
+  idOrPrefix: string,
   options: StorageOptions = {}
 ): Promise<GetRecommendationResult> {
   try {
     const storageOptions = options.baseDir ? { baseDir: options.baseDir } : {};
-    const recommendation = await loadFromStorage(id, storageOptions);
+
+    // Resolve prefix first to get better error messages
+    const resolved = resolveRecommendationId(idOrPrefix, storageOptions);
+    if (!resolved.id) {
+      return {
+        success: false,
+        error: resolved.error ?? `Recommendation with ID '${idOrPrefix}' not found`,
+      };
+    }
+
+    const recommendation = await loadFromStorage(resolved.id, storageOptions);
 
     if (!recommendation) {
       return {
         success: false,
-        error: `Recommendation with ID '${id}' not found`,
+        error: `Recommendation with ID '${idOrPrefix}' not found`,
       };
     }
 

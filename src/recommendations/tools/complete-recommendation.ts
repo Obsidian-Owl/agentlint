@@ -10,7 +10,7 @@
 import { tool } from '@anthropic-ai/claude-agent-sdk';
 import { z } from 'zod';
 
-import { loadRecommendation, saveRecommendation } from '../storage';
+import { loadRecommendation, saveRecommendation, resolveRecommendationId } from '../storage';
 import type {
   Recommendation,
   RecommendationEvent,
@@ -26,17 +26,20 @@ import type {
  * Input schema for complete_recommendation tool.
  */
 const completeRecommendationInputSchema = {
-  recommendationId: z.string().uuid().describe('The UUID of the recommendation to complete'),
+  recommendationId: z
+    .string()
+    .describe(
+      'The recommendation ID or prefix. Full UUIDs and short prefixes (like "d9a63822") are both supported.'
+    ),
 
   reason: z
-    .enum(['implemented', 'superseded', 'obsolete', 'rejected'])
+    .enum(['implemented', 'superseded', 'obsolete', 'rejected', 'duplicate'])
     .describe('Why the recommendation case is being closed'),
 
   supersededBy: z
     .string()
-    .uuid()
     .optional()
-    .describe('ID of the replacement recommendation (when reason is superseded)'),
+    .describe('ID of the replacement recommendation (when reason is superseded or duplicate)'),
 };
 
 // =============================================================================
@@ -83,6 +86,9 @@ function createCompletedEvent(
 
 /**
  * Complete a recommendation with reason and optional supersededBy link.
+ *
+ * Supports short ID prefixes (AGE-673, AGE-674).
+ *
  * @internal Exported for testing
  */
 export async function completeRecommendation(
@@ -91,7 +97,17 @@ export async function completeRecommendation(
 ): Promise<CompleteRecommendationResult> {
   try {
     const storageOptions = options.baseDir ? { baseDir: options.baseDir } : {};
-    const recommendation = await loadRecommendation(input.recommendationId, storageOptions);
+
+    // Resolve prefix to full ID (AGE-673)
+    const resolved = resolveRecommendationId(input.recommendationId, storageOptions);
+    if (!resolved.id) {
+      return {
+        success: false,
+        error: resolved.error ?? `Recommendation not found: ${input.recommendationId}`,
+      };
+    }
+
+    const recommendation = await loadRecommendation(resolved.id, storageOptions);
 
     if (!recommendation) {
       return {
@@ -193,17 +209,25 @@ Completion reasons:
 - superseded: A better recommendation replaced this one
 - obsolete: Changes made this recommendation irrelevant
 - rejected: User decided not to implement this recommendation
+- duplicate: This is a duplicate of another recommendation
 
-When using 'superseded', provide the supersededBy parameter with the
-ID of the replacement recommendation to maintain traceability.
+When using 'superseded' or 'duplicate', provide the supersededBy parameter
+with the ID of the primary recommendation to maintain traceability.
+
+Supports short ID prefixes (e.g., "d9a63822") as well as full UUIDs.
 
 This sets completedAt timestamp which excludes the recommendation from
 default queries. Completed recommendations remain in storage for audit.
 
-Use this tool to:
-- Close implemented recommendations after monitoring
-- Mark recommendations that are no longer relevant
-- Record rejected recommendations with reason for future reference
+**Example: Handling duplicates**
+If you find multiple recommendations for the same target (e.g., two CLAUDE.md
+recommendations), you can consolidate them:
+1. Identify the most complete/recent one as "primary"
+2. Complete others with reason 'duplicate' and supersededBy pointing to primary
+
+**Example: Contradictory recommendations**
+If recommendations conflict (e.g., "expand CLAUDE.md" vs "reduce CLAUDE.md"),
+the older or less relevant one can be completed with reason 'obsolete'.
   `.trim(),
   completeRecommendationInputSchema,
   async (args) => {

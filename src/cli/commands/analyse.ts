@@ -40,14 +40,8 @@ import { buildAnalysisPrompt } from './analyse-prompt';
 import { presentQuestionsInteractive } from '../components/question-presenter';
 import type { ClarifyingQuestion } from '../../recommendations/types';
 
-// Recommendation storage imports for findings bridge
-import {
-  listRecommendationIds,
-  loadRecommendation,
-  getRecommendationsDir,
-  clearRecommendations,
-} from '../../recommendations/storage';
-import type { Recommendation } from '../../recommendations/types';
+// Recommendation storage imports for clean-slate functionality
+import { getRecommendationsDir, clearRecommendations } from '../../recommendations/storage';
 
 // Database initialization import (Issue 4 fix)
 import { initializeDatabases } from '../../persistence';
@@ -388,105 +382,6 @@ function convertChunkToFinding(chunk: StreamChunk): AnalyseFinding | null {
 }
 
 /**
- * Convert a stored recommendation to an AnalyseFinding.
- * This bridges the recommendation storage to the findings output.
- */
-function convertRecommendationToFinding(rec: Recommendation): AnalyseFinding {
-  // Map recommendation priority to severity
-  const priorityToSeverity: Record<string, string> = {
-    high: 'high',
-    medium: 'medium',
-    low: 'low',
-  };
-
-  // Map recommendation type to finding type
-  const typeMap: Record<string, string> = {
-    symptomatic: 'quick_fix',
-    preventive: 'config_improvement',
-    systemic: 'architecture_issue',
-  };
-
-  const finding: AnalyseFinding = {
-    id: rec.id,
-    severity: priorityToSeverity[rec.priority] ?? 'medium',
-    type: typeMap[rec.type] ?? 'recommendation',
-    title: `[${rec.type}] ${rec.action.slice(0, 60)}${rec.action.length > 60 ? '...' : ''}`,
-    description: rec.rationale,
-  };
-
-  // Add location from target
-  if (rec.target) {
-    finding.location = {
-      file: rec.target,
-    };
-  }
-
-  // Add origin from tracedOrigin
-  if (rec.tracedOrigin) {
-    finding.origin = {
-      type: rec.tracedOrigin.sessionId ? 'session' : 'config',
-      reference:
-        rec.tracedOrigin.configGap ?? rec.tracedOrigin.findingId ?? rec.target ?? 'unknown',
-      description: rec.tracedOrigin.pattern ?? 'Recommendation from analysis',
-    };
-  }
-
-  // Add as a recommendation
-  finding.recommendations = [
-    {
-      type: rec.type,
-      action: rec.action,
-      rationale: rec.rationale,
-      priority: rec.priority,
-    },
-  ];
-
-  return finding;
-}
-
-/**
- * Load stored recommendations and convert them to findings.
- * This bridges the gap between recommendation tools (which store to disk)
- * and the findings output (which counts StreamChunk findings).
- *
- * Note: Due to SDK limitations, tools use process.cwd() for storage, not the
- * target directory. We check both locations to handle this.
- */
-async function loadRecommendationsAsFindings(directory: string): Promise<AnalyseFinding[]> {
-  const findings: AnalyseFinding[] = [];
-  const seenIds = new Set<string>();
-
-  // Check both target directory and CWD (where tools actually store recommendations)
-  const dirsToCheck = [
-    getRecommendationsDir(directory), // Target project
-    getRecommendationsDir(process.cwd()), // Where tools store (fallback)
-  ];
-
-  // Dedupe if same directory
-  const uniqueDirs = [...new Set(dirsToCheck)];
-
-  for (const recDir of uniqueDirs) {
-    try {
-      const ids = listRecommendationIds({ baseDir: recDir });
-
-      for (const id of ids) {
-        if (seenIds.has(id)) continue;
-        seenIds.add(id);
-
-        const rec = await loadRecommendation(id, { baseDir: recDir });
-        if (rec && rec.status === 'open') {
-          findings.push(convertRecommendationToFinding(rec));
-        }
-      }
-    } catch {
-      // Directory doesn't exist or empty - continue to next
-    }
-  }
-
-  return findings;
-}
-
-/**
  * Build the final result from collected findings.
  */
 function buildAnalyseResult(
@@ -617,12 +512,41 @@ async function runOrchestratedAnalysis(
           break;
         }
 
-        // Debug logging for chunk flow - helps diagnose rendering issues
+        // Debug logging for chunk flow - helps diagnose rendering issues (AGE-671, AGE-682)
+        // Respects --debug-level: minimal|normal|verbose
         if (options.debug) {
-          console.error(
-            `[CHUNK] type=${chunk.type} level=${chunk.level}` +
-              (chunk.metadata?.toolName ? ` tool=${chunk.metadata.toolName}` : '')
-          );
+          const debugLevel = options.debugLevel ?? 'verbose';
+
+          // Determine if this chunk should be shown based on debug level
+          let shouldLog = true;
+          if (debugLevel === 'minimal') {
+            // Only show errors, tool calls, phase changes
+            shouldLog = ['error', 'tool_start', 'tool_result', 'phase_change'].includes(chunk.type);
+          } else if (debugLevel === 'normal') {
+            // Show everything except small text chunks (under 10 chars)
+            if (chunk.type === 'text' && chunk.content.length < 10) {
+              shouldLog = false;
+            }
+          }
+          // verbose: show everything (no filtering)
+
+          if (shouldLog) {
+            // Build debug line with content preview for text chunks
+            let debugLine = `[CHUNK] type=${chunk.type} level=${chunk.level}`;
+            if (chunk.metadata?.toolName) {
+              debugLine += ` tool=${chunk.metadata.toolName}`;
+            }
+            // Show content preview for text chunks (escape special chars for readability)
+            if (chunk.type === 'text' && chunk.content) {
+              const preview = chunk.content
+                .slice(0, 30)
+                .replace(/\n/g, '\\n')
+                .replace(/\r/g, '\\r')
+                .replace(/\t/g, '\\t');
+              debugLine += ` content="${preview}${chunk.content.length > 30 ? '...' : ''}"`;
+            }
+            console.error(debugLine);
+          }
         }
 
         // Filter by verbosity and render
@@ -660,16 +584,10 @@ async function runOrchestratedAnalysis(
         }
       }
 
-      // Bridge recommendations to findings (Issue 2 fix)
-      // Agent calls create_recommendation → stored to disk → we collect them here
-      const storedRecFindings = await loadRecommendationsAsFindings(directory);
-      for (const recFinding of storedRecFindings) {
-        // Only add if not already in findings (avoid duplicates from chunk findings)
-        if (!findings.some((f) => f.id === recFinding.id)) {
-          findings.push(recFinding);
-          renderer.renderFinding(recFinding);
-        }
-      }
+      // AGE-679: Removed stored rec rendering - it duplicated streaming output.
+      // The agent's streaming shows findings as they're discovered. Loading stored
+      // recommendations and re-rendering them was redundant and overwhelming.
+      // Findings array already contains chunk findings from streaming above.
 
       // Build and output final result
       const result = buildAnalyseResult(directory, scanResult, findings, startTime);

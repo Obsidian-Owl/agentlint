@@ -73,8 +73,13 @@ Documentation:
     .option('--verbose', 'Show detailed output including tool calls')
     .option('--fail-on-findings', 'Exit with code 1 if findings are present')
     .option(
-      '--debug <categories>',
-      'Enable debug output for categories (e.g., "tools,llm" or "*" for all)'
+      '--debug [categories]',
+      'Enable debug output (optional: "tools,llm" or "*" for all, default: "*")'
+    )
+    .option(
+      '--debug-level <level>',
+      'Debug verbosity: minimal (errors/tools), normal (skip small chunks), verbose (everything)',
+      'verbose'
     )
     .option('--quiet', 'Suppress non-error output')
     .option('--log-file <path>', 'Write debug output to file')
@@ -137,8 +142,15 @@ export function extractGlobalOptions(options: Record<string, unknown>): GlobalOp
   if (typeof options['failOnFindings'] === 'boolean') {
     result.failOnFindings = options['failOnFindings'];
   }
-  if (typeof options['debug'] === 'string') {
-    result.debug = options['debug'];
+  if (options['debug'] !== undefined) {
+    // --debug can be passed without value (boolean true) or with value (string)
+    result.debug = typeof options['debug'] === 'string' ? options['debug'] : '*';
+  }
+  if (typeof options['debugLevel'] === 'string') {
+    const level = options['debugLevel'] as string;
+    if (level === 'minimal' || level === 'normal' || level === 'verbose') {
+      result.debugLevel = level;
+    }
   }
   if (typeof options['quiet'] === 'boolean') {
     result.quiet = options['quiet'];
