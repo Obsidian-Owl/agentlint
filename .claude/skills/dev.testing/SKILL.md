@@ -23,6 +23,21 @@ Use this skill when:
 
 ---
 
+## CRITICAL: Test Execution Rules
+
+**NEVER run `bun test` directly.** Use npm scripts:
+
+| Command | Safe? | What it does |
+|---------|-------|--------------|
+| `bun run test` | ✓ Yes | Unit + integration (no API calls) |
+| `bun run test:live` | Costs $ | E2E tests (requires API key) |
+| `bun run test:evals` | Costs $ | Evaluations (requires API key) |
+| `bun test` | ✗ BLOCKED | Triggers preload safety check |
+
+A global preload in `bunfig.toml` blocks e2e/evals unless `RUN_LIVE_TESTS=1` is set.
+
+---
+
 ## Decision Framework
 
 **Ask: What am I testing?**
@@ -33,6 +48,7 @@ Use this skill when:
 | Zod schemas, tool definitions | Contract test | `tests/unit/` |
 | LLM API call responses | VCR integration | `tests/integration/` |
 | "Did agent do the right thing?" | TruLens eval | `tests/evals/` |
+| Component is wired to system | Wiring test | `tests/integration/wiring/` |
 
 ### Quick Decision Tree
 
@@ -44,6 +60,10 @@ Is the output deterministic (same input → same output)?
          └─ NO → Is it about reasoning/decision quality?
                   ├─ YES → TruLens eval
                   └─ NO → Unit test with mocks
+
+Is this about component integration (reachable from entry point)?
+├─ YES → Wiring test (tests/integration/wiring/)
+└─ NO → Use above decision tree
 ```
 
 ---
@@ -125,6 +145,38 @@ def test_recommendation_actionability():
 
 **Run:** `bun run tests/evals/run-evals.ts` (release only)
 
+### 4. Wiring Tests (`tests/integration/wiring/`)
+
+**Use for:** Verifying components are actually integrated into the system
+
+These tests verify the "last mile" - that built components are reachable from user entry points.
+A component that passes unit tests but is never wired to the system is dead code.
+
+```typescript
+// tests/integration/wiring/cli-components.test.ts
+import { glob } from 'glob';
+import { getExports, hasImportPath } from './wiring-utils';
+
+describe('CLI Component Wiring', () => {
+  it('all exported components have import paths to entry points', () => {
+    const componentFiles = glob.sync('src/cli/components/*.tsx');
+    for (const file of componentFiles) {
+      const exports = getExports(file);
+      for (const exp of exports) {
+        expect(hasImportPath(exp, 'src/cli.ts')).toBe(true);
+      }
+    }
+  });
+});
+```
+
+**When to write wiring tests:**
+- After building ANY user-facing component
+- After creating tools that should be registered
+- As part of Phase 6 (Integration) in every epic
+
+**Run:** `bun test tests/integration/wiring/`
+
 ---
 
 ## Test Suite Structure
@@ -135,6 +187,7 @@ Per ADR-0011:
 |-------|---------|-----------------|---------|
 | Unit | Every commit | Mocked | Component logic |
 | Integration | Pull requests | VCR recorded | Tool chains, sessions |
+| Wiring | Pull requests | None | Entry point reachability |
 | E2E | Release tags | Live | Full workflows |
 | Evals | Release tags | Live + TruLens | Behavioral quality |
 
@@ -150,6 +203,7 @@ For ACT Subagents (EP08):
 | `ACTSubagentRegistry.register()` | Unit test |
 | `toAgentsOption()` output format | Contract test |
 | Subagent tool invocation | VCR integration |
+| Subagent registered in registry | Wiring test |
 | "Does Claude pick the right subagent?" | TruLens eval |
 | "Are subagent recommendations actionable?" | TruLens eval |
 

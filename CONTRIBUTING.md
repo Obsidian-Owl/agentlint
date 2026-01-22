@@ -59,14 +59,18 @@ bun run agentlint --version
 
 | Script | Command | Description |
 |--------|---------|-------------|
-| `test` | `bun test` | Run test suite |
-| `test:coverage` | `bun test --coverage` | Run tests with coverage |
+| `test` | `bun run test` | Run safe tests (unit + integration) |
+| `test:live` | `bun run test:live` | Run E2E tests (requires API key) |
+| `test:evals` | `bun run test:evals` | Run evaluations (requires API key) |
+| `test:coverage` | `bun run test:coverage` | Run tests with coverage |
 | `lint` | `bun run lint` | Check code style |
 | `lint:fix` | `bun run lint:fix` | Fix lint issues |
 | `format` | `bun run format` | Format code with Prettier |
 | `format:check` | `bun run format:check` | Check formatting |
 | `typecheck` | `bun run typecheck` | Type check without emit |
 | `build` | `bun run build` | Build to dist/ |
+
+> **Note**: Always use `bun run test`, never raw `bun test`. Live tests (e2e/evals) require `ANTHROPIC_API_KEY` and cost money.
 
 ### Code Style
 
@@ -121,7 +125,7 @@ docs(readme): update installation instructions
 
 1. Create a feature branch from `main`
 2. Make your changes
-3. Ensure all tests pass: `bun test`
+3. Ensure all tests pass: `bun run test`
 4. Ensure code is formatted: `bun run format`
 5. Ensure types check: `bun run typecheck`
 6. Push and create a PR
@@ -163,15 +167,23 @@ To configure branch protection in GitHub:
 ### Running Tests
 
 ```bash
-# All tests
-bun test
+# Safe tests (unit + integration, no API calls)
+bun run test
 
-# Specific file
-bun test tests/cli.test.ts
+# Specific directory
+bun run test tests/unit/
 
 # With coverage
-bun test --coverage
+bun run test:coverage
+
+# Live E2E tests (requires ANTHROPIC_API_KEY, costs money)
+bun run test:live
+
+# Evaluations (requires ANTHROPIC_API_KEY, costs money)
+bun run test:evals
 ```
+
+> **Important**: Never use raw `bun test` - always use `bun run test`.
 
 ### Writing Tests
 

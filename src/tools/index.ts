@@ -19,8 +19,17 @@ export * from './config';
 // Note: Export with namespace to avoid conflicts with config exports (both have extractMetrics)
 export * as sessions from './sessions';
 
+// Causal tracing tools (EP07)
+export * as causal from './causal';
+
 // Temporal analysis tools (EP09)
 export * as temporal from '../temporal/tools';
+
+// Recommendation tools (EP10)
+export * as recommendations from '../recommendations/tools';
+
+// Security tools (EP11)
+export * as security from '../security';
 
 // Adapters for different ACT formats
 export * from './adapters';
@@ -30,8 +39,17 @@ export * from './adapters';
 // =============================================================================
 
 // Re-export individual tool definitions for explicit registration
+
+// EP05 Config tools
 export { discoverConfigsTool, parseConfigTool, analyzeHierarchyTool } from './config';
-export { searchSessionsTool, getSessionStatsTool } from './sessions';
+
+// EP06 Session tools
+export { searchSessionsTool, getSessionStatsTool, indexSessionsTool } from './sessions';
+
+// EP07 Causal tools
+export { traceIssueOriginTool, getIssuePatternsTool } from './causal';
+
+// EP09 Temporal tools
 export {
   storeBaselineTool,
   queryBaselineTool,
@@ -40,14 +58,39 @@ export {
   queryTrendsTool,
   conductReviewTool,
   getReviewHistoryTool,
+  spawnTemporalAnalystTool,
 } from '../temporal/tools';
+
+// EP10 Recommendation tools
+export {
+  createRecommendationTool,
+  getRecommendationTool,
+  listRecommendationsTool,
+  refineRecommendationTool,
+  updateRecommendationStatusTool,
+  completeRecommendationTool,
+  addRecommendationEventTool,
+  getRecommendationSummaryTool,
+  spawnRecommendationAdvisorTool,
+} from '../recommendations/tools';
+
+// EP11 Security tools
+export { classifySecretTool } from '../security';
 
 // =============================================================================
 // Tool Registration Helpers (T072)
 // =============================================================================
 
+// EP05 Config tools
 import { discoverConfigsTool, parseConfigTool, analyzeHierarchyTool } from './config';
-import { searchSessionsTool, getSessionStatsTool } from './sessions';
+
+// EP06 Session tools
+import { searchSessionsTool, getSessionStatsTool, indexSessionsTool } from './sessions';
+
+// EP07 Causal tools
+import { traceIssueOriginTool, getIssuePatternsTool } from './causal';
+
+// EP09 Temporal tools
 import {
   storeBaselineTool,
   queryBaselineTool,
@@ -56,7 +99,24 @@ import {
   queryTrendsTool,
   conductReviewTool,
   getReviewHistoryTool,
+  spawnTemporalAnalystTool,
 } from '../temporal/tools';
+
+// EP10 Recommendation tools
+import {
+  createRecommendationTool,
+  getRecommendationTool,
+  listRecommendationsTool,
+  refineRecommendationTool,
+  updateRecommendationStatusTool,
+  completeRecommendationTool,
+  addRecommendationEventTool,
+  getRecommendationSummaryTool,
+  spawnRecommendationAdvisorTool,
+} from '../recommendations/tools';
+
+// EP11 Security tools
+import { classifySecretTool } from '../security';
 
 /**
  * All EP05 config analysis tools as an array for bulk registration.
@@ -74,6 +134,15 @@ export const EP05_CONFIG_TOOLS: ToolDefinition[] = [
 export const EP06_SESSION_TOOLS: ToolDefinition[] = [
   searchSessionsTool,
   getSessionStatsTool,
+  indexSessionsTool,
+] as ToolDefinition[];
+
+/**
+ * All EP07 causal tracing tools as an array for bulk registration.
+ */
+export const EP07_CAUSAL_TOOLS: ToolDefinition[] = [
+  traceIssueOriginTool,
+  getIssuePatternsTool,
 ] as ToolDefinition[];
 
 /**
@@ -87,7 +156,28 @@ export const EP09_TEMPORAL_TOOLS: ToolDefinition[] = [
   queryTrendsTool,
   conductReviewTool,
   getReviewHistoryTool,
+  spawnTemporalAnalystTool,
 ] as ToolDefinition[];
+
+/**
+ * All EP10 recommendation tools as an array for bulk registration.
+ */
+export const EP10_RECOMMENDATION_TOOLS: ToolDefinition[] = [
+  createRecommendationTool,
+  getRecommendationTool,
+  listRecommendationsTool,
+  refineRecommendationTool,
+  updateRecommendationStatusTool,
+  completeRecommendationTool,
+  addRecommendationEventTool,
+  getRecommendationSummaryTool,
+  spawnRecommendationAdvisorTool,
+] as ToolDefinition[];
+
+/**
+ * All EP11 security tools as an array for bulk registration.
+ */
+export const EP11_SECURITY_TOOLS: ToolDefinition[] = [classifySecretTool] as ToolDefinition[];
 
 /**
  * Register all EP05 config analysis tools with a ToolRegistry.
@@ -124,6 +214,23 @@ export function registerEP06Tools(registry: IToolRegistry): void {
 }
 
 /**
+ * Register all EP07 causal tracing tools with a ToolRegistry.
+ *
+ * @param registry - The ToolRegistry to register tools with
+ * @example
+ * ```typescript
+ * import { createToolRegistry } from './orchestration';
+ * import { registerEP07Tools } from './tools';
+ *
+ * const registry = createToolRegistry();
+ * registerEP07Tools(registry);
+ * ```
+ */
+export function registerEP07Tools(registry: IToolRegistry): void {
+  registry.registerMany(EP07_CAUSAL_TOOLS);
+}
+
+/**
  * Register all EP09 temporal analysis tools with a ToolRegistry.
  *
  * @param registry - The ToolRegistry to register tools with
@@ -141,13 +248,58 @@ export function registerEP09Tools(registry: IToolRegistry): void {
 }
 
 /**
+ * Register all EP10 recommendation tools with a ToolRegistry.
+ *
+ * @param registry - The ToolRegistry to register tools with
+ * @example
+ * ```typescript
+ * import { createToolRegistry } from './orchestration';
+ * import { registerEP10Tools } from './tools';
+ *
+ * const registry = createToolRegistry();
+ * registerEP10Tools(registry);
+ * ```
+ */
+export function registerEP10Tools(registry: IToolRegistry): void {
+  registry.registerMany(EP10_RECOMMENDATION_TOOLS);
+}
+
+/**
+ * Register all EP11 security tools with a ToolRegistry.
+ *
+ * @param registry - The ToolRegistry to register tools with
+ * @example
+ * ```typescript
+ * import { createToolRegistry } from './orchestration';
+ * import { registerEP11SecurityTools } from './tools';
+ *
+ * const registry = createToolRegistry();
+ * registerEP11SecurityTools(registry);
+ * ```
+ */
+export function registerEP11SecurityTools(registry: IToolRegistry): void {
+  registry.registerMany(EP11_SECURITY_TOOLS);
+}
+
+/**
  * Register all agentlint tools with a ToolRegistry.
- * Includes EP05 config analysis, EP06 session analysis, and EP09 temporal tools.
+ * Includes EP05-EP11 tools:
+ * - EP05: Config analysis (3 tools)
+ * - EP06: Session analysis (3 tools)
+ * - EP07: Causal tracing (2 tools)
+ * - EP09: Temporal analysis (8 tools)
+ * - EP10: Recommendations (9 tools)
+ * - EP11: Security (1 tool)
+ *
+ * Total: 26 tools
  *
  * @param registry - The ToolRegistry to register tools with
  */
 export function registerAllTools(registry: IToolRegistry): void {
-  registerEP05Tools(registry);
-  registerEP06Tools(registry);
-  registerEP09Tools(registry);
+  registerEP05Tools(registry); // Config (3)
+  registerEP06Tools(registry); // Sessions (2)
+  registerEP07Tools(registry); // Causal (2)
+  registerEP09Tools(registry); // Temporal (8)
+  registerEP10Tools(registry); // Recommendations (9)
+  registerEP11SecurityTools(registry); // Security (1)
 }

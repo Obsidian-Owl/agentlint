@@ -151,3 +151,36 @@ export {
 // =============================================================================
 
 export { MAX_SUBAGENT_DEPTH } from './config';
+
+// =============================================================================
+// Retry Logic (AGE-665) - EP11 Complete
+// =============================================================================
+
+export type { RetryConfig, RetryResult, RetryCallback } from './retry';
+export {
+  withRetry,
+  withRetryResult,
+  isRetryableError,
+  calculateBackoff,
+  DEFAULT_RETRY_CONFIG,
+  RETRYABLE_STATUS_CODES,
+} from './retry';
+
+// =============================================================================
+// Execution Context - EP11 Debug Infrastructure Fix
+// =============================================================================
+
+export type { ExecutionContext } from './execution-context';
+export {
+  runWithExecutionContext,
+  getTargetDirectory,
+  getExecutionContext,
+  hasExecutionContext,
+} from './execution-context';
+
+// =============================================================================
+// Human-in-the-Loop - ADR-0021 Conversational Interaction
+// =============================================================================
+
+export type { CanUseToolOptions } from './can-use-tool';
+export { createCanUseToolCallback } from './can-use-tool';

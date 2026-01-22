@@ -22,7 +22,13 @@ export const RecommendationStatusSchema = z.enum([
   'monitoring',
 ]);
 
-export const CompletionReasonSchema = z.enum(['implemented', 'superseded', 'obsolete', 'rejected']);
+export const CompletionReasonSchema = z.enum([
+  'implemented',
+  'superseded',
+  'obsolete',
+  'rejected',
+  'duplicate', // AGE-674: Allow marking duplicates
+]);
 
 export const EventTypeSchema = z.enum([
   'created',

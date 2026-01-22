@@ -53,20 +53,42 @@ export const DEFAULT_EXCLUSIONS = [
 
 /**
  * Config file patterns to search for.
+ * Extended for AGE-666 to include more Claude config types.
+ * Extended for remediation to include rules, agents, and commands.
+ *
+ * Official Claude Code structure:
+ * - Skills: .claude/skills/<name>/SKILL.md (subdirectory with SKILL.md)
+ * - Rules: .claude/rules/**\/*.md (any .md files, supports subdirs, path targeting)
+ * - Agents: .claude/agents/*.md (markdown with YAML frontmatter)
+ * - Commands: .claude/commands/*.md (legacy, merged into skills)
  */
 const CONFIG_PATTERNS = {
   claudeMd: ['**/CLAUDE.md', '**/claude.md'],
   agentsMd: ['**/AGENTS.md', '**/agents.md'],
   settings: ['**/settings.json', '**/.claude/settings.json'],
-  skillMd: ['**/SKILL.md', '**/skill.md'],
+  settingsLocal: ['**/.claude/settings.local.json'],
+  mcpJson: ['**/.mcp.json'],
+  hooks: ['**/.claude/hooks/*'],
+  // FIX: Skills are in subdirectories: skills/<name>/SKILL.md
+  skillMd: ['**/.claude/skills/*/SKILL.md', '**/SKILL.md'],
+  // NEW: Rules - any .md in rules/ recursively
+  rules: ['**/.claude/rules/**/*.md'],
+  // NEW: Agents (subagents) - .md files in agents/
+  agents: ['**/.claude/agents/*.md'],
+  // NEW: Commands (legacy, deprecated but supported)
+  commands: ['**/.claude/commands/*.md'],
 } as const;
 
 /**
  * Determine ConfigType from file path.
+ * Extended for AGE-666 to handle more Claude config types.
+ * Extended for remediation to detect rules, agents, and commands.
  */
 function getConfigType(filePath: string): ConfigType {
+  const normalizedPath = filePath.replace(/\\/g, '/');
   const basename = path.basename(filePath).toLowerCase();
   const parentDir = path.basename(path.dirname(filePath));
+  const grandparentDir = path.basename(path.dirname(path.dirname(filePath)));
 
   if (basename === 'claude.md') {
     return 'claude-md';
@@ -74,12 +96,57 @@ function getConfigType(filePath: string): ConfigType {
   if (basename === 'agents.md') {
     return 'agents-md';
   }
+  // .claude/settings.local.json (AGE-666)
+  if (basename === 'settings.local.json' && parentDir === '.claude') {
+    return 'claude-settings-local';
+  }
+  // .claude/settings.json or any settings.json
   if (basename === 'settings.json' && parentDir === '.claude') {
     return 'claude-settings';
   }
   if (basename === 'settings.json') {
     return 'claude-settings';
   }
+  // .mcp.json (AGE-666)
+  if (basename === '.mcp.json') {
+    return 'mcp-json';
+  }
+  // .claude/hooks/* (AGE-666)
+  if (parentDir === 'hooks' && grandparentDir === '.claude') {
+    return 'claude-hook';
+  }
+
+  // Exclude README.md files - they are documentation, not config definitions
+  if (basename === 'readme.md') {
+    return 'unknown';
+  }
+
+  // Detect new Claude Code config types by path structure
+  const pathParts = normalizedPath.split('/');
+  const claudeIdx = pathParts.indexOf('.claude');
+
+  if (claudeIdx !== -1 && claudeIdx + 1 < pathParts.length) {
+    const subdir = pathParts[claudeIdx + 1];
+
+    // .claude/rules/**/*.md - rule files (any .md recursively)
+    if (subdir === 'rules' && basename.endsWith('.md')) {
+      return 'claude-rule';
+    }
+    // .claude/agents/*.md - agent/subagent definitions
+    if (subdir === 'agents' && basename.endsWith('.md')) {
+      return 'claude-agent';
+    }
+    // .claude/commands/*.md - legacy slash commands (deprecated but supported)
+    if (subdir === 'commands' && basename.endsWith('.md')) {
+      return 'claude-command';
+    }
+    // .claude/skills/*/SKILL.md - skill definitions (directory structure)
+    if (subdir === 'skills' && basename === 'skill.md') {
+      return 'skill-md';
+    }
+  }
+
+  // Standalone SKILL.md files (outside .claude directory)
   if (basename === 'skill.md') {
     return 'skill-md';
   }
@@ -89,12 +156,20 @@ function getConfigType(filePath: string): ConfigType {
 
 /**
  * Determine ACTType from ConfigType.
+ * Extended for AGE-666 to handle more Claude config types.
+ * Extended for remediation to handle rules, agents, and commands.
  */
 function getACTType(configType: ConfigType): ACTType {
   switch (configType) {
     case 'claude-md':
     case 'claude-settings':
+    case 'claude-settings-local':
+    case 'mcp-json':
+    case 'claude-hook':
     case 'skill-md':
+    case 'claude-rule':
+    case 'claude-agent':
+    case 'claude-command':
       return 'claude-code';
     case 'agents-md':
       return 'agents-md';
@@ -236,12 +311,19 @@ export async function discoverConfigs(input: DiscoverConfigsInput): Promise<Disc
     }
   }
 
-  // Build glob patterns for all config types
+  // Build glob patterns for all config types (AGE-666: expanded patterns)
+  // Extended for remediation to include rules, agents, and commands
   const allPatterns = [
     ...CONFIG_PATTERNS.claudeMd,
     ...CONFIG_PATTERNS.agentsMd,
     ...CONFIG_PATTERNS.settings,
+    ...CONFIG_PATTERNS.settingsLocal,
+    ...CONFIG_PATTERNS.mcpJson,
+    ...CONFIG_PATTERNS.hooks,
     ...CONFIG_PATTERNS.skillMd,
+    ...CONFIG_PATTERNS.rules,
+    ...CONFIG_PATTERNS.agents,
+    ...CONFIG_PATTERNS.commands,
   ];
 
   try {
@@ -372,12 +454,19 @@ export function discoverConfigsSync(input: DiscoverConfigsInput): DiscoverConfig
     }
   }
 
-  // Build glob patterns
+  // Build glob patterns (AGE-666: expanded patterns)
+  // Extended for remediation to include rules, agents, and commands
   const allPatterns = [
     ...CONFIG_PATTERNS.claudeMd,
     ...CONFIG_PATTERNS.agentsMd,
     ...CONFIG_PATTERNS.settings,
+    ...CONFIG_PATTERNS.settingsLocal,
+    ...CONFIG_PATTERNS.mcpJson,
+    ...CONFIG_PATTERNS.hooks,
     ...CONFIG_PATTERNS.skillMd,
+    ...CONFIG_PATTERNS.rules,
+    ...CONFIG_PATTERNS.agents,
+    ...CONFIG_PATTERNS.commands,
   ];
 
   try {

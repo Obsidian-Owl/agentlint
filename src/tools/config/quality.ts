@@ -1,12 +1,16 @@
 /**
  * T050-T055: Configuration Quality Assessment
  *
- * Evaluates AI configuration file quality using metrics from ADR-0007:
- * - Structure scoring (T051): Section hierarchy and organization
- * - Size scoring (T052): Line count and token estimates
- * - Completeness scoring (T053): Recommended section coverage
- * - Anti-pattern detection (T054): Generic rules, linter jobs, etc.
- * - Weighted score calculation (T055): Combine dimensions into grade
+ * Per ADR-0019 (Tool/Agent Boundary), this module provides raw metrics
+ * for agent interpretation. Tools extract factual data; agents make
+ * quality judgments and recommendations.
+ *
+ * Returns:
+ * - Raw metrics (line count, section count, token estimate)
+ * - Structure analysis (factual observations)
+ * - Size analysis with threshold flags (based on ADR-0007)
+ * - Completeness analysis (present/missing sections)
+ * - Anti-pattern detection (factual pattern matching)
  *
  * @module tools/config/quality
  */
@@ -14,12 +18,14 @@
 import type {
   ParsedConfig,
   QualityAssessment,
-  QualityDimensions,
   QualityIssue,
-  Grade,
   IssueType,
   IssueSeverity,
+  StructureAnalysis,
+  SizeAnalysis,
+  CompletenessAnalysis,
 } from './types';
+import { validateACTFormat } from './act-format-validator';
 
 // =============================================================================
 // Constants (from ADR-0007)
@@ -34,9 +40,6 @@ const LINES_MAX = 300;
 /** Token count: lightweight */
 const TOKENS_LIGHTWEIGHT = 3000;
 
-/** Token count: medium */
-const TOKENS_MEDIUM = 15000;
-
 /** Token count: problematic threshold */
 const TOKENS_PROBLEMATIC = 25000;
 
@@ -45,23 +48,6 @@ const INSTRUCTION_OVERLOAD_THRESHOLD = 200;
 
 /** Code block size threshold (lines) for snippet warning */
 const CODE_BLOCK_SIZE_THRESHOLD = 15;
-
-/** Dimension weights for overall score */
-const WEIGHTS = {
-  structure: 0.25,
-  size: 0.25,
-  completeness: 0.2,
-  specificity: 0.3,
-};
-
-/** Grade thresholds */
-const GRADE_THRESHOLDS: Array<{ min: number; grade: Grade }> = [
-  { min: 90, grade: 'A' },
-  { min: 80, grade: 'B' },
-  { min: 70, grade: 'C' },
-  { min: 60, grade: 'D' },
-  { min: 0, grade: 'F' },
-];
 
 /** Generic rule patterns (wastes tokens) */
 const GENERIC_RULE_PATTERNS = [
@@ -116,7 +102,7 @@ const SECRET_PATTERNS = [
 /** Environment variable reference patterns (NOT secrets) */
 const ENV_VAR_PATTERNS = [/\$[A-Z_]+/, /process\.env\.[A-Z_]+/, /\$\{[A-Z_]+\}/, /\benv\.[A-Z_]+/];
 
-/** Recommended section names (for completeness scoring) */
+/** Recommended section names (for completeness analysis) */
 const RECOMMENDED_SECTIONS = [
   'overview',
   'project',
@@ -135,184 +121,149 @@ const RECOMMENDED_SECTIONS = [
 // =============================================================================
 
 /**
- * Assess the quality of a parsed configuration.
- *
- * @param config - Parsed configuration to assess
- * @returns Quality assessment with score, grade, and recommendations
+ * Options for quality assessment.
  */
-export function assessQuality(config: ParsedConfig): QualityAssessment {
-  // Calculate dimension scores
-  const structure = scoreStructure(config);
-  const size = scoreSize(config);
-  const completeness = scoreCompleteness(config);
-  const specificity = scoreSpecificity(config);
+export interface AssessQualityOptions {
+  /** Include ACT format validation (frontmatter requirements). Default: false */
+  validateFormat?: boolean;
+}
 
-  // Detect anti-patterns and calculate penalty
+/**
+ * Analyze the quality characteristics of a parsed configuration.
+ *
+ * Per ADR-0019, returns raw metrics for agent interpretation.
+ * The agent determines what constitutes "good" or "bad" quality
+ * based on context.
+ *
+ * @param config - Parsed configuration to analyze
+ * @param options - Optional assessment options
+ * @returns Raw quality metrics for agent interpretation
+ */
+export function assessQuality(
+  config: ParsedConfig,
+  options?: AssessQualityOptions
+): QualityAssessment {
+  const { validateFormat = false } = options ?? {};
+
+  // Analyze structure (factual observations)
+  const structure = analyzeStructure(config);
+
+  // Analyze size (factual observations with threshold flags)
+  const sizeAnalysis = analyzeSize(config);
+
+  // Analyze completeness (present/missing sections)
+  const completeness = analyzeCompleteness(config);
+
+  // Detect anti-patterns (factual pattern matching)
   const issues = detectAntiPatterns(config);
-  const antiPatternPenalty = calculateAntiPatternPenalty(issues);
 
-  const dimensions: QualityDimensions = {
-    structure,
-    size,
-    completeness,
-    specificity,
-    antiPatternPenalty,
-  };
-
-  // Calculate weighted score (T055)
-  const rawScore =
-    dimensions.structure * WEIGHTS.structure +
-    dimensions.size * WEIGHTS.size +
-    dimensions.completeness * WEIGHTS.completeness +
-    dimensions.specificity * WEIGHTS.specificity;
-
-  // Apply penalty (capped at 50 points reduction)
-  const score = Math.max(0, Math.min(100, rawScore - Math.min(antiPatternPenalty, 50)));
-
-  // Determine grade
-  const grade = calculateGrade(score);
-
-  // Generate recommendations
-  const recommendations = generateRecommendations(config, dimensions, issues);
+  // Optionally validate ACT format requirements (frontmatter, required fields)
+  if (validateFormat) {
+    const formatInput: Parameters<typeof validateACTFormat>[0] = {
+      configType: config.file.type,
+      filePath: config.file.path,
+      content: config.raw,
+      hasFrontmatter: config.frontmatter !== undefined,
+    };
+    if (config.frontmatter !== undefined) {
+      formatInput.frontmatter = config.frontmatter;
+    }
+    const formatResult = validateACTFormat(formatInput);
+    issues.push(...formatResult.issues);
+  }
 
   return {
-    score: Math.round(score),
-    grade,
-    dimensions,
+    metrics: config.metrics,
+    structure,
+    sizeAnalysis,
+    completeness,
     issues,
-    recommendations,
     assessedAt: new Date(),
   };
 }
 
 // =============================================================================
-// Structure Scoring (T051)
+// Structure Analysis (T051)
 // =============================================================================
 
 /**
- * Score the structural organization of the configuration.
- * Rewards: clear hierarchy, reasonable depth, balanced sections.
- * Penalizes: flat structure, too deep, unbalanced.
+ * Analyze the structural characteristics of the configuration.
+ * Returns factual observations without scoring.
  */
-function scoreStructure(config: ParsedConfig): number {
-  const { sections, metrics } = config;
+function analyzeStructure(config: ParsedConfig): StructureAnalysis {
+  const { sections, metrics, raw } = config;
 
-  // Empty or no sections = very low score
-  if (sections.length === 0 || metrics.sectionCount === 0) {
-    // Check if there's any content at all
-    if (config.raw.trim().length === 0) {
-      return 5; // Empty file gets minimum score
-    }
-    return 15; // Has content but no structure
-  }
-
-  let score = 50; // Start at 50
-
-  // Reward for having sections (up to 20 points)
-  const sectionBonus = Math.min(20, metrics.sectionCount * 4);
-  score += sectionBonus;
-
-  // Reward for reasonable heading depth (up to 15 points)
-  // Optimal depth is 2-3 levels
-  if (metrics.maxHeadingDepth >= 2 && metrics.maxHeadingDepth <= 4) {
-    score += 15;
-  } else if (metrics.maxHeadingDepth === 1) {
-    score += 5; // Single level is okay but not great
-  } else if (metrics.maxHeadingDepth > 4) {
-    score += 8; // Too deep, slightly penalized
-  }
-
-  // Reward for hierarchical nesting (up to 15 points)
+  const isEmpty = !raw || raw.trim().length === 0;
+  const hasStructure = sections.length > 0 || metrics.sectionCount > 0;
   const hasNestedSections = sections.some((s) => s.children.length > 0);
-  if (hasNestedSections) {
-    score += 15;
-  }
 
-  // Cap at 100
-  return Math.min(100, Math.max(0, score));
+  return {
+    sectionCount: metrics.sectionCount,
+    maxHeadingDepth: metrics.maxHeadingDepth,
+    hasNestedSections,
+    isEmpty,
+    hasStructure,
+  };
 }
 
 // =============================================================================
-// Size Scoring (T052)
+// Size Analysis (T052)
 // =============================================================================
 
 /**
- * Score the size appropriateness based on ADR-0007 thresholds.
- * <60 lines: optimal (90-100)
- * 60-150 lines: good (70-90)
- * 150-300 lines: acceptable (50-70)
- * >300 lines: too large (<50)
+ * Analyze the size characteristics based on ADR-0007 thresholds.
+ * Returns factual observations with threshold flags.
  */
-function scoreSize(config: ParsedConfig): number {
+function analyzeSize(config: ParsedConfig): SizeAnalysis {
   const { metrics } = config;
   const lineCount = metrics.lineCount;
-  const tokenCount = metrics.tokenEstimate;
+  const tokenEstimate = metrics.tokenEstimate;
 
-  // Line-based scoring
-  let lineScore: number;
-  if (lineCount <= LINES_OPTIMAL) {
-    lineScore = 100;
-  } else if (lineCount <= 150) {
-    // Linear interpolation from 90 to 70
-    lineScore = 90 - ((lineCount - LINES_OPTIMAL) / 90) * 20;
-  } else if (lineCount <= LINES_MAX) {
-    // Linear interpolation from 70 to 50
-    lineScore = 70 - ((lineCount - 150) / 150) * 20;
-  } else {
-    // Over 300 lines: rapid decline to below 50
-    // Start at 40 and decrease further (ensures <50 for >300 lines)
-    lineScore = Math.max(5, 40 - (lineCount - LINES_MAX) / 10);
-  }
-
-  // Token-based scoring
-  let tokenScore: number;
-  if (tokenCount <= TOKENS_LIGHTWEIGHT) {
-    tokenScore = 100;
-  } else if (tokenCount <= TOKENS_MEDIUM) {
-    tokenScore =
-      80 - ((tokenCount - TOKENS_LIGHTWEIGHT) / (TOKENS_MEDIUM - TOKENS_LIGHTWEIGHT)) * 30;
-  } else if (tokenCount <= TOKENS_PROBLEMATIC) {
-    tokenScore = 50 - ((tokenCount - TOKENS_MEDIUM) / (TOKENS_PROBLEMATIC - TOKENS_MEDIUM)) * 30;
-  } else {
-    tokenScore = Math.max(5, 20 - (tokenCount - TOKENS_PROBLEMATIC) / 5000);
-  }
-
-  // Combine both scores
-  // If lines exceed max, use line score more heavily to ensure penalty
-  if (lineCount > LINES_MAX) {
-    // Over 300 lines: line score dominates (80/20 weighting)
-    return Math.round(lineScore * 0.8 + tokenScore * 0.2);
-  }
-  // Normal case: weighted average with lines slightly more important
-  return Math.round(lineScore * 0.6 + tokenScore * 0.4);
+  return {
+    lineCount,
+    tokenEstimate,
+    exceedsOptimalLines: lineCount > LINES_OPTIMAL,
+    exceedsMaxLines: lineCount > LINES_MAX,
+    exceedsLightweightTokens: tokenEstimate > TOKENS_LIGHTWEIGHT,
+    exceedsProblematicTokens: tokenEstimate > TOKENS_PROBLEMATIC,
+  };
 }
 
 // =============================================================================
-// Completeness Scoring (T053)
+// Completeness Analysis (T053)
 // =============================================================================
 
 /**
- * Score coverage of recommended sections.
- * Checks for presence of key section types.
+ * Analyze coverage of recommended sections.
+ * Returns factual list of present/missing sections.
  */
-function scoreCompleteness(config: ParsedConfig): number {
+function analyzeCompleteness(config: ParsedConfig): CompletenessAnalysis {
   const { sections, file, raw } = config;
 
-  // Empty config gets minimum
+  // Empty config has all sections missing
   if (!raw || raw.trim().length === 0) {
-    return 5;
+    return {
+      presentSections: [],
+      missingSections: [...RECOMMENDED_SECTIONS],
+      totalRecommendedSections: RECOMMENDED_SECTIONS.length,
+    };
   }
 
   // JSON configs don't have markdown sections
   if (file.type === 'claude-settings') {
-    // For JSON, check if required fields are present
-    const frontmatter = config.frontmatter || {};
-    const hasModel = 'model' in frontmatter;
-    return hasModel ? 70 : 40;
+    return {
+      presentSections: [],
+      missingSections: [],
+      totalRecommendedSections: 0, // N/A for JSON
+    };
   }
 
   if (sections.length === 0) {
-    return 10;
+    return {
+      presentSections: [],
+      missingSections: [...RECOMMENDED_SECTIONS],
+      totalRecommendedSections: RECOMMENDED_SECTIONS.length,
+    };
   }
 
   // Collect all section titles (including nested)
@@ -328,60 +279,22 @@ function scoreCompleteness(config: ParsedConfig): number {
   collectTitles(sections);
 
   // Check for recommended sections
-  let found = 0;
+  const presentSections: string[] = [];
+  const missingSections: string[] = [];
+
   for (const recommended of RECOMMENDED_SECTIONS) {
     if (allTitles.some((title) => title.includes(recommended))) {
-      found++;
+      presentSections.push(recommended);
+    } else {
+      missingSections.push(recommended);
     }
   }
 
-  // Score based on coverage (10 recommended sections)
-  const coverageRatio = found / RECOMMENDED_SECTIONS.length;
-  return Math.round(20 + coverageRatio * 80);
-}
-
-// =============================================================================
-// Specificity Scoring
-// =============================================================================
-
-/**
- * Score how project-specific vs generic the config content is.
- * Rewards: specific commands, file paths, tool names.
- * Penalizes: generic advice, platitudes.
- */
-function scoreSpecificity(config: ParsedConfig): number {
-  const { raw, codeBlocks } = config;
-
-  if (!raw || raw.trim().length === 0) {
-    return 5; // Empty config gets minimum
-  }
-
-  let score = 50;
-
-  // Reward for code blocks with commands (up to 20 points)
-  const commandBlocks = codeBlocks.filter(
-    (cb) => cb.language === 'bash' || cb.language === 'sh' || cb.language === 'shell'
-  );
-  score += Math.min(20, commandBlocks.length * 5);
-
-  // Reward for inline code (backticks suggest specific commands/paths)
-  const inlineCodeMatches = raw.match(/`[^`]+`/g) || [];
-  score += Math.min(15, inlineCodeMatches.length * 2);
-
-  // Reward for file path references
-  const filePathMatches = raw.match(/\b\w+\.\w+\b/g) || []; // simple file.ext pattern
-  score += Math.min(10, filePathMatches.length);
-
-  // Penalize for generic phrases
-  let genericCount = 0;
-  for (const pattern of GENERIC_RULE_PATTERNS) {
-    if (pattern.test(raw)) {
-      genericCount++;
-    }
-  }
-  score -= genericCount * 8;
-
-  return Math.max(0, Math.min(100, score));
+  return {
+    presentSections,
+    missingSections,
+    totalRecommendedSections: RECOMMENDED_SECTIONS.length,
+  };
 }
 
 // =============================================================================
@@ -390,6 +303,7 @@ function scoreSpecificity(config: ParsedConfig): number {
 
 /**
  * Detect anti-patterns in configuration content.
+ * This is factual pattern matching, not quality judgment.
  */
 export function detectAntiPatterns(config: ParsedConfig): QualityIssue[] {
   const issues: QualityIssue[] = [];
@@ -568,112 +482,4 @@ function detectLargeCodeSnippets(codeBlocks: ParsedConfig['codeBlocks']): Qualit
   }
 
   return issues;
-}
-
-// =============================================================================
-// Score Calculation (T055)
-// =============================================================================
-
-/**
- * Calculate penalty points from detected issues.
- */
-function calculateAntiPatternPenalty(issues: QualityIssue[]): number {
-  let penalty = 0;
-
-  for (const issue of issues) {
-    switch (issue.severity) {
-      case 'critical':
-        penalty += 20;
-        break;
-      case 'high':
-        penalty += 10;
-        break;
-      case 'medium':
-        penalty += 5;
-        break;
-      case 'low':
-        penalty += 2;
-        break;
-      case 'info':
-        penalty += 1;
-        break;
-    }
-  }
-
-  return penalty;
-}
-
-/**
- * Determine letter grade from score.
- */
-function calculateGrade(score: number): Grade {
-  for (const threshold of GRADE_THRESHOLDS) {
-    if (score >= threshold.min) {
-      return threshold.grade;
-    }
-  }
-  return 'F';
-}
-
-/**
- * Generate actionable recommendations based on assessment.
- */
-function generateRecommendations(
-  config: ParsedConfig,
-  dimensions: QualityDimensions,
-  issues: QualityIssue[]
-): string[] {
-  const recommendations: string[] = [];
-
-  // Structure recommendations
-  if (dimensions.structure < 50) {
-    recommendations.push(
-      'Add section headings to organize your configuration. Use ## for main sections and ### for subsections.'
-    );
-  }
-
-  // Size recommendations
-  if (dimensions.size < 50) {
-    if (config.metrics.lineCount > LINES_MAX) {
-      recommendations.push(
-        `Configuration has ${config.metrics.lineCount} lines. Consider splitting into multiple files or using SKILL.md for specialized sections.`
-      );
-    }
-    if (config.metrics.tokenEstimate > TOKENS_PROBLEMATIC) {
-      recommendations.push(
-        `High token count (${config.metrics.tokenEstimate}). Remove redundant content and use file references instead of embedded code.`
-      );
-    }
-  }
-
-  // Completeness recommendations
-  if (dimensions.completeness < 50) {
-    recommendations.push(
-      'Consider adding sections for: Project Overview, Development Commands, and Architecture/Structure.'
-    );
-  }
-
-  // Specificity recommendations
-  if (dimensions.specificity < 50) {
-    recommendations.push(
-      'Add specific commands, file paths, and tool configurations. Avoid generic advice that the AI already knows.'
-    );
-  }
-
-  // Issue-specific recommendations (limit to avoid overwhelming)
-  const criticalIssues = issues.filter((i) => i.severity === 'critical');
-  const highIssues = issues.filter((i) => i.severity === 'high');
-
-  if (criticalIssues.length > 0) {
-    recommendations.unshift(
-      `CRITICAL: ${criticalIssues.length} security issue(s) detected. Remove secrets immediately.`
-    );
-  }
-
-  if (highIssues.length > 0) {
-    recommendations.push(`${highIssues.length} high-priority issue(s) should be addressed soon.`);
-  }
-
-  // Limit recommendations to prevent information overload
-  return recommendations.slice(0, 5);
 }

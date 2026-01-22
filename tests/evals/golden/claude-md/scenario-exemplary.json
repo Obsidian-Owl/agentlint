@@ -1,0 +1,32 @@
+{
+  "id": "claude-md-exemplary",
+  "version": "1.0.0",
+  "source": "dogfood",
+  "input": {
+    "claudeMd": "# CLAUDE.md\n\nThis file provides guidance to Claude when working with this codebase.\n\n## Project Overview\n\nA TypeScript CLI tool for analyzing AI development workflows. Uses Bun runtime with the Claude Agent SDK.\n\n## Development Workflow\n\n```bash\n# Install dependencies\nbun install\n\n# Run tests (unit and integration)\nbun test\n\n# Run linter\nbun run lint\n\n# Type check\nbun run typecheck\n\n# Build for production\nbun run build\n```\n\n## Architecture\n\nLayered architecture with clear separation:\n- `src/cli/` - Command line interface\n- `src/core/` - Business logic\n- `src/adapters/` - External integrations\n- `tests/` - Unit and integration tests\n\n## Testing Guidelines\n\n- Write tests before implementing features (TDD)\n- Unit tests in `tests/unit/`, integration tests in `tests/integration/`\n- Use VCR recordings for external API tests\n- Target 80% code coverage\n\n## Code Quality\n\n- Follow existing patterns in the codebase\n- Use TypeScript strict mode\n- All functions should have explicit return types\n- Prefer composition over inheritance\n\n## Security\n\n- Never commit secrets or credentials\n- Use environment variables for configuration\n- Validate all external input\n- Follow OWASP guidelines\n",
+    "projectType": "typescript"
+  },
+  "expectedProperties": {
+    "shouldDetect": [],
+    "shouldNotDetect": [
+      "missing-project-overview",
+      "missing-development-workflow",
+      "missing-architecture",
+      "missing-testing-guidelines",
+      "anti-pattern",
+      "secret-exposure"
+    ],
+    "recommendationTypes": []
+  },
+  "rubricWeights": {
+    "actionability": 0.4,
+    "causalAccuracy": 0.3,
+    "relevance": 0.3
+  },
+  "metadata": {
+    "addedAt": "2026-01-20T05:30:00.000Z",
+    "difficulty": "easy",
+    "tags": ["claude-md", "best-practices", "complete", "exemplary"],
+    "description": "Well-structured CLAUDE.md following best practices - should have minimal findings"
+  }
+}

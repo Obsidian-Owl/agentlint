@@ -60,6 +60,25 @@
     }
   },
 
+  "trend_analysis": {
+    "interpretation": "All metrics improved dramatically between baselines, with critical issues eliminated and overall findings reduced by 68%.",
+    "detected_patterns": ["improving", "accelerating"],
+    "confidence": 0.95
+  },
+
+  "causal_chains": [
+    {
+      "symptom": "68% reduction in findings, critical issues eliminated",
+      "traced_cause": "Configuration improvements between baselines",
+      "evidence": [
+        "All 9 metrics improved simultaneously",
+        "Critical count went from 3 to 0",
+        "Token usage dropped 66%"
+      ],
+      "mechanism": "Configuration changes addressed root causes of errors and inefficiencies, producing broad improvement across all metrics"
+    }
+  ],
+
   "recommendations": [
     {
       "id": "rec-001",

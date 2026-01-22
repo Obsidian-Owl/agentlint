@@ -179,3 +179,4 @@ export type { StatsOptions, GetSessionStatsResult } from './stats';
 
 export { searchSessionsTool } from './search-sessions-tool';
 export { getSessionStatsTool } from './get-session-stats-tool';
+export { indexSessionsTool } from './index-sessions-tool';

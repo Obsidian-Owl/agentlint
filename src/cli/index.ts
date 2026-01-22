@@ -10,7 +10,7 @@
 export * from './types';
 
 // Program entry point
-export { createProgram, run, extractGlobalOptions } from './program';
+export { createProgram, run, extractGlobalOptions, initializeDebugLogger } from './program';
 
 // Utilities
 export * from './utils';

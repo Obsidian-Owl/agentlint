@@ -33,6 +33,13 @@ const listRecommendationsInputSchema = {
 
   priority: z.enum(['high', 'medium', 'low']).optional().describe('Filter by priority'),
 
+  target: z
+    .string()
+    .optional()
+    .describe(
+      'Filter by target (partial match). Use to find duplicates targeting the same file/area.'
+    ),
+
   limit: z
     .number()
     .int()
@@ -45,8 +52,8 @@ const listRecommendationsInputSchema = {
   includeCompleted: z
     .boolean()
     .optional()
-    .default(true)
-    .describe('Whether to include completed recommendations'),
+    .default(false)
+    .describe('Whether to include completed recommendations (default: false for cleaner results)'),
 };
 
 // =============================================================================
@@ -113,6 +120,12 @@ export async function listRecommendations(
     // Filter by priority
     if (input.priority) {
       filtered = filtered.filter((r) => r.priority === input.priority);
+    }
+
+    // Filter by target (partial match, case-insensitive) - AGE-674
+    if (input.target) {
+      const targetLower = input.target.toLowerCase();
+      filtered = filtered.filter((r) => r.target.toLowerCase().includes(targetLower));
     }
 
     // Filter out completed unless requested
@@ -205,15 +218,26 @@ List recommendations with optional filters.
 
 Use this tool to:
 - Query all open recommendations
-- Filter by status, type, or priority
-- Check for duplicate or related recommendations before creating new ones
+- Filter by status, type, priority, or target
+- Check for existing recommendations before creating new ones
+- Find recommendations targeting the same file/area
 
 Filters:
 - status: open, pending_confirmation, implemented, monitoring
 - type: symptomatic, preventive, systemic
 - priority: high, medium, low
+- target: partial match on target field (e.g., "CLAUDE.md")
 
+By default, completed recommendations are excluded. Set includeCompleted: true to see them.
 Results are sorted newest-first. Use limit to control how many are returned.
+
+**Example: Finding related recommendations**
+Before creating a recommendation for "CLAUDE.md", use:
+  list_recommendations({ target: "CLAUDE.md" })
+This reveals if similar recommendations already exist. If so, consider:
+- Adding an observation to the existing recommendation (add_recommendation_event)
+- Refining the existing recommendation (refine_recommendation)
+- Creating new only if truly distinct
 
 Use get_recommendation for full details of a specific recommendation.
 Use get_recommendation_summary for a compressed view.
@@ -231,6 +255,9 @@ Use get_recommendation_summary for a compressed view.
     }
     if (args.priority !== undefined) {
       input.priority = args.priority;
+    }
+    if (args.target !== undefined) {
+      input.target = args.target;
     }
     if (args.limit !== undefined) {
       input.limit = args.limit;

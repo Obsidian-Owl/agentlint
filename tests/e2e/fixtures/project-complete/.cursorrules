@@ -1,0 +1,22 @@
+# Cursor Rules
+
+## Code Style
+- Use TypeScript with strict mode
+- Prefer functional programming patterns
+- Use meaningful variable names
+- Keep functions small and focused
+
+## Testing
+- Write tests for all new code
+- Use descriptive test names
+- Follow AAA pattern (Arrange, Act, Assert)
+
+## Documentation
+- Document public APIs
+- Keep README updated
+- Use JSDoc for functions
+
+## Best Practices
+- Never commit secrets
+- Use environment variables for configuration
+- Keep dependencies updated

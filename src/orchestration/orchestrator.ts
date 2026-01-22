@@ -18,6 +18,10 @@ import type { OrchestratorConfig, SessionState, StreamChunk, VerbosityLevel } fr
 import { loadConfig, MAX_SUBAGENT_DEPTH } from './config';
 import { SubagentDepthError } from '../errors';
 import { buildACTSubagents } from '../act/index.js';
+import { getDefaultLogger } from '../debug/logger';
+import { DEBUG_NAMESPACES } from '../debug/namespaces';
+import { createCanUseToolCallback } from './can-use-tool';
+import type { INamespacedLogger } from '../debug/types';
 
 // =============================================================================
 // IOrchestrator Interface
@@ -115,6 +119,12 @@ export class Orchestrator implements IOrchestrator {
   /** Abort controller for interruption */
   private abortController: AbortController | null = null;
 
+  /** Debug logger for orchestration */
+  private readonly logger: INamespacedLogger;
+
+  /** Debug logger for LLM calls */
+  private readonly llmLogger: INamespacedLogger;
+
   /**
    * Create a new Orchestrator.
    *
@@ -125,11 +135,19 @@ export class Orchestrator implements IOrchestrator {
   constructor(config: OrchestratorConfig, toolRegistry: IToolRegistry) {
     this.config = loadConfig(config);
     this.toolRegistry = toolRegistry;
+    this.logger = getDefaultLogger().child(DEBUG_NAMESPACES.ORCHESTRATION);
+    this.llmLogger = getDefaultLogger().child(DEBUG_NAMESPACES.LLM);
 
     // Validate depth limit (T050)
     if (this.config.depth > MAX_SUBAGENT_DEPTH) {
       throw new SubagentDepthError(this.config.depth, MAX_SUBAGENT_DEPTH);
     }
+
+    this.logger.debug('Orchestrator created', {
+      model: this.config.model,
+      depth: this.config.depth,
+      verbosity: this.config.verbosity,
+    });
   }
 
   /**
@@ -188,12 +206,19 @@ export class Orchestrator implements IOrchestrator {
     this._isActive = true;
     this.abortController = new AbortController();
 
+    this.logger.info('Starting orchestrator run', { task: task.substring(0, 100) });
+
     try {
       // Initialize session state
       this._sessionState = this.createInitialState(task);
 
-      // Yield session start status
-      yield this.createChunk('status', 'normal', `Starting analysis: ${task}`);
+      this.logger.debug('Session initialized', {
+        sessionId: this._sessionState.id,
+        phase: this._sessionState.phase,
+      });
+
+      // Yield session start status (don't dump the full prompt)
+      yield this.createChunk('status', 'normal', `Starting analysis...`);
 
       // Get MCP server from tool registry
       const mcpServer = this.toolRegistry.toMcpServer();
@@ -201,9 +226,18 @@ export class Orchestrator implements IOrchestrator {
       // Build query options
       // SDK types don't perfectly align with runtime behavior - use any for interop
       /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment */
+
+      // ADR-0021: Create canUseTool callback for human-in-the-loop interactions
+      const canUseTool = createCanUseToolCallback({
+        nonInteractive: this.config.nonInteractive,
+        verbose: this.config.verbosity === 'verbose' || this.config.verbosity === 'debug',
+        log: (msg) => this.logger.debug(msg),
+      });
+
       const queryOptions: any = {
         model: this.config.model,
         maxTurns: 100, // Reasonable default for analysis
+        cwd: this.config.cwd, // Scope file access to this directory
         settingSources: this.config.settingSources,
         mcpServers: { agentlint: mcpServer },
         abortController: this.abortController,
@@ -211,6 +245,10 @@ export class Orchestrator implements IOrchestrator {
         agents: buildACTSubagents(),
         // T032: Include 'Task' in allowedTools to enable subagent invocation
         allowedTools: this.config.allowedTools,
+        // Enable real-time streaming of agent text (AGE-662)
+        includePartialMessages: true,
+        // ADR-0021: Enable human-in-the-loop via canUseTool callback
+        canUseTool,
       };
 
       // Only add systemPrompt if we have custom content
@@ -222,6 +260,9 @@ export class Orchestrator implements IOrchestrator {
         };
       }
       // Call SDK query() with our configuration
+      // Note: Retry logic (AGE-665) is available via withRetry() but not applied here
+      // since query() returns an AsyncIterable. Network errors during streaming
+      // would need to be handled at a higher level or with SDK support.
       // eslint-disable-next-line @typescript-eslint/await-thenable, @typescript-eslint/no-unsafe-assignment
       const response = await query({
         prompt: task,
@@ -245,10 +286,14 @@ export class Orchestrator implements IOrchestrator {
       }
 
       // Yield completion status
+      this.logger.info('Analysis complete', {
+        sessionId: this._sessionState?.id,
+      });
       yield this.createChunk('status', 'normal', 'Analysis complete');
     } catch (error) {
       // Yield error chunk
       const errorMessage = error instanceof Error ? error.message : String(error);
+      this.logger.error('Analysis failed', { error: errorMessage });
       yield this.createChunk('error', 'quiet', `Error: ${errorMessage}`);
       throw error;
     } finally {
@@ -346,30 +391,110 @@ export class Orchestrator implements IOrchestrator {
     /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-argument */
     const msg = message as any;
 
-    if (msg.type === 'assistant' && msg.content) {
-      // Assistant text content
-      for (const block of msg.content) {
+    // Handle stream_event for real-time streaming (AGE-662)
+    if (msg.type === 'stream_event') {
+      const event = msg.event;
+      if (event?.type === 'content_block_delta' && event.delta?.type === 'text_delta') {
+        const text = event.delta.text as string;
+        // Skip empty or whitespace-only text chunks to reduce noise (AGE-671)
+        if (text && text.trim()) {
+          chunks.push(this.createChunk('text', 'normal', text));
+        }
+      }
+      // Also detect tool_use blocks starting in stream events
+      if (event?.type === 'content_block_start' && event.content_block?.type === 'tool_use') {
+        const toolBlock = event.content_block;
+        this.logger.info('Tool invocation starting (stream)', { tool: toolBlock.name });
+        chunks.push(
+          this.createChunk('tool_start', 'verbose', `Calling tool: ${toolBlock.name}`, {
+            toolName: toolBlock.name,
+            toolId: toolBlock.id,
+          })
+        );
+      }
+      return chunks;
+    }
+
+    if (msg.type === 'assistant' && msg.message?.content) {
+      // Assistant message - content is inside msg.message per SDK types
+      // Text and tool_use blocks are already emitted via stream events (content_block_delta
+      // and content_block_start). We only log here for debugging, don't emit duplicate chunks.
+      this.logger.debug('Processing assistant message', {
+        blockCount: msg.message.content?.length ?? 0,
+      });
+      for (const block of msg.message.content) {
         if (block.type === 'text') {
-          chunks.push(this.createChunk('text', 'normal', block.text));
+          // Text already emitted via content_block_delta stream events (AGE-672)
+          this.logger.debug('Text block in assistant message (already emitted via stream)', {
+            length: block.text.length,
+          });
         } else if (block.type === 'tool_use') {
-          chunks.push(
-            this.createChunk('tool_start', 'verbose', `Calling tool: ${block.name}`, {
-              toolName: block.name,
-              input: block.input,
-            })
-          );
+          // Tool_use blocks are already emitted via content_block_start stream events
+          // (see line 393-402). We only log here for debugging, don't emit duplicate chunk.
+          this.logger.debug('Tool use block in assistant message (already emitted via stream)', {
+            tool: block.name,
+          });
+        } else {
+          this.logger.debug('Unknown block type', { blockType: block.type });
         }
       }
     } else if (msg.type === 'tool_result') {
       // Tool result
+      this.logger.info('Tool completed', {
+        toolId: msg.tool_use_id,
+      });
       chunks.push(
         this.createChunk('tool_result', 'verbose', 'Tool completed', {
           toolId: msg.tool_use_id,
           result: msg.content,
         })
       );
+
+      // Check for clarifying questions in tool result (human-in-the-loop)
+      // Tool results may be a JSON string or an object with clarifyingQuestions
+      const toolContent = msg.content;
+      if (toolContent && typeof toolContent === 'object' && 'clarifyingQuestions' in toolContent) {
+        const questions = (toolContent as { clarifyingQuestions?: unknown[] }).clarifyingQuestions;
+        if (Array.isArray(questions) && questions.length > 0) {
+          this.logger.info('Clarifying questions detected', { count: questions.length });
+          chunks.push(
+            this.createChunk('user_question', 'normal', 'Agent has questions for you', {
+              questions,
+              toolId: msg.tool_use_id,
+            })
+          );
+        }
+      }
+    } else if (msg.type === 'tool_progress') {
+      // Real-time progress for long-running tools
+      this.logger.debug('Tool progress', {
+        tool: msg.tool_name,
+        elapsed: msg.elapsed_time_seconds,
+      });
+      chunks.push(
+        this.createChunk(
+          'tool_start',
+          'verbose',
+          `Tool running: ${msg.tool_name} (${msg.elapsed_time_seconds}s)`,
+          {
+            toolName: msg.tool_name,
+            toolId: msg.tool_use_id,
+            elapsedSeconds: msg.elapsed_time_seconds,
+          }
+        )
+      );
     } else if (msg.type === 'result') {
-      // Final result
+      // Final result - also log LLM call metrics
+      this.logger.info('Session result', {
+        sessionId: msg.session_id,
+        inputTokens: msg.input_tokens,
+        outputTokens: msg.output_tokens,
+      });
+      this.llmLogger.info('LLM call completed', {
+        model: this.config.model,
+        inputTokens: msg.input_tokens,
+        outputTokens: msg.output_tokens,
+      });
       chunks.push(
         this.createChunk('status', 'normal', 'Session completed', {
           sessionId: msg.session_id,

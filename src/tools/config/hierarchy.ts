@@ -20,7 +20,6 @@ import type {
   Section,
   CodeBlock,
   ConfigMetrics,
-  Grade,
 } from './types';
 import { discoverConfigs } from './discovery';
 import { parseConfig } from './parse-config';
@@ -260,27 +259,23 @@ function buildEffectiveConfig(configs: ParsedConfig[]): EffectiveConfig {
 }
 
 /**
- * Calculate overall grade from multiple configs.
+ * Get issue summary from multiple configs for hierarchy summary.
+ * Per ADR-0019, returns raw counts instead of grades.
  */
-function calculateOverallGrade(configs: ParsedConfig[]): Grade {
-  if (configs.length === 0) {
-    return 'F';
-  }
+function getIssuesSummary(configs: ParsedConfig[]): {
+  totalIssues: number;
+  criticalIssues: number;
+} {
+  let totalIssues = 0;
+  let criticalIssues = 0;
 
-  // Assess quality for each config and average
-  let totalScore = 0;
   for (const config of configs) {
     const quality = assessQuality(config);
-    totalScore += quality.score;
+    totalIssues += quality.issues.length;
+    criticalIssues += quality.issues.filter((i) => i.severity === 'critical').length;
   }
 
-  const avgScore = totalScore / configs.length;
-
-  if (avgScore >= 90) return 'A';
-  if (avgScore >= 80) return 'B';
-  if (avgScore >= 70) return 'C';
-  if (avgScore >= 60) return 'D';
-  return 'F';
+  return { totalIssues, criticalIssues };
 }
 
 /**
@@ -395,6 +390,9 @@ export async function analyzeHierarchy(
     hierarchy.project = projectConfig;
   }
 
+  // Get issue counts (per ADR-0019, raw data instead of grades)
+  const issuesSummary = getIssuesSummary(parsedConfigs);
+
   // Build summary
   const summary = {
     globalConfigExists: includeGlobal
@@ -404,7 +402,8 @@ export async function analyzeHierarchy(
     localConfigCount: localConfigs.length,
     skillCount: skills.length,
     conflictCount: allConflicts.length,
-    overallGrade: calculateOverallGrade(parsedConfigs),
+    totalIssues: issuesSummary.totalIssues,
+    criticalIssues: issuesSummary.criticalIssues,
   };
 
   return {

@@ -28,3 +28,9 @@ export {
   type ComparisonData,
   type BaselineSummary as CompareBaselineSummary,
 } from './CompareView';
+export {
+  presentQuestionsInteractive,
+  confirmPrompt,
+  type QuestionAnswer,
+  type PresentQuestionsOptions,
+} from './question-presenter';

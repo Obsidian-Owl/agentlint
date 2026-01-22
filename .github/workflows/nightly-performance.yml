@@ -1,0 +1,173 @@
+name: Nightly Performance Tests
+
+on:
+  schedule:
+    # Run at 3am UTC daily
+    - cron: '0 3 * * *'
+  workflow_dispatch:
+    inputs:
+      corpus_size:
+        description: 'Test corpus size (e.g., 500MB, 1GB)'
+        required: false
+        default: '500MB'
+      run_sessions_indexing:
+        description: 'Run sessions indexing benchmark'
+        required: false
+        default: 'true'
+        type: boolean
+
+env:
+  BUN_VERSION: '1.1.0'
+
+jobs:
+  large-corpus-indexing:
+    name: Large Corpus Indexing (NFR-1.1.2)
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Generate test corpus
+        run: |
+          echo "Generating ${{ inputs.corpus_size || '500MB' }} test corpus..."
+          # Create test corpus directory
+          mkdir -p .test-corpus/sessions
+
+          # Generate synthetic session files
+          bun run scripts/generate-test-corpus.ts --size ${{ inputs.corpus_size || '500MB' }} --output .test-corpus/sessions
+
+      - name: Run sessions indexing benchmark
+        if: ${{ inputs.run_sessions_indexing == 'true' || github.event_name == 'schedule' }}
+        run: |
+          echo "Running NFR-1.1.2 validation: 500MB corpus indexing"
+          bun test tests/performance/sessions-indexing.test.ts --large-corpus --corpus-path .test-corpus/sessions
+        env:
+          LARGE_CORPUS_PATH: .test-corpus/sessions
+          ENABLE_LARGE_CORPUS_TESTS: 'true'
+
+      - name: Collect performance metrics
+        run: |
+          echo "Collecting performance metrics..."
+          bun run scripts/collect-perf-metrics.ts --output performance-report.json
+
+      - name: Upload performance report
+        uses: actions/upload-artifact@v4
+        with:
+          name: performance-report-${{ github.run_number }}
+          path: performance-report.json
+          retention-days: 30
+
+      - name: Clean up test corpus
+        if: always()
+        run: rm -rf .test-corpus
+
+  memory-stress-test:
+    name: Memory Stress Test (NFR-004)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Run memory stress tests
+        run: |
+          # Run memory tests with GC exposed for accurate measurements
+          bun test --expose-gc tests/performance/cli-memory.test.ts
+        env:
+          NODE_OPTIONS: '--expose-gc'
+
+  startup-benchmark:
+    name: CLI Startup Benchmark (NFR-001)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: ${{ env.BUN_VERSION }}
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Run startup benchmarks
+        run: |
+          echo "Running NFR-001 validation: CLI startup < 100ms"
+          bun test tests/performance/cli-startup.test.ts
+
+      - name: Collect cold/warm start metrics
+        run: |
+          echo "Cold start timing..."
+          time bun run src/cli.ts --version
+
+          echo "Warm start timing (cached)..."
+          time bun run src/cli.ts --version
+
+  notify-on-failure:
+    name: Notify on Failure
+    runs-on: ubuntu-latest
+    needs: [large-corpus-indexing, memory-stress-test, startup-benchmark]
+    if: failure()
+
+    steps:
+      - name: Create issue for performance regression
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const title = `Performance regression detected in nightly run #${context.runNumber}`;
+            const body = `
+            ## Performance Regression Detected
+
+            A performance regression was detected in the nightly performance tests.
+
+            **Run**: [#${context.runNumber}](${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId})
+            **Date**: ${new Date().toISOString()}
+
+            Please investigate the failed jobs and address any performance regressions.
+
+            ### NFR References
+            - NFR-001: CLI startup < 100ms
+            - NFR-004: Memory usage < 100MB
+            - NFR-1.1.2: 500MB session corpus indexing
+            `;
+
+            // Check if an issue already exists
+            const issues = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: 'performance-regression',
+              per_page: 1
+            });
+
+            if (issues.data.length === 0) {
+              await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: title,
+                body: body,
+                labels: ['performance-regression', 'automated']
+              });
+            }

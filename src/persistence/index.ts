@@ -189,3 +189,11 @@ export {
 } from './reviews/storage';
 
 export type { ReviewStorageOptions } from './reviews/storage';
+
+// =============================================================================
+// Database Initialization
+// =============================================================================
+
+export { initializeDatabases, areDatabasesInitialized } from './init';
+
+export type { InitDatabasesOptions, InitDatabasesResult } from './init';

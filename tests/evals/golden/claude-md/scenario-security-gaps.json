@@ -1,0 +1,32 @@
+{
+  "id": "claude-md-security-gaps",
+  "version": "1.0.0",
+  "source": "production-failure",
+  "input": {
+    "claudeMd": "# CLAUDE.md\n\n## Project Overview\n\nPayment processing API for e-commerce platform.\n\n## Configuration\n\nSet these environment variables:\n- `DATABASE_URL` - PostgreSQL connection string\n- `STRIPE_SECRET_KEY` - API key for Stripe\n- `JWT_SECRET` - Secret for JWT tokens\n\nFor local development, use:\n```\nDATABASE_URL=postgres://admin:password123@localhost/payments\n```\n\n## Development\n\nRun `npm run dev` to start.\n\n## Deployment\n\nPush to main branch to deploy automatically.\n",
+    "projectType": "typescript"
+  },
+  "expectedProperties": {
+    "shouldDetect": [
+      "hardcoded-credential",
+      "missing-security-guidelines",
+      "weak-password-example",
+      "missing-secret-rotation-guidance",
+      "unsafe-deployment-practice"
+    ],
+    "shouldNotDetect": ["missing-project-overview"],
+    "recommendationTypes": ["preventive", "systemic"]
+  },
+  "rubricWeights": {
+    "actionability": 0.5,
+    "causalAccuracy": 0.3,
+    "relevance": 0.2
+  },
+  "metadata": {
+    "addedAt": "2026-01-20T05:30:00.000Z",
+    "sourceUrl": "anonymized-production-incident",
+    "difficulty": "hard",
+    "tags": ["claude-md", "security", "secrets", "production-failure"],
+    "description": "CLAUDE.md from a production incident with security anti-patterns"
+  }
+}

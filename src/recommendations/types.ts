@@ -33,7 +33,8 @@ export type CompletionReason =
   | 'implemented' // Recommendation was applied
   | 'superseded' // Better recommendation replaced this
   | 'obsolete' // Changes made this irrelevant
-  | 'rejected'; // User decided not to implement
+  | 'rejected' // User decided not to implement
+  | 'duplicate'; // Duplicate of another recommendation (AGE-674)
 
 /**
  * Type of event in recommendation history.
@@ -272,6 +273,8 @@ export interface ListRecommendationsInput {
   status?: RecommendationStatus;
   type?: RecommendationType;
   priority?: Priority;
+  /** Filter by target (partial match) - AGE-674 */
+  target?: string;
   /** Maximum recommendations to return */
   limit?: number;
   /** Whether to include completed cases */

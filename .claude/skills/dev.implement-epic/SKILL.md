@@ -159,12 +159,44 @@ Read: .specify/memory/constitution.md
 ### Step 6: Validate
 
 Run ALL checks - ALL MUST PASS:
-- `bun test` - Tests pass (zero failures)
+- `bun run test` - Tests pass (zero failures) - NEVER use raw `bun test`
 - `bun run typecheck` - Types pass (zero errors)
 - `bun run lint` - Lint pass (zero errors)
 - `bun run format:check` - Format pass
 
 **If validation fails**: Fix issues before proceeding (do NOT skip)
+
+### Step 6.5: Integration Wiring Verification (Per-Task)
+
+Before closing each task, verify its deliverables are integrated:
+
+**For component tasks:**
+- [ ] Component is imported by at least one other file
+- [ ] Component has a path to an entry point
+
+**For tool tasks:**
+- [ ] Tool is registered in tool-registry
+- [ ] Tool appears in registerAllTools() call
+
+**For "Wire X to Y" tasks:**
+- [ ] Import statement exists: `import { X } from 'x'`
+- [ ] X is called/used in target file
+- [ ] Wiring test exists or manual verification documented
+
+**Quick verification:**
+```bash
+# For changed files, check exports are imported
+git diff HEAD~1 --name-only | xargs grep -l "^export" | while read f; do
+  exports=$(grep -oP "export (function|const|class) \K\w+" "$f")
+  for exp in $exports; do
+    if ! grep -r "import.*$exp" src/ --include="*.ts" -q; then
+      echo "FAIL: $exp from $f is not imported anywhere"
+    fi
+  done
+done
+```
+
+**If any deliverable is unintegrated, the task is NOT complete.**
 
 ### Step 7: Close Task
 

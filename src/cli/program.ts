@@ -12,6 +12,8 @@ import { Command, Help } from 'commander';
 import { getVersion } from '../version';
 import { getTerminalWidth } from './utils/terminal';
 import type { GlobalOptions } from './types';
+import { createLoggerFromCLIOptions, setDefaultLogger } from '../debug/logger';
+import type { IDebugLogger } from '../debug/types';
 
 /**
  * Package description for CLI.
@@ -69,7 +71,19 @@ Documentation:
     .option('--markdown', 'Output results as Markdown')
     .option('--plain', 'Plain text output without colors')
     .option('--verbose', 'Show detailed output including tool calls')
-    .option('--fail-on-findings', 'Exit with code 1 if findings are present');
+    .option('--fail-on-findings', 'Exit with code 1 if findings are present')
+    .option(
+      '--debug [categories]',
+      'Enable debug output (optional: "tools,llm" or "*" for all, default: "*")'
+    )
+    .option(
+      '--debug-level <level>',
+      'Debug verbosity: minimal (errors/tools), normal (skip small chunks), verbose (everything)',
+      'verbose'
+    )
+    .option('--quiet', 'Suppress non-error output')
+    .option('--log-file <path>', 'Write debug output to file')
+    .option('--no-secrets', 'Disable automatic secret detection scanning');
 
   // Configure help behavior with terminal-aware formatter
   program.configureHelp({
@@ -93,6 +107,13 @@ Documentation:
 
   // Keep existing update command
   addUpdateCommand(program);
+
+  // Add session management command (EP11)
+  addSessionCommand(program);
+
+  // Add backup and restore commands
+  addBackupCommand(program);
+  addRestoreCommand(program);
 
   return program;
 }
@@ -121,8 +142,69 @@ export function extractGlobalOptions(options: Record<string, unknown>): GlobalOp
   if (typeof options['failOnFindings'] === 'boolean') {
     result.failOnFindings = options['failOnFindings'];
   }
+  if (options['debug'] !== undefined) {
+    // --debug can be passed without value (boolean true) or with value (string)
+    result.debug = typeof options['debug'] === 'string' ? options['debug'] : '*';
+  }
+  if (typeof options['debugLevel'] === 'string') {
+    const level = options['debugLevel'];
+    if (level === 'minimal' || level === 'normal' || level === 'verbose') {
+      result.debugLevel = level;
+    }
+  }
+  if (typeof options['quiet'] === 'boolean') {
+    result.quiet = options['quiet'];
+  }
+  if (typeof options['logFile'] === 'string') {
+    result.logFile = options['logFile'];
+  }
 
   return result;
+}
+
+/**
+ * Initializes the debug logger from global CLI options.
+ *
+ * This function should be called at the start of command handlers to
+ * configure the debug logger based on --verbose, --debug, --quiet, and --log-file flags.
+ *
+ * @param options - Global options from CLI
+ * @returns Configured debug logger
+ *
+ * @example
+ * ```typescript
+ * const logger = initializeDebugLogger(globalOpts);
+ * logger.debug('agentlint:tools', 'Starting analysis');
+ * ```
+ */
+export function initializeDebugLogger(options: GlobalOptions): IDebugLogger {
+  // Build options object, only including defined values
+  const loggerOptions: {
+    verbose?: boolean;
+    debug?: string;
+    quiet?: boolean;
+    logFile?: string;
+  } = {};
+
+  if (options.verbose !== undefined) {
+    loggerOptions.verbose = options.verbose;
+  }
+  if (options.debug !== undefined) {
+    loggerOptions.debug = options.debug;
+  }
+  if (options.quiet !== undefined) {
+    loggerOptions.quiet = options.quiet;
+  }
+  if (options.logFile !== undefined) {
+    loggerOptions.logFile = options.logFile;
+  }
+
+  const logger = createLoggerFromCLIOptions(loggerOptions);
+
+  // Set as default logger so all modules can access it
+  setDefaultLogger(logger);
+
+  return logger;
 }
 
 // =============================================================================
@@ -167,22 +249,31 @@ function addAnalyseCommand(program: Command): void {
     .option('--config-only', 'Only analyze configuration files')
     .option('--sessions-only', 'Only analyze session logs')
     .option('--dry-run', 'Scan only, do not run full analysis')
+    .option('--static', 'Run static analysis without LLM (fast mode)')
+    .option('--non-interactive', 'Skip confirmations (for CI/automated use)')
+    .option('--clean-slate', 'Clear existing recommendations before analysis')
     .addHelpText(
       'after',
       `
 Examples:
-  $ agentlint analyse                Run full analysis
-  $ agentlint analyse --config-only  Analyze only config files
-  $ agentlint analyse --json         Output as JSON for CI
-  $ agentlint analyse --verbose      Show agent reasoning
-  $ agentlint analyse --dry-run      Scan configs without full analysis
+  $ agentlint analyse                   Run full agent-based analysis (interactive)
+  $ agentlint analyse --non-interactive Run without confirmations (for CI)
+  $ agentlint analyse --static          Fast static analysis (no LLM)
+  $ agentlint analyse --config-only     Analyze only config files
+  $ agentlint analyse --json            Output as JSON for CI
+  $ agentlint analyse --verbose         Show agent reasoning and tool calls
+  $ agentlint analyse --dry-run         Scan configs without full analysis
 
-The analyse command runs the full agentlint analysis pipeline:
+The analyse command runs the agentlint analysis pipeline:
   1. Discovers AI configuration files
   2. Parses and validates configurations
   3. Analyzes session logs (if available)
   4. Identifies issues and traces to root causes
-  5. Generates recommendations`
+  5. Generates recommendations (deduplicating with existing ones)
+
+By default, runs in interactive mode where the agent confirms actions.
+Use --non-interactive for CI pipelines or automated analysis.
+Use --static for fast analysis without LLM.`
     )
     .action(
       async (options: {
@@ -190,6 +281,9 @@ The analyse command runs the full agentlint analysis pipeline:
         configOnly?: boolean;
         sessionsOnly?: boolean;
         dryRun?: boolean;
+        static?: boolean;
+        nonInteractive?: boolean;
+        cleanSlate?: boolean;
       }) => {
         const { runAnalyse } = await import('./commands/analyse');
         const globalOpts = extractGlobalOptions(program.opts());
@@ -372,18 +466,30 @@ stored learnings.`
 function addValidateCommand(program: Command): void {
   program
     .command('validate')
-    .description('Validate AI configuration files')
+    .description('Validate AI configuration files for ACT format requirements')
+    .option('-d, --directory <path>', 'Directory to validate', '.')
     .addHelpText(
       'after',
       `
 Examples:
-  $ agentlint validate               Validate all config files
-  $ agentlint validate --json        Output validation results as JSON
+  $ agentlint validate                     Validate all config files
+  $ agentlint validate -d ./my-project     Validate specific directory
+  $ agentlint validate --json              Output validation results as JSON
+  $ agentlint validate --fail-on-findings  Exit 1 if issues found (CI mode)
 
-Validates syntax and schema of discovered AI configuration files.`
+Validates ACT format requirements for AI configuration files:
+  - Agent files (.claude/agents/*.md) - requires YAML frontmatter
+  - Skill files (.claude/skills/*/SKILL.md) - requires name and description
+
+Fast static check that runs without LLM, suitable for CI/pre-commit hooks.`
     )
-    .action(() => {
-      console.log('validate command not yet implemented (EP05+)');
+    .action(async (options: { directory?: string }) => {
+      const { runValidate } = await import('./commands/validate');
+      const globalOpts = extractGlobalOptions(program.opts());
+      const exitCode = await runValidate({ ...globalOpts, ...options });
+      if (exitCode !== 0) {
+        process.exit(exitCode);
+      }
     });
 }
 
@@ -410,6 +516,193 @@ Examples:
       const exitCode = await runUpdate(args);
       process.exit(exitCode);
     });
+}
+
+// =============================================================================
+// EP11: Session Management Commands (T055)
+// =============================================================================
+
+function addSessionCommand(program: Command): void {
+  const session = program
+    .command('session')
+    .description('Manage analysis session recordings')
+    .addHelpText(
+      'after',
+      `
+Subcommands:
+  list      List recorded analysis sessions
+  replay    Replay a session for debugging
+  delete    Delete a recorded session
+  cleanup   Remove old sessions based on retention policy
+
+Session recordings enable crash recovery and debugging.`
+    );
+
+  // session list
+  session
+    .command('list')
+    .description('List recorded analysis sessions')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ agentlint session list           List all recorded sessions
+  $ agentlint session list --json    Output as JSON`
+    )
+    .action(async () => {
+      const { runSessionList } = await import('./commands/session');
+      const globalOpts = extractGlobalOptions(program.opts());
+      const exitCode = await runSessionList(globalOpts);
+      if (exitCode !== 0) {
+        process.exit(exitCode);
+      }
+    });
+
+  // session replay
+  session
+    .command('replay <session-id>')
+    .description('Replay a recorded session')
+    .option('-s, --sequence <number>', 'Replay from specific checkpoint sequence', undefined)
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ agentlint session replay abc123              Replay from last checkpoint
+  $ agentlint session replay abc123 -s 5         Replay from checkpoint 5
+  $ agentlint session replay abc123 --json       Output replay context as JSON`
+    )
+    .action(async (sessionId: string, options: { sequence?: string }) => {
+      const { runSessionReplay } = await import('./commands/session');
+      const globalOpts = extractGlobalOptions(program.opts());
+      const replayOpts = { ...globalOpts, sessionId } as Parameters<typeof runSessionReplay>[0];
+      if (options.sequence) {
+        replayOpts.sequence = parseInt(options.sequence, 10);
+      }
+      const exitCode = await runSessionReplay(replayOpts);
+      if (exitCode !== 0) {
+        process.exit(exitCode);
+      }
+    });
+
+  // session delete
+  session
+    .command('delete <session-id>')
+    .description('Delete a recorded session')
+    .option('-f, --force', 'Skip confirmation')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ agentlint session delete abc123        Delete session (with confirmation)
+  $ agentlint session delete abc123 -f     Delete without confirmation`
+    )
+    .action(async (sessionId: string, options: { force?: boolean }) => {
+      const { runSessionDelete } = await import('./commands/session');
+      const globalOpts = extractGlobalOptions(program.opts());
+      const deleteOpts = { ...globalOpts, sessionId } as Parameters<typeof runSessionDelete>[0];
+      if (options.force !== undefined) {
+        deleteOpts.force = options.force;
+      }
+      const exitCode = await runSessionDelete(deleteOpts);
+      if (exitCode !== 0) {
+        process.exit(exitCode);
+      }
+    });
+
+  // session cleanup
+  session
+    .command('cleanup')
+    .description('Remove old sessions based on retention policy')
+    .option('-d, --days <number>', 'Retention days (default: 7)', '7')
+    .option('--dry-run', 'Show what would be deleted without deleting')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ agentlint session cleanup              Clean up sessions older than 7 days
+  $ agentlint session cleanup -d 30        Keep sessions from last 30 days
+  $ agentlint session cleanup --dry-run    Preview what would be deleted`
+    )
+    .action(async (options: { days?: string; dryRun?: boolean }) => {
+      const { runSessionCleanup } = await import('./commands/session');
+      const globalOpts = extractGlobalOptions(program.opts());
+      const days = options.days ? parseInt(options.days, 10) : 7;
+      const cleanupOpts = { ...globalOpts, days } as Parameters<typeof runSessionCleanup>[0];
+      if (options.dryRun !== undefined) {
+        cleanupOpts.dryRun = options.dryRun;
+      }
+      const exitCode = await runSessionCleanup(cleanupOpts);
+      if (exitCode !== 0) {
+        process.exit(exitCode);
+      }
+    });
+}
+
+// =============================================================================
+// Backup and Restore Commands
+// =============================================================================
+
+function addBackupCommand(program: Command): void {
+  program
+    .command('backup')
+    .description('Create a backup of .agentlint state')
+    .option('-d, --directory <path>', 'Project directory', '.')
+    .option('-o, --output <path>', 'Output file path')
+    .option('--include-global', 'Include ~/.agentlint data')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ agentlint backup                         Create backup with auto-generated name
+  $ agentlint backup -o my-backup.tar.gz     Create backup with custom name
+  $ agentlint backup --json                  Output backup info as JSON
+
+Backups include:
+  - baselines/       Baseline snapshots
+  - recommendations/ Recommendation cases
+  - learnings/       Stored learnings
+  - sessions/        Session recordings
+  - *.db             Database files`
+    )
+    .action(async (options: { directory?: string; output?: string; includeGlobal?: boolean }) => {
+      const { runBackup } = await import('./commands/backup');
+      const globalOpts = extractGlobalOptions(program.opts());
+      const exitCode = await runBackup({ ...globalOpts, ...options });
+      if (exitCode !== 0) {
+        process.exit(exitCode);
+      }
+    });
+}
+
+function addRestoreCommand(program: Command): void {
+  program
+    .command('restore <backup-file>')
+    .description('Restore .agentlint state from a backup')
+    .option('-d, --directory <path>', 'Target project directory', '.')
+    .option('--force', 'Overwrite existing data without confirmation')
+    .option('--dry-run', 'Show what would be restored without doing it')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ agentlint restore backup.tar.gz           Restore from backup
+  $ agentlint restore backup.tar.gz --force   Overwrite existing data
+  $ agentlint restore backup.tar.gz --dry-run Preview what would be restored
+  $ agentlint restore backup.tar.gz --json    Output restore info as JSON`
+    )
+    .action(
+      async (
+        backupFile: string,
+        options: { directory?: string; force?: boolean; dryRun?: boolean }
+      ) => {
+        const { runRestore } = await import('./commands/backup');
+        const globalOpts = extractGlobalOptions(program.opts());
+        const exitCode = await runRestore(backupFile, { ...globalOpts, ...options });
+        if (exitCode !== 0) {
+          process.exit(exitCode);
+        }
+      }
+    );
 }
 
 /**

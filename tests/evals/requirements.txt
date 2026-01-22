@@ -1,0 +1,13 @@
+# TruLens Python requirements for EP11 LLM-as-judge evaluation
+#
+# DEPRECATED: Use pyproject.toml with uv instead
+#
+# Install with uv:
+#   cd tests/evals
+#   uv sync
+#
+# Run TruLens evaluations:
+#   uv run python -m tests.evals.temporal.run --all
+#   uv run python trulens-runner.py --check
+#
+# See pyproject.toml for actual dependencies

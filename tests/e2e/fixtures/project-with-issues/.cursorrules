@@ -1,0 +1,12 @@
+# Cursor Rules (with issues)
+
+## Preferences
+- Use TypeScript
+- Prefer functional style
+
+## Anti-patterns
+- Don't write tests (this is wrong advice!)
+- Skip documentation (also wrong!)
+
+## Notes
+These rules contain intentional anti-patterns for testing detection.

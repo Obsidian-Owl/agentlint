@@ -5,4 +5,15 @@ exclude:
   paths:
     # Test files containing intentionally fake secrets for testing secret detection logic
     - tests/unit/tools/config/anti-patterns.test.ts
+    - tests/unit/tools/config/quality.test.ts
     - tests/fixtures/
+    # EP11 secret detection tests use example/fake secrets to verify detection
+    - tests/unit/security/
+    - tests/integration/secrets-vcr.test.ts
+    # Performance tests for secret detection and redaction
+    - tests/performance/redaction.test.ts
+    - tests/performance/security-detector.test.ts
+    # E2E test fixtures with intentional test secrets for detection testing
+    - tests/e2e/fixtures/
+    # Source files with example patterns for documentation/testing
+    - src/debug/redaction.ts

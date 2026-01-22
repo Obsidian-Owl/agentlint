@@ -11,7 +11,6 @@ import type {
   ConfigType,
   ACTType,
   HierarchyLevel,
-  Grade,
   IssueType,
   IssueSeverity,
   ConflictType,
@@ -191,36 +190,86 @@ export interface ParseWarning {
 // =============================================================================
 
 /**
- * Quality evaluation result for a configuration.
+ * Raw quality metrics for agent interpretation.
+ *
+ * Per ADR-0019, tools provide raw data and the agent makes quality judgments.
+ * This interface returns factual observations without scoring or recommendations.
  */
 export interface QualityAssessment {
-  /** Overall quality score (0-100) */
-  score: number;
-  /** Letter grade */
-  grade: Grade;
-  /** Per-dimension scores */
-  dimensions: QualityDimensions;
-  /** Detected issues */
+  /** Raw metrics from the configuration */
+  metrics: ConfigMetrics;
+  /** Structure analysis (factual observations) */
+  structure: StructureAnalysis;
+  /** Size analysis (factual observations) */
+  sizeAnalysis: SizeAnalysis;
+  /** Completeness analysis (factual observations) */
+  completeness: CompletenessAnalysis;
+  /** Detected anti-patterns (factual pattern matching) */
   issues: QualityIssue[];
-  /** Improvement suggestions */
-  recommendations: string[];
   /** Assessment timestamp */
   assessedAt: Date;
 }
 
 /**
- * Per-dimension quality scores.
+ * Factual structure analysis.
+ */
+export interface StructureAnalysis {
+  /** Number of top-level sections */
+  sectionCount: number;
+  /** Maximum heading depth used */
+  maxHeadingDepth: number;
+  /** Whether there are nested sections */
+  hasNestedSections: boolean;
+  /** Whether the file is empty */
+  isEmpty: boolean;
+  /** Whether the file has any structure (headings) */
+  hasStructure: boolean;
+}
+
+/**
+ * Factual size analysis based on ADR-0007 thresholds.
+ */
+export interface SizeAnalysis {
+  /** Total line count */
+  lineCount: number;
+  /** Estimated token count */
+  tokenEstimate: number;
+  /** Whether line count exceeds 60 (optimal threshold from ADR-0007) */
+  exceedsOptimalLines: boolean;
+  /** Whether line count exceeds 300 (max threshold from ADR-0007) */
+  exceedsMaxLines: boolean;
+  /** Whether token count exceeds 3000 (lightweight threshold) */
+  exceedsLightweightTokens: boolean;
+  /** Whether token count exceeds 25000 (problematic threshold) */
+  exceedsProblematicTokens: boolean;
+}
+
+/**
+ * Factual completeness analysis.
+ */
+export interface CompletenessAnalysis {
+  /** List of recommended sections that are present */
+  presentSections: string[];
+  /** List of recommended sections that are missing */
+  missingSections: string[];
+  /** Total number of recommended sections */
+  totalRecommendedSections: number;
+}
+
+/**
+ * @deprecated Use QualityAssessment directly - dimensions are no longer scored.
+ * Kept for backwards compatibility during transition.
  */
 export interface QualityDimensions {
-  /** Structure quality (0-100) */
+  /** @deprecated Structure is now in StructureAnalysis */
   structure: number;
-  /** Size appropriateness (0-100) */
+  /** @deprecated Size is now in SizeAnalysis */
   size: number;
-  /** Recommended section coverage (0-100) */
+  /** @deprecated Completeness is now in CompletenessAnalysis */
   completeness: number;
-  /** Project-specific vs generic (0-100) */
+  /** @deprecated Specificity scoring removed per ADR-0019 */
   specificity: number;
-  /** Penalty points for anti-patterns */
+  /** @deprecated Penalty scoring removed per ADR-0019 */
   antiPatternPenalty: number;
 }
 
@@ -437,14 +486,17 @@ export interface AnalyzeHierarchyInput {
 export interface AnalyzeHierarchyResult {
   /** Full configuration hierarchy */
   hierarchy: ConfigHierarchy;
-  /** Summary for agent consumption */
+  /** Summary for agent consumption (raw counts, no scoring per ADR-0019) */
   summary: {
     globalConfigExists: boolean;
     projectConfigExists: boolean;
     localConfigCount: number;
     skillCount: number;
     conflictCount: number;
-    overallGrade: Grade;
+    /** Total issues detected across all configs */
+    totalIssues: number;
+    /** Number of critical issues (security-related) */
+    criticalIssues: number;
   };
 }
 

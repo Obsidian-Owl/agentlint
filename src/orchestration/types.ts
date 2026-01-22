@@ -37,7 +37,8 @@ export type StreamChunkType =
   | 'phase_change' // Phase transition
   | 'checkpoint' // Checkpoint saved
   | 'error' // Error occurred
-  | 'status'; // Status update
+  | 'status' // Status update
+  | 'user_question'; // Agent requesting user input (human-in-the-loop)
 
 // =============================================================================
 // Stream Chunk (T011)
@@ -103,6 +104,12 @@ export interface OrchestratorConfig {
    * If undefined, all tools are allowed.
    */
   allowedTools?: string[];
+  /**
+   * Non-interactive mode (default: false)
+   * When true, auto-allows all tool calls without user prompts.
+   * Used for CI/CD and automation scenarios.
+   */
+  nonInteractive?: boolean;
 }
 
 /**

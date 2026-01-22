@@ -100,7 +100,8 @@ src/cli/
 │   ├── analyse.ts     Run full analysis
 │   ├── baseline.ts    Capture baseline state
 │   ├── compare.ts     Compare against baseline
-│   └── trace.ts       Trace finding to origin
+│   ├── trace.ts       Trace finding to origin
+│   └── session.ts     Session recording management (EP11)
 │
 ├── components/        Ink React components (ADR-0004)
 │   ├── App.tsx        Main application wrapper
@@ -139,20 +140,37 @@ src/cli/
 
 ## Level 2: Orchestration Layer
 
+The orchestration layer wraps the **Claude Agent SDK's `query()` function**, which implements the master agent loop internally. The `Orchestrator` class provides:
+
+1. **Configuration** - Model selection, verbosity, timeouts
+2. **Streaming Transformation** - SDK messages → `StreamChunk` objects
+3. **Checkpointing Hooks** - Crash recovery via session state persistence
+4. **Tool Registration** - MCP server integration via `ToolRegistry`
+5. **Subagent Management** - ACT subagent spawning with depth=1 limit
+6. **Human-in-the-Loop** - `canUseTool` callback for user interaction ([ADR-0021](../adr/0021-conversational-interaction-model.md))
+
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                    MASTER AGENT LOOP                            │
-│  while (analysis_active):                                       │
-│    1. Assess context and task state                             │
-│    2. Decide: tool invocation OR direct reasoning               │
-│    3. If tool: invoke → observe result                          │
-│    4. If user input needed: pause for human-in-the-loop         │
-│    5. Update working memory                                     │
-│    6. Check termination                                         │
+│                  ORCHESTRATOR (SDK Wrapper)                     │
+│                                                                 │
+│  ┌───────────────────────────────────────────────────────────┐  │
+│  │              Claude Agent SDK query()                      │  │
+│  │  • Master loop implemented by SDK                         │  │
+│  │  • Tool execution via MCP protocol                        │  │
+│  │  • Subagent spawning via agents option                    │  │
+│  │  • canUseTool callback for human-in-the-loop (ADR-0021)   │  │
+│  └───────────────────────────────────────────────────────────┘  │
+│                           ▲                                     │
+│                           │                                     │
+│  ┌────────────┬───────────┴─────────────┬────────────────────┐  │
+│  │ToolRegistry│    OrchestratorConfig    │  CheckpointHandler│  │
+│  │ (MCP tools)│  (model, verbosity, etc) │  (session state)  │  │
+│  └────────────┴─────────────────────────┴────────────────────┘  │
 └─────────────────────────────────────────────────────────────────┘
 
 ┌─────────────────────────────────────────────────────────────────┐
 │               AGENT COGNITIVE WORKSPACE                         │
+│  (Managed by SDK, populated by agentlint tools)                 │
 │  ├─ Task Goal                                                   │
 │  ├─ Project Context (compressed)                                │
 │  ├─ Analysis Progress                                           │
@@ -160,6 +178,51 @@ src/cli/
 │  ├─ Baseline Awareness                                          │
 │  └─ Global Learnings                                            │
 └─────────────────────────────────────────────────────────────────┘
+```
+
+### Orchestrator Module Structure (EP02)
+
+```
+src/orchestration/
+├── index.ts                    Public exports
+├── orchestrator.ts             Orchestrator class wrapping SDK query()
+├── tool-registry.ts            ToolRegistry with MCP server creation
+├── streaming.ts                SDK message → StreamChunk transformation
+├── checkpoint.ts               Session state persistence + recovery
+├── session-state.ts            SessionState management
+├── cognitive-workspace.ts      Context compression for large results
+├── context.ts                  Context utilities
+├── config.ts                   Configuration loading + defaults
+├── can-use-tool.ts             Human-in-the-loop callback (ADR-0021)
+└── types.ts                    Type definitions
+```
+
+| Component | Responsibility |
+|-----------|----------------|
+| `orchestrator.ts` | Wraps SDK `query()`, manages session lifecycle, enforces subagent depth |
+| `tool-registry.ts` | Registers tools, creates MCP server for SDK integration |
+| `streaming.ts` | Transforms `SDKMessage` events to `StreamChunk` with verbosity |
+| `checkpoint.ts` | Emits checkpoints on tool completion, findings, phase changes |
+| `session-state.ts` | Persists/loads session state to JSON for crash recovery |
+| `cognitive-workspace.ts` | Compresses large tool results to fit context window |
+| `can-use-tool.ts` | Human-in-the-loop: tool approval prompts, AskUserQuestion routing |
+
+### Key Integration Point
+
+```typescript
+import { query } from '@anthropic-ai/claude-agent-sdk';
+import { buildACTSubagents } from '../act';
+
+// SDK handles the master loop internally
+const response = await query({
+  prompt: task,
+  options: {
+    model: config.model,
+    mcpServers: [toolRegistry.toMcpServer()],  // Tool registration
+    agents: buildACTSubagents(),                // Subagent definitions
+    allowedTools: [...],
+  },
+});
 ```
 
 ---
@@ -974,3 +1037,248 @@ Per Constitution Principle C8 and SDK design, subagents are limited to depth=1:
 - **Error Handling**: `SubagentDepthError` thrown if depth exceeded
 
 This prevents infinite delegation chains while enabling specialized analysis.
+
+---
+
+## Level 3: Debug Infrastructure (EP11)
+
+The debug module provides structured logging with namespace-based filtering and automatic secret redaction for safe debugging output.
+
+```
+src/debug/
+├── index.ts                    Public exports
+├── types.ts                    Type definitions (LogLevel, DebugConfig, etc.)
+├── namespaces.ts               Standard namespace constants (DEBUG_NAMESPACES)
+├── logger.ts                   DebugLogger class with namespace filtering
+├── redaction.ts                Secret redaction (patterns, redact(), redactObject())
+└── metrics.ts                  TokenTracker for LLM call metrics
+```
+
+| Module | Responsibility |
+|--------|----------------|
+| `logger.ts` | Namespace-based debug logging with verbosity levels |
+| `namespaces.ts` | Standard namespace constants (TOOLS, LLM, ORCHESTRATION, etc.) |
+| `redaction.ts` | Pattern-based secret detection and replacement in strings/objects |
+| `metrics.ts` | Token usage tracking, latency timers, LLM call metrics aggregation |
+
+### Key Entity Types
+
+```typescript
+interface IDebugLogger {
+  debug(namespace: string, message: string, data?: unknown): void;
+  info(namespace: string, message: string, data?: unknown): void;
+  warn(namespace: string, message: string, data?: unknown): void;
+  error(namespace: string, message: string, data?: unknown): void;
+  child(namespace: string): IDebugLogger;
+  isEnabled(namespace: string): boolean;
+}
+
+interface ITokenTracker {
+  recordLLMCall(call: LLMCallMetrics): void;
+  getSummary(): MetricsSummary;
+  reset(): void;
+}
+
+interface RedactionPattern {
+  name: string;
+  pattern: RegExp;
+  replacement: string;
+}
+```
+
+### Secret Redaction
+
+The redaction module provides defense-in-depth for debug output:
+
+| Pattern Category | Examples |
+|-----------------|----------|
+| API Keys | `sk-...`, `AKIA...`, `ghp_...`, `ghs_...` |
+| Passwords | `password=`, `secret=`, `token=` |
+| Connection Strings | `postgres://`, `mongodb://`, `redis://` |
+| JWT Tokens | `eyJ...` (Base64 encoded) |
+| Private Keys | `-----BEGIN ... KEY-----` |
+
+### Performance Characteristics (NFR)
+
+| Metric | Target | Implementation |
+|--------|--------|----------------|
+| Logger overhead (disabled) | <0.01ms/call | Namespace check short-circuit |
+| Redaction (1000 lines) | <500ms | Regex-based pattern matching |
+| Token tracking | <1ms/call | In-memory accumulation |
+
+---
+
+## Level 3: Evaluation Framework (EP11)
+
+The evaluation module provides LLM-as-judge evaluation with code-based checks for assessing analysis quality, following [ADR-0012](../adr/0012-evaluation-framework-for-analysis-quality.md).
+
+```
+src/eval/
+├── index.ts                    Public exports
+├── types.ts                    Type definitions (Scenario, EvalResult, etc.)
+├── scoring.ts                  Numerical scoring utilities (0-100 scale)
+├── feedback.ts                 FeedbackCollector for opt-in user feedback
+├── runner.ts                   EvaluationRunner for batch evaluation
+│
+└── graders/                    Grading implementations
+    ├── code-based.ts           Deterministic code-based checks
+    └── llm-judge.ts            LLM-as-judge via TruLens
+```
+
+| Module | Responsibility |
+|--------|----------------|
+| `scoring.ts` | Score normalization, weighted aggregation, grade computation |
+| `feedback.ts` | Opt-in feedback collection with rate limiting (Constitution I) |
+| `runner.ts` | Load scenarios, run graders, aggregate results, check release gate |
+| `graders/code-based.ts` | Deterministic checks (structure, completeness, patterns) |
+| `graders/llm-judge.ts` | TruLens subprocess integration for semantic evaluation |
+
+### Key Entity Types
+
+```typescript
+interface GoldenScenario {
+  id: string;
+  version: string;
+  source: 'synthetic' | 'recorded' | 'curated';
+  description: string;
+  difficulty: 'easy' | 'medium' | 'hard';
+  tags: string[];
+  // Scenario-specific data...
+}
+
+interface EvaluationResult {
+  scenarioId: string;
+  passed: boolean;
+  scores: Record<string, number>;
+  feedback?: string;
+  error?: string;
+}
+
+interface IFeedbackCollector {
+  shouldPrompt(sessionId: string): boolean;
+  collectFeedback(outcome: RecommendationOutcome): Promise<void>;
+  getPendingFollowUps(): Promise<RecommendationOutcome[]>;
+}
+```
+
+### TruLens Integration
+
+```typescript
+// LLM-as-judge via subprocess
+const proc = spawn('uv', ['run', 'python', 'trulens-runner.py', '-'], {
+  stdio: ['pipe', 'pipe', 'pipe'],
+});
+
+// Input: scenario JSON via stdin
+// Output: evaluation scores via stdout
+```
+
+### Performance Characteristics (NFR)
+
+| Metric | Target | Implementation |
+|--------|--------|----------------|
+| Code-based grading | <100ms/scenario | In-memory checks |
+| LLM-judge grading | <30s/scenario | TruLens subprocess |
+| Release gate check | <5min total | Parallel scenario evaluation |
+
+---
+
+## Level 3: Secret Detection Module (EP11)
+
+The security module provides pattern-based secret detection with entropy analysis, following [ADR-0013](../adr/0013-secret-detection-strategy.md). Secrets are detected but never stored.
+
+```
+src/security/
+├── index.ts                    Public exports
+├── types.ts                    Type definitions (SecretCandidate, ClassifiedSecret, etc.)
+├── entropy.ts                  Shannon entropy calculation for secret likelihood
+├── detector.ts                 SecretDetector class with pattern matching
+├── classifier.ts               SecretClassifier for LLM-assisted validation
+│
+└── patterns/                   Detection patterns
+    ├── index.ts                Pattern exports
+    ├── parser.ts               Gitleaks TOML parser
+    └── gitleaks.toml           Bundled detection rules
+```
+
+| Module | Responsibility |
+|--------|----------------|
+| `entropy.ts` | Shannon entropy calculation, character set detection, threshold analysis |
+| `detector.ts` | Pattern-based secret detection using Gitleaks rules |
+| `classifier.ts` | LLM-assisted classification of detected candidates |
+| `patterns/parser.ts` | Parse Gitleaks TOML format to internal rules |
+
+### Key Entity Types
+
+```typescript
+interface SecretCandidate {
+  id: string;                    // UUID
+  ruleId: string;
+  ruleDescription: string;
+  match: string;                 // INTERNAL ONLY - never serialized
+  redactedContext: string;       // Context with secret replaced
+  entropy: number;
+  location: FileLocation;
+  keywords?: string[];
+  detectedAt: string;
+}
+
+// Zod schemas enforce runtime validation
+const SafeSecretCandidateSchema = SecretCandidateSchema.omit({ match: true });
+type SafeSecretCandidate = z.infer<typeof SafeSecretCandidateSchema>;
+
+interface ClassifiedSecret {
+  id: string;
+  candidateId: string;
+  ruleId: string;
+  classification: SecretClassification;
+  confidence: number;
+  reasoning: string;
+  recommendation: string;
+  location: FileLocation;
+  validatedAt: string;
+}
+
+interface ISecretDetector {
+  loadPatterns(tomlPath?: string): Promise<PatternSet>;
+  scanFile(filePath: string, content: string): Promise<FileScanResult>;
+  scanFiles(files: Array<{ path: string; content: string }>): Promise<SecretScanResult>;
+  getPatterns(): PatternSet | null;
+}
+```
+
+### Detection Flow
+
+```
+Content → Pattern Matching → Entropy Analysis → Classification → Report
+                │                  │                 │
+                │                  │                 └─ LLM validates
+                │                  └─ Filter low-entropy matches
+                └─ Gitleaks rules (400+ patterns)
+```
+
+### Pattern Compatibility
+
+Gitleaks patterns use Go regex syntax, which differs from JavaScript:
+- **Go-specific features**: Some patterns use features not available in JS (e.g., `(?i)` inline case-insensitive)
+- **Pattern loading**: Parser strips `(?i)` flags and applies JS equivalents
+- **Validation**: `isValidRegex()` validates patterns for JS compatibility at runtime
+- **Graceful degradation**: Invalid patterns are logged and skipped
+
+### Security Considerations
+
+| Aspect | Implementation |
+|--------|---------------|
+| Never store secrets | `match` field stripped via Zod schema validation before serialization |
+| Runtime enforcement | `SafeSecretCandidateSchema` validates at runtime, not just compile time |
+| Redact in logs | Debug output uses redaction patterns |
+| Entropy threshold | Default 3.5 bits/char filters false positives |
+| Pattern source | Gitleaks community rules (open source) |
+
+### Performance Characteristics (NFR)
+
+| Metric | Target | Implementation |
+|--------|--------|----------------|
+| File scan | <1s/file | Regex pattern matching |
+| Entropy calculation | <1ms/string | Shannon formula |
+| Pattern loading | <100ms | TOML parsing + regex compilation |

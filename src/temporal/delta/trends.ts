@@ -214,24 +214,8 @@ export function getDirectionSymbol(change: number, threshold = 0.001): Direction
   return change > 0 ? '↑' : '↓';
 }
 
-/**
- * Get improvement arrow based on metric and direction.
- * For inverted metrics (lower is better), ↓ is improvement.
- * For normal metrics (higher is better), ↑ is improvement.
- *
- * @param direction - Direction of change
- * @param isInverted - Whether lower is better
- * @returns Whether this direction represents improvement
- */
-export function isDirectionImprovement(direction: Direction, isInverted: boolean): boolean {
-  if (direction === '→') {
-    return false; // No change is not improvement
-  }
-  if (isInverted) {
-    return direction === '↓'; // Lower is better
-  }
-  return direction === '↑'; // Higher is better
-}
+// Note: isDirectionImprovement was removed per ADR-0019.
+// The agent determines whether a direction represents improvement based on context.
 
 // =============================================================================
 // Internal Helpers

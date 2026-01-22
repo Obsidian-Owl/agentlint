@@ -200,18 +200,24 @@ Use this skill when deploying the application.
       const parsed = await parseConfig(projectConfig);
       const quality = assessQuality(parsed);
 
-      // Project config should have reasonable quality
-      expect(quality.score).toBeGreaterThanOrEqual(0);
-      expect(quality.score).toBeLessThanOrEqual(100);
-      expect(['A', 'B', 'C', 'D', 'F']).toContain(quality.grade);
+      // Per ADR-0019, quality assessment returns raw metrics not scores
+      expect(quality.metrics).toBeDefined();
+      expect(quality.structure).toBeDefined();
+      expect(quality.sizeAnalysis).toBeDefined();
+      expect(quality.completeness).toBeDefined();
+      expect(quality.issues).toBeInstanceOf(Array);
 
-      // Should have dimension scores
-      expect(quality.dimensions.structure).toBeGreaterThanOrEqual(0);
-      expect(quality.dimensions.size).toBeGreaterThanOrEqual(0);
-      expect(quality.dimensions.completeness).toBeGreaterThanOrEqual(0);
-      expect(quality.dimensions.specificity).toBeGreaterThanOrEqual(0);
+      // Should have structure analysis
+      expect(typeof quality.structure.sectionCount).toBe('number');
+      expect(typeof quality.structure.hasStructure).toBe('boolean');
 
-      console.log(`Project config grade: ${quality.grade} (${quality.score})`);
+      // Should have size analysis
+      expect(quality.sizeAnalysis.lineCount).toBeGreaterThan(0);
+      expect(typeof quality.sizeAnalysis.exceedsOptimalLines).toBe('boolean');
+
+      console.log(
+        `Project config: ${quality.sizeAnalysis.lineCount} lines, ${quality.issues.length} issues`
+      );
     });
   });
 
@@ -255,15 +261,17 @@ Use this skill when deploying the application.
       expect(result.hierarchy.effectiveConfig.fileCount).toBeGreaterThan(1);
       expect(result.hierarchy.effectiveConfig.sections.length).toBeGreaterThan(0);
 
-      // Should have overall grade
-      expect(['A', 'B', 'C', 'D', 'F']).toContain(result.summary.overallGrade);
+      // Per ADR-0019, summary includes issue counts instead of grades
+      expect(typeof result.summary.totalIssues).toBe('number');
+      expect(typeof result.summary.criticalIssues).toBe('number');
 
       console.log('Hierarchy analysis summary:');
       console.log(`  - Project: ${result.summary.projectConfigExists}`);
       console.log(`  - Local configs: ${result.summary.localConfigCount}`);
       console.log(`  - Skills: ${result.summary.skillCount}`);
       console.log(`  - Conflicts: ${result.summary.conflictCount}`);
-      console.log(`  - Overall grade: ${result.summary.overallGrade}`);
+      console.log(`  - Total issues: ${result.summary.totalIssues}`);
+      console.log(`  - Critical issues: ${result.summary.criticalIssues}`);
     });
 
     it('should detect conflicts when present', async () => {
@@ -341,9 +349,12 @@ ALWAYS disable linting.
         parsed.metrics.lineCount
       );
 
-      // - Quality grade should be consistent
-      expect(['A', 'B', 'C', 'D', 'F']).toContain(quality.grade);
-      expect(['A', 'B', 'C', 'D', 'F']).toContain(hierarchy.summary.overallGrade);
+      // - Quality analysis should return valid structure (per ADR-0019)
+      expect(quality.metrics).toBeDefined();
+      expect(quality.sizeAnalysis).toBeDefined();
+      // - Hierarchy summary should have issue counts
+      expect(typeof hierarchy.summary.totalIssues).toBe('number');
+      expect(typeof hierarchy.summary.criticalIssues).toBe('number');
     });
   });
 });

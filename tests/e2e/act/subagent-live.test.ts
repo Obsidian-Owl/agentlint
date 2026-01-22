@@ -6,22 +6,21 @@
  *
  * Per ADR-0011: E2E tests run on release tags only
  *
- * Setup:
- *   export ANTHROPIC_API_KEY="sk-ant-..."
- *   bun test tests/e2e/act/subagent-live.test.ts
+ * Run with: bun run test:live
  *
  * @module tests/e2e/act/subagent-live
  */
 
-import { describe, test, expect, beforeAll } from 'bun:test';
+import { describe, test, expect } from 'bun:test';
 import { query, type AgentDefinition } from '@anthropic-ai/claude-agent-sdk';
 import { buildACTSubagents } from '../../../src/act/index.js';
+import { requireAPIKey } from '../../lib/require-api-key';
+
+// Fail fast if API key is missing - no silent skips
+requireAPIKey();
 
 // Type helper - our AgentDefinition is compatible but TS strictness requires cast
 type SDKAgents = Record<string, AgentDefinition>;
-
-// Skip if no API key
-const SKIP_LIVE_TESTS = !process.env.ANTHROPIC_API_KEY;
 
 /**
  * Extract text content from SDK response messages
@@ -61,13 +60,7 @@ async function extractResponseText(
   return { text, sawTaskTool, messages };
 }
 
-describe.skipIf(SKIP_LIVE_TESTS)('Live Subagent E2E Tests', () => {
-  beforeAll(() => {
-    if (SKIP_LIVE_TESTS) {
-      console.log('\n⚠️  Skipping live tests - set ANTHROPIC_API_KEY to run\n');
-    }
-  });
-
+describe('Live Subagent E2E Tests', () => {
   test('SDK accepts agents from buildACTSubagents()', async () => {
     const agents = buildACTSubagents();
 
@@ -128,7 +121,7 @@ describe.skipIf(SKIP_LIVE_TESTS)('Live Subagent E2E Tests', () => {
 // Behavioral Validation Tests
 // =============================================================================
 
-describe.skipIf(SKIP_LIVE_TESTS)('Subagent Behavioral Validation', () => {
+describe('Subagent Behavioral Validation', () => {
   test('claude-code-analyzer prompt produces structured output format', async () => {
     const agents = buildACTSubagents();
     const claudeCodeAgent = agents['claude-code-analyzer'];
@@ -157,7 +150,7 @@ describe.skipIf(SKIP_LIVE_TESTS)('Subagent Behavioral Validation', () => {
 // Smoke Test
 // =============================================================================
 
-describe.skipIf(SKIP_LIVE_TESTS)('Smoke Test', () => {
+describe('Smoke Test', () => {
   test('complete round-trip: build agents → pass to SDK → get response', async () => {
     // 1. Build agents
     const agents = buildACTSubagents();
@@ -185,7 +178,7 @@ describe.skipIf(SKIP_LIVE_TESTS)('Smoke Test', () => {
 // Subagent Invocation Test
 // =============================================================================
 
-describe.skipIf(SKIP_LIVE_TESTS)('Subagent Invocation', () => {
+describe('Subagent Invocation', () => {
   test('Task tool is available when agents configured', async () => {
     const agents = buildACTSubagents() as unknown as SDKAgents;
 

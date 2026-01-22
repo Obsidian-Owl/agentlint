@@ -122,15 +122,17 @@ def recommendation_specificity(recommendation: dict[str, Any]) -> float:
        - Good: Explains the causal link between change and benefit
        - Bad: No explanation or vague "will improve things"
 
-    Rate specificity from 0 to 1:
-    - 1.0: Clear action, specific location, concrete change with rationale
-    - 0.5: Actionable but vague about specifics or missing rationale
-    - 0.0: Too abstract to implement ("improve configuration quality")
+    Rate specificity from 0 to 10:
+    - 10: Clear action, specific location, concrete change with rationale
+    - 5: Actionable but vague about specifics or missing rationale
+    - 0: Too abstract to implement ("improve configuration quality")
 
-    Score (0-1):
+    Score (0-10):
     """
     if TRULENS_AVAILABLE:
-        return get_provider().generate_score(prompt)
+        raw_score = get_provider().generate_score(prompt)
+        # Normalize 0-10 scale to 0-1 for threshold comparison
+        return raw_score / 10.0 if raw_score > 1.0 else raw_score
     return 0.5  # Stub for testing
 
 
@@ -184,15 +186,17 @@ def recommendation_causal_trace(recommendation: dict[str, Any]) -> float:
     4. **Causal link**: There should be a clear WHY connection
        - The origin should explain HOW the issue arose
 
-    Rate causal trace validity from 0 to 1:
-    - 1.0: Clear, specific, relevant origin with logical causal connection
-    - 0.5: Partial trace - present but vague or weakly connected
-    - 0.0: No trace, invalid, or nonsensical connection
+    Rate causal trace validity from 0 to 10:
+    - 10: Clear, specific, relevant origin with logical causal connection
+    - 5: Partial trace - present but vague or weakly connected
+    - 0: No trace, invalid, or nonsensical connection
 
-    Score (0-1):
+    Score (0-10):
     """
     if TRULENS_AVAILABLE:
-        return get_provider().generate_score(prompt)
+        raw_score = get_provider().generate_score(prompt)
+        # Normalize 0-10 scale to 0-1 for threshold comparison
+        return raw_score / 10.0 if raw_score > 1.0 else raw_score
     return 0.5  # Stub for testing
 
 
@@ -253,15 +257,17 @@ def recommendation_prioritization(recommendations: list[dict[str, Any]]) -> floa
 
     4. **Consistency**: Similar recommendations should have similar priorities
 
-    Rate prioritization justification from 0 to 1:
-    - 1.0: All priorities clearly justified by impact and evidence
-    - 0.5: Reasonable priorities but some weak or inconsistent
-    - 0.0: Arbitrary priorities with no clear justification
+    Rate prioritization justification from 0 to 10:
+    - 10: All priorities clearly justified by impact and evidence
+    - 5: Reasonable priorities but some weak or inconsistent
+    - 0: Arbitrary priorities with no clear justification
 
-    Score (0-1):
+    Score (0-10):
     """
     if TRULENS_AVAILABLE:
-        return get_provider().generate_score(prompt)
+        raw_score = get_provider().generate_score(prompt)
+        # Normalize 0-10 scale to 0-1 for threshold comparison
+        return raw_score / 10.0 if raw_score > 1.0 else raw_score
     return 0.5  # Stub for testing
 
 
@@ -329,15 +335,17 @@ def advisor_question_quality(questions: list[dict[str, Any]]) -> float:
        - Tradeoffs affect user preference
        - Risk of incorrect assumption is high
 
-    Rate question quality from 0 to 1:
-    - 1.0: Neutral questions, balanced options, fair defaults
-    - 0.5: Mostly balanced but some leading elements or biased framing
-    - 0.0: Leading questions, biased options, or manipulative defaults
+    Rate question quality from 0 to 10:
+    - 10: Neutral questions, balanced options, fair defaults
+    - 5: Mostly balanced but some leading elements or biased framing
+    - 0: Leading questions, biased options, or manipulative defaults
 
-    Score (0-1):
+    Score (0-10):
     """
     if TRULENS_AVAILABLE:
-        return get_provider().generate_score(prompt)
+        raw_score = get_provider().generate_score(prompt)
+        # Normalize 0-10 scale to 0-1 for threshold comparison
+        return raw_score / 10.0 if raw_score > 1.0 else raw_score
     return 0.5  # Stub for testing
 
 

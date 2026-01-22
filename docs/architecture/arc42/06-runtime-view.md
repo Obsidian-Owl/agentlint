@@ -109,3 +109,48 @@ Sessions may run 30+ minutes for thorough analysis:
 | Checkpointing | State saved after major phases |
 | Resumability | `agentlint resume` continues from checkpoint |
 | Pause/Resume | User can pause, review, continue |
+
+### Session Recording (EP11)
+
+Session checkpoints are recorded to disk for crash recovery and debugging:
+
+**Storage Location**: `~/.agentlint/session-state/{sessionId}/`
+
+```
+~/.agentlint/session-state/
+├── {session-uuid-1}/
+│   ├── 0001.json           # First checkpoint
+│   ├── 0002.json           # Second checkpoint
+│   └── ...
+├── {session-uuid-2}/
+│   └── ...
+└── ...
+```
+
+**Checkpoint Structure**:
+
+```typescript
+interface SessionCheckpoint {
+  version: string;           // Schema version
+  sessionId: string;         // UUID
+  timestamp: string;         // ISO 8601
+  sequence: number;          // Monotonic counter
+  phase: AnalysisPhase;      // init | scan | analyze | recommend | complete
+  trigger: CheckpointTrigger; // tool_complete | finding | phase_change | interval | etc.
+  toolHistory: ToolCall[];   // Recent tool invocations
+  findings: Finding[];       // Accumulated findings
+  metrics: SessionMetrics;   // Token usage, elapsed time
+  workspaceState?: unknown;  // Cognitive workspace state
+}
+```
+
+**CLI Commands**:
+
+| Command | Description |
+|---------|-------------|
+| `agentlint session list` | List recorded sessions with metadata |
+| `agentlint session replay <id>` | Restore session state from checkpoint |
+| `agentlint session delete <id>` | Remove a session's checkpoints |
+| `agentlint session cleanup --days <n>` | Delete sessions older than n days |
+
+**Retention Policy**: Sessions are retained for 30 days by default. Use `agentlint session cleanup` to manage storage.

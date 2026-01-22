@@ -1,0 +1,30 @@
+{
+  "id": "claude-md-incomplete-workflow",
+  "version": "1.0.0",
+  "source": "dogfood",
+  "input": {
+    "claudeMd": "# CLAUDE.md\n\n## Project Overview\n\nA TypeScript CLI tool for data processing.\n\n## Development Commands\n\nRun tests with `bun test`.\n\n## Architecture\n\nUses a layered architecture.\n",
+    "projectType": "typescript"
+  },
+  "expectedProperties": {
+    "shouldDetect": [
+      "incomplete-workflow",
+      "missing-build-commands",
+      "missing-lint-commands",
+      "vague-architecture-description"
+    ],
+    "shouldNotDetect": ["missing-project-overview", "secret-exposure"],
+    "recommendationTypes": ["preventive", "symptomatic"]
+  },
+  "rubricWeights": {
+    "actionability": 0.4,
+    "causalAccuracy": 0.3,
+    "relevance": 0.3
+  },
+  "metadata": {
+    "addedAt": "2026-01-20T05:30:00.000Z",
+    "difficulty": "medium",
+    "tags": ["claude-md", "workflow", "commands"],
+    "description": "CLAUDE.md with basic structure but incomplete workflow documentation"
+  }
+}

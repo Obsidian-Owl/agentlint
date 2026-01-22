@@ -1,0 +1,78 @@
+{
+  "$schema": "../../src/eval/types.ts#GoldenManifest",
+  "version": "1.0.0",
+  "description": "EP11 Golden Dataset for LLM-as-Judge Evaluations",
+  "updatedAt": "2026-01-20T05:30:00.000Z",
+  "adrReferences": ["ADR-0011", "ADR-0012"],
+  "scenarios": [
+    {
+      "id": "claude-md-minimal",
+      "path": "claude-md/scenario-minimal.json",
+      "source": "dogfood",
+      "difficulty": "easy",
+      "tags": ["claude-md", "missing-sections", "structural"]
+    },
+    {
+      "id": "claude-md-incomplete-workflow",
+      "path": "claude-md/scenario-incomplete-workflow.json",
+      "source": "dogfood",
+      "difficulty": "medium",
+      "tags": ["claude-md", "workflow", "commands"]
+    },
+    {
+      "id": "claude-md-anti-patterns",
+      "path": "claude-md/scenario-anti-patterns.json",
+      "source": "dogfood",
+      "difficulty": "medium",
+      "tags": ["claude-md", "anti-patterns", "best-practices"]
+    },
+    {
+      "id": "claude-md-security-gaps",
+      "path": "claude-md/scenario-security-gaps.json",
+      "source": "production-failure",
+      "difficulty": "hard",
+      "tags": ["claude-md", "security", "secrets"]
+    },
+    {
+      "id": "claude-md-exemplary",
+      "path": "claude-md/scenario-exemplary.json",
+      "source": "dogfood",
+      "difficulty": "easy",
+      "tags": ["claude-md", "best-practices", "complete"]
+    }
+  ],
+  "stats": {
+    "total": 5,
+    "bySource": {
+      "public-repo": 0,
+      "dogfood": 4,
+      "production-failure": 1
+    },
+    "byDifficulty": {
+      "easy": 2,
+      "medium": 2,
+      "hard": 1
+    }
+  },
+  "subsets": {
+    "temporal": {
+      "path": "temporal/manifest.json",
+      "description": "EP09 Temporal Analysis scenarios",
+      "count": 12
+    },
+    "recommendations": {
+      "path": "recommendations/manifest.json",
+      "description": "EP10 Recommendation Advisor scenarios",
+      "count": 4
+    }
+  },
+  "rubricDefaults": {
+    "actionability": 0.4,
+    "causalAccuracy": 0.3,
+    "relevance": 0.3
+  },
+  "thresholds": {
+    "pass": 0.7,
+    "dogfoodTarget": 0.95
+  }
+}

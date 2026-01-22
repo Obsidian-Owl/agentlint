@@ -117,6 +117,65 @@ export function clampSentiment(value: number): SentimentValue {
 }
 
 // =============================================================================
+// Scale Conversion Utilities (ADR-0020)
+// =============================================================================
+
+/**
+ * Convert a Likert scale value (-2 to +2) to normalized scale (-1 to +1).
+ *
+ * Formula: normalized = likert / 2
+ *
+ * @param likert - Likert scale value (-2 to +2)
+ * @returns Normalized value (-1 to +1)
+ *
+ * @example
+ * ```typescript
+ * likertToNormalized(2);   // 1
+ * likertToNormalized(1);   // 0.5
+ * likertToNormalized(0);   // 0
+ * likertToNormalized(-1);  // -0.5
+ * likertToNormalized(-2);  // -1
+ * ```
+ */
+export function likertToNormalized(likert: number): number {
+  return likert / 2;
+}
+
+/**
+ * Convert a normalized scale value (-1 to +1) to Likert scale (-2 to +2).
+ *
+ * Formula: likert = normalized * 2
+ *
+ * @param normalized - Normalized value (-1 to +1)
+ * @returns Likert scale value (-2 to +2)
+ *
+ * @example
+ * ```typescript
+ * normalizedToLikert(1);    // 2
+ * normalizedToLikert(0.5);  // 1
+ * normalizedToLikert(0);    // 0
+ * normalizedToLikert(-0.5); // -1
+ * normalizedToLikert(-1);   // -2
+ * ```
+ */
+export function normalizedToLikert(normalized: number): number {
+  return normalized * 2;
+}
+
+/**
+ * Convert a normalized scale value (-1 to +1) to a valid Likert sentiment.
+ *
+ * Converts and rounds to the nearest valid Likert value.
+ *
+ * @param normalized - Normalized value (-1 to +1)
+ * @returns Valid Likert sentiment value (-2, -1, 0, 1, or 2)
+ */
+export function normalizedToLikertSentiment(normalized: number): SentimentValue {
+  const likert = normalizedToLikert(normalized);
+  return clampSentiment(likert);
+}
+
+// =============================================================================
 // Note: Judgment functions removed per ADR-0019
 // =============================================================================
 //

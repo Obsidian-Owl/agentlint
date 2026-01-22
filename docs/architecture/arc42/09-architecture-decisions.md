@@ -32,6 +32,7 @@ All decisions are documented in [docs/architecture/adr/](../adr/).
 | [0017](../adr/0017-agent-skills-integration-strategy.md) | Agent Skills | Detect and analyze SKILL.md |
 | [0018](../adr/0018-distribution-and-installation-strategy.md) | Distribution | Bun compile primary |
 | [0019](../adr/0019-tool-agent-boundary-temporal.md) | Tool/Agent Boundary | Tools provide data, agent provides judgment |
+| [0020](../adr/0020-sentiment-scale-normalization.md) | Sentiment Scale | Likert scale (-2 to +2) as canonical |
 
 ---
 

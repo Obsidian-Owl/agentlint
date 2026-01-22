@@ -22,6 +22,10 @@ export * from './metrics';
 // Quality assessment
 export * from './quality';
 
+// ACT format validation
+export * from './act-format-validator';
+export * from './schemas';
+
 // Skills detection
 export * from './skills';
 

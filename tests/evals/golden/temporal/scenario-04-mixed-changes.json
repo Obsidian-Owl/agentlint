@@ -69,6 +69,29 @@
     "interpretation": "Findings severity improved (critical/high reduced) but efficiency declined (token usage, session duration increased). Error count doubled, requiring investigation."
   },
 
+  "causal_chains": [
+    {
+      "symptom": "Severity improved but efficiency declined and errors increased",
+      "traced_cause": "Configuration change with trade-offs",
+      "evidence": [
+        "Critical/high findings reduced while low findings increased",
+        "Token usage and session duration both increased",
+        "Errors doubled from 3 to 6"
+      ],
+      "mechanism": "Configuration may have added complexity that catches more serious issues but introduces overhead and new error modes; needs investigation"
+    },
+    {
+      "symptom": "Error count doubled while other metrics improved",
+      "traced_cause": "Possible new error patterns from configuration change",
+      "evidence": [
+        "errorCount: 3 → 6 (+100%)",
+        "Improvement in severity metrics suggests working harder",
+        "Increased token usage may indicate retries"
+      ],
+      "mechanism": "New configuration may be more thorough but also more prone to certain failure modes"
+    }
+  ],
+
   "recommendations": [
     {
       "id": "rec-004",

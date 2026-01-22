@@ -14,6 +14,10 @@ print = "yarn"
 coverage = true
 coverageDir = "coverage"
 
+# CRITICAL: This preload blocks live tests unless RUN_LIVE_TESTS=1
+# Prevents accidental API charges from running `bun test` without thinking
+preload = ["./tests/preload.ts"]
+
 [run]
 # Silence the bun logo on startup
 silent = true

@@ -148,7 +148,7 @@ During implementation, the agent MUST:
    - Testing recommendation quality
 
 3. **Validate work (REQUIRED before closure - ALL MUST PASS)**
-   - Run tests: `bun test` (must pass - **zero failures**)
+   - Run tests: `bun run test` (must pass - **zero failures**) - NEVER use raw `bun test`
    - Check types: `bun run typecheck` (must pass - **zero errors**)
    - Check lint: `bun run lint` (must pass - **zero errors**)
    - Check format: `bun run format:check` (must pass)
