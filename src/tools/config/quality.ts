@@ -159,13 +159,16 @@ export function assessQuality(
 
   // Optionally validate ACT format requirements (frontmatter, required fields)
   if (validateFormat) {
-    const formatResult = validateACTFormat({
+    const formatInput: Parameters<typeof validateACTFormat>[0] = {
       configType: config.file.type,
       filePath: config.file.path,
       content: config.raw,
-      frontmatter: config.frontmatter,
       hasFrontmatter: config.frontmatter !== undefined,
-    });
+    };
+    if (config.frontmatter !== undefined) {
+      formatInput.frontmatter = config.frontmatter;
+    }
+    const formatResult = validateACTFormat(formatInput);
     issues.push(...formatResult.issues);
   }
 

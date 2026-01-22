@@ -40,8 +40,13 @@ import { buildAnalysisPrompt } from './analyse-prompt';
 import { presentQuestionsInteractive } from '../components/question-presenter';
 import type { ClarifyingQuestion } from '../../recommendations/types';
 
-// Recommendation storage imports for clean-slate functionality
-import { getRecommendationsDir, clearRecommendations } from '../../recommendations/storage';
+// Recommendation storage imports for clean-slate functionality and findings count
+import {
+  getRecommendationsDir,
+  clearRecommendations,
+  listRecommendationIds,
+  loadRecommendation,
+} from '../../recommendations/storage';
 
 // Database initialization import (Issue 4 fix)
 import { initializeDatabases } from '../../persistence';
@@ -88,6 +93,10 @@ export interface AnalyseResult {
   summary: {
     total: number;
     bySeverity: Record<string, number>;
+    /** AGE-684: Recommendations created during this session */
+    sessionFindings?: number;
+    /** AGE-684: Total open recommendations in the project */
+    totalOpen?: number;
   };
   /** ISO-8601 timestamp */
   timestamp: string;
@@ -382,6 +391,35 @@ function convertChunkToFinding(chunk: StreamChunk): AnalyseFinding | null {
 }
 
 /**
+ * AGE-684: Count recommendations from storage.
+ * Returns both session-scoped (new) and project-scoped (total open) counts.
+ */
+async function countRecommendations(
+  directory: string,
+  sessionStartTime: number
+): Promise<{ sessionFindings: number; totalOpen: number }> {
+  const recDir = getRecommendationsDir(directory);
+  const ids = listRecommendationIds({ baseDir: recDir });
+
+  let sessionFindings = 0;
+  let totalOpen = 0;
+
+  for (const id of ids) {
+    const rec = await loadRecommendation(id, { baseDir: recDir });
+    if (rec && rec.status === 'open') {
+      totalOpen++;
+      // Check if created during this session
+      const createdAt = new Date(rec.createdAt).getTime();
+      if (createdAt >= sessionStartTime) {
+        sessionFindings++;
+      }
+    }
+  }
+
+  return { sessionFindings, totalOpen };
+}
+
+/**
  * Build the final result from collected findings.
  */
 function buildAnalyseResult(
@@ -591,6 +629,12 @@ async function runOrchestratedAnalysis(
 
       // Build and output final result
       const result = buildAnalyseResult(directory, scanResult, findings, startTime);
+
+      // AGE-684: Count recommendations from storage for accurate summary
+      const recCounts = await countRecommendations(directory, startTime);
+      result.summary.sessionFindings = recCounts.sessionFindings;
+      result.summary.totalOpen = recCounts.totalOpen;
+
       renderer.renderComplete(result);
       renderer.flush();
 

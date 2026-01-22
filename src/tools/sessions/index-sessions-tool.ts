@@ -11,7 +11,8 @@ import { tool } from '@anthropic-ai/claude-agent-sdk';
 import { z } from 'zod';
 
 import { discoverSessions } from './discovery';
-import { indexSessions, type IndexSessionsResult } from './indexer';
+import { indexSessions } from './indexer';
+import type { IndexSessionsResult } from './types';
 
 // =============================================================================
 // Input Schema
@@ -60,7 +61,11 @@ export async function indexSessionsCore(
 ): Promise<IndexSessionsToolResult> {
   try {
     // Discover sessions to index
-    const discovered = await discoverSessions({ projectPath });
+    const discoverOpts: Parameters<typeof discoverSessions>[0] = {};
+    if (projectPath !== undefined) {
+      discoverOpts.projectPath = projectPath;
+    }
+    const discovered = await discoverSessions(discoverOpts);
 
     if (discovered.files.length === 0) {
       return {

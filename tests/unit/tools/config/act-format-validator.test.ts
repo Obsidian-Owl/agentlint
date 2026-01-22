@@ -278,11 +278,11 @@ describe('validateACTFormat', () => {
     });
 
     it('should handle undefined frontmatter with hasFrontmatter=true', () => {
+      // Note: With exactOptionalPropertyTypes, we don't pass frontmatter at all (rather than undefined)
       const result = validateACTFormat({
         configType: 'claude-agent',
         filePath: '.claude/agents/my-agent.md',
         content: '---\n---\n\n# My Agent',
-        frontmatter: undefined,
         hasFrontmatter: true,
       });
 

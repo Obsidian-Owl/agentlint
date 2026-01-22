@@ -183,7 +183,17 @@ export class TerminalRenderer implements IStreamRenderer {
     console.log('─'.repeat(40));
     console.log(`Directory:   ${result.directory}`);
     console.log(`Configs:     ${result.configs.length}`);
-    console.log(`Findings:    ${result.findings.length}`);
+
+    // AGE-684: Show both session findings and total open recommendations
+    if (result.summary.sessionFindings !== undefined) {
+      console.log(`New findings (this session): ${result.summary.sessionFindings}`);
+    }
+    if (result.summary.totalOpen !== undefined) {
+      console.log(`Open recommendations (total): ${result.summary.totalOpen}`);
+    } else {
+      // Fallback for static analysis mode which doesn't populate these
+      console.log(`Findings:    ${result.findings.length}`);
+    }
 
     if (Object.keys(result.summary.bySeverity).length > 0) {
       const severityCounts = Object.entries(result.summary.bySeverity)

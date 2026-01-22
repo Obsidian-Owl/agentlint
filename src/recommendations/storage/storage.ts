@@ -13,6 +13,7 @@ import { join } from 'node:path';
 import { getRecommendationsDir as getDir } from '../../persistence/common/directories';
 import { ensureDir } from '../../persistence/common/directories';
 import { atomicWriteJson } from '../../persistence/common/atomic-write';
+import { getTargetDirectory } from '../../orchestration/execution-context';
 import { RecommendationSchema } from '../schemas';
 import type { Recommendation, RecommendationFile } from '../types';
 
@@ -50,7 +51,8 @@ export function getRecommendationsDir(projectPath?: string): string {
 }
 
 function getFilePath(id: string, options: StorageOptions): string {
-  const dir = options.baseDir ?? getDir();
+  // AGE-683: Use execution context's target directory as fallback instead of process.cwd()
+  const dir = options.baseDir ?? getDir(getTargetDirectory());
   return join(dir, `${id}.json`);
 }
 
@@ -119,7 +121,7 @@ export function resolveRecommendationId(
     return { error: `Recommendation not found: '${idOrPrefix}'` };
   }
 
-  if (matches.length === 1) {
+  if (matches.length === 1 && matches[0] !== undefined) {
     return { id: matches[0] };
   }
 
@@ -269,7 +271,8 @@ export function deleteRecommendation(idOrPrefix: string, options: StorageOptions
  * @returns Array of recommendation IDs
  */
 export function listRecommendationIds(options: StorageOptions = {}): string[] {
-  const dir = options.baseDir ?? getDir();
+  // AGE-683: Use execution context's target directory as fallback instead of process.cwd()
+  const dir = options.baseDir ?? getDir(getTargetDirectory());
 
   if (!existsSync(dir)) {
     return [];
@@ -308,7 +311,8 @@ export function recommendationExists(idOrPrefix: string, options: StorageOptions
  * @returns Number of recommendations deleted
  */
 export function clearRecommendations(baseDir?: string): number {
-  const dir = baseDir ?? getDir();
+  // AGE-683: Use execution context's target directory as fallback instead of process.cwd()
+  const dir = baseDir ?? getDir(getTargetDirectory());
   const ids = listRecommendationIds({ baseDir: dir });
 
   for (const id of ids) {
