@@ -11,31 +11,204 @@
 import { relative } from 'node:path';
 import type { ScanResult } from './scan';
 import type { AnalyseOptions } from './analyse';
+import {
+  loadRecommendationsForContext,
+  getRecommendationsDir,
+} from '../../recommendations/storage';
+import type { RecommendationSummary } from '../../recommendations/types';
+
+// =============================================================================
+// Existing Recommendations Context
+// =============================================================================
+
+/**
+ * Build context showing existing recommendations for the agent to review.
+ *
+ * Per Anthropic's "Effective Context Engineering" research:
+ * - Just-in-time retrieval: Show identifiers, load details on demand
+ * - Context as precious resource: Eliminate redundancy ruthlessly
+ *
+ * @param directory - The directory being analyzed
+ * @returns Formatted context string with existing recommendations
+ */
+async function buildExistingRecommendationsContext(directory: string): Promise<string> {
+  try {
+    // Try target directory first, then fall back to cwd
+    const dirsToCheck = [
+      getRecommendationsDir(directory),
+      getRecommendationsDir(process.cwd()),
+    ];
+
+    let summaries: RecommendationSummary[] = [];
+    for (const baseDir of [...new Set(dirsToCheck)]) {
+      try {
+        const loaded = await loadRecommendationsForContext({
+          baseDir,
+          status: 'open',
+          tokenBudget: 4000, // Half of 8K budget for context
+        });
+        if (loaded.length > 0) {
+          summaries = loaded;
+          break;
+        }
+      } catch {
+        // Continue to next directory
+      }
+    }
+
+    if (summaries.length === 0) {
+      return `## Existing Recommendations
+
+No open recommendations found. Create new ones as needed, but avoid duplicating the same issue.`;
+    }
+
+    const lines: string[] = [
+      `## Existing Open Recommendations (${summaries.length})`,
+      '',
+      '**Review these BEFORE creating new recommendations.** Use `get_recommendation` for full details.',
+      '',
+      '| ID | Type/Priority | Target | Action (summary) |',
+      '|-----|---------------|--------|------------------|',
+    ];
+
+    for (const summary of summaries) {
+      const shortId = summary.id.slice(0, 8);
+      const typePriority = `${summary.type}/${summary.priority}`;
+      const shortTarget = summary.target.length > 25
+        ? '...' + summary.target.slice(-22)
+        : summary.target;
+      const shortAction = summary.actionSummary.length > 40
+        ? summary.actionSummary.slice(0, 37) + '...'
+        : summary.actionSummary;
+      lines.push(`| ${shortId} | ${typePriority} | \`${shortTarget}\` | ${shortAction} |`);
+    }
+
+    return lines.join('\n');
+  } catch {
+    // If loading fails, return minimal context
+    return '';
+  }
+}
+
+// =============================================================================
+// Recommendation Management Protocol
+// =============================================================================
+
+/**
+ * Build the recommendation management protocol instructions.
+ *
+ * Per Anthropic's "Claude Code Best Practices" research:
+ * - Explore → Plan → Act: Don't jump to action, investigate first
+ * - Deliberate sequencing: Structure prompts for review-before-modify
+ *
+ * @returns Formatted protocol instructions
+ */
+function buildRecommendationProtocol(): string {
+  return `## Recommendation Management: Review → Decide → Act
+
+Follow this sequence for EVERY finding before recording it:
+
+### Step 1: REVIEW existing recommendations
+Look at the table above. Does an existing recommendation:
+- Target the same file? (e.g., both target CLAUDE.md)
+- Address the same or similar issue?
+
+### Step 2: DECIDE on action
+Based on your review:
+
+| Existing rec for same target? | Same/similar issue? | Your action |
+|-------------------------------|---------------------|-------------|
+| No                            | -                   | Create new  |
+| Yes                           | Yes                 | Add observation to existing |
+| Yes                           | Needs update        | Refine existing |
+| Yes                           | Completely different| Create new  |
+
+### Step 3: ACT using the appropriate tool
+- \`add_recommendation_event\` - Add observation to existing (use ID from table above)
+- \`refine_recommendation\` - Update action/priority of existing (use ID from table above)
+- \`create_recommendation\` - Only if nothing similar exists
+
+**Quality over quantity.** 10 redundant recommendations for "expand CLAUDE.md" is noise, not signal. One well-maintained recommendation with observations is valuable.`;
+}
+
+// =============================================================================
+// Interactive Mode Instructions
+// =============================================================================
+
+/**
+ * Build instructions for interactive vs non-interactive mode.
+ *
+ * Per Claude Code's pattern of "built-in review gates" where the agent
+ * requests approval for system-modifying actions.
+ *
+ * @param isInteractive - Whether running in interactive mode
+ * @returns Formatted instructions for the current mode
+ */
+function buildInteractiveInstructions(isInteractive: boolean): string {
+  if (!isInteractive) {
+    return `## Non-Interactive Mode
+
+You are running in CI/automated mode. For each finding:
+1. Review existing recommendations (table above)
+2. Decide: create, update, or add observation
+3. Execute without asking - follow the decision matrix`;
+  }
+
+  return `## Interactive Mode
+
+For EACH significant finding, have a brief conversation with the user:
+
+### 1. State your finding (2-3 sentences)
+Describe what you found, where, and why it matters.
+
+### 2. State your assessment
+After reviewing existing recommendations, tell the user what you plan to do:
+- "I found an existing recommendation for CLAUDE.md (abc123). I'll add this as an observation."
+- "No existing recommendation covers this. I'll create a new one."
+- "This finding is minor. I suggest we skip recording it."
+
+### 3. Ask for confirmation if creating new
+For new recommendations, ask briefly: "Create new recommendation for [target]? (yes/no)"
+
+### 4. Execute based on response
+
+**Brevity matters.** Don't over-explain. State finding → propose action → confirm if needed → act.`;
+}
+
+// =============================================================================
+// Main Prompt Builder
+// =============================================================================
 
 /**
  * Build the analysis prompt for the orchestrator.
  *
  * The prompt:
  * 1. Describes the discovered configurations
- * 2. Instructs the agent on available tools
- * 3. Guides through the causal analysis workflow
- * 4. Requests actionable recommendations
+ * 2. Shows existing recommendations for deduplication
+ * 3. Instructs the agent on available tools and recommendation protocol
+ * 4. Guides through the causal analysis workflow
+ * 5. Requests actionable recommendations
  *
  * @param directory - The directory being analyzed
  * @param scanResult - Results from the configuration scan
  * @param options - Analysis options
  * @returns The formatted prompt string
  */
-export function buildAnalysisPrompt(
+export async function buildAnalysisPrompt(
   directory: string,
   scanResult: ScanResult,
   options: AnalyseOptions
-): string {
+): Promise<string> {
   const configList = formatConfigList(directory, scanResult);
   const focusInstructions = buildFocusInstructions(options);
   const toolInstructions = buildToolInstructions();
   const subagentGuidance = buildSubagentGuidance(scanResult);
   const outputGuidance = buildOutputGuidance();
+
+  // Load existing recommendations context (async)
+  const existingRecs = await buildExistingRecommendationsContext(directory);
+  const recProtocol = buildRecommendationProtocol();
+  const interactiveInstructions = buildInteractiveInstructions(!options.nonInteractive);
 
   return `
 You are analyzing an AI-assisted development project at: ${directory}
@@ -43,6 +216,12 @@ You are analyzing an AI-assisted development project at: ${directory}
 ${configList}
 
 ${focusInstructions}
+
+${existingRecs}
+
+${recProtocol}
+
+${interactiveInstructions}
 
 ${subagentGuidance}
 
@@ -68,8 +247,12 @@ Perform a comprehensive analysis following the DETECT → TRACE → UNDERSTAND �
 - Consider how issues affect developer productivity and AI effectiveness
 - Look for patterns across multiple issues
 
-### 4. RECOMMEND: Suggest Improvements
-- Generate actionable recommendations for each finding
+### 4. RECOMMEND: Record Improvements
+**CRITICAL: Follow the Review → Decide → Act protocol above for EVERY finding.**
+
+- Check existing recommendations table FIRST
+- Consolidate similar findings into existing recommendations when appropriate
+- Only create NEW recommendations when truly distinct
 - Prefer preventive over symptomatic fixes
 - Provide clear rationale for each recommendation
 
@@ -77,28 +260,22 @@ ${toolInstructions}
 
 ## Output Requirements
 
-**CRITICAL: Recording Findings**
+**Recording Findings**
 
-You MUST use the \`create_recommendation\` tool to formally record each finding you discover.
-Findings are only counted in the analysis summary if they are recorded via this tool.
+Use the appropriate recommendation tool based on your Review → Decide → Act decision:
 
-For each finding:
-1. First, call \`create_recommendation\` with:
-   - \`type\`: "symptomatic" | "preventive" | "systemic"
-   - \`action\`: The specific change to make
-   - \`target\`: File path where the change should be made
-   - \`rationale\`: Why this matters and what happens if ignored
-   - \`priority\`: "high" | "medium" | "low"
-   - \`tracedOrigin\`: Where the issue originated
+| Decision | Tool to use |
+|----------|-------------|
+| Similar recommendation exists | \`add_recommendation_event\` to add observation |
+| Existing rec needs update | \`refine_recommendation\` to update action/target |
+| Truly new finding | \`create_recommendation\` to create new |
 
-2. Then, in your text output explain:
-   - **What**: Clear description of the issue
-   - **Where**: File and location where detected
-   - **Why it matters**: Impact on development workflow
-   - **How to fix**: Specific, actionable recommendation
+For each finding, explain briefly:
+- **What**: Clear description of the issue
+- **Where**: File and location where detected
+- **Action taken**: Which tool you used and why (existing vs new)
 
-Be thorough but concise. Focus on issues that provide value when addressed.
-Do NOT skip the create_recommendation step - findings without tool calls will not be counted.
+Be thorough but concise. Quality over quantity - consolidate similar findings.
 `.trim();
 }
 
@@ -177,9 +354,12 @@ function buildToolInstructions(): string {
 - \`query_trends\`: Analyze trends over time
 - \`spawn_temporal_analyst\`: Spawn subagent for deep temporal analysis
 
-**Recording Findings:**
-- \`create_recommendation\`: Formally record each finding as a recommendation
-- \`list_recommendations\`: List all recorded recommendations
+**Recommendation Management (use per Review → Decide → Act protocol):**
+- \`list_recommendations\`: Query existing recommendations
+- \`get_recommendation\`: Get full details of a specific recommendation by ID
+- \`add_recommendation_event\`: Add observation to existing recommendation
+- \`refine_recommendation\`: Update action/target/priority of existing recommendation
+- \`create_recommendation\`: Create new recommendation (only if no similar exists)
 - \`get_recommendation_summary\`: Get summary statistics
 
 **Security Analysis:**

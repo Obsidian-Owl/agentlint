@@ -231,25 +231,28 @@ function addAnalyseCommand(program: Command): void {
     .option('--sessions-only', 'Only analyze session logs')
     .option('--dry-run', 'Scan only, do not run full analysis')
     .option('--static', 'Run static analysis without LLM (fast mode)')
+    .option('--non-interactive', 'Skip confirmations (for CI/automated use)')
     .addHelpText(
       'after',
       `
 Examples:
-  $ agentlint analyse                Run full agent-based analysis
-  $ agentlint analyse --static       Fast static analysis (no LLM)
-  $ agentlint analyse --config-only  Analyze only config files
-  $ agentlint analyse --json         Output as JSON for CI
-  $ agentlint analyse --verbose      Show agent reasoning and tool calls
-  $ agentlint analyse --dry-run      Scan configs without full analysis
+  $ agentlint analyse                   Run full agent-based analysis (interactive)
+  $ agentlint analyse --non-interactive Run without confirmations (for CI)
+  $ agentlint analyse --static          Fast static analysis (no LLM)
+  $ agentlint analyse --config-only     Analyze only config files
+  $ agentlint analyse --json            Output as JSON for CI
+  $ agentlint analyse --verbose         Show agent reasoning and tool calls
+  $ agentlint analyse --dry-run         Scan configs without full analysis
 
 The analyse command runs the agentlint analysis pipeline:
   1. Discovers AI configuration files
   2. Parses and validates configurations
   3. Analyzes session logs (if available)
   4. Identifies issues and traces to root causes
-  5. Generates recommendations
+  5. Generates recommendations (deduplicating with existing ones)
 
-By default, uses Claude agent for intelligent analysis (requires ANTHROPIC_API_KEY).
+By default, runs in interactive mode where the agent confirms actions.
+Use --non-interactive for CI pipelines or automated analysis.
 Use --static for fast analysis without LLM.`
     )
     .action(
@@ -259,6 +262,7 @@ Use --static for fast analysis without LLM.`
         sessionsOnly?: boolean;
         dryRun?: boolean;
         static?: boolean;
+        nonInteractive?: boolean;
       }) => {
         const { runAnalyse } = await import('./commands/analyse');
         const globalOpts = extractGlobalOptions(program.opts());

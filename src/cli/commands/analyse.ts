@@ -67,6 +67,8 @@ export interface AnalyseOptions extends GlobalOptions {
   dryRun?: boolean;
   /** Static analysis mode - no LLM, fast pattern matching only */
   static?: boolean;
+  /** Non-interactive mode - skip confirmations (for CI) */
+  nonInteractive?: boolean;
 }
 
 /**
@@ -574,8 +576,8 @@ async function runOrchestratedAnalysis(
     registry
   );
 
-  // Build the analysis prompt
-  const prompt = buildAnalysisPrompt(directory, scanResult, options);
+  // Build the analysis prompt (async to load existing recommendations context)
+  const prompt = await buildAnalysisPrompt(directory, scanResult, options);
 
   // Create renderer for output
   const renderer = createRenderer(outputMode, options);
