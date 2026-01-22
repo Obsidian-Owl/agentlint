@@ -16,6 +16,7 @@ export {
   recommendationExists,
   getRecommendationsDir,
   getCurrentVersion,
+  clearRecommendations,
 } from './storage';
 
 export type { StorageOptions } from './storage';

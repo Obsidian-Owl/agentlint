@@ -189,3 +189,20 @@ export function recommendationExists(id: string, options: StorageOptions = {}): 
   const filePath = getFilePath(id, options);
   return existsSync(filePath);
 }
+
+/**
+ * Clear all recommendations from storage.
+ *
+ * @param baseDir - Optional base directory (defaults to project .agentlint/recommendations)
+ * @returns Number of recommendations deleted
+ */
+export function clearRecommendations(baseDir?: string): number {
+  const dir = baseDir ?? getDir();
+  const ids = listRecommendationIds({ baseDir: dir });
+
+  for (const id of ids) {
+    deleteRecommendation(id, { baseDir: dir });
+  }
+
+  return ids.length;
+}

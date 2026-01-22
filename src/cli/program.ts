@@ -72,7 +72,10 @@ Documentation:
     .option('--plain', 'Plain text output without colors')
     .option('--verbose', 'Show detailed output including tool calls')
     .option('--fail-on-findings', 'Exit with code 1 if findings are present')
-    .option('--debug <categories>', 'Enable debug output for categories (e.g., "tools,llm" or "*" for all)')
+    .option(
+      '--debug <categories>',
+      'Enable debug output for categories (e.g., "tools,llm" or "*" for all)'
+    )
     .option('--quiet', 'Suppress non-error output')
     .option('--log-file <path>', 'Write debug output to file')
     .option('--no-secrets', 'Disable automatic secret detection scanning');
@@ -102,6 +105,10 @@ Documentation:
 
   // Add session management command (EP11)
   addSessionCommand(program);
+
+  // Add backup and restore commands
+  addBackupCommand(program);
+  addRestoreCommand(program);
 
   return program;
 }
@@ -232,6 +239,7 @@ function addAnalyseCommand(program: Command): void {
     .option('--dry-run', 'Scan only, do not run full analysis')
     .option('--static', 'Run static analysis without LLM (fast mode)')
     .option('--non-interactive', 'Skip confirmations (for CI/automated use)')
+    .option('--clean-slate', 'Clear existing recommendations before analysis')
     .addHelpText(
       'after',
       `
@@ -263,6 +271,7 @@ Use --static for fast analysis without LLM.`
         dryRun?: boolean;
         static?: boolean;
         nonInteractive?: boolean;
+        cleanSlate?: boolean;
       }) => {
         const { runAnalyse } = await import('./commands/analyse');
         const globalOpts = extractGlobalOptions(program.opts());
@@ -615,6 +624,73 @@ Examples:
         process.exit(exitCode);
       }
     });
+}
+
+// =============================================================================
+// Backup and Restore Commands
+// =============================================================================
+
+function addBackupCommand(program: Command): void {
+  program
+    .command('backup')
+    .description('Create a backup of .agentlint state')
+    .option('-d, --directory <path>', 'Project directory', '.')
+    .option('-o, --output <path>', 'Output file path')
+    .option('--include-global', 'Include ~/.agentlint data')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ agentlint backup                         Create backup with auto-generated name
+  $ agentlint backup -o my-backup.tar.gz     Create backup with custom name
+  $ agentlint backup --json                  Output backup info as JSON
+
+Backups include:
+  - baselines/       Baseline snapshots
+  - recommendations/ Recommendation cases
+  - learnings/       Stored learnings
+  - sessions/        Session recordings
+  - *.db             Database files`
+    )
+    .action(async (options: { directory?: string; output?: string; includeGlobal?: boolean }) => {
+      const { runBackup } = await import('./commands/backup');
+      const globalOpts = extractGlobalOptions(program.opts());
+      const exitCode = await runBackup({ ...globalOpts, ...options });
+      if (exitCode !== 0) {
+        process.exit(exitCode);
+      }
+    });
+}
+
+function addRestoreCommand(program: Command): void {
+  program
+    .command('restore <backup-file>')
+    .description('Restore .agentlint state from a backup')
+    .option('-d, --directory <path>', 'Target project directory', '.')
+    .option('--force', 'Overwrite existing data without confirmation')
+    .option('--dry-run', 'Show what would be restored without doing it')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ agentlint restore backup.tar.gz           Restore from backup
+  $ agentlint restore backup.tar.gz --force   Overwrite existing data
+  $ agentlint restore backup.tar.gz --dry-run Preview what would be restored
+  $ agentlint restore backup.tar.gz --json    Output restore info as JSON`
+    )
+    .action(
+      async (
+        backupFile: string,
+        options: { directory?: string; force?: boolean; dryRun?: boolean }
+      ) => {
+        const { runRestore } = await import('./commands/backup');
+        const globalOpts = extractGlobalOptions(program.opts());
+        const exitCode = await runRestore(backupFile, { ...globalOpts, ...options });
+        if (exitCode !== 0) {
+          process.exit(exitCode);
+        }
+      }
+    );
 }
 
 /**

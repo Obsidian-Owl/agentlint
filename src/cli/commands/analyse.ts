@@ -45,6 +45,7 @@ import {
   listRecommendationIds,
   loadRecommendation,
   getRecommendationsDir,
+  clearRecommendations,
 } from '../../recommendations/storage';
 import type { Recommendation } from '../../recommendations/types';
 
@@ -71,6 +72,8 @@ export interface AnalyseOptions extends GlobalOptions {
   static?: boolean;
   /** Non-interactive mode - skip confirmations (for CI) */
   nonInteractive?: boolean;
+  /** Clear existing recommendations before analysis */
+  cleanSlate?: boolean;
 }
 
 /**
@@ -618,7 +621,7 @@ async function runOrchestratedAnalysis(
         if (options.debug) {
           console.error(
             `[CHUNK] type=${chunk.type} level=${chunk.level}` +
-            (chunk.metadata?.toolName ? ` tool=${chunk.metadata.toolName}` : '')
+              (chunk.metadata?.toolName ? ` tool=${chunk.metadata.toolName}` : '')
           );
         }
 
@@ -942,6 +945,16 @@ export async function runAnalyse(options: AnalyseOptions): Promise<number> {
       console.error(`Error: ${error}`);
     }
     return 1;
+  }
+
+  // Handle --clean-slate: clear existing recommendations before analysis
+  // Only run if not in dry-run mode (dry-run should not modify state)
+  if (options.cleanSlate && !options.dryRun) {
+    const recDir = getRecommendationsDir(directory);
+    const clearedCount = clearRecommendations(recDir);
+    if (!options.quiet) {
+      console.log(`Cleared ${clearedCount} existing recommendation(s) (--clean-slate)`);
+    }
   }
 
   // Scan for configurations
