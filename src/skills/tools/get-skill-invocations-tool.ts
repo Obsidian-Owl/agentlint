@@ -42,10 +42,7 @@ const getSkillInvocationsInputSchema = {
     .string()
     .optional()
     .describe('Filter to a specific skill name (e.g., "commit", "test")'),
-  sessionId: z
-    .string()
-    .optional()
-    .describe('Filter to a specific session ID'),
+  sessionId: z.string().optional().describe('Filter to a specific session ID'),
   since: z
     .string()
     .optional()
@@ -58,12 +55,10 @@ const getSkillInvocationsInputSchema = {
     .number()
     .optional()
     .default(DEFAULT_LIMIT)
-    .describe(`Maximum number of invocations to return (default: ${DEFAULT_LIMIT}, max: ${MAX_LIMIT})`),
-  offset: z
-    .number()
-    .optional()
-    .default(0)
-    .describe('Offset for pagination (default: 0)'),
+    .describe(
+      `Maximum number of invocations to return (default: ${DEFAULT_LIMIT}, max: ${MAX_LIMIT})`
+    ),
+  offset: z.number().optional().default(0).describe('Offset for pagination (default: 0)'),
 };
 
 /**

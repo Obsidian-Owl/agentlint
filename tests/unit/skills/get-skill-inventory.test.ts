@@ -24,7 +24,9 @@ function createTestProject(skills: Array<{ name: string; description: string; co
     const skillDir = join(skillsDir, skill.name);
     mkdirSync(skillDir, { recursive: true });
 
-    const content = skill.content ?? `---
+    const content =
+      skill.content ??
+      `---
 name: ${skill.name}
 description: ${skill.description}
 user_invocable: true
@@ -81,7 +83,9 @@ describe('getSkillInventory', () => {
   });
 
   it('includes skill descriptions', async () => {
-    createTestProject([{ name: 'commit', description: 'Create git commits with proper formatting' }]);
+    createTestProject([
+      { name: 'commit', description: 'Create git commits with proper formatting' },
+    ]);
 
     const result = await getSkillInventory(TEST_DIR);
 

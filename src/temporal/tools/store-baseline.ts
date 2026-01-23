@@ -104,13 +104,17 @@ function createDefaultMetrics(): BaselineMetrics {
  */
 async function gatherSkillsMetrics(
   projectPath: string
-): Promise<Pick<BaselineMetrics, 'skillInvocationCount' | 'uniqueSkillsUsed' | 'sessionsWithSkillUsage' | 'skillsDefinedCount'>> {
+): Promise<
+  Pick<
+    BaselineMetrics,
+    'skillInvocationCount' | 'uniqueSkillsUsed' | 'sessionsWithSkillUsage' | 'skillsDefinedCount'
+  >
+> {
   try {
     // Import skills modules dynamically to avoid circular dependencies
     const { getSkillInventory } = await import('../../skills/discovery');
-    const { countSkillInvocations, countUniqueSkills, countUniqueSessions } = await import(
-      '../../skills/storage'
-    );
+    const { countSkillInvocations, countUniqueSkills, countUniqueSessions } =
+      await import('../../skills/storage');
     const { Database } = await import('bun:sqlite');
     const { join } = await import('node:path');
     const { existsSync } = await import('node:fs');

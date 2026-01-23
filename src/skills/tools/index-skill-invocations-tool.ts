@@ -30,15 +30,8 @@ const DEFAULT_DB_PATH = join(homedir(), '.agentlint', 'sessions.db');
  * Input schema for index_skill_invocations tool.
  */
 const indexSkillInvocationsInputSchema = {
-  projectPath: z
-    .string()
-    .optional()
-    .describe('Filter to a specific project path'),
-  force: z
-    .boolean()
-    .optional()
-    .default(false)
-    .describe('Force re-index even if already indexed'),
+  projectPath: z.string().optional().describe('Filter to a specific project path'),
+  force: z.boolean().optional().default(false).describe('Force re-index even if already indexed'),
 };
 
 /**

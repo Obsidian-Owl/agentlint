@@ -18,7 +18,10 @@ import type { SessionEntry, ContentBlock } from '../../../src/tools/sessions/typ
 // Test Fixtures
 // =============================================================================
 
-const createSkillToolUseEntry = (skillName: string, timestamp: string = '2026-01-24T10:00:00Z'): SessionEntry => ({
+const createSkillToolUseEntry = (
+  skillName: string,
+  timestamp: string = '2026-01-24T10:00:00Z'
+): SessionEntry => ({
   type: 'assistant',
   uuid: 'test-uuid-1',
   timestamp,
@@ -35,7 +38,10 @@ const createSkillToolUseEntry = (skillName: string, timestamp: string = '2026-01
   },
 });
 
-const createUserEntry = (text: string, timestamp: string = '2026-01-24T09:59:00Z'): SessionEntry => ({
+const createUserEntry = (
+  text: string,
+  timestamp: string = '2026-01-24T09:59:00Z'
+): SessionEntry => ({
   type: 'user',
   uuid: 'test-uuid-2',
   timestamp,
@@ -227,9 +233,7 @@ describe('extractUserPromptContext', () => {
   });
 
   it('returns empty string when no user entry before invocation', () => {
-    const entries: SessionEntry[] = [
-      createSkillToolUseEntry('commit'),
-    ];
+    const entries: SessionEntry[] = [createSkillToolUseEntry('commit')];
     const context = extractUserPromptContext(entries, 0);
     expect(context).toBe('');
   });

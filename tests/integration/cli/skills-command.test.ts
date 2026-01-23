@@ -147,7 +147,11 @@ describe('agentlint skills command', () => {
       const capture = captureConsoleOutput();
       try {
         // Use plain: true to get terminal output format (tests are non-TTY)
-        const exitCode = await skillsCommand({ directory: TEST_DIR, detail: 'commit', plain: true });
+        const exitCode = await skillsCommand({
+          directory: TEST_DIR,
+          detail: 'commit',
+          plain: true,
+        });
         const output = capture.getOutput();
 
         expect(exitCode).toBe(0);
@@ -164,7 +168,11 @@ describe('agentlint skills command', () => {
       const capture = captureConsoleOutput();
       try {
         // Use plain: true to get terminal output format (tests are non-TTY)
-        const exitCode = await skillsCommand({ directory: TEST_DIR, detail: 'nonexistent', plain: true });
+        const exitCode = await skillsCommand({
+          directory: TEST_DIR,
+          detail: 'nonexistent',
+          plain: true,
+        });
         const output = capture.getOutput();
 
         expect(exitCode).toBe(1);

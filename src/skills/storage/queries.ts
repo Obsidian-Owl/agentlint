@@ -434,7 +434,9 @@ export function getFilesOperated(db: Database, sessionId: string): string[] {
       AND (tool_input LIKE '%file_path%' OR tool_input LIKE '%path%')
   `;
 
-  const rows = db.prepare(sql).all({ $sessionId: sessionId }) as Array<{ file_path: string | null }>;
+  const rows = db.prepare(sql).all({ $sessionId: sessionId }) as Array<{
+    file_path: string | null;
+  }>;
 
   return rows.filter((r) => r.file_path !== null).map((r) => r.file_path as string);
 }

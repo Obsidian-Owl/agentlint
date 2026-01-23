@@ -33,10 +33,14 @@ function insertInvocation(
   timestamp: string,
   userPromptSnippet: string = ''
 ) {
-  database.prepare(`
+  database
+    .prepare(
+      `
     INSERT INTO skill_invocations (skill_name, session_id, timestamp, user_prompt_snippet)
     VALUES (?, ?, ?, ?)
-  `).run(skillName, sessionId, timestamp, userPromptSnippet);
+  `
+    )
+    .run(skillName, sessionId, timestamp, userPromptSnippet);
 }
 
 // =============================================================================

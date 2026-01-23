@@ -228,7 +228,10 @@ async function getInvocationStats(
 /**
  * Output the result in the appropriate format.
  */
-function outputResult(result: SkillsResult, outputMode: 'json' | 'markdown' | 'plain' | 'terminal'): void {
+function outputResult(
+  result: SkillsResult,
+  outputMode: 'json' | 'markdown' | 'plain' | 'terminal'
+): void {
   if (outputMode === 'json') {
     console.log(JSON.stringify(result, null, 2));
     return;

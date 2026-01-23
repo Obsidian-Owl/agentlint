@@ -70,10 +70,14 @@ function insertSession(
   projectPath: string,
   entryCount: number
 ) {
-  database.prepare(`
+  database
+    .prepare(
+      `
     INSERT INTO sessions (session_id, first_timestamp, last_timestamp, entry_count, project_path)
     VALUES (?, ?, ?, ?, ?)
-  `).run(sessionId, timestamp, timestamp, entryCount, projectPath);
+  `
+    )
+    .run(sessionId, timestamp, timestamp, entryCount, projectPath);
 }
 
 function insertEntry(
@@ -85,10 +89,14 @@ function insertEntry(
   toolName: string | null,
   toolInput: string | null
 ) {
-  database.prepare(`
+  database
+    .prepare(
+      `
     INSERT INTO session_entries (session_id, role, timestamp, content, tool_name, tool_input)
     VALUES (?, ?, ?, ?, ?, ?)
-  `).run(sessionId, role, timestamp, content, toolName, toolInput);
+  `
+    )
+    .run(sessionId, role, timestamp, content, toolName, toolInput);
 }
 
 function insertSkillInvocation(
@@ -97,10 +105,14 @@ function insertSkillInvocation(
   skillName: string,
   timestamp: string
 ) {
-  database.prepare(`
+  database
+    .prepare(
+      `
     INSERT INTO skill_invocations (session_id, skill_name, timestamp)
     VALUES (?, ?, ?)
-  `).run(sessionId, skillName, timestamp);
+  `
+    )
+    .run(sessionId, skillName, timestamp);
 }
 
 // =============================================================================

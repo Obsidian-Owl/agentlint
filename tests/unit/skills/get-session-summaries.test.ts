@@ -62,15 +62,19 @@ function insertTestSession(
   projectPath: string = '/test/project',
   entryCount: number = 10
 ) {
-  database.prepare(`
+  database
+    .prepare(
+      `
     INSERT INTO sessions (session_id, first_timestamp, last_timestamp, entry_count, project_path)
     VALUES ($sessionId, $timestamp, $timestamp, $entryCount, $projectPath)
-  `).run({
-    $sessionId: sessionId,
-    $timestamp: timestamp,
-    $entryCount: entryCount,
-    $projectPath: projectPath,
-  });
+  `
+    )
+    .run({
+      $sessionId: sessionId,
+      $timestamp: timestamp,
+      $entryCount: entryCount,
+      $projectPath: projectPath,
+    });
 }
 
 function insertTestEntry(
@@ -82,17 +86,21 @@ function insertTestEntry(
   toolName: string | null = null,
   toolInput: string | null = null
 ) {
-  database.prepare(`
+  database
+    .prepare(
+      `
     INSERT INTO session_entries (session_id, role, timestamp, content, tool_name, tool_input)
     VALUES ($sessionId, $role, $timestamp, $content, $toolName, $toolInput)
-  `).run({
-    $sessionId: sessionId,
-    $role: role,
-    $timestamp: timestamp,
-    $content: content,
-    $toolName: toolName,
-    $toolInput: toolInput,
-  });
+  `
+    )
+    .run({
+      $sessionId: sessionId,
+      $role: role,
+      $timestamp: timestamp,
+      $content: content,
+      $toolName: toolName,
+      $toolInput: toolInput,
+    });
 }
 
 function insertTestSkillInvocation(
@@ -101,14 +109,18 @@ function insertTestSkillInvocation(
   skillName: string,
   timestamp: string
 ) {
-  database.prepare(`
+  database
+    .prepare(
+      `
     INSERT INTO skill_invocations (session_id, skill_name, timestamp)
     VALUES ($sessionId, $skillName, $timestamp)
-  `).run({
-    $sessionId: sessionId,
-    $skillName: skillName,
-    $timestamp: timestamp,
-  });
+  `
+    )
+    .run({
+      $sessionId: sessionId,
+      $skillName: skillName,
+      $timestamp: timestamp,
+    });
 }
 
 // =============================================================================

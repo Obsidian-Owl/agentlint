@@ -11,11 +11,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
 import { createToolRegistry } from '../../../src/orchestration/tool-registry';
-import {
-  EP14_SKILLS_TOOLS,
-  registerEP14SkillsTools,
-  registerAllTools,
-} from '../../../src/tools';
+import { EP14_SKILLS_TOOLS, registerEP14SkillsTools, registerAllTools } from '../../../src/tools';
 
 // =============================================================================
 // Test Setup

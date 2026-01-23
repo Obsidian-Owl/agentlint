@@ -34,10 +34,7 @@ const getSessionSummariesInputSchema = {
     .string()
     .optional()
     .describe('ISO-8601 timestamp for end of date range (e.g., "2026-01-31T23:59:59Z")'),
-  projectPath: z
-    .string()
-    .optional()
-    .describe('Filter to sessions from a specific project path'),
+  projectPath: z.string().optional().describe('Filter to sessions from a specific project path'),
   limit: z
     .number()
     .optional()
@@ -78,7 +75,10 @@ function formatToolOutput(result: GetSessionSummariesResult): string {
     if (session.filesOperated.length > 0) {
       const displayFiles =
         session.filesOperated.length > 5
-          ? [...session.filesOperated.slice(0, 5), `... and ${session.filesOperated.length - 5} more`]
+          ? [
+              ...session.filesOperated.slice(0, 5),
+              `... and ${session.filesOperated.length - 5} more`,
+            ]
           : session.filesOperated;
       lines.push(`- **Files**: ${displayFiles.join(', ')}`);
     }
@@ -142,12 +142,7 @@ The tool returns facts; the agent reasons about what they mean.`,
     try {
       // Await to satisfy SDK's async handler requirement
       await Promise.resolve();
-      const result = getSessionSummariesImpl(
-        args.since,
-        args.until,
-        args.projectPath,
-        args.limit
-      );
+      const result = getSessionSummariesImpl(args.since, args.until, args.projectPath, args.limit);
       const output = formatToolOutput(result);
 
       return {
