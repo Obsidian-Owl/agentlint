@@ -75,6 +75,80 @@ For single-task implementation with confirmation between tasks, use `/dev.implem
 
 **Signal Types**: Leading (predict), Lagging (reflect), Qualitative (semantic), Causal (traced origins)
 
+## Agent SDK Design Patterns (CRITICAL)
+
+agentlint is a Claude Agent SDK application. These patterns are **CRITICAL** and **MUST** be followed.
+
+### Tool/Agent Boundary (MUST)
+
+Tools provide **data and capabilities**. The agent provides **judgment and orchestration**.
+
+| Tools MUST | Agent MUST |
+|------------|------------|
+| Return raw data with evidence | Decide what data means |
+| Provide filtering/query parameters | Choose what to query and when |
+| Execute deterministic operations | Reason about results |
+| Return errors with context | Decide recovery strategy |
+
+**CRITICAL Anti-patterns** (NEVER do these):
+- Tools that encode "when to use" logic or thresholds
+- Tools that return judgments ("this is low", "this is bad")
+- Tools that orchestrate workflows or sequences
+- Hardcoded rules that belong in agent reasoning (e.g., "if X > 5 then Y")
+
+**Example - WRONG**:
+```typescript
+// BAD: Tool makes judgment
+function detectMissedOpportunities(sessions, skills) {
+  if (skill.invocationRate < 0.3) {  // Hardcoded threshold = judgment
+    return { missed: true, reason: "Low rate" };  // Tool deciding meaning
+  }
+}
+```
+
+**Example - RIGHT**:
+```typescript
+// GOOD: Tool returns data, agent judges
+function getSkillInvocations(skillName, dateRange) {
+  return {
+    invocations: [...],      // Raw data
+    sessionCount: 47,        // Facts
+    invocationCount: 3,      // Facts
+    // Agent decides if 3/47 is "low"
+  };
+}
+```
+
+### Tool Design for Agent Cognition (MUST)
+
+Design tools for how agents think, not for API completeness.
+
+**Rich Descriptions**: Tool descriptions MUST explain what the tool does, when to use it, and what it returns. The agent selects tools based on descriptions.
+
+**Contextual Filtering**: Tools MUST filter/truncate results. Never dump raw data and expect the agent to find what it needs. Every token competes for attention.
+
+**High-Signal Consolidation**: Bundle related operations into single tools. Don't create `get_X`, `list_X`, `search_X`, `filter_X` when one `query_X` with parameters works.
+
+**Poka-Yoke Design**: Structure parameters to make mistakes harder. Use absolute paths, enums instead of strings, required fields for critical data.
+
+### Context Window Economics (MUST)
+
+Every token in the context window competes for the agent's attention.
+
+- Tools MUST summarize or truncate large results
+- Tools MUST filter to relevant data, not return everything
+- Prefer structured data over verbose prose
+- Use `_rawData` pattern for machine-readable data alongside human summaries
+
+### Start Simple (SHOULD)
+
+The most successful agent implementations use simple, composable patterns—not complex frameworks.
+
+- Start with one tool that provides data
+- Let the agent reason about what to do with it
+- Add complexity only when agent reasoning proves insufficient
+- If you're building elaborate detection/matching logic, stop and ask: "Should the agent do this?"
+
 ## Documentation Structure
 
 | Location | Content |
@@ -104,6 +178,12 @@ The `src/orchestration/` module wraps the Claude Agent SDK:
 - Streaming yields `StreamChunk` objects with verbosity levels
 - Checkpoints emit on tool completion, findings, phase changes, intervals
 - Subagent depth limited to 1 per Constitution Principle C8
+
+**Subagent Design** (when using `agents` option):
+- Each subagent MUST have one clear job
+- Subagents MUST NOT spawn further subagents (depth=1 max)
+- Use subagents for: isolated high-volume ops, parallel independent research, self-contained tasks
+- Don't use subagents for: frequent back-and-forth, multi-phase shared context, quick changes
 
 **Configuration** (`~/.agentlint/config.json`):
 ```json
@@ -184,11 +264,24 @@ Tracks recommendation effectiveness for continuous improvement:
 }
 ```
 
-## ADR Implementation Pattern
+## ADR Implementation Pattern (CRITICAL)
 
-ADRs describe tool capabilities and data structures, NOT agent orchestration:
-- **Good**: Tool schemas, data structures, SQL queries, API surfaces
-- **Anti-pattern**: Functions that dictate session workflows, code that orchestrates agent behavior
+ADRs describe **tool capabilities and data structures**, NOT agent orchestration. This is a CRITICAL distinction.
+
+**MUST include**:
+- Tool schemas with Zod definitions
+- Data structures and TypeScript interfaces
+- SQL queries and database schemas
+- API surfaces and return types
+
+**MUST NOT include** (these are anti-patterns):
+- Functions that dictate when tools should be called
+- Workflow sequences or pipelines
+- Threshold-based detection logic (agent reasoning)
+- Code that orchestrates agent behavior
+- "If X then use tool Y" logic
+
+**Test**: If your ADR includes logic the agent should reason about, you've put orchestration in the tool layer. Stop and redesign.
 
 ## Available Skills
 
