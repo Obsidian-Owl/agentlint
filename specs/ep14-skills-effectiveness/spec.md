@@ -59,23 +59,23 @@ The January 2026 strategic review identified that users need to know: "Are my Sk
 
 ---
 
-### US-002 [P1]: Detect Missed Skill Opportunities
+### US-002 [P1]: Identify Missed Skill Opportunities
 
 **As a** developer who wants to maximize Skill usage,
-**I want** to identify sessions where a Skill could have been invoked but wasn't,
+**I want** to understand sessions where a Skill could have been invoked but wasn't,
 **So that** I can understand why Skills aren't being discovered.
 
 **Acceptance Criteria:**
-- [ ] Given a Skill with scope patterns (e.g., `src/api/*`), when a session touches files matching that pattern without invoking the Skill, then it's flagged as a missed opportunity
-- [ ] Given missed opportunities are detected, then the output shows: session ID, files touched, matching Skill, user prompt snippet
-- [ ] Given a session invoked the Skill, then it's not counted as a missed opportunity (even if other files also touched)
-- [ ] Given analysis runs, then I see missed opportunity rate per Skill (e.g., "8 of 12 relevant sessions didn't invoke api-design")
+- [ ] Given session summaries with files operated and user prompts, when the agent analyzes sessions against skill inventory, then it can reason about missed opportunities
+- [ ] Given skill inventory includes file pattern hints, then the agent uses these as context (not programmatic rules) for reasoning
+- [ ] Given the agent identifies a missed opportunity, then it explains: which session, what user intent was, why the skill was relevant, why discovery likely failed
+- [ ] Given analysis runs, then the agent provides its assessment of missed opportunity patterns (e.g., "api-design skill appears underutilized—8 sessions worked on API code without invoking it")
 
 **Test Scenarios:**
-- Happy path: Skill scoped to `tests/**`, 10 sessions wrote test files, 3 invoked Skill, show 70% missed
-- No scope: Skill has no file patterns, no missed opportunity detection (graceful skip)
-- All invoked: Skill always invoked when relevant files touched, 0% missed
-- Complex patterns: Skill with multiple globs, verify pattern matching correctness
+- Happy path: Session summaries include files operated, skill inventory includes pattern hints, agent receives complete context
+- No hints: Skill has no file patterns, agent reasons from description and user prompt alone
+- Agent reasoning: Verify agent can access session summaries and skill inventory in same context
+- Data completeness: Session summaries include first user prompt for intent analysis
 
 ---
 
@@ -242,38 +242,11 @@ Session --1:1--> SessionSummary (summarized for agent consumption)
 
 ### 4.2 Database Schema
 
-Per ADR-0006 session log processing architecture, extend SQLite with:
+See Section 10.6 for authoritative schema. Key points:
 
-```sql
-CREATE TABLE skill_invocations (
-  id INTEGER PRIMARY KEY,
-  session_id TEXT NOT NULL,
-  skill_name TEXT NOT NULL,
-  timestamp TEXT NOT NULL,
-  context_tokens INTEGER,
-  user_prompt_snippet TEXT,
-  file_path TEXT,           -- Source JSONL file for reference
-  line_number INTEGER,      -- Line in JSONL for causal tracing
-  FOREIGN KEY (session_id) REFERENCES sessions(id)
-);
-
-CREATE INDEX idx_skill_invocations_skill ON skill_invocations(skill_name);
-CREATE INDEX idx_skill_invocations_session ON skill_invocations(session_id);
-CREATE INDEX idx_skill_invocations_timestamp ON skill_invocations(timestamp);
-
-CREATE TABLE missed_opportunities (
-  id INTEGER PRIMARY KEY,
-  session_id TEXT NOT NULL,
-  skill_name TEXT NOT NULL,
-  files_matched TEXT,       -- JSON array of matched file paths
-  user_prompt_snippet TEXT,
-  timestamp TEXT NOT NULL,
-  FOREIGN KEY (session_id) REFERENCES sessions(id)
-);
-
-CREATE INDEX idx_missed_skill ON missed_opportunities(skill_name);
-CREATE INDEX idx_missed_session ON missed_opportunities(session_id);
-```
+- `skill_invocations` table stores indexed invocation events
+- **No `missed_opportunities` table**—missed opportunities are agent reasoning, not stored data
+- Schema aligns with ADR-0006 session log processing patterns
 
 ---
 
@@ -298,13 +271,13 @@ CREATE INDEX idx_missed_session ON missed_opportunities(session_id);
 |----------|-------------------|----------|
 | No `.claude/skills/` directory | Graceful message: "No Skills found in this project" | P1 |
 | No session logs | Graceful message: "No session logs found. Run some Claude Code sessions first." | P1 |
-| Skill without file patterns | Skip missed opportunity detection for that skill, note in output | P1 |
+| Skill without file patterns | Agent reasons about missed opportunities using description and user intent alone | P1 |
 | Malformed skill SKILL.md | Log warning, continue with other skills | P1 |
 | Session log parse error | Use existing EP06 error handling, skip malformed entries | P1 |
 | Skill name with special characters | Handle Unicode and special chars in skill names | P2 |
 | Very large session logs (>100MB) | Stream processing, don't load entire file in memory (use EP06 patterns) | P1 |
 | Skill description empty | Flag as "missing description", suggest adding one | P2 |
-| Circular file patterns (e.g., `**/*`) | Warn that pattern is too broad for meaningful analysis | P2 |
+| Very broad file patterns (e.g., `**/*`) | Include in skill inventory; agent decides if pattern provides useful context | P2 |
 | API rate limit during mismatch analysis | Retry with backoff, fail gracefully with partial results | P2 |
 
 ---
