@@ -1,14 +1,18 @@
 # Epic Catalogue: agentlint
 
 > Generated from Arc42 architecture documentation on 2026-01-15
+> Updated: 2026-01-23 with Phase 2 Strategic Pivot epics (EP14-EP19)
 
 ## Executive Summary
 
-agentlint enables continuous improvement of AI-assisted development workflows through systematic analysis, issue tracing, and preventive recommendations. This catalogue decomposes the Arc42 architecture into 12 implementable epics spanning foundation infrastructure, core analysis tools, and advanced features.
+agentlint enables continuous improvement of AI-assisted development workflows through systematic analysis, issue tracing, and preventive recommendations. This catalogue decomposes the Arc42 architecture into implementable epics spanning foundation infrastructure, core analysis tools, and advanced features.
 
-**Total Epics**: 13 (12 active + 1 deferred)
-**Estimated Duration**: 20-24 weeks (with parallelization)
-**Critical Path**: EP01 → EP02 → EP06 → EP07 → EP10
+**Strategic Pivot (Jan 2026):** From "config linting" to "effectiveness measurement" - measuring whether Skills, Agents, and practices are actually working.
+
+**Total Epics**: 20 (19 active + 1 deferred)
+**Phase 1 Complete**: EP01, EP02, EP06, EP07, EP08, EP09, EP10, EP11
+**Phase 2 Duration**: ~20 weeks (with parallelization)
+**Critical Path**: EP14 → EP17 (P0 epics)
 
 ## Epic Overview
 
@@ -27,6 +31,18 @@ agentlint enables continuous improvement of AI-assisted development workflows th
 | EP11 | Quality & Security | Enabler | P2 | M | 4 weeks | Not Started |
 | EP12 | Global Learnings | Integration | P2 | M | 4 weeks | Not Started |
 | EP13 | Git SDK Tools | Enabler | P3 | S | 2 weeks | Deferred |
+
+### Phase 2: Strategic Pivot Epics (Jan 2026)
+
+| Epic | Name | Type | Priority | Size | Duration | Status |
+|------|------|------|----------|------|----------|--------|
+| EP14 | Skills Effectiveness Analysis | Business | P0 | L | 6 weeks | Planned |
+| EP15 | Context Efficiency Engine | Business | P1 | M | 5 weeks | Planned |
+| EP16 | Symptom Pattern Detector | Business | P1 | M | 5 weeks | Planned |
+| EP17 | TUI Architecture & Agent-Led Exploration | Foundation | P0 | XL | 10 weeks | Planned |
+| EP18 | Subagent Delegation Tracker | Business | P2 | M | 4 weeks | Planned |
+| EP19 | MCP Integration Health | Business | P2 | S | 3 weeks | Planned |
+| EP20 | User Customization System | Business | P1 | L | 5-6 weeks | Planned |
 
 ## Dependency Matrix
 
@@ -179,6 +195,7 @@ All epics must respect the 9 constitutional principles:
 
 ### Epic Files
 
+#### Phase 1 Epics (Original)
 - [EP01: Project Foundation & CI/CD](epics/EP01-project-foundation.md)
 - [EP02: Orchestration Core](epics/EP02-orchestration-core.md)
 - [EP03: Persistence Layer](epics/EP03-persistence-layer.md)
@@ -193,6 +210,15 @@ All epics must respect the 9 constitutional principles:
 - [EP12: Global Learnings](epics/EP12-global-learnings.md)
 - [EP13: Git SDK Tools](epics/EP13-git-sdk-tools.md) *(Deferred)*
 
+#### Phase 2 Epics (Strategic Pivot - Jan 2026)
+- [EP14: Skills Effectiveness Analysis](epics/EP14-skills-effectiveness.md)
+- [EP15: Context Efficiency Engine](epics/EP15-context-efficiency.md)
+- [EP16: Symptom Pattern Detector](epics/EP16-symptom-patterns.md)
+- [EP17: TUI Architecture & Agent-Led Exploration](epics/EP17-tui-architecture.md)
+- [EP18: Subagent Delegation Tracker](epics/EP18-subagent-delegation.md)
+- [EP19: MCP Integration Health](epics/EP19-mcp-health.md)
+- [EP20: User Customization System](epics/EP20-user-customization.md)
+
 ### Related Documents
 
 - [Dependency Graph](dependency-graph.mermaid)
@@ -200,3 +226,8 @@ All epics must respect the 9 constitutional principles:
 - [Arc42 Documentation](../architecture/arc42/)
 - [ADRs](../architecture/adr/)
 - [Constitution](../../.specify/memory/constitution.md)
+
+#### Phase 2 Strategic Documents
+- [Strategic Review (Jan 2026)](../review/agentlint-strategic-review-jan26.md)
+- [Phase 2 Strategic Analysis](../review/phase2-strategic-analysis.md)
+- [ADR-0021: TUI Architecture & Interaction Model](../architecture/adr/0021-tui-architecture-interaction-model.md)
