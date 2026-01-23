@@ -23,9 +23,9 @@
 | Aspect | Value |
 |--------|-------|
 | **Language/Version** | [e.g., TypeScript 5.x, Python 3.12, Go 1.21] |
-| **Primary Dependencies** | [e.g., Commander, Vitest, Pydantic] |
+| **Primary Dependencies** | [e.g., Commander, Zod, Pydantic] |
 | **Storage** | [e.g., File system, SQLite, PostgreSQL, None] |
-| **Testing Framework** | [e.g., Vitest, pytest, go test] |
+| **Testing Framework** | [e.g., Bun test, pytest, go test] |
 | **Target Platform** | [e.g., CLI, Web, API, Library] |
 | **Project Type** | [e.g., CLI Tool, Library, Service, Plugin] |
 | **Performance Goals** | [e.g., < 5s response, < 100MB memory] |

@@ -54,10 +54,10 @@ In `plan.md`, populate the Technical Context section with project-specific value
 | Field | Description | Example |
 |-------|-------------|---------|
 | Language/Version | Primary language and version | TypeScript 5.x |
-| Primary Dependencies | Key libraries/frameworks | Vitest, Commander |
+| Primary Dependencies | Key libraries/frameworks | Zod, Commander |
 | Storage | Data persistence approach | File system, SQLite |
-| Testing Framework | Test tools used | Vitest, Playwright |
-| Target Platform | Deployment target | CLI, Node.js 20+ |
+| Testing Framework | Test tools used | Bun test, Playwright |
+| Target Platform | Deployment target | CLI (Bun/Node.js) |
 | Project Type | Architecture pattern | CLI Tool, Library |
 | Performance Goals | Key metrics | < 5s analysis time |
 | Constraints | Technical limitations | No external services |
@@ -220,6 +220,92 @@ Update `plan.md` header:
 ```markdown
 > **Status**: Design Complete
 ```
+
+---
+
+## For Agentic Applications
+
+When planning features for agentic systems (like agentlint), apply these additional design principles:
+
+### Tool Design Principles
+
+Per Constitution Principle VII and Anthropic's "Building Effective Agents" guidance:
+
+| Principle | Application |
+|-----------|-------------|
+| **Tools return data, not judgments** | Return `{invocationCount: 3, sessionCount: 47}`, not `{status: "low"}` |
+| **Tools filter/truncate results** | Don't dump 10,000 records; provide query parameters |
+| **Rich tool descriptions** | Descriptions explain what, when, and what returns—agent selects based on descriptions |
+| **Consolidate related operations** | One `querySkillData` with parameters, not `listSkills`, `getSkill`, `searchSkills` |
+
+### Data Model for Agentic Features
+
+When designing data models:
+
+**Include:**
+- Entities that tools operate on (sessions, configs, invocations)
+- Indexes for efficient querying
+- Raw data structures with timestamps, IDs, context
+
+**Exclude:**
+- Detection results (agent generates these)
+- Orchestration state (agent manages this)
+- Computed judgments ("is_low", "missed_opportunity")
+
+### Contract Design
+
+Tool contracts should specify:
+
+```typescript
+// GOOD: Returns data for agent to interpret
+interface SkillInvocationResult {
+  skillName: string;
+  invocations: InvocationRecord[];  // Raw data
+  sessionCount: number;              // Fact
+  invocationCount: number;           // Fact
+  // Agent decides if this is "low" or "high"
+}
+
+// BAD: Tool makes judgment
+interface SkillAnalysisResult {
+  skillName: string;
+  status: 'underutilized' | 'healthy' | 'overused';  // Judgment!
+  recommendation: string;  // Agent's job!
+}
+```
+
+### Context Window Economics
+
+Design tools with context window limits in mind:
+
+- **Summarize large results** - Don't return full session logs; return summaries
+- **Implement pagination** - Allow `limit` and `offset` parameters
+- **Provide filtering** - Let agent request only what it needs
+- **Use `_rawData` pattern** - Structured data alongside human-readable summary
+
+### Constitution Principle VII Checklist
+
+Before finalizing the plan, verify:
+
+- [ ] No tool returns judgments ("low", "bad", "missed")
+- [ ] No tool encodes thresholds (if X > 5 then Y)
+- [ ] No tool prescribes when to use other tools
+- [ ] No tool implements detection/matching logic that requires judgment
+- [ ] Tool descriptions explain capabilities, not orchestration
+
+### Testing Strategy for Agentic Features
+
+Plan for two levels of testing:
+
+1. **Tool-level tests** (unit/integration)
+   - Tool returns correct data for given inputs
+   - Tool handles edge cases (empty data, large datasets)
+   - Tool filtering/pagination works correctly
+
+2. **Agent-level tests** (evaluations)
+   - Agent reasons correctly given tool outputs
+   - Agent makes appropriate tool selections
+   - Agent provides useful analysis (requires LLM-as-judge)
 
 ---
 

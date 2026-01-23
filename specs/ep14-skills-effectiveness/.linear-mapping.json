@@ -1,0 +1,326 @@
+{
+  "metadata": {
+    "feature": "ep14-skills-effectiveness",
+    "project": "EP14: Skills Effectiveness Analysis",
+    "project_id": "9e126c39-3a67-4a7d-9d3c-cc68fe159e9a",
+    "epic_label": "epic:EP14",
+    "epic_label_id": "42261840-71c2-4515-a0ee-55ecca881e20",
+    "team_id": "026f9bb0-5934-4186-b047-155812ae914d",
+    "created_at": "2026-01-24T20:50:42Z",
+    "last_sync": "2026-01-24T20:54:30Z"
+  },
+  "mappings": {
+    "T001": {
+      "linear_id": "714cbe95-e2c7-4587-a191-c02fbc6ef0a8",
+      "linear_identifier": "AGE-690",
+      "title": "T001: Create src/skills/ directory structure per plan.md",
+      "url": "https://linear.app/obsidianowl/issue/AGE-690"
+    },
+    "T002": {
+      "linear_id": "7567d467-d584-4c67-8427-ed34565ba3c3",
+      "linear_identifier": "AGE-691",
+      "title": "T002: Create src/skills/index.ts module entry point",
+      "url": "https://linear.app/obsidianowl/issue/AGE-691"
+    },
+    "T003": {
+      "linear_id": "8a00ace1-cad6-40d4-af87-6970d2dc5739",
+      "linear_identifier": "AGE-692",
+      "title": "T003: Create src/skills/types.ts with TypeScript interfaces",
+      "url": "https://linear.app/obsidianowl/issue/AGE-692"
+    },
+    "T004": {
+      "linear_id": "48eea51a-26e4-489d-8582-cd7083206c55",
+      "linear_identifier": "AGE-693",
+      "title": "T004: Create src/skills/schemas.ts with Zod validation schemas",
+      "url": "https://linear.app/obsidianowl/issue/AGE-693"
+    },
+    "T005": {
+      "linear_id": "ef77e06e-d85f-4566-afeb-2eb0c820b2a7",
+      "linear_identifier": "AGE-694",
+      "title": "T005: Create tests/unit/skills/ directory structure",
+      "url": "https://linear.app/obsidianowl/issue/AGE-694"
+    },
+    "T006": {
+      "linear_id": "59706620-4d80-4e72-a172-0d112ecc406c",
+      "linear_identifier": "AGE-695",
+      "title": "T006: Create tests/integration/skills/ directory structure",
+      "url": "https://linear.app/obsidianowl/issue/AGE-695"
+    },
+    "T007": {
+      "linear_id": "94ad34b2-fb88-4ad0-a8e5-273c82621552",
+      "linear_identifier": "AGE-696",
+      "title": "T007: Implement SkillInventoryItem interface in src/skills/types.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-696"
+    },
+    "T008": {
+      "linear_id": "4b22f3a7-23da-4c3b-86d6-c99c469665bf",
+      "linear_identifier": "AGE-697",
+      "title": "T008: Implement SkillInvocationRecord interface in src/skills/types.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-697"
+    },
+    "T009": {
+      "linear_id": "8bd9b4f6-7201-46ba-8c02-56df98571763",
+      "linear_identifier": "AGE-698",
+      "title": "T009: Implement SessionSummary interface in src/skills/types.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-698"
+    },
+    "T010": {
+      "linear_id": "10ec9e67-f1b8-411e-8d7e-f5b4318d3266",
+      "linear_identifier": "AGE-699",
+      "title": "T010: Create Zod schema for GetSkillInventoryInput",
+      "url": "https://linear.app/obsidianowl/issue/AGE-699"
+    },
+    "T011": {
+      "linear_id": "5bf7cffd-f306-40b3-8c08-1483cb812f08",
+      "linear_identifier": "AGE-700",
+      "title": "T011: Create Zod schema for GetSkillInvocationsInput",
+      "url": "https://linear.app/obsidianowl/issue/AGE-700"
+    },
+    "T012": {
+      "linear_id": "3d8e2f72-6645-48ff-85f0-3514d3dfb1f1",
+      "linear_identifier": "AGE-701",
+      "title": "T012: Create Zod schema for GetSessionSummariesInput",
+      "url": "https://linear.app/obsidianowl/issue/AGE-701"
+    },
+    "T013": {
+      "linear_id": "24825d70-6264-481e-9f98-188dbcdd2f31",
+      "linear_identifier": "AGE-702",
+      "title": "T013: Create src/skills/storage/ directory",
+      "url": "https://linear.app/obsidianowl/issue/AGE-702"
+    },
+    "T014": {
+      "linear_id": "931a3169-f582-4e38-bc7c-cd8696d7dbb3",
+      "linear_identifier": "AGE-703",
+      "title": "T014: Implement skill_invocations table schema",
+      "url": "https://linear.app/obsidianowl/issue/AGE-703"
+    },
+    "T015": {
+      "linear_id": "294ffb78-ee7c-47dd-9845-2b68ef05821a",
+      "linear_identifier": "AGE-704",
+      "title": "T015: Add schema initialization function",
+      "url": "https://linear.app/obsidianowl/issue/AGE-704"
+    },
+    "T016": {
+      "linear_id": "a2741943-68f1-4dfb-8e5e-11aaef525ed4",
+      "linear_identifier": "AGE-705",
+      "title": "T016: Create src/skills/storage/index.ts with exports",
+      "url": "https://linear.app/obsidianowl/issue/AGE-705"
+    },
+    "T017": {
+      "linear_id": "68f6418a-27ab-4e2d-ad09-ff36be8bd9b4",
+      "linear_identifier": "AGE-706",
+      "title": "T017: Unit test: get_skill_inventory returns skills from .claude/skills/",
+      "url": "https://linear.app/obsidianowl/issue/AGE-706"
+    },
+    "T018": {
+      "linear_id": "f03e88ec-7c7f-498f-a268-4e2051b061f3",
+      "linear_identifier": "AGE-707",
+      "title": "T018: Unit test: handles empty skills directory gracefully",
+      "url": "https://linear.app/obsidianowl/issue/AGE-707"
+    },
+    "T019": {
+      "linear_id": "6007e077-2392-43a7-8d28-ef5279dc9e5d",
+      "linear_identifier": "AGE-708",
+      "title": "T019: Create src/skills/discovery.ts wrapping existing skills.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-708"
+    },
+    "T020": {
+      "linear_id": "3bc66fcd-a293-49bd-a3d8-349d3303f928",
+      "linear_identifier": "AGE-709",
+      "title": "T020: Create get-skill-inventory-tool.ts with rich description",
+      "url": "https://linear.app/obsidianowl/issue/AGE-709"
+    },
+    "T021": {
+      "linear_id": "c388c320-0435-4d6c-bd37-a0cd4519a8ec",
+      "linear_identifier": "AGE-710",
+      "title": "T021: Unit test: detects Skill tool_use entries in session logs",
+      "url": "https://linear.app/obsidianowl/issue/AGE-710"
+    },
+    "T022": {
+      "linear_id": "98aa44b0-a70f-4bd4-aa90-2914fc48c3e2",
+      "linear_identifier": "AGE-711",
+      "title": "T022: Implement isSkillInvocation() and extractSkillCommand()",
+      "url": "https://linear.app/obsidianowl/issue/AGE-711"
+    },
+    "T023": {
+      "linear_id": "086298f1-e8b2-4c25-b3df-e28a51a88584",
+      "linear_identifier": "AGE-712",
+      "title": "T023: Implement extractUserPromptContext() in detection.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-712"
+    },
+    "T024": {
+      "linear_id": "ad63638c-e77a-4d7a-b72f-5f61d183f487",
+      "linear_identifier": "AGE-713",
+      "title": "T024: Create index-skill-invocations-tool.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-713"
+    },
+    "T025": {
+      "linear_id": "7d910d65-7caa-49fd-a986-7c93e41b4c47",
+      "linear_identifier": "AGE-714",
+      "title": "T025: Unit test: get_session_summaries returns first user prompt",
+      "url": "https://linear.app/obsidianowl/issue/AGE-714"
+    },
+    "T026": {
+      "linear_id": "9fe314fb-9c3c-4eae-9afb-e2d375df0b4f",
+      "linear_identifier": "AGE-715",
+      "title": "T026: Unit test: get_session_summaries returns files operated",
+      "url": "https://linear.app/obsidianowl/issue/AGE-715"
+    },
+    "T027": {
+      "linear_id": "93e45e67-75b9-404b-b9b2-310f2085e9fa",
+      "linear_identifier": "AGE-716",
+      "title": "T027: Create session summary query in queries.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-716"
+    },
+    "T028": {
+      "linear_id": "799f0cd8-5e60-41fd-8a94-0f66b7dbd241",
+      "linear_identifier": "AGE-717",
+      "title": "T028: Implement files-operated extraction (Read/Write/Edit tools)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-717"
+    },
+    "T029": {
+      "linear_id": "55870f5b-fbf8-48d5-b55a-258bafc2331f",
+      "linear_identifier": "AGE-718",
+      "title": "T029: Create get-session-summaries-tool.ts with rich description",
+      "url": "https://linear.app/obsidianowl/issue/AGE-718"
+    },
+    "T030": {
+      "linear_id": "50fd5cc6-4f66-457d-98d6-4346408be775",
+      "linear_identifier": "AGE-719",
+      "title": "T030: Integration test: session summaries include skills invoked",
+      "url": "https://linear.app/obsidianowl/issue/AGE-719"
+    },
+    "T031": {
+      "linear_id": "264f8540-1c13-4404-bc50-6e0daeceefc2",
+      "linear_identifier": "AGE-720",
+      "title": "T031: Unit test: filters by skill name",
+      "url": "https://linear.app/obsidianowl/issue/AGE-720"
+    },
+    "T032": {
+      "linear_id": "0d67980a-263b-4101-9d95-54f191352b11",
+      "linear_identifier": "AGE-721",
+      "title": "T032: Unit test: filters by date range (since/until)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-721"
+    },
+    "T033": {
+      "linear_id": "51f9d0ed-bd98-4ae3-ab84-15527d14d0ae",
+      "linear_identifier": "AGE-722",
+      "title": "T033: Unit test: filters by session ID",
+      "url": "https://linear.app/obsidianowl/issue/AGE-722"
+    },
+    "T034": {
+      "linear_id": "6a6d7d02-5b5e-4509-ba25-1b192d6266cd",
+      "linear_identifier": "AGE-723",
+      "title": "T034: Implement invocation queries in queries.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-723"
+    },
+    "T035": {
+      "linear_id": "4140db90-f670-4970-80eb-e97c039afeaa",
+      "linear_identifier": "AGE-724",
+      "title": "T035: Implement date range filtering with ISO-8601 validation",
+      "url": "https://linear.app/obsidianowl/issue/AGE-724"
+    },
+    "T036": {
+      "linear_id": "3a7a613d-36b3-4ede-86d5-ffcc114910e0",
+      "linear_identifier": "AGE-725",
+      "title": "T036: Create get-skill-invocations-tool.ts with rich description",
+      "url": "https://linear.app/obsidianowl/issue/AGE-725"
+    },
+    "T037": {
+      "linear_id": "c450340a-fe9c-4eaa-946d-d58076736a26",
+      "linear_identifier": "AGE-726",
+      "title": "T037: Integration test: query returns correct data after indexing",
+      "url": "https://linear.app/obsidianowl/issue/AGE-726"
+    },
+    "T038": {
+      "linear_id": "2854ab79-0fdc-4a70-a4bc-fff3153ffe3e",
+      "linear_identifier": "AGE-727",
+      "title": "T038: Add pagination (limit/offset) to get_skill_invocations",
+      "url": "https://linear.app/obsidianowl/issue/AGE-727"
+    },
+    "T039": {
+      "linear_id": "fb9d0385-190e-4395-a9c4-84c6580f79df",
+      "linear_identifier": "AGE-728",
+      "title": "T039: Create src/skills/tools/index.ts exporting all four tools",
+      "url": "https://linear.app/obsidianowl/issue/AGE-728"
+    },
+    "T040": {
+      "linear_id": "005664a2-c29a-4393-8a87-57ff3dedaf09",
+      "linear_identifier": "AGE-729",
+      "title": "T040: Register skills tools in tool-registry.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-729"
+    },
+    "T041": {
+      "linear_id": "34f478ce-f2a5-4373-9d5a-6e73002edd53",
+      "linear_identifier": "AGE-730",
+      "title": "T041: Add --skills flag to analyse command",
+      "url": "https://linear.app/obsidianowl/issue/AGE-730"
+    },
+    "T042": {
+      "linear_id": "5508482d-78a9-468f-a5a7-6b0d3ca16225",
+      "linear_identifier": "AGE-731",
+      "title": "T042: Implement skills-focused analysis mode",
+      "url": "https://linear.app/obsidianowl/issue/AGE-731"
+    },
+    "T043": {
+      "linear_id": "eb1a2c4d-ba1d-4e28-aae3-03a0dc497e69",
+      "linear_identifier": "AGE-732",
+      "title": "T043: Add skills invocation metrics to baseline schema",
+      "url": "https://linear.app/obsidianowl/issue/AGE-732"
+    },
+    "T044": {
+      "linear_id": "b84f158a-22b1-451d-bf33-e0fe447ff97d",
+      "linear_identifier": "AGE-733",
+      "title": "T044: Store skills metrics during baseline capture",
+      "url": "https://linear.app/obsidianowl/issue/AGE-733"
+    },
+    "T045": {
+      "linear_id": "78b5bb70-40a0-4a0c-bb08-43b102376f5e",
+      "linear_identifier": "AGE-734",
+      "title": "T045: Integration test: tools registered and callable",
+      "url": "https://linear.app/obsidianowl/issue/AGE-734"
+    },
+    "T046": {
+      "linear_id": "126a6d07-04b8-43bd-8a4b-8ea06d4b10c1",
+      "linear_identifier": "AGE-735",
+      "title": "T046: Integration test: --skills flag runs skills analysis",
+      "url": "https://linear.app/obsidianowl/issue/AGE-735"
+    },
+    "T047": {
+      "linear_id": "caba982f-69c6-4484-b420-7370708e1d68",
+      "linear_identifier": "AGE-736",
+      "title": "T047: Create src/cli/commands/skills.ts command structure",
+      "url": "https://linear.app/obsidianowl/issue/AGE-736"
+    },
+    "T048": {
+      "linear_id": "3d03f827-5664-4642-bf4b-0cba85d1a1b6",
+      "linear_identifier": "AGE-737",
+      "title": "T048: Implement agentlint skills summary output",
+      "url": "https://linear.app/obsidianowl/issue/AGE-737"
+    },
+    "T049": {
+      "linear_id": "a45492f5-9eaf-4b29-aef5-3b3e6b68c1f5",
+      "linear_identifier": "AGE-738",
+      "title": "T049: Add --detail flag for single-skill analysis",
+      "url": "https://linear.app/obsidianowl/issue/AGE-738"
+    },
+    "T050": {
+      "linear_id": "ead43371-1a39-4942-ae0d-684a66cf7140",
+      "linear_identifier": "AGE-739",
+      "title": "T050: Integration test: agentlint skills command works",
+      "url": "https://linear.app/obsidianowl/issue/AGE-739"
+    },
+    "T051": {
+      "linear_id": "af3e28aa-2cc9-4358-a632-9ba7b2505352",
+      "linear_identifier": "AGE-740",
+      "title": "T051: Verify all tools return data only (no judgments)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-740"
+    },
+    "T052": {
+      "linear_id": "3744ff5d-17bc-4b19-ad4c-64f31936a0cc",
+      "linear_identifier": "AGE-741",
+      "title": "T052: Update Arc42 §5 with Skills Effectiveness Data component",
+      "url": "https://linear.app/obsidianowl/issue/AGE-741"
+    }
+  }
+}

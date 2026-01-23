@@ -2,8 +2,8 @@
 
 ## Business Outcome Hypothesis
 
-**If** we implement skills effectiveness measurement from session logs,
-**Then** users can understand whether their Skills are being invoked, identify missed opportunities, and improve skill descriptions for better auto-discovery,
+**If** we provide tools for skills data access from session logs,
+**Then** the agent can analyze whether Skills are being invoked, reason about missed opportunities, and suggest description improvements for better auto-discovery,
 **Measured by** skill invocation rate improvement, missed opportunity reduction, and description match rate.
 
 ## Classification
@@ -17,24 +17,24 @@
 
 ## In Scope
 
-* Skill invocation detection from session logs (`tool_use.name === "Skill"`)
-* Per-skill invocation tracking and indexing
+* Skill invocation extraction from session logs (`tool_use.name === "Skill"`)
+* Per-skill invocation indexing with context
 * Skill inventory integration (enumerate from `.claude/skills/`)
-* Missed opportunity detection (sessions touching files matching skill scope)
-* Description mismatch analysis (user phrasing vs. skill description)
-* Suggestion generation for improved skill descriptions
+* Session summaries for agent analysis (files operated, user prompts)
+* Data access tools for agent-driven effectiveness analysis
 
 ## Out of Scope
 
 * Skill creation/editing (users do this manually)
 * Cross-project skill comparison (future EP12 integration)
 * Real-time skill invocation monitoring
+* Programmatic detection logic (agent reasons about effectiveness)
 
 ## Key Deliverables
 
 ### Phase 1: Core Implementation (Weeks 1-3)
 
-1. **Skill Invocation Detector**
+1. **Skill Invocation Indexer**
    - Parse `tool_use.name === "Skill"` entries from session logs
    - Extract skill command from `input.skill` or `input.command`
    - Build per-skill invocation index with context (session, timestamp, user prompt)
@@ -42,24 +42,25 @@
 
 2. **Skill Inventory Integration**
    - Enumerate skills from `.claude/skills/` directory
-   - Parse skill frontmatter (name, description, triggers, file patterns)
-   - Build skill-to-scope mapping (which files/patterns each skill covers)
+   - Parse skill frontmatter (name, description, file patterns as hints)
+   - Provide skill metadata for agent reasoning
 
-3. **Missed Opportunity Detector**
-   - Analyze session file operations (Read/Write/Edit tool calls)
-   - Match file patterns to skill scope definitions
-   - Identify sessions where skill *could* have been invoked but wasn't
-   - Calculate missed opportunity rate per skill
+3. **Session Summary Provider**
+   - Summarize sessions with: first user prompt, files operated, skills invoked
+   - Provide context for agent to reason about missed opportunities
+   - Include file patterns as hints (not programmatic rules)
 
-4. **Description Mismatch Analyzer**
-   - Extract user prompts from sessions where skill wasn't invoked
-   - Compare prompt phrasing to skill descriptions using semantic similarity
-   - Surface discovery mismatches with specific suggestions
-
-5. **Skills Effectiveness Tools**
-   - `analyzeSkillsEffectivenessTool` - Comprehensive effectiveness analysis
+4. **Skills Data Access Tools**
+   - `getSkillInventoryTool` - List skills with metadata
    - `getSkillInvocationsTool` - Query invocation data by skill/session/date
-   - `suggestSkillDescriptionsTool` - Generate improved descriptions based on user phrasing
+   - `getSessionSummariesTool` - Session context for agent analysis
+   - `indexSkillInvocationsTool` - Build/update invocation database
+
+**Agent Reasoning (NOT tools):**
+- Whether invocation rates are "low" or "high"
+- Whether a skill should have been used (missed opportunity)
+- Why description-phrasing mismatches occur
+- What description improvements to suggest
 
 ### Phase 2: Integration (Weeks 4-5)
 
@@ -69,19 +70,19 @@
    - Add `--skills` flag to focus analysis on skills effectiveness
 
 2. **Orchestrator Integration**
-   - Register new tools in tool registry
-   - Update analysis prompts to leverage skills effectiveness data
-   - Ensure tools work with agent reasoning flow
+   - Register data access tools in tool registry
+   - Agent uses tools to gather data, then reasons about effectiveness
+   - Ensure tools return data, not judgments
 
 3. **Persistence Integration**
-   - Store skills effectiveness metrics in baselines
-   - Enable temporal comparison of skills effectiveness
-   - Add skills data to recommendation context
+   - Store skills invocation counts in baselines
+   - Enable temporal comparison of invocation data
+   - Agent reasons about trends using historical data
 
 4. **Testing**
-   - Unit tests for invocation detection, missed opportunity calculation
+   - Unit tests for invocation indexing, data queries
    - Integration tests for CLI commands
-   - VCR tests for agent-driven skills analysis
+   - Evaluations for agent reasoning quality (VCR + LLM-as-judge)
    - Test fixtures with sample session logs containing Skill tool calls
 
 ### Phase 3: Cleanup (Week 6)
@@ -95,8 +96,8 @@
    - Consolidate duplicate test utilities
 
 3. **Documentation**
-   - Update Arc42 §5 (Building Blocks) with Skills Effectiveness component
-   - Update ADR-0017 with effectiveness measurement extension
+   - Update Arc42 §5 (Building Blocks) with Skills Data component
+   - Update ADR-0017 with data access extension
    - Update CLAUDE.md with new CLI commands
 
 ## Technical Approach
@@ -104,7 +105,7 @@
 ### Session Log Detection Pattern
 
 ```typescript
-// Detect Skill invocations in session logs
+// Deterministic extraction—tool finds invocations, agent interprets
 function isSkillInvocation(block: ContentBlock): boolean {
   return block.type === 'tool_use' && block.name === 'Skill';
 }
@@ -132,20 +133,23 @@ CREATE INDEX idx_skill_invocations_skill ON skill_invocations(skill_name);
 CREATE INDEX idx_skill_invocations_session ON skill_invocations(session_id);
 ```
 
+**Note**: No `missed_opportunities` table—agent reasons about this from session data.
+
 ## Success Criteria
 
-- [ ] Can report per-skill invocation rates with 30/60/90 day trends
-- [ ] Can identify sessions with missed skill opportunities
-- [ ] Can suggest description improvements for low-invocation skills
+- [ ] Tools provide skill inventory, invocation data, and session summaries
+- [ ] Agent can reason about effectiveness using provided data
+- [ ] Agent can analyze description mismatches and suggest improvements
 - [ ] All tests pass, no dead code remains
-- [ ] Integration with EP17 TUI for interactive exploration
+- [ ] Tools return data; agent provides judgment (Constitution Principle VII)
 
 ## Constitution Alignment
 
 | Principle | Alignment |
 |-----------|-----------|
 | II. Improvement-Oriented | Skills effectiveness tracking compounds value over time |
-| III. Causal-First | Traces non-invocation to discovery/description issues |
+| III. Causal-First | Agent traces non-invocation to discovery/description issues |
+| VII. Intelligent Tooling | Tools provide data; agent reasons about effectiveness |
 | VIII. Compounding Value | Better descriptions improve future sessions |
 
 ## Related Documents

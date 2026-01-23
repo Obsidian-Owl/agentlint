@@ -181,6 +181,102 @@ Tasks for minimum viable feature:
 **Full Feature**: 45 tasks
 ```
 
+---
+
+## For Agentic Applications
+
+When generating tasks for agentic systems (like agentlint), apply these additional guidelines:
+
+### Task Categories for Agentic Features
+
+Organize tasks to reflect the tool/agent boundary:
+
+```markdown
+## Phase X: [Feature Name]
+
+### Tool Implementation (testable in isolation)
+
+- [ ] T0XX [P] Create Zod schema for tool parameters in src/tools/schemas.ts
+- [ ] T0XX [P] Implement data access function in src/tools/[name].ts
+- [ ] T0XX [P] Add tool to registry in src/tools/index.ts
+- [ ] T0XX Write unit tests for tool in tests/unit/tools/[name].test.ts
+
+### Tool Integration (connects to orchestration)
+
+- [ ] T0XX Register tool with orchestrator in src/orchestration/tool-registry.ts
+- [ ] T0XX Write integration test in tests/integration/tools/[name].test.ts
+
+### Agent Evaluation (requires LLM)
+
+- [ ] T0XX Create eval case for [scenario] in tests/evals/[name].eval.ts
+- [ ] T0XX Add to eval suite in tests/evals/index.ts
+```
+
+### Tasks to Include
+
+| Task Type | Example | Why |
+|-----------|---------|-----|
+| **Tool schemas** | "Create Zod schema for getSkillInvocations" | Enables type-safe tool parameters |
+| **Data access** | "Implement SQLite queries for skill invocations" | Core tool capability |
+| **Tool descriptions** | "Write rich description for tool registry" | Agent selects tools based on descriptions |
+| **Unit tests** | "Test tool returns correct data" | Verify tool capability |
+| **Evaluations** | "Create eval for agent skill analysis" | Verify agent reasoning |
+
+### Tasks to EXCLUDE
+
+| Don't Create Tasks For | Why |
+|------------------------|-----|
+| "Implement detection logic" | Agent reasoning, not implementation |
+| "Add threshold for low invocation" | Agent judgment, not code |
+| "Create orchestration flow" | Agent decides orchestration |
+| "Implement when-to-use rules" | Agent reasons about when to use tools |
+
+### Tool Task Template
+
+For each tool, generate these tasks:
+
+```markdown
+### Tool: get_skill_invocations
+
+- [ ] T0XX Create SkillInvocation type in src/skills/types.ts
+- [ ] T0XX Create Zod schema in src/skills/schemas.ts
+- [ ] T0XX Implement query function in src/skills/queries.ts
+- [ ] T0XX Create tool definition in src/skills/tools/get-skill-invocations.ts
+- [ ] T0XX Write tool description (what, when, returns)
+- [ ] T0XX Register tool in src/skills/tools/index.ts
+- [ ] T0XX Unit test: returns correct data for valid query
+- [ ] T0XX Unit test: handles empty results gracefully
+- [ ] T0XX Unit test: respects limit/offset parameters
+- [ ] T0XX Integration test: tool works with real SQLite
+```
+
+### Evaluation Task Template
+
+For agentic features, include evaluation tasks:
+
+```markdown
+### Evaluations: Skills Effectiveness Analysis
+
+- [ ] T0XX Create eval: agent correctly interprets low invocation count
+- [ ] T0XX Create eval: agent identifies relevant sessions for missed opportunity analysis
+- [ ] T0XX Create eval: agent generates actionable description improvement suggestions
+- [ ] T0XX Add evals to CI pipeline (gated, requires API key)
+```
+
+### Checkpoint for Agentic Features
+
+After tool implementation phases:
+
+```markdown
+**Checkpoint**: Tools complete and testable
+- [ ] All tools return raw data (no judgments)
+- [ ] All tools have rich descriptions
+- [ ] Unit tests pass
+- [ ] Tools work in isolation (no orchestration dependencies)
+```
+
+---
+
 ### Phase 7: Generate tasks.md
 
 Create `$FEATURE_DIR/tasks.md` using template with:

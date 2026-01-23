@@ -1,10 +1,10 @@
-# EP19: MCP Integration Health
+# EP19: MCP Integration Data
 
 ## Business Outcome Hypothesis
 
-**If** we implement MCP integration health monitoring from session logs,
-**Then** users can identify misconfigured, underused, or failing MCP servers and optimize their external tool integrations,
-**Measured by** MCP error rate reduction, unused server identification, and usage pattern insights.
+**If** we provide tools for MCP integration data from session logs,
+**Then** the agent can analyze MCP server usage, reason about error patterns, and provide optimization recommendations,
+**Measured by** MCP data accuracy, error pattern visibility, and recommendation relevance.
 
 ## Classification
 
@@ -17,82 +17,88 @@
 
 ## In Scope
 
-* MCP tool invocation detection from session logs (`mcp__*` prefix)
-* Per-server usage statistics (call count, error rate)
-* Unused server identification (configured but never called)
-* Error pattern analysis (connection, timeout, auth failures)
-* Server health scoring
+* MCP tool invocation extraction from session logs (`mcp__*` prefix)
+* Per-server usage data (call count, success/failure counts)
+* Error message extraction with categorization
+* MCP configuration parsing for server inventory
+* Data access tools for agent-driven MCP analysis
 
 ## Out of Scope
 
 * MCP server configuration management
 * Real-time MCP monitoring
 * MCP server discovery/installation
-* Performance benchmarking of MCP servers
+* Programmatic health scoring (agent reasons about health)
 
 ## Key Deliverables
 
 ### Phase 1: Core Implementation (Weeks 1-2)
 
-1. **MCP Tool Detector**
+1. **MCP Tool Extractor**
    - Parse `tool_use.name.startsWith("mcp__")` entries
    - Extract server name from tool name prefix
    - Track invocation success/failure via `is_error` flag
-   - Capture error messages for failure analysis
+   - Capture error messages for agent analysis
 
-2. **Server Usage Analyzer**
-   - Aggregate calls per MCP server
-   - Calculate error rate per server
-   - Identify usage frequency patterns (daily, session-based)
-   - Detect unused servers (0 calls over analysis period)
+2. **Server Usage Data**
+   - Aggregate call counts per MCP server
+   - Track success/failure counts per server
+   - Extract usage frequency data (timestamps, sessions)
+   - Provide data for agent to reason about patterns
 
-3. **Error Pattern Classifier**
-   - Connection errors (server unreachable)
-   - Timeout errors (slow responses)
-   - Authentication errors (credential issues)
-   - Schema errors (invalid tool input)
+3. **Error Data Extraction**
+   - Extract error messages with timestamps
+   - Provide error text for agent classification
+   - Include context (which tool, what input hash)
 
-4. **Health Scoring**
-   - Per-server health score (0-100)
-   - Factors: error rate, usage frequency, error diversity
-   - Thresholds: healthy (>80), degraded (50-80), unhealthy (<50)
+4. **MCP Configuration Parser**
+   - Read MCP config from `.mcp.json` or settings
+   - Extract configured server list
+   - Provide configuration data for comparison with usage
 
-5. **MCP Health Tools**
-   - `analyzeMcpHealthTool` - Comprehensive MCP health analysis
-   - `getMcpServerStatsTool` - Query per-server metrics
-   - `identifyUnusedServersTool` - Find configured but unused servers
+5. **MCP Data Access Tools**
+   - `getMcpServerStatsTool` - Query per-server usage data
+   - `getMcpErrorsTool` - Query error events with context
+   - `getMcpConfigTool` - Get configured MCP servers
+
+**Agent Reasoning (NOT tools):**
+- Whether error rates indicate a problem
+- Which servers are "unhealthy" or need attention
+- Whether usage patterns are appropriate
+- What configuration changes to recommend
+- How to troubleshoot specific error types
 
 ### Phase 2: Integration (Week 2-3)
 
 1. **CLI Integration**
-   - Add MCP health to `agentlint analyse` output
+   - Add MCP data to `agentlint analyse` output
    - Add `--mcp` flag for focused MCP analysis
-   - Show health scores with action recommendations
+   - Agent presents findings with recommendations
 
-2. **Configuration Cross-Reference**
-   - Read MCP config from `.mcp.json` or settings
-   - Compare configured servers vs. actually used
-   - Identify configuration drift
+2. **Configuration Comparison**
+   - Provide data for agent to compare configured vs. used servers
+   - Agent reasons about configuration drift
+   - Agent identifies unused servers
 
 3. **Testing**
-   - Unit tests for MCP tool detection, error classification
-   - Integration tests for health scoring
-   - Test fixtures with varied MCP usage patterns
+   - Unit tests for MCP tool extraction, config parsing
+   - Integration tests for MCP data queries
+   - Evaluations for agent reasoning quality (VCR + LLM-as-judge)
 
 ### Phase 3: Cleanup (Week 3)
 
 1. **Dead Code Removal**
-   - Remove any redundant MCP tracking code
-   - Clean up temporary analysis scaffolding
+   - Remove any redundant MCP extraction code
+   - Clean up temporary data extraction scaffolding
 
 2. **Documentation**
-   - Update Arc42 with MCP Health component
-   - Update ADR-0006 with MCP health extension
-   - Add MCP troubleshooting guide
+   - Update Arc42 with MCP Data component
+   - Update ADR-0006 with MCP data extension
+   - Add MCP data interpretation guide
 
 ## Technical Approach
 
-### MCP Tool Detection
+### MCP Tool Extraction
 
 ```typescript
 interface McpToolCall {
@@ -104,6 +110,7 @@ interface McpToolCall {
   errorMessage?: string;
 }
 
+// Deterministic extraction—tool extracts data, agent reasons about health
 function extractMcpCalls(entries: SessionEntry[]): McpToolCall[] {
   const mcpCalls: McpToolCall[] = [];
 
@@ -134,6 +141,7 @@ function extractMcpCalls(entries: SessionEntry[]): McpToolCall[] {
 ### Database Schema
 
 ```sql
+-- Raw MCP data for agent analysis
 CREATE TABLE mcp_tool_calls (
   id INTEGER PRIMARY KEY,
   session_id TEXT NOT NULL,
@@ -141,7 +149,6 @@ CREATE TABLE mcp_tool_calls (
   tool_name TEXT NOT NULL,
   timestamp TEXT NOT NULL,
   is_error BOOLEAN NOT NULL DEFAULT 0,
-  error_type TEXT,
   error_message TEXT,
   FOREIGN KEY (session_id) REFERENCES sessions(id)
 );
@@ -150,77 +157,54 @@ CREATE INDEX idx_mcp_calls_session ON mcp_tool_calls(session_id);
 CREATE INDEX idx_mcp_calls_server ON mcp_tool_calls(server_name);
 ```
 
-### Health Scoring
+**Note**: No `mcp_server_health` table with health scores—agent reasons about this from raw data.
+
+### Server Stats Query
 
 ```typescript
-interface McpServerHealth {
+interface McpServerStats {
   serverName: string;
   totalCalls: number;
+  successCount: number;
   errorCount: number;
-  errorRate: number;
-  errorTypes: Record<string, number>;
-  healthScore: number;
-  status: 'healthy' | 'degraded' | 'unhealthy' | 'unused';
-  recommendations: string[];
+  errorMessages: string[];  // Raw messages for agent analysis
+  firstCall: string;
+  lastCall: string;
 }
 
-function calculateServerHealth(
-  serverName: string,
-  calls: McpToolCall[]
-): McpServerHealth {
+// Returns data for agent to reason about server health
+function getServerStats(serverName: string, calls: McpToolCall[]): McpServerStats {
   const serverCalls = calls.filter((c) => c.serverName === serverName);
-  const errorCount = serverCalls.filter((c) => c.isError).length;
-  const errorRate = serverCalls.length > 0 ? errorCount / serverCalls.length : 0;
-
-  // Classify errors
-  const errorTypes: Record<string, number> = {};
-  for (const call of serverCalls.filter((c) => c.isError)) {
-    const type = classifyError(call.errorMessage);
-    errorTypes[type] = (errorTypes[type] || 0) + 1;
-  }
-
-  // Calculate health score
-  let healthScore = 100;
-  healthScore -= errorRate * 50; // Up to -50 for errors
-  healthScore -= Object.keys(errorTypes).length * 10; // -10 per error type
-
-  const status =
-    serverCalls.length === 0
-      ? 'unused'
-      : healthScore > 80
-        ? 'healthy'
-        : healthScore > 50
-          ? 'degraded'
-          : 'unhealthy';
+  const errors = serverCalls.filter((c) => c.isError);
 
   return {
     serverName,
     totalCalls: serverCalls.length,
-    errorCount,
-    errorRate,
-    errorTypes,
-    healthScore: Math.max(0, healthScore),
-    status,
-    recommendations: generateRecommendations(status, errorTypes),
+    successCount: serverCalls.length - errors.length,
+    errorCount: errors.length,
+    errorMessages: errors.map(e => e.errorMessage).filter(Boolean),
+    firstCall: serverCalls[0]?.timestamp || '',
+    lastCall: serverCalls[serverCalls.length - 1]?.timestamp || '',
+    // Agent decides if this is "healthy" or "unhealthy"
   };
 }
 ```
 
 ## Success Criteria
 
-- [ ] Can detect MCP tool calls with server attribution
-- [ ] Can calculate per-server health scores
-- [ ] Can identify unused/misconfigured servers
-- [ ] Can classify error patterns with recommendations
-- [ ] Integration with EP17 TUI for MCP health exploration
+- [ ] Tools provide MCP call data, error events, and server config
+- [ ] Agent can reason about server health using provided data
+- [ ] Agent can compare configured vs. used servers
+- [ ] Clean data extraction with no embedded judgments
+- [ ] Tools return data; agent provides judgment (Constitution Principle VII)
 
 ## Constitution Alignment
 
 | Principle | Alignment |
 |-----------|-----------|
-| II. Improvement-Oriented | MCP health tracking enables integration optimization |
-| III. Causal-First | Error classification traces issues to root cause |
-| VII. Intelligent Tooling | Health data supports agent reasoning about tools |
+| II. Improvement-Oriented | MCP data enables integration optimization |
+| III. Causal-First | Agent traces errors to configuration or server issues |
+| VII. Intelligent Tooling | Tools provide data; agent reasons about health |
 
 ## Related Documents
 

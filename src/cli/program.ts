@@ -115,6 +115,9 @@ Documentation:
   addBackupCommand(program);
   addRestoreCommand(program);
 
+  // Add skills command (EP14)
+  addSkillsCommand(program);
+
   return program;
 }
 
@@ -703,6 +706,42 @@ Examples:
         }
       }
     );
+}
+
+// =============================================================================
+// EP14: Skills Command
+// =============================================================================
+
+function addSkillsCommand(program: Command): void {
+  program
+    .command('skills')
+    .description('Show skills inventory and usage statistics')
+    .option('-d, --directory <path>', 'Directory to analyze', '.')
+    .option('--detail <skill-name>', 'Show detailed information for a specific skill')
+    .option('--stats', 'Include invocation statistics')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ agentlint skills                    List all defined skills
+  $ agentlint skills --stats            Include usage statistics
+  $ agentlint skills --detail commit    Show details for 'commit' skill
+  $ agentlint skills --json             Output as JSON
+
+Skills are defined in .claude/skills/ and can be invoked using
+the /skill-name syntax in Claude Code.
+
+For full analysis including skills effectiveness, use:
+  $ agentlint analyse`
+    )
+    .action(async (options: { directory?: string; detail?: string; stats?: boolean }) => {
+      const { skillsCommand } = await import('./commands/skills');
+      const globalOpts = extractGlobalOptions(program.opts());
+      const exitCode = await skillsCommand({ ...globalOpts, ...options });
+      if (exitCode !== 0) {
+        process.exit(exitCode);
+      }
+    });
 }
 
 /**

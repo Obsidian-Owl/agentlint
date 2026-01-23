@@ -16,10 +16,10 @@
 
 ## Code Quality
 
-- [ ] `npm run typecheck` / type checking passes
-- [ ] `npm run lint` / linting passes
-- [ ] `npm test` / all tests pass
-- [ ] `npm run build` / build succeeds
+- [ ] `bun run typecheck` / type checking passes
+- [ ] `bun run lint` / linting passes
+- [ ] `bun run test` / all tests pass
+- [ ] `bun run build` / build succeeds
 - [ ] No console.log or debug statements left
 
 ## Documentation

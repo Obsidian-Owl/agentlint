@@ -93,6 +93,74 @@ If there are more than 3 items marked [NEEDS CLARIFICATION]:
 - Ask for clarification using AskUserQuestion
 - Update spec with answers
 
+---
+
+## For Agentic Applications
+
+When specifying features for agentic systems (like agentlint), apply these additional guidelines:
+
+### Tool/Agent Boundary in Requirements
+
+**Functional requirements MUST describe tool capabilities, NOT agent orchestration.**
+
+| Write This (Tool Capability) | NOT This (Agent Orchestration) |
+|------------------------------|--------------------------------|
+| "Tool returns skill invocation counts per session" | "Tool detects when invocation rate is low" |
+| "Tool provides session summaries with user prompts" | "Tool identifies missed opportunities" |
+| "Tool stores indexed data in SQLite" | "Tool decides which analysis to run" |
+
+**Why?** Per Constitution Principle VII, the agent decides what data means. Tools provide data and capabilities; the agent provides judgment.
+
+### User Stories for Agentic Features
+
+Frame user stories around **outcomes**, not agent behavior:
+
+```markdown
+# CORRECT: Outcome-focused
+**As a** developer,
+**I want** to see which Skills are being invoked and how often,
+**So that** I can understand whether my Skills are providing value.
+
+# WRONG: Prescribing agent behavior
+**As a** developer,
+**I want** the agent to detect low invocation rates,
+**So that** I'm alerted when skills aren't being used.
+```
+
+### Key Entities
+
+For agentic applications, entities typically include:
+- **Data structures** the tools operate on (sessions, configs, invocations)
+- **Indexes** for efficient querying (SQLite tables, FTS5 indexes)
+- **NOT** orchestration concepts (workflows, pipelines, detection rules)
+
+### Anti-patterns to Avoid
+
+| Anti-pattern | Why It's Wrong | Fix |
+|--------------|----------------|-----|
+| Hardcoded thresholds in requirements | Agent should judge what's "low" or "high" | Describe the data; let agent interpret |
+| Detection/matching logic | Agent reasoning, not tool logic | Provide data; agent reasons |
+| "When X, do Y" rules | Prescribes orchestration | Describe capability; agent decides when |
+| Workflow sequences | Agent orchestrates | Provide independent tools |
+
+### Acceptance Criteria
+
+Write acceptance criteria that test **tool capabilities**, not agent judgment:
+
+```markdown
+# CORRECT: Tests tool capability
+- [ ] Given sessions exist, when tool queries invocations, then it returns count per skill
+
+# WRONG: Tests agent judgment
+- [ ] Given a skill has <30% invocation rate, then it's flagged as underutilized
+```
+
+### Reference
+
+See Constitution Principle VII (Intelligent Tooling) and ADR Implementation Notes for full guidance.
+
+---
+
 ## Output
 
 On success, output:

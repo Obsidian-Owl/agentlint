@@ -439,10 +439,11 @@ export class GitEvidenceCollector {
     const { maxResults = 10, filePath, since, until } = options;
 
     // Build argument array - no shell escaping needed with spawnSync
+    // Use null bytes (%x00) as delimiters to avoid issues with | in commit messages
     const args = [
       'log',
       `-S${searchTerm}`,
-      '--format=%H|%an|%ae|%aI|%s|%b',
+      '--format=%H%x00%an%x00%ae%x00%aI%x00%s%x00%b%x00',
       '-n',
       String(maxResults),
     ];
@@ -476,26 +477,32 @@ export class GitEvidenceCollector {
 
   /**
    * Parse git log output.
+   * Format: %H%x00%an%x00%ae%x00%aI%x00%s%x00%b%x00 (null-byte delimited)
    */
   private parseLogOutput(output: string): LogEntry[] {
     const entries: LogEntry[] = [];
-    const lines = output.trim().split('\n');
+    // Split on null bytes - each commit entry has 6 fields
+    const parts = output.split('\0');
 
-    for (const line of lines) {
-      if (!line.trim()) continue;
+    // Process in chunks of 6 (commit, author, email, timestamp, subject, body)
+    // Each entry ends with a null byte, so last element is empty
+    for (let i = 0; i + 5 < parts.length; i += 6) {
+      const commitHash = parts[i]!.trim();
+      const author = parts[i + 1]!;
+      const authorEmail = parts[i + 2]!;
+      const timestamp = parts[i + 3]!;
+      const subject = parts[i + 4]!;
+      const body = parts[i + 5]!;
 
-      const parts = line.split('|');
-      if (parts.length < 5) continue;
-
-      const [commitHash, author, authorEmail, timestamp, subject, ...bodyParts] = parts;
+      if (!commitHash) continue;
 
       entries.push({
-        commitHash: commitHash!.substring(0, 7),
-        author: author!,
-        authorEmail: authorEmail!,
-        timestamp: this.normalizeTimestamp(timestamp!),
-        subject: subject!,
-        body: bodyParts.join('|'),
+        commitHash: commitHash.substring(0, 7),
+        author,
+        authorEmail,
+        timestamp: this.normalizeTimestamp(timestamp),
+        subject,
+        body,
         files: [], // Could add --name-only to get files
       });
     }

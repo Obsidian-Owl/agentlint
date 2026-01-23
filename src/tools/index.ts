@@ -31,6 +31,9 @@ export * as recommendations from '../recommendations/tools';
 // Security tools (EP11)
 export * as security from '../security';
 
+// Skills effectiveness tools (EP14)
+export * as skills from '../skills';
+
 // Adapters for different ACT formats
 export * from './adapters';
 
@@ -77,6 +80,14 @@ export {
 // EP11 Security tools
 export { classifySecretTool } from '../security';
 
+// EP14 Skills effectiveness tools
+export {
+  getSkillInventoryTool,
+  indexSkillInvocationsTool,
+  getSessionSummariesTool,
+  getSkillInvocationsTool,
+} from '../skills';
+
 // =============================================================================
 // Tool Registration Helpers (T072)
 // =============================================================================
@@ -117,6 +128,14 @@ import {
 
 // EP11 Security tools
 import { classifySecretTool } from '../security';
+
+// EP14 Skills effectiveness tools
+import {
+  getSkillInventoryTool,
+  indexSkillInvocationsTool,
+  getSessionSummariesTool,
+  getSkillInvocationsTool,
+} from '../skills';
 
 /**
  * All EP05 config analysis tools as an array for bulk registration.
@@ -178,6 +197,16 @@ export const EP10_RECOMMENDATION_TOOLS: ToolDefinition[] = [
  * All EP11 security tools as an array for bulk registration.
  */
 export const EP11_SECURITY_TOOLS: ToolDefinition[] = [classifySecretTool] as ToolDefinition[];
+
+/**
+ * All EP14 skills effectiveness tools as an array for bulk registration.
+ */
+export const EP14_SKILLS_TOOLS: ToolDefinition[] = [
+  getSkillInventoryTool,
+  indexSkillInvocationsTool,
+  getSessionSummariesTool,
+  getSkillInvocationsTool,
+] as ToolDefinition[];
 
 /**
  * Register all EP05 config analysis tools with a ToolRegistry.
@@ -282,24 +311,43 @@ export function registerEP11SecurityTools(registry: IToolRegistry): void {
 }
 
 /**
+ * Register all EP14 skills effectiveness tools with a ToolRegistry.
+ *
+ * @param registry - The ToolRegistry to register tools with
+ * @example
+ * ```typescript
+ * import { createToolRegistry } from './orchestration';
+ * import { registerEP14SkillsTools } from './tools';
+ *
+ * const registry = createToolRegistry();
+ * registerEP14SkillsTools(registry);
+ * ```
+ */
+export function registerEP14SkillsTools(registry: IToolRegistry): void {
+  registry.registerMany(EP14_SKILLS_TOOLS);
+}
+
+/**
  * Register all agentlint tools with a ToolRegistry.
- * Includes EP05-EP11 tools:
+ * Includes EP05-EP14 tools:
  * - EP05: Config analysis (3 tools)
  * - EP06: Session analysis (3 tools)
  * - EP07: Causal tracing (2 tools)
  * - EP09: Temporal analysis (8 tools)
  * - EP10: Recommendations (9 tools)
  * - EP11: Security (1 tool)
+ * - EP14: Skills effectiveness (4 tools)
  *
- * Total: 26 tools
+ * Total: 30 tools
  *
  * @param registry - The ToolRegistry to register tools with
  */
 export function registerAllTools(registry: IToolRegistry): void {
   registerEP05Tools(registry); // Config (3)
-  registerEP06Tools(registry); // Sessions (2)
+  registerEP06Tools(registry); // Sessions (3)
   registerEP07Tools(registry); // Causal (2)
   registerEP09Tools(registry); // Temporal (8)
   registerEP10Tools(registry); // Recommendations (9)
   registerEP11SecurityTools(registry); // Security (1)
+  registerEP14SkillsTools(registry); // Skills (4)
 }

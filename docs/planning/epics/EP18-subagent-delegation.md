@@ -1,10 +1,10 @@
-# EP18: Subagent Delegation Tracker
+# EP18: Subagent Delegation Data
 
 ## Business Outcome Hypothesis
 
-**If** we implement subagent delegation tracking from session logs,
-**Then** users can understand their orchestration patterns and quantify context savings from delegation,
-**Measured by** delegation frequency, context reduction percentage, and delegation pattern diversity.
+**If** we provide tools for subagent delegation data from session logs,
+**Then** the agent can analyze orchestration patterns and reason about context savings from delegation,
+**Measured by** delegation data accuracy, context metrics availability, and agent insight quality.
 
 ## Classification
 
@@ -17,80 +17,82 @@
 
 ## In Scope
 
-* Task tool invocation detection from session logs
-* Subagent type classification (Explore, Plan, custom agents)
-* Context isolation measurement (main vs. subagent token usage)
-* Delegation pattern analysis (when/why delegation occurs)
-* Context savings calculation (WITH delegation vs. WITHOUT)
+* Task tool invocation extraction from session logs
+* Subagent type extraction (Explore, Plan, custom agents)
+* Context token measurement (main vs. subagent sessions)
+* Delegation event indexing with context
+* Data access tools for agent-driven delegation analysis
 
 ## Out of Scope
 
 * Subagent creation/editing
 * Real-time delegation monitoring
 * Cross-project delegation comparison
-* Subagent performance benchmarking
+* Programmatic pattern classification (agent reasons about patterns)
 
 ## Key Deliverables
 
 ### Phase 1: Core Implementation (Weeks 1-2)
 
-1. **Task Invocation Detector**
+1. **Task Invocation Extractor**
    - Parse `tool_use.name === "Task"` entries from session logs
    - Extract subagent type from `input.subagent_type`
    - Extract task description from `input.prompt`
    - Track parent-child relationship (main session → subagent)
 
-2. **Subagent Classification**
+2. **Subagent Inventory Integration**
    - Built-in types: Explore, Plan, Bash, general-purpose
    - Custom agents from `.claude/agents/` directory
-   - Agent capability mapping (read-only, write, full)
+   - Provide agent metadata for agent reasoning
 
-3. **Context Isolation Analyzer**
-   - Measure token usage in main session vs. subagent sessions
-   - Calculate context isolation ratio
-   - Identify delegation timing (early vs. late in session)
+3. **Context Token Extractor**
+   - Extract token usage from main session and subagent sessions
+   - Provide token counts per delegation event
+   - Include delegation timing data (position in session)
 
-4. **Delegation Pattern Detector**
-   - Classify delegation triggers (task complexity, file count, exploration)
-   - Identify under-delegation (complex tasks without delegation)
-   - Track delegation success rate (subagent completion)
+4. **Delegation Data Tools**
+   - `getDelegationEventsTool` - Query delegation events by session/date
+   - `getSubagentInventoryTool` - List available subagent types with metadata
+   - `getDelegationContextTool` - Token usage data for delegation analysis
 
-5. **Delegation Tracking Tools**
-   - `analyzeDelegationPatternsTool` - Comprehensive delegation analysis
-   - `getDelegationStatsTool` - Query delegation metrics by session/date
-   - `calculateContextSavingsTool` - Quantify context reduction from delegation
+**Agent Reasoning (NOT tools):**
+- Whether delegation frequency is appropriate
+- Which tasks should have been delegated (missed opportunities)
+- Whether context savings are meaningful
+- What delegation patterns indicate about workflow efficiency
+- What recommendations to make based on delegation data
 
 ### Phase 2: Integration (Weeks 3)
 
 1. **CLI Integration**
-   - Add delegation metrics to `agentlint analyse` output
+   - Add delegation data to `agentlint analyse` output
    - Add `--delegation` flag for focused delegation analysis
-   - Show context savings summary
+   - Agent presents insights with recommendations
 
 2. **Context Efficiency Integration**
-   - Cross-reference delegation with compression events from EP15
-   - Show correlation: delegation → reduced compression
-   - Efficiency delta: WITH delegation vs. WITHOUT
+   - Cross-reference delegation data with compression events from EP15
+   - Provide data for agent to reason about delegation-compression correlation
+   - Agent connects delegation patterns to efficiency outcomes
 
 3. **Testing**
-   - Unit tests for Task tool detection, classification
-   - Integration tests for context savings calculation
-   - Test fixtures with multi-level delegation sessions
+   - Unit tests for Task tool extraction, subagent parsing
+   - Integration tests for delegation data queries
+   - Evaluations for agent reasoning quality (VCR + LLM-as-judge)
 
 ### Phase 3: Cleanup (Week 4)
 
 1. **Dead Code Removal**
-   - Remove any redundant delegation tracking from prior epics
-   - Clean up temporary analysis scaffolding
+   - Remove any redundant delegation extraction from prior epics
+   - Clean up temporary data extraction scaffolding
 
 2. **Documentation**
-   - Update Arc42 with Delegation Tracker component
-   - Update ADR-0006 with delegation tracking extension
-   - Add delegation optimization guide
+   - Update Arc42 with Delegation Data component
+   - Update ADR-0006 with delegation data extension
+   - Add delegation data interpretation guide
 
 ## Technical Approach
 
-### Task Tool Detection
+### Task Tool Extraction
 
 ```typescript
 interface DelegationEvent {
@@ -100,9 +102,11 @@ interface DelegationEvent {
   timestamp: string;
   parentTurnIndex: number;
   completedSuccessfully: boolean;
+  subagentTokens: number;
 }
 
-function detectDelegations(entries: SessionEntry[]): DelegationEvent[] {
+// Deterministic extraction—tool extracts data, agent reasons about patterns
+function extractDelegations(entries: SessionEntry[]): DelegationEvent[] {
   const delegations: DelegationEvent[] = [];
 
   for (const entry of entries) {
@@ -115,6 +119,7 @@ function detectDelegations(entries: SessionEntry[]): DelegationEvent[] {
           timestamp: entry.timestamp,
           parentTurnIndex: entry.turnIndex,
           completedSuccessfully: !entry.isError,
+          subagentTokens: 0, // Populated from subagent session
         });
       }
     }
@@ -127,6 +132,7 @@ function detectDelegations(entries: SessionEntry[]): DelegationEvent[] {
 ### Database Schema
 
 ```sql
+-- Raw delegation data for agent analysis
 CREATE TABLE delegation_events (
   id INTEGER PRIMARY KEY,
   session_id TEXT NOT NULL,
@@ -135,7 +141,7 @@ CREATE TABLE delegation_events (
   timestamp TEXT NOT NULL,
   parent_turn_index INTEGER NOT NULL,
   completed_successfully BOOLEAN NOT NULL DEFAULT 1,
-  context_tokens_saved INTEGER,
+  subagent_tokens INTEGER,
   FOREIGN KEY (session_id) REFERENCES sessions(id)
 );
 
@@ -143,59 +149,27 @@ CREATE INDEX idx_delegation_events_session ON delegation_events(session_id);
 CREATE INDEX idx_delegation_events_type ON delegation_events(subagent_type);
 ```
 
-### Context Savings Calculation
-
-```typescript
-interface ContextSavings {
-  totalMainTokens: number;
-  totalSubagentTokens: number;
-  estimatedWithoutDelegation: number;
-  actualSavings: number;
-  savingsPercentage: number;
-}
-
-function calculateContextSavings(
-  mainSession: SessionMetrics,
-  delegations: DelegationEvent[]
-): ContextSavings {
-  const totalSubagentTokens = delegations.reduce(
-    (sum, d) => sum + (d.contextTokensSaved || 0),
-    0
-  );
-
-  // Estimate: without delegation, subagent work would be in main context
-  const estimatedWithoutDelegation =
-    mainSession.totalTokens + totalSubagentTokens;
-
-  return {
-    totalMainTokens: mainSession.totalTokens,
-    totalSubagentTokens,
-    estimatedWithoutDelegation,
-    actualSavings: totalSubagentTokens,
-    savingsPercentage:
-      (totalSubagentTokens / estimatedWithoutDelegation) * 100,
-  };
-}
-```
+**Note**: No `delegation_patterns` table with classifications—agent reasons about this from raw data.
 
 ## Success Criteria
 
-- [ ] Can detect Task tool invocations with subagent type classification
-- [ ] Can calculate context savings from delegation
-- [ ] Can identify under-delegation opportunities
-- [ ] Clean integration with EP15 context efficiency metrics
-- [ ] Integration with EP17 TUI for delegation exploration
+- [ ] Tools provide delegation events, subagent inventory, and token data
+- [ ] Agent can reason about delegation patterns using provided data
+- [ ] Agent can correlate delegation with context efficiency
+- [ ] Clean integration with EP15 context efficiency data
+- [ ] Tools return data; agent provides judgment (Constitution Principle VII)
 
 ## Constitution Alignment
 
 | Principle | Alignment |
 |-----------|-----------|
-| II. Improvement-Oriented | Delegation tracking enables orchestration optimization |
-| IV. Mixed-Methods | Quantitative savings + qualitative pattern analysis |
-| VIII. Compounding Value | Better delegation compounds context efficiency |
+| II. Improvement-Oriented | Delegation data enables orchestration optimization |
+| IV. Mixed-Methods | Quantitative data + agent qualitative analysis |
+| VII. Intelligent Tooling | Tools provide data; agent reasons about patterns |
+| VIII. Compounding Value | Delegation insights compound over time |
 
 ## Related Documents
 
 - [ADR-0006: Session Log Processing Architecture](../../architecture/adr/0006-session-log-processing-architecture.md)
-- [EP15: Context Efficiency Engine](./EP15-context-efficiency.md)
+- [EP15: Context Efficiency Data](./EP15-context-efficiency.md)
 - [Strategic Review](../../review/agentlint-strategic-review-jan26.md)

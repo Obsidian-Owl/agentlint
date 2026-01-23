@@ -16,14 +16,33 @@ import { z } from 'zod';
 
 /**
  * Schema for baseline metrics.
+ * Includes optional EP09 and EP14 extended metrics for backward compatibility.
  */
 export const BaselineMetricsSchema = z.object({
+  // Core metrics
   findingsCount: z.number().int().nonnegative(),
   criticalCount: z.number().int().nonnegative(),
   highCount: z.number().int().nonnegative(),
   mediumCount: z.number().int().nonnegative(),
   lowCount: z.number().int().nonnegative(),
   infoCount: z.number().int().nonnegative(),
+
+  // EP09 Extended Metrics (optional)
+  avgTokensPerSession: z.number().nonnegative().optional(),
+  avgIterationsPerSession: z.number().nonnegative().optional(),
+  sessionCount: z.number().int().nonnegative().optional(),
+  errorRate: z.number().min(0).max(1).optional(),
+  configTokens: z.number().int().nonnegative().optional(),
+  configLines: z.number().int().nonnegative().optional(),
+  warningCount: z.number().int().nonnegative().optional(),
+  sectionCount: z.number().int().nonnegative().optional(),
+  coverageScore: z.number().min(0).max(100).optional(),
+
+  // EP14 Skills Effectiveness Metrics (optional)
+  skillInvocationCount: z.number().int().nonnegative().optional(),
+  uniqueSkillsUsed: z.number().int().nonnegative().optional(),
+  sessionsWithSkillUsage: z.number().int().nonnegative().optional(),
+  skillsDefinedCount: z.number().int().nonnegative().optional(),
 });
 
 /**

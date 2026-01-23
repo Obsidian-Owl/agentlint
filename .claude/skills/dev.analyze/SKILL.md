@@ -106,6 +106,69 @@ Read all available artifacts:
 - [ ] Project structure matches task file paths
 - [ ] Phase organization aligns with design phases
 
+---
+
+## For Agentic Applications
+
+When analyzing artifacts for agentic systems (like agentlint), add these checks:
+
+### Phase 2.5: Agentic Design Analysis
+
+**Tool/Agent Boundary Checks:**
+
+| Check | Severity | What to Look For |
+|-------|----------|------------------|
+| Judgment in requirements | ERROR | FR that says "detect", "identify", "flag when" with conditions |
+| Hardcoded thresholds | ERROR | Requirements with specific numbers (< 30%, > 5) for judgment |
+| Orchestration logic | ERROR | Requirements describing workflow sequences |
+| Detection functions | WARNING | Technical design with `detect*()` or `identify*()` functions |
+| Computed judgments in schema | ERROR | Database columns like `is_low`, `status`, `recommendation` |
+
+**Examples of Errors:**
+
+```markdown
+[ERROR] spec.md:FR-007 - "Detect when skill invocation rate is below 30%"
+  → Encodes threshold judgment. Should be: "Return invocation counts per skill"
+
+[ERROR] data-model.md - Table has column `missed_opportunity: boolean`
+  → Stores agent judgment. Remove column; agent identifies missed opportunities.
+
+[ERROR] plan.md - Function `detectMissedOpportunities(sessions, skills)`
+  → Detection logic should be agent reasoning, not tool function.
+```
+
+**Tool Design Quality Checks:**
+
+- [ ] Tool descriptions explain what AND when to use
+- [ ] Tools return raw data, not judgments
+- [ ] Large result sets have filtering/pagination
+- [ ] Related operations consolidated (not separate list/get/search)
+
+**Constitution Principle VII Compliance:**
+
+- [ ] No tool encodes "when to use" logic
+- [ ] No tool returns status/quality judgments
+- [ ] No tool orchestrates workflows
+- [ ] Agent reasoning not encoded in tool logic
+
+### Agentic-Specific Findings Format
+
+```markdown
+### Agentic Design Issues
+
+1. [ERROR] spec.md:FR-012 - Encodes judgment in requirement
+   Location: "Flag skills with invocation rate < 30%"
+   Issue: Hardcoded threshold; agent should judge what's "low"
+   Fix: Change to "Return invocation rate per skill"
+
+2. [ERROR] data-model.md - Stores computed judgment
+   Location: `missed_opportunities` table
+   Issue: Agent reasoning stored as data
+   Fix: Remove table; agent identifies opportunities from session summaries
+```
+
+---
+
 ### Phase 6: Generate Report
 
 **Report format:**

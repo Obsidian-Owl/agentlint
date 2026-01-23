@@ -145,6 +145,66 @@ Outstanding: 0
 Recommendation: Proceed to /dev.plan
 ```
 
+---
+
+## For Agentic Applications
+
+When clarifying specs for agentic systems (like agentlint), add this category to the ambiguity scan:
+
+### Additional Category: Tool/Agent Boundary
+
+| What to Look For | Example Ambiguity |
+|------------------|-------------------|
+| Requirements that encode judgment | "Detect low invocation rates" - what's "low"? |
+| Thresholds without clear source | "Flag if < 30%" - why 30%? |
+| Detection/matching logic | "Match file patterns to skills" - programmatic or agent reasoning? |
+| Workflow sequences | "After X, do Y" - is this tool logic or agent orchestration? |
+
+### Key Clarification Questions for Agentic Features
+
+Ask these questions when the spec involves agentic behavior:
+
+1. **"Should the tool detect this, or should the agent reason about it?"**
+   - If the answer involves judgment, context, or "it depends" → agent reasoning
+   - If the answer is deterministic and mechanical → tool capability
+
+2. **"Where does this threshold/rule come from?"**
+   - If it's domain knowledge that could vary → agent reasoning
+   - If it's a technical constraint (e.g., API limits) → tool parameter
+
+3. **"Is this describing what data to provide, or what to do with the data?"**
+   - What data to provide → tool capability (keep in spec)
+   - What to do with data → agent reasoning (remove from spec)
+
+### Example Clarification
+
+```
+Question: The spec says "detect missed opportunities when a skill's
+file patterns match files in a session but the skill wasn't invoked."
+
+This sounds like programmatic detection logic. Should this be:
+  [1] Tool capability (tool does pattern matching, returns matches)
+  [2] Agent reasoning (tool provides data, agent judges if opportunity was missed)
+  [3] Hybrid (tool provides hints, agent makes final call)
+
+Recommendation: [2] Agent reasoning - per Constitution Principle VII,
+judgment about whether an opportunity was "missed" requires understanding
+user intent, which is agent reasoning.
+```
+
+### Anti-pattern Alert
+
+If clarification reveals requirements like:
+- "If X > threshold, then flag as Y"
+- "Detect when Z happens"
+- "Automatically identify patterns"
+
+These likely encode agent reasoning in tool logic. Clarify whether to:
+- Remove the logic entirely (agent will reason)
+- Convert to data provision (tool provides X, agent judges if "high")
+
+---
+
 ## Output
 
 On completion:
