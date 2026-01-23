@@ -352,7 +352,7 @@ ${configLines.join('\n')}`;
 /**
  * Build focus instructions based on analysis options.
  */
-function buildFocusInstructions(options: AnalyseOptions): string {
+export function buildFocusInstructions(options: AnalyseOptions): string {
   if (options.configOnly) {
     return `## Analysis Focus
 
@@ -365,6 +365,33 @@ Do not analyze session logs or git history.`;
 
 You are running in **sessions-only mode**. Focus exclusively on session logs.
 Do not analyze configuration files.`;
+  }
+
+  if (options.skills) {
+    return `## Analysis Focus: Skills Effectiveness (EP14)
+
+You are running in **skills-focused mode**. Analyze skill usage patterns and effectiveness.
+
+**Primary Questions to Answer:**
+1. Which skills are defined but rarely/never used?
+2. Which sessions could have benefited from skill usage but didn't use any?
+3. Are skill descriptions accurate and discoverable?
+4. What patterns exist in skill invocation contexts?
+
+**Workflow:**
+1. Use \`get_skill_inventory\` to discover defined skills
+2. Use \`index_skill_invocations\` to index skill usage from session logs
+3. Use \`get_skill_invocations\` to query usage patterns
+4. Use \`get_session_summaries\` to identify sessions without skill usage
+
+**Key Metrics to Report:**
+- Total skills defined vs. skills with invocations
+- Invocation frequency per skill
+- Sessions with/without skill usage
+- User prompt patterns that trigger skill invocations
+
+Per Constitution Principle VII: Tools return data, you reason about effectiveness.
+The tools provide facts (counts, timestamps, patterns). You determine meaning.`;
   }
 
   return `## Analysis Focus

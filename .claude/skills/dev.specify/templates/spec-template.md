@@ -67,8 +67,8 @@
 | ID | Requirement | Metric | Target |
 |----|-------------|--------|--------|
 | NFR-001 | Performance | Response time | < 2 seconds |
-| NFR-002 | Reliability | Uptime | 99.9% |
-| NFR-003 | Security | [Aspect] | [Target] |
+| NFR-002 | Reliability | Error handling | Graceful failures with clear messages |
+| NFR-003 | Compatibility | Runtime | Bun 1.x, Node.js 20+ |
 
 ---
 

@@ -79,16 +79,16 @@ Options:
 **Step 1.3: Run Quality Checks**
 ```bash
 # Type check (if applicable)
-npm run typecheck || pnpm typecheck || true
+bun run typecheck || npm run typecheck || true
 
 # Lint
-npm run lint || pnpm lint || true
+bun run lint || npm run lint || true
 
 # Tests
-npm test || pnpm test || true
+bun run test || npm test || true
 
 # Build
-npm run build || pnpm build || true
+bun run build || npm run build || true
 ```
 
 Report any failures but allow user to proceed.

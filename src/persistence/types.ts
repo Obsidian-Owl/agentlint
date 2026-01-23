@@ -53,6 +53,17 @@ export interface BaselineMetrics {
   sectionCount?: number;
   /** Config coverage score (0-100) */
   coverageScore?: number;
+
+  // --- EP14 Skills Effectiveness Metrics (optional for backward compatibility) ---
+
+  /** Total number of skill invocations across sessions */
+  skillInvocationCount?: number;
+  /** Number of unique skills invoked */
+  uniqueSkillsUsed?: number;
+  /** Number of sessions that used at least one skill */
+  sessionsWithSkillUsage?: number;
+  /** Total number of skills defined in .claude/skills/ */
+  skillsDefinedCount?: number;
 }
 
 /**

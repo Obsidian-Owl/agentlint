@@ -73,6 +73,8 @@ export interface AnalyseOptions extends GlobalOptions {
   nonInteractive?: boolean;
   /** Clear existing recommendations before analysis */
   cleanSlate?: boolean;
+  /** Focus analysis on skills effectiveness (EP14) - internal use */
+  skills?: boolean;
 }
 
 /**

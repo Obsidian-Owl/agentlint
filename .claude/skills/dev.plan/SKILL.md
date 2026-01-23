@@ -54,10 +54,10 @@ In `plan.md`, populate the Technical Context section with project-specific value
 | Field | Description | Example |
 |-------|-------------|---------|
 | Language/Version | Primary language and version | TypeScript 5.x |
-| Primary Dependencies | Key libraries/frameworks | Vitest, Commander |
+| Primary Dependencies | Key libraries/frameworks | Zod, Commander |
 | Storage | Data persistence approach | File system, SQLite |
-| Testing Framework | Test tools used | Vitest, Playwright |
-| Target Platform | Deployment target | CLI, Node.js 20+ |
+| Testing Framework | Test tools used | Bun test, Playwright |
+| Target Platform | Deployment target | CLI (Bun/Node.js) |
 | Project Type | Architecture pattern | CLI Tool, Library |
 | Performance Goals | Key metrics | < 5s analysis time |
 | Constraints | Technical limitations | No external services |

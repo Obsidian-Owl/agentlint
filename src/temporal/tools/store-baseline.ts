@@ -40,6 +40,11 @@ const storeBaselineInputSchema = {
     .optional()
     .default(true)
     .describe('Include session metrics from EP06 analysis'),
+  includeSkillsMetrics: z
+    .boolean()
+    .optional()
+    .default(true)
+    .describe('Include skills effectiveness metrics from EP14 analysis'),
 };
 
 // =============================================================================
@@ -58,6 +63,11 @@ interface StoreBaselineResult {
     findingsCount: number;
     warningCount: number;
     avgTokensPerSession?: number;
+    // EP14 Skills metrics
+    skillInvocationCount?: number;
+    uniqueSkillsUsed?: number;
+    sessionsWithSkillUsage?: number;
+    skillsDefinedCount?: number;
   };
   message: string;
   /** Trigger check result for potential review prompt (informational) */
@@ -87,6 +97,67 @@ function createDefaultMetrics(): BaselineMetrics {
 }
 
 /**
+ * Gather skills effectiveness metrics from EP14.
+ *
+ * @param projectPath - Path to the project root
+ * @returns Partial metrics with skills-related fields
+ */
+async function gatherSkillsMetrics(
+  projectPath: string
+): Promise<Pick<BaselineMetrics, 'skillInvocationCount' | 'uniqueSkillsUsed' | 'sessionsWithSkillUsage' | 'skillsDefinedCount'>> {
+  try {
+    // Import skills modules dynamically to avoid circular dependencies
+    const { getSkillInventory } = await import('../../skills/discovery');
+    const { countSkillInvocations, countUniqueSkills, countUniqueSessions } = await import(
+      '../../skills/storage'
+    );
+    const { Database } = await import('bun:sqlite');
+    const { join } = await import('node:path');
+    const { existsSync } = await import('node:fs');
+
+    // Get count of defined skills from inventory
+    const inventory = await getSkillInventory(projectPath);
+    const skillsDefinedCount = inventory.skills.length;
+
+    // Check if skills database exists
+    const dbPath = join(projectPath, '.agentlint', 'sessions.db');
+    if (!existsSync(dbPath)) {
+      return {
+        skillInvocationCount: 0,
+        uniqueSkillsUsed: 0,
+        sessionsWithSkillUsage: 0,
+        skillsDefinedCount,
+      };
+    }
+
+    // Query skills invocation metrics from database
+    const db = new Database(dbPath, { readonly: true });
+    try {
+      const skillInvocationCount = countSkillInvocations(db, {});
+      const uniqueSkillsUsed = countUniqueSkills(db, {});
+      const sessionsWithSkillUsage = countUniqueSessions(db, {});
+
+      return {
+        skillInvocationCount,
+        uniqueSkillsUsed,
+        sessionsWithSkillUsage,
+        skillsDefinedCount,
+      };
+    } finally {
+      db.close();
+    }
+  } catch {
+    // If skills gathering fails, return zeros
+    return {
+      skillInvocationCount: 0,
+      uniqueSkillsUsed: 0,
+      sessionsWithSkillUsage: 0,
+      skillsDefinedCount: 0,
+    };
+  }
+}
+
+/**
  * Format the store result for human-readable output.
  */
 function formatToolOutput(result: StoreBaselineResult): string {
@@ -106,6 +177,15 @@ function formatToolOutput(result: StoreBaselineResult): string {
 
   if (result.metrics.avgTokensPerSession !== undefined) {
     lines.push(`- Avg Tokens/Session: ${result.metrics.avgTokensPerSession}`);
+  }
+
+  // EP14 Skills metrics
+  if (result.metrics.skillsDefinedCount !== undefined && result.metrics.skillsDefinedCount > 0) {
+    lines.push(`\n### Skills Effectiveness`);
+    lines.push(`- Skills Defined: ${result.metrics.skillsDefinedCount}`);
+    lines.push(`- Skills Used: ${result.metrics.uniqueSkillsUsed ?? 0}`);
+    lines.push(`- Total Invocations: ${result.metrics.skillInvocationCount ?? 0}`);
+    lines.push(`- Sessions with Skills: ${result.metrics.sessionsWithSkillUsage ?? 0}`);
   }
 
   // Include trigger check information if present
@@ -164,6 +244,23 @@ export const storeBaselineTool = tool(
       // Create metrics (in full implementation, would gather from analysis)
       const metrics = createDefaultMetrics();
 
+      // Gather skills metrics if enabled (EP14)
+      if (args.includeSkillsMetrics !== false) {
+        const skillsMetrics = await gatherSkillsMetrics(process.cwd());
+        if (skillsMetrics.skillInvocationCount !== undefined) {
+          metrics.skillInvocationCount = skillsMetrics.skillInvocationCount;
+        }
+        if (skillsMetrics.uniqueSkillsUsed !== undefined) {
+          metrics.uniqueSkillsUsed = skillsMetrics.uniqueSkillsUsed;
+        }
+        if (skillsMetrics.sessionsWithSkillUsage !== undefined) {
+          metrics.sessionsWithSkillUsage = skillsMetrics.sessionsWithSkillUsage;
+        }
+        if (skillsMetrics.skillsDefinedCount !== undefined) {
+          metrics.skillsDefinedCount = skillsMetrics.skillsDefinedCount;
+        }
+      }
+
       // Build baseline object
       const baseline: Baseline = {
         id: baselineId,
@@ -196,6 +293,20 @@ export const storeBaselineTool = tool(
       // Only include avgTokensPerSession if it exists
       if (metrics.avgTokensPerSession !== undefined) {
         resultMetrics.avgTokensPerSession = metrics.avgTokensPerSession;
+      }
+
+      // Include EP14 skills metrics if available
+      if (metrics.skillInvocationCount !== undefined) {
+        resultMetrics.skillInvocationCount = metrics.skillInvocationCount;
+      }
+      if (metrics.uniqueSkillsUsed !== undefined) {
+        resultMetrics.uniqueSkillsUsed = metrics.uniqueSkillsUsed;
+      }
+      if (metrics.sessionsWithSkillUsage !== undefined) {
+        resultMetrics.sessionsWithSkillUsage = metrics.sessionsWithSkillUsage;
+      }
+      if (metrics.skillsDefinedCount !== undefined) {
+        resultMetrics.skillsDefinedCount = metrics.skillsDefinedCount;
       }
 
       // Check for review triggers (non-blocking, informational)

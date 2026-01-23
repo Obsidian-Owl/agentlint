@@ -13,7 +13,7 @@
 
 ## Prerequisites
 
-- [ ] [Prerequisite 1 - e.g., Node.js 20+]
+- [ ] [Prerequisite 1 - e.g., Bun 1.x or Node.js 20+]
 - [ ] [Prerequisite 2 - e.g., Project initialized]
 
 ---

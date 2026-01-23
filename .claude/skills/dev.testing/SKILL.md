@@ -135,12 +135,16 @@ describe('Agent Analysis Flow', () => {
 
 Runs on **release tags only** (expensive). See [eval-patterns.md](references/eval-patterns.md).
 
-```python
-# tests/evals/behavioral/actionability.py
-def test_recommendation_actionability():
-    result = run_analysis(golden_scenario)
-    score = evaluate_actionability(result.recommendations)
-    assert score >= 0.7, f"Actionability below threshold: {score}"
+```typescript
+// tests/evals/behavioral/actionability.eval.ts
+import { runAnalysis, evaluateActionability } from '../lib/eval-helpers';
+import { goldenScenario } from '../fixtures/golden-scenarios';
+
+test('recommendation actionability meets threshold', async () => {
+  const result = await runAnalysis(goldenScenario);
+  const score = await evaluateActionability(result.recommendations);
+  expect(score).toBeGreaterThanOrEqual(0.7);
+});
 ```
 
 **Run:** `bun run tests/evals/run-evals.ts` (release only)

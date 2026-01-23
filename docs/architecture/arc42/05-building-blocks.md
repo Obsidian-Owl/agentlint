@@ -101,7 +101,8 @@ src/cli/
 │   ├── baseline.ts    Capture baseline state
 │   ├── compare.ts     Compare against baseline
 │   ├── trace.ts       Trace finding to origin
-│   └── session.ts     Session recording management (EP11)
+│   ├── session.ts     Session recording management (EP11)
+│   └── skills.ts      Skills inventory and statistics (EP14)
 │
 ├── components/        Ink React components (ADR-0004)
 │   ├── App.tsx        Main application wrapper
@@ -236,6 +237,7 @@ const response = await query({
 | **Causal Analysis (EP07)** | `trace_issue_origin`, `get_issue_patterns` |
 | **Temporal Analysis (EP09)** | `store_baseline`, `query_baseline`, `list_baselines`, `calculate_delta`, `query_trends`, `conduct_review`, `get_review_history` |
 | **Recommendation Advisor (EP10)** | `spawn_recommendation_advisor`, `create_recommendation`, `get_recommendation`, `list_recommendations`, `get_recommendation_summary`, `add_recommendation_event`, `update_recommendation_status`, `refine_recommendation`, `complete_recommendation` |
+| **Skills Effectiveness (EP14)** | `get_skill_inventory`, `index_skill_invocations`, `get_session_summaries`, `get_skill_invocations` |
 | **Git Analysis** | `query_git` |
 | **Learning** | `store_learning`, `list_learnings`, `promote_learning` |
 | **Utility** | `retrieve_result`, `agentlint_write` |
@@ -1282,3 +1284,156 @@ Gitleaks patterns use Go regex syntax, which differs from JavaScript:
 | File scan | <1s/file | Regex pattern matching |
 | Entropy calculation | <1ms/string | Shannon formula |
 | Pattern loading | <100ms | TOML parsing + regex compilation |
+
+---
+
+## Level 3: Skills Effectiveness Data Tools (EP14)
+
+The skills module provides data retrieval tools for analyzing skill usage effectiveness, enabling the agent to reason about skill invocation patterns and identify opportunities for better skill discoverability.
+
+```
+src/skills/
+├── index.ts                    Public exports + type re-exports
+├── types.ts                    Core type definitions (SkillInventoryItem, SkillInvocationRecord, etc.)
+├── schemas.ts                  Zod validation schemas for tool inputs
+│
+├── discovery.ts                Skill file discovery wrapping src/tools/config/skills.ts
+├── detection.ts                Skill tool_use detection in session logs
+│
+├── storage/                    Database operations
+│   ├── index.ts                Storage exports
+│   ├── schema.ts               skill_invocations table schema
+│   └── queries.ts              Query functions for invocation data
+│
+└── tools/                      SDK tool definitions
+    ├── index.ts                Tool exports + EP14_SKILLS_TOOLS array
+    ├── get-skill-inventory-tool.ts       get_skill_inventory tool
+    ├── index-skill-invocations-tool.ts   index_skill_invocations tool
+    ├── get-session-summaries-tool.ts     get_session_summaries tool
+    └── get-skill-invocations-tool.ts     get_skill_invocations tool
+```
+
+| Module | Responsibility |
+|--------|----------------|
+| `discovery.ts` | Discovers SKILL.md files in `.claude/skills/`, extracts names, descriptions, file patterns |
+| `detection.ts` | Detects Skill tool_use entries in session JSONL logs, extracts command and context |
+| `storage/schema.ts` | Defines `skill_invocations` table in sessions.db |
+| `storage/queries.ts` | Query functions with filtering by skill, session, date range |
+| `tools/` | SDK tool definitions following ADR-0005 patterns |
+
+### EP14 Tool Definitions
+
+| Tool | Description |
+|------|-------------|
+| `get_skill_inventory` | Returns skills defined in `.claude/skills/` with names, descriptions, and file patterns |
+| `index_skill_invocations` | Indexes Skill tool_use entries from session logs into database |
+| `get_session_summaries` | Returns session summaries with first user prompt, files operated, and skills invoked |
+| `get_skill_invocations` | Queries skill invocation records with filtering by skill, session, and date range |
+
+### Tool/Agent Boundary (Constitution VII)
+
+Per Constitution Principle VII, skills tools provide DATA while the agent provides JUDGMENT:
+
+| Tool Provides | Agent Reasons About |
+|--------------|---------------------|
+| Raw invocation counts | "Is this usage rate low?" |
+| Session summaries with skills invoked | "Should a skill have been used here?" |
+| User prompts that triggered skills | "Does the description match how users phrase requests?" |
+| File patterns in skill definitions | "Are the patterns effective hints?" |
+
+**Critical Design Principle**: Tools return facts; the agent reasons about what they mean. No thresholds, no detection logic, no "missed opportunity" classification in tools.
+
+### Key Entity Types
+
+```typescript
+interface SkillInventoryItem {
+  name: string;                   // Skill name from frontmatter
+  description: string;            // Skill description
+  path: string;                   // Relative path to SKILL.md
+  filePath: string;               // Absolute path
+  userInvocable: boolean;         // Can users invoke via /skill
+  filePatterns?: string[];        // Optional hint patterns
+}
+
+interface SkillInvocationRecord {
+  id: string;                     // UUID
+  sessionId: string;              // Session where invoked
+  skillName: string;              // Which skill
+  timestamp: string;              // ISO 8601
+  userPromptContext?: string;     // User prompt that triggered invocation
+  filesOperated?: string[];       // Files touched during invocation
+}
+
+interface SessionSummary {
+  sessionId: string;
+  projectPath: string;
+  firstUserPrompt?: string;       // First user message (truncated)
+  filesOperated: string[];        // Files read/written/edited
+  skillsInvoked: string[];        // Skills used in session
+  timestamp: string;
+}
+
+interface GetSkillInventoryResult {
+  projectPath: string;
+  skillCount: number;
+  skills: SkillInventoryItem[];
+  _rawData: {
+    skills: SkillInventoryItem[];
+    discoveredAt: string;
+  };
+}
+```
+
+### Database Schema
+
+The `skill_invocations` table extends `sessions.db`:
+
+```sql
+CREATE TABLE IF NOT EXISTS skill_invocations (
+  id TEXT PRIMARY KEY,
+  session_id TEXT NOT NULL,
+  skill_name TEXT NOT NULL,
+  timestamp TEXT NOT NULL,
+  user_prompt_context TEXT,
+  files_operated TEXT,  -- JSON array
+  indexed_at TEXT NOT NULL,
+
+  FOREIGN KEY (session_id) REFERENCES sessions(id)
+);
+
+CREATE INDEX idx_skill_invocations_skill ON skill_invocations(skill_name);
+CREATE INDEX idx_skill_invocations_session ON skill_invocations(session_id);
+CREATE INDEX idx_skill_invocations_timestamp ON skill_invocations(timestamp);
+```
+
+### CLI Integration
+
+The `agentlint skills` command provides standalone skill inventory access:
+
+```bash
+agentlint skills                  # List all skills
+agentlint skills --detail commit  # Show single skill details
+agentlint skills --stats          # Include invocation statistics
+agentlint skills --json           # JSON output
+agentlint skills --markdown       # Markdown output
+```
+
+### Baseline Integration
+
+Skills metrics are optionally captured in baselines via `store_baseline --include-skills-metrics`:
+
+| Metric | Description |
+|--------|-------------|
+| `skillInvocationCount` | Total skill invocations across sessions |
+| `uniqueSkillsUsed` | Number of distinct skills invoked |
+| `sessionsWithSkillUsage` | Sessions that used at least one skill |
+| `skillsDefinedCount` | Total skills in `.claude/skills/` |
+
+### Performance Characteristics (NFR)
+
+| Metric | Target | Implementation |
+|--------|--------|----------------|
+| Skill discovery | <100ms | fast-glob with early exclusion |
+| Invocation indexing | <2s for 100 sessions | Streaming JSONL parse + batch SQLite inserts |
+| Query by skill | <50ms | SQLite indexed queries |
+| Session summaries | <500ms for 50 sessions | Aggregate query with limits |

@@ -9,7 +9,7 @@ agentlint enables continuous improvement of AI-assisted development workflows th
 
 **Strategic Pivot (Jan 2026):** From "config linting" to "effectiveness measurement" - measuring whether Skills, Agents, and practices are actually working.
 
-**Total Epics**: 20 (19 active + 1 deferred)
+**Total Epics**: 21 (20 active + 1 deferred)
 **Phase 1 Complete**: EP01, EP02, EP06, EP07, EP08, EP09, EP10, EP11
 **Phase 2 Duration**: ~20 weeks (with parallelization)
 **Critical Path**: EP14 → EP17 (P0 epics)
@@ -43,6 +43,7 @@ agentlint enables continuous improvement of AI-assisted development workflows th
 | EP18 | Subagent Delegation Tracker | Business | P2 | M | 4 weeks | Planned |
 | EP19 | MCP Integration Health | Business | P2 | S | 3 weeks | Planned |
 | EP20 | User Customization System | Business | P1 | L | 5-6 weeks | Planned |
+| EP21 | CLAUDE.md Maintenance & Automation Learning | Integration | P1 | L | 6 weeks | Planned |
 
 ## Dependency Matrix
 
@@ -218,6 +219,7 @@ All epics must respect the 9 constitutional principles:
 - [EP18: Subagent Delegation Tracker](epics/EP18-subagent-delegation.md)
 - [EP19: MCP Integration Health](epics/EP19-mcp-health.md)
 - [EP20: User Customization System](epics/EP20-user-customization.md)
+- [EP21: CLAUDE.md Maintenance & Automation Learning](epics/EP21-claude-md-maintenance.md)
 
 ### Related Documents
 
