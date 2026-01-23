@@ -1,120 +1,421 @@
 # dev.tasks
 
-> Generate implementation tasks from feature design artifacts
+> Generate an actionable, dependency-ordered tasks.md from feature design artifacts
 
-## Goal
+## When to Use
 
-Break down a planned feature into actionable implementation tasks. Tasks should be concrete enough to implement, properly ordered, and traceable to requirements. After task generation, the implementation path should be clear.
+Use this skill when:
+- Plan and design artifacts are complete (`plan.md`, `data-model.md`, etc.)
+- You're ready to break down the feature into implementable tasks
+- You need a structured task list before creating Linear issues
 
-## Success Criteria
+## Invocation
 
-- Tasks cover all requirements from spec
-- Tasks are concrete and actionable (not vague)
-- Dependencies are clear and reasonable
-- Agent can explain the task breakdown rationale
-- MVP scope is identifiable
+```
+/dev.tasks [optional context]
+```
 
-## Capabilities Available
+## Prerequisites
 
-**Scripts:**
+- Must be on a feature branch (e.g., `ep01-feature-name`)
+- `spec.md` must exist with prioritized user stories
+- `plan.md` must exist with technical context
+
+## Workflow
+
+### Phase 0: Validate Prerequisites
+
 ```bash
 # Get feature paths and validate
-source "$(dirname "$0")/scripts/common.sh"
+SCRIPT_DIR="$(dirname "$0")/scripts"
+source "$SCRIPT_DIR/common.sh"
 eval "$(get_feature_paths)"
 
-# Check prerequisites
-bash "$(dirname "$0")/scripts/check-prerequisites.sh" --json
+# Run prerequisite check
+bash "$SCRIPT_DIR/check-prerequisites.sh" --json
 ```
 
-**Files:**
-- `$FEATURE_SPEC` - User stories and requirements
-- `$IMPL_PLAN` - Technical approach and design
-- `$FEATURE_DIR/data-model.md` - Entity definitions (if exists)
-- `$FEATURE_DIR/contracts/` - API definitions (if exists)
-- `templates/tasks-template.md` - Task structure (use as guide)
+**Required artifacts:**
+- `spec.md` - User stories with priorities (P1, P2, P3)
+- `plan.md` - Technical context and project structure
 
-**Tools:**
-- Read tool for spec, plan, and design docs
-- Write tool to create tasks.md
-- Grep/Glob for understanding existing code structure
+**Optional artifacts (enhance task generation):**
+- `data-model.md` - Entity definitions
+- `research.md` - Technical decisions
+- `contracts/` - API/interface definitions
+- `quickstart.md` - Usage scenarios for testing
 
-## Agent Reasons About
+### Phase 1: Extract Inputs
 
-- **How to decompose?** - What's the right granularity for THIS feature?
-- **What order?** - What depends on what? What enables parallelism?
-- **What's MVP?** - What's the minimal set to deliver value?
-- **What phases make sense?** - Not a rigid structure, but logical groupings
-- **How detailed?** - More complex features may need finer-grained tasks
+**From spec.md:**
+- User stories with priorities (P1, P2, P3)
+- Acceptance criteria per story
+- Functional requirements (FR-###)
+- Non-functional requirements (NFR-###)
 
-## Patterns That Often Help
+**From plan.md:**
+- Technical context (language, dependencies, storage)
+- Project structure (source code layout)
+- Key design decisions
 
-**Task decomposition:**
-- Start from user stories and requirements, not arbitrary phases
-- Each task should be completable in a reasonable work session
-- Tasks should be independently verifiable (testable)
-- Include file paths when known—helps implementation
+**From data-model.md:**
+- Entities and their attributes
+- Relationships between entities
+- Validation rules
 
-**Ordering and dependencies:**
-- Foundation before features (types, utilities first)
-- Tests can often be written before implementation
-- Within a feature, model → service → endpoint is common
-- Mark tasks that can run in parallel
+**From contracts/:**
+- API endpoints or interfaces
+- Input/output contracts
+- Error handling patterns
 
-**Task format (suggested, not rigid):**
+### Phase 2: Generate Task Phases
+
+Organize tasks into these phases:
+
+#### Phase 1: Setup
+- Project initialization
+- Directory structure creation
+- Configuration files
+- Basic package structure
+- **No dependencies** - can start immediately
+
+#### Phase 2: Foundational
+- Base models and types
+- Core exceptions/errors
+- Framework infrastructure
+- Shared utilities
+- **Checkpoint**: Foundation ready
+
+#### Phase 3+: User Stories (one phase per story)
+- Order by priority: P1, P2, P3...
+- Each story independently testable
+- Tests FIRST in each phase
+- **Checkpoint**: Story N complete and independently functional
+
+#### Final Phase: Polish
+- Documentation updates
+- Performance optimization
+- Contract tests
+- Validation against quickstart.md
+
+### Phase 3: Apply Task Format
+
+**Mandatory format:**
+```
+- [ ] T### [P?] [US?] Description with file path
+```
+
+**Components:**
+| Component | Required | Description |
+|-----------|----------|-------------|
+| `- [ ]` | Yes | Checkbox (always unchecked) |
+| `T###` | Yes | Sequential task ID (T001, T002...) |
+| `[P]` | No | Parallelizable marker (safe to run concurrently) |
+| `[US#]` | Story phases only | User story reference (US1, US2...) |
+| Description | Yes | Clear action with **absolute file path** |
+
+**Valid examples:**
 ```markdown
-- [ ] T### [Context] Description with file path if known
+- [ ] T001 Create project structure per implementation plan
+- [ ] T005 [P] Implement authentication middleware in src/middleware/auth.py
+- [ ] T012 [P] [US1] Create User model in src/models/user.py
+- [ ] T014 [US1] Implement UserService in src/services/user_service.py (depends on T012)
 ```
-- Sequential IDs help tracking
-- Context like [P] for parallel, [US1] for story reference
-- File paths help implementation and reduce ambiguity
 
-**MVP identification:**
-- P1 user stories typically define MVP
-- Setup and foundation are usually required
-- Be explicit about what's in vs out of MVP
+**Parallelization rules:**
+- Mark `[P]` only if task works on different files than concurrent tasks
+- Never mark `[P]` if task depends on incomplete task in same phase
+- When in doubt, don't mark `[P]`
 
-**For agentic applications:**
-- Separate tool implementation tasks from integration tasks
-- Tools should be testable in isolation
-- Don't create tasks for "agent orchestration logic"—that's agent reasoning
+### Phase 4: Map Dependencies
 
-## Workflow Guidance
+**Three dependency types:**
 
-This is a suggested flow, not a rigid sequence.
+1. **Phase dependencies** (implicit):
+   ```
+   Setup → Foundational → US1 → US2 → ... → Polish
+   ```
 
-1. **Load context** - Read spec, plan, and design docs
-2. **Understand requirements** - What needs to be built?
-3. **Identify structure** - What logical phases or groups?
-4. **Generate tasks** - Concrete, actionable, with dependencies
-5. **Identify MVP** - What's the minimal valuable set?
-6. **Review coverage** - Do tasks cover all requirements?
+2. **Within-phase dependencies** (implicit order):
+   - Tests before implementation
+   - Models before services
+   - Services before endpoints
+
+3. **Explicit dependencies** (noted in description):
+   ```
+   - [ ] T014 [US1] Implement UserService (depends on T012, T013)
+   ```
+
+### Phase 5: Define Checkpoints
+
+After each phase, add a checkpoint:
+
+```markdown
+**Checkpoint**: [Phase name] complete
+- [ ] All tests pass
+- [ ] [Story-specific verification if applicable]
+```
+
+After each user story phase:
+```markdown
+**Checkpoint**: User Story X fully functional and independently testable
+```
+
+### Phase 6: Calculate MVP Scope
+
+Identify the minimal viable implementation:
+- Setup phase (always included)
+- Foundational phase (always included)
+- P1 user stories only
+
+Output as summary:
+```markdown
+## MVP Scope
+
+Tasks for minimum viable feature:
+- Setup: T001-T005 (5 tasks)
+- Foundational: T006-T012 (7 tasks)
+- US1 (P1): T013-T020 (8 tasks)
+
+**Total MVP**: 20 tasks
+**Full Feature**: 45 tasks
+```
+
+---
+
+## For Agentic Applications
+
+When generating tasks for agentic systems (like agentlint), apply these additional guidelines:
+
+### Task Categories for Agentic Features
+
+Organize tasks to reflect the tool/agent boundary:
+
+```markdown
+## Phase X: [Feature Name]
+
+### Tool Implementation (testable in isolation)
+
+- [ ] T0XX [P] Create Zod schema for tool parameters in src/tools/schemas.ts
+- [ ] T0XX [P] Implement data access function in src/tools/[name].ts
+- [ ] T0XX [P] Add tool to registry in src/tools/index.ts
+- [ ] T0XX Write unit tests for tool in tests/unit/tools/[name].test.ts
+
+### Tool Integration (connects to orchestration)
+
+- [ ] T0XX Register tool with orchestrator in src/orchestration/tool-registry.ts
+- [ ] T0XX Write integration test in tests/integration/tools/[name].test.ts
+
+### Agent Evaluation (requires LLM)
+
+- [ ] T0XX Create eval case for [scenario] in tests/evals/[name].eval.ts
+- [ ] T0XX Add to eval suite in tests/evals/index.ts
+```
+
+### Tasks to Include
+
+| Task Type | Example | Why |
+|-----------|---------|-----|
+| **Tool schemas** | "Create Zod schema for getSkillInvocations" | Enables type-safe tool parameters |
+| **Data access** | "Implement SQLite queries for skill invocations" | Core tool capability |
+| **Tool descriptions** | "Write rich description for tool registry" | Agent selects tools based on descriptions |
+| **Unit tests** | "Test tool returns correct data" | Verify tool capability |
+| **Evaluations** | "Create eval for agent skill analysis" | Verify agent reasoning |
+
+### Tasks to EXCLUDE
+
+| Don't Create Tasks For | Why |
+|------------------------|-----|
+| "Implement detection logic" | Agent reasoning, not implementation |
+| "Add threshold for low invocation" | Agent judgment, not code |
+| "Create orchestration flow" | Agent decides orchestration |
+| "Implement when-to-use rules" | Agent reasons about when to use tools |
+
+### Tool Task Template
+
+For each tool, generate these tasks:
+
+```markdown
+### Tool: get_skill_invocations
+
+- [ ] T0XX Create SkillInvocation type in src/skills/types.ts
+- [ ] T0XX Create Zod schema in src/skills/schemas.ts
+- [ ] T0XX Implement query function in src/skills/queries.ts
+- [ ] T0XX Create tool definition in src/skills/tools/get-skill-invocations.ts
+- [ ] T0XX Write tool description (what, when, returns)
+- [ ] T0XX Register tool in src/skills/tools/index.ts
+- [ ] T0XX Unit test: returns correct data for valid query
+- [ ] T0XX Unit test: handles empty results gracefully
+- [ ] T0XX Unit test: respects limit/offset parameters
+- [ ] T0XX Integration test: tool works with real SQLite
+```
+
+### Evaluation Task Template
+
+For agentic features, include evaluation tasks:
+
+```markdown
+### Evaluations: Skills Effectiveness Analysis
+
+- [ ] T0XX Create eval: agent correctly interprets low invocation count
+- [ ] T0XX Create eval: agent identifies relevant sessions for missed opportunity analysis
+- [ ] T0XX Create eval: agent generates actionable description improvement suggestions
+- [ ] T0XX Add evals to CI pipeline (gated, requires API key)
+```
+
+### Checkpoint for Agentic Features
+
+After tool implementation phases:
+
+```markdown
+**Checkpoint**: Tools complete and testable
+- [ ] All tools return raw data (no judgments)
+- [ ] All tools have rich descriptions
+- [ ] Unit tests pass
+- [ ] Tools work in isolation (no orchestration dependencies)
+```
+
+---
+
+### Phase 7: Generate tasks.md
+
+Create `$FEATURE_DIR/tasks.md` using template with:
+1. Header with metadata
+2. Summary section
+3. Phase sections with tasks
+4. MVP scope section
+5. Execution notes
+
+## Task Format Template
+
+```markdown
+# Tasks: {{FEATURE_NAME}}
+
+> **Epic**: {{EPIC_ID}}
+> **Generated**: {{DATE}}
+> **Total Tasks**: {{COUNT}}
+> **MVP Tasks**: {{MVP_COUNT}}
+
+---
+
+## Summary
+
+| Phase | Tasks | Parallelizable |
+|-------|-------|----------------|
+| Setup | X | Y |
+| Foundational | X | Y |
+| US1: [Name] | X | Y |
+| Polish | X | Y |
+
+---
+
+## Phase 1: Setup
+
+**Goal**: Initialize project structure
+
+- [ ] T001 [P] Create directory structure per plan.md
+- [ ] T002 [P] Initialize configuration files
+...
+
+**Checkpoint**: Setup complete
+
+---
+
+## Phase 2: Foundational
+
+**Goal**: Core infrastructure before user stories
+
+- [ ] T00X Create base types in src/types/index.ts
+- [ ] T00X [P] Implement error handling in src/errors/index.ts
+...
+
+**Checkpoint**: Foundation ready, all base infrastructure in place
+
+---
+
+## Phase 3: User Story 1 - [Title] (P1)
+
+**Goal**: [What this story delivers]
+**Requirements**: FR-001, FR-002
+
+### Tests (write first, ensure they fail)
+
+- [ ] T0XX [P] [US1] Unit test for [component] in tests/unit/test_[name].ts
+- [ ] T0XX [P] [US1] Integration test for [flow] in tests/integration/test_[name].ts
+
+### Implementation
+
+- [ ] T0XX [US1] Create [Entity] model in src/models/[entity].ts
+- [ ] T0XX [US1] Implement [Service] in src/services/[service].ts (depends on T0XX)
+...
+
+**Checkpoint**: US1 complete and independently testable
+
+---
+
+## MVP Scope
+
+Minimum viable implementation:
+- Phase 1: Setup (T001-T00X)
+- Phase 2: Foundational (T00X-T0XX)
+- Phase 3: US1 (T0XX-T0XX)
+
+**Total**: XX tasks
+
+---
+
+## Execution Notes
+
+- Tasks marked [P] can run in parallel within their phase
+- Complete each phase before starting the next
+- Each user story should be deployable after its checkpoint
+- Run tests after each checkpoint
+```
 
 ## Output
 
-On success, create `tasks.md` with:
-- Header with metadata (epic, date, counts)
-- Summary of phases/groups
-- Tasks grouped logically
-- Checkpoints between major phases
-- MVP scope section
+On completion:
+```
+Tasks generated!
 
-Communicate to user:
-- Total task count and MVP count
-- Phase breakdown
-- Any coverage gaps or concerns
-- Suggested next step (usually /dev.taskstolinear)
+  Epic:     EP01
+  Branch:   ep01-feature-name
+  Tasks:    specs/ep01-feature-name/tasks.md
+
+  Summary:
+    Total Tasks:    45
+    MVP Tasks:      20
+    Phases:         6
+    User Stories:   4
+
+  Phase Breakdown:
+    Setup:          5 tasks (3 parallel)
+    Foundational:   7 tasks (2 parallel)
+    US1 (P1):       8 tasks (4 parallel)
+    US2 (P1):       10 tasks (5 parallel)
+    US3 (P2):       8 tasks (3 parallel)
+    Polish:         7 tasks (2 parallel)
+
+Next: Run /dev.taskstolinear to create Linear issues
+```
 
 ## Constitution Alignment
 
 This skill supports:
-- **III. Causal-First**: Tasks trace to requirements
+- **III. Causal-First**: Tasks trace to requirements and stories
 - **IV. Minimal**: MVP scope clearly defined
 - **VI. Traceable**: Task IDs enable tracking
-- **IX. Agent-Aware**: Structured for agent execution
+- **IX. Agent-Aware**: Structured format for agent execution
+
+## Files
+
+- `templates/tasks-template.md` - Tasks document template
+- `scripts/common.sh` - Shared utilities
+- `scripts/check-prerequisites.sh` - Prerequisite validation
 
 ## Handoff
 
-After completing, suggest based on context:
-- `/dev.taskstolinear` - To create Linear issues
+After completing this skill, suggest:
+- `/dev.taskstolinear` - Create Linear issues from tasks
 - `/dev.plan` - If tasks reveal missing design elements
-- `/dev.analyze tasks` - Optional validation before Linear sync
+- `/dev.analyze tasks` - Optional quality validation before Linear sync

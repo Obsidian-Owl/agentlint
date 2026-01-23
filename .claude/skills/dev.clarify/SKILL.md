@@ -2,100 +2,237 @@
 
 > Resolve ambiguities in a feature specification through targeted questions
 
-## Goal
+## When to Use
 
-Resolve ambiguities that would block implementation planning. After clarification, the spec should be clear enough that implementation decisions can be made without guessing.
+Use this skill when:
+- A spec has [NEEDS CLARIFICATION] markers
+- Requirements are underspecified
+- You want to reduce ambiguity before planning
 
-## Success Criteria
+## Invocation
 
-- Ambiguities that would cause implementation questions are resolved
-- Agent can explain why each clarification was needed
-- User understands what was clarified and why
-- Spec is updated with resolutions (not just discussed)
-- Remaining uncertainty is documented, not hidden
-
-## Capabilities Available
-
-**Scripts:**
-```bash
-# Get feature paths
-source "$(dirname "$0")/scripts/common.sh"
-eval "$(get_feature_paths)"
-# $FEATURE_SPEC points to spec.md
+```
+/dev.clarify [optional context]
 ```
 
-**Files:**
-- `$FEATURE_SPEC` - The specification to clarify
-- `.specify/memory/constitution.md` - Project principles (may reveal alignment questions)
+## Prerequisites
 
-**Tools:**
-- Read tool for spec and related documents
-- Edit tool to update spec with clarifications
-- AskUserQuestion for user clarification (supports multiple choice or free-form)
+- Must be on a feature branch (e.g., `ep01-feature-name`)
+- `spec.md` must exist in the feature directory
 
-## Agent Reasons About
+## Workflow
 
-- **What's actually unclear?** - Not a generic checklist, but what's unclear in THIS spec
-- **What would block planning?** - Which ambiguities matter most for implementation
-- **How many questions?** - Might be 1, might be 10—depends on the spec
-- **What order?** - Prioritize by implementation impact
-- **When is "clear enough"?** - Perfect clarity isn't always needed; judge when to stop
-- **What can be deferred?** - Some questions can wait until implementation
+### Step 0: Load Feature Context
 
-## Patterns That Often Help
+```bash
+# Get feature paths
+SCRIPT_DIR="$(dirname "$0")/scripts"
+source "$SCRIPT_DIR/common.sh"
+eval "$(get_feature_paths)"
 
-**Finding ambiguities:**
-- Undefined terms are common sources of confusion
-- Vague requirements ("fast", "scalable", "easy") need specific metrics
-- Integration points often have hidden complexity
-- Edge cases are frequently underspecified
-- Implicit assumptions should be made explicit
+# Validate
+if [[ -z "$FEATURE_SPEC" ]] || [[ ! -f "$FEATURE_SPEC" ]]; then
+    echo "Error: No spec.md found. Run /dev.specify first."
+    exit 1
+fi
+```
 
-**Asking good questions:**
-- One question at a time is easier to answer
-- Provide recommended options when you have informed opinions
-- Explain why the clarification matters
-- Accept quick answers ("yes", "recommended") to reduce friction
+### Step 1: Perform Ambiguity Scan
 
-**Updating the spec:**
-- Update spec immediately after each answer (don't batch)
-- Add a `## Clarifications` section with dated entries
-- Reference which requirement/section was updated
-- Preserve the original question and answer for traceability
+Analyze the spec across 8 categories:
 
-**Knowing when to stop:**
-- Stop when remaining ambiguities won't block planning
-- Some questions are better resolved during implementation
-- User fatigue is real—don't over-question
+| Category | What to Look For |
+|----------|------------------|
+| **Functional Scope** | Vague verbs (handle, manage, process), missing details |
+| **Domain Model** | Undefined entities, unclear relationships |
+| **UX Flow** | Missing interaction details, unclear UI states |
+| **Quality Attributes** | Unmeasured NFRs (fast, scalable, secure) |
+| **Integrations** | Unspecified APIs, protocols, formats |
+| **Edge Cases** | Missing error handling, boundary conditions |
+| **Constraints** | Unstated assumptions, hidden dependencies |
+| **Terminology** | Inconsistent terms, undefined jargon |
 
-## Workflow Guidance
+### Step 2: Prioritize Questions
 
-This is a suggested flow, not a rigid sequence.
+Generate a prioritized question queue:
+- Maximum 5 questions per session
+- Maximum 10 questions across all sessions
+- Focus on highest-impact ambiguities first
 
-1. **Load context** - Read the spec thoroughly
-2. **Identify ambiguities** - What's unclear that would block implementation?
-3. **Prioritize** - Which matter most? (agent judgment, not fixed rules)
-4. **Ask questions** - One at a time, with context
-5. **Update spec** - After each answer, immediately
-6. **Repeat or stop** - Continue until clear enough to plan
+**Priority Order:**
+1. Blockers for planning (dependencies, integrations)
+2. Scope clarifications (in/out of scope)
+3. Quality attributes (performance, security targets)
+4. UX/interaction details
+5. Edge cases and error handling
+
+### Step 3: Interactive Questioning
+
+For each question:
+
+1. **Present ONE question at a time**
+2. **For multiple choice**: Show recommended option prominently
+3. **For free-form**: Suggest an answer and explain reasoning
+4. **Accept quick answers**: "yes", "recommended", "suggested", or custom
+
+Example interaction:
+```
+Question 1 of 3:
+
+The spec mentions "fast response times" but doesn't define a target.
+
+What should the maximum response time be for the analysis command?
+
+  [1] < 5 seconds (Recommended - aligns with QR from Arc42 §10)
+  [2] < 10 seconds
+  [3] < 30 seconds
+  [4] Custom value
+
+Your answer:
+```
+
+### Step 4: Update Spec Incrementally
+
+After EACH answer:
+
+1. Create `## Clarifications` section if it doesn't exist
+2. Add `### Session {{DATE}}` subheading
+3. Update the relevant requirement sections with clarified details
+4. Save the spec immediately (don't batch updates)
+
+**Update Format:**
+```markdown
+## Clarifications
+
+### Session 2026-01-15
+
+**Q: What should the maximum response time be?**
+A: < 5 seconds (aligns with QR from Arc42 §10)
+
+Updated: NFR-001 in Section 3.2
+```
+
+### Step 5: Validate After Each Update
+
+After updating:
+- Check for contradictions with existing requirements
+- Ensure no duplicate requirements created
+- Verify formatting is preserved
+
+### Step 6: Generate Coverage Summary
+
+After all questions answered:
+
+```
+Clarification Summary
+=====================
+
+| Category              | Status    |
+|-----------------------|-----------|
+| Functional Scope      | Clear     |
+| Domain Model          | Clear     |
+| UX Flow               | Resolved  |
+| Quality Attributes    | Resolved  |
+| Integrations          | Deferred  |
+| Edge Cases            | Clear     |
+| Constraints           | Clear     |
+| Terminology           | Clear     |
+
+Questions asked: 3
+Questions deferred: 1 (integration with external API - blocked on vendor)
+Outstanding: 0
+
+Recommendation: Proceed to /dev.plan
+```
+
+---
+
+## For Agentic Applications
+
+When clarifying specs for agentic systems (like agentlint), add this category to the ambiguity scan:
+
+### Additional Category: Tool/Agent Boundary
+
+| What to Look For | Example Ambiguity |
+|------------------|-------------------|
+| Requirements that encode judgment | "Detect low invocation rates" - what's "low"? |
+| Thresholds without clear source | "Flag if < 30%" - why 30%? |
+| Detection/matching logic | "Match file patterns to skills" - programmatic or agent reasoning? |
+| Workflow sequences | "After X, do Y" - is this tool logic or agent orchestration? |
+
+### Key Clarification Questions for Agentic Features
+
+Ask these questions when the spec involves agentic behavior:
+
+1. **"Should the tool detect this, or should the agent reason about it?"**
+   - If the answer involves judgment, context, or "it depends" → agent reasoning
+   - If the answer is deterministic and mechanical → tool capability
+
+2. **"Where does this threshold/rule come from?"**
+   - If it's domain knowledge that could vary → agent reasoning
+   - If it's a technical constraint (e.g., API limits) → tool parameter
+
+3. **"Is this describing what data to provide, or what to do with the data?"**
+   - What data to provide → tool capability (keep in spec)
+   - What to do with data → agent reasoning (remove from spec)
+
+### Example Clarification
+
+```
+Question: The spec says "detect missed opportunities when a skill's
+file patterns match files in a session but the skill wasn't invoked."
+
+This sounds like programmatic detection logic. Should this be:
+  [1] Tool capability (tool does pattern matching, returns matches)
+  [2] Agent reasoning (tool provides data, agent judges if opportunity was missed)
+  [3] Hybrid (tool provides hints, agent makes final call)
+
+Recommendation: [2] Agent reasoning - per Constitution Principle VII,
+judgment about whether an opportunity was "missed" requires understanding
+user intent, which is agent reasoning.
+```
+
+### Anti-pattern Alert
+
+If clarification reveals requirements like:
+- "If X > threshold, then flag as Y"
+- "Detect when Z happens"
+- "Automatically identify patterns"
+
+These likely encode agent reasoning in tool logic. Clarify whether to:
+- Remove the logic entirely (agent will reason)
+- Convert to data provision (tool provides X, agent judges if "high")
+
+---
 
 ## Output
 
-Communicate to user:
-- Summary of what was clarified
-- Which spec sections were updated
-- Any deferred questions (and why deferred)
-- Suggested next step (usually /dev.plan)
+On completion:
+```
+Clarification complete!
+
+  Spec:     specs/ep01-feature-name/spec.md
+  Updated:  3 sections
+  Resolved: 3 ambiguities
+  Deferred: 1 (documented in spec)
+
+  Coverage: 7/8 categories clear
+
+Next: Run /dev.plan to create implementation design
+```
 
 ## Constitution Alignment
 
 This skill supports:
-- **III. Causal-First**: Trace clarifications to implementation needs
-- **VII. Intelligent Tooling**: For agentic apps, clarify tool vs agent boundaries
+- **III. Causal-First**: Trace clarifications to requirements
 - **IX. Agent-Aware**: Structured Q&A for agent consumption
+
+## Files
+
+- `scripts/common.sh` - Shared utilities
 
 ## Handoff
 
-After completing, suggest based on context:
-- `/dev.plan` - If spec is clear enough for planning
-- `/dev.clarify` again - If more questions surfaced during answers
+After completing this skill, suggest:
+- `/dev.plan` - If all critical ambiguities resolved
+- `/dev.clarify` again - If more questions surfaced
