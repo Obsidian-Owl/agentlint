@@ -2,6 +2,7 @@
 
 > **Generated**: 2026-01-24
 > **Artifacts Analyzed**: spec.md, plan.md, tasks.md, data-model.md, contracts/interfaces.ts
+> **Warnings Fixed**: 2026-01-24
 
 ---
 
@@ -9,9 +10,9 @@
 
 | Artifact | Errors | Warnings | Info |
 |----------|--------|----------|------|
-| spec.md | 0 | 2 | 3 |
+| spec.md | 0 | 0 | 3 |
 | plan.md | 0 | 0 | 1 |
-| tasks.md | 0 | 1 | 2 |
+| tasks.md | 0 | 0 | 2 |
 | data-model.md | 0 | 0 | 1 |
 | contracts/interfaces.ts | 0 | 0 | 1 |
 | Cross-artifact | 0 | 0 | 2 |
@@ -31,35 +32,23 @@ None.
 
 ### Warnings (should fix)
 
-#### 1. [WARN] spec.md:51 - Acceptance criteria uses judgment language
+~~All warnings have been fixed.~~
 
-**Location**: US-001 AC-3: "Given a Skill has zero invocations, then it is highlighted as 'unused'"
+#### 1. [FIXED] spec.md:51 - Acceptance criteria uses judgment language
 
-**Issue**: The word "highlighted" implies tool-level presentation logic. The tool returns data; the agent decides how to present findings.
-
-**Recommendation**: Rephrase to: "Given a Skill has zero invocations, then the invocation count shows zero" — agent decides whether to call this out.
-
-**Severity**: Low (presentation, not core logic)
+**Status**: Fixed - Changed "highlighted as 'unused'" to "invocation count shows zero"
 
 ---
 
-#### 2. [WARN] spec.md:5 - Status still shows "Draft"
+#### 2. [FIXED] spec.md:5 - Status still shows "Draft"
 
-**Location**: Header metadata
-
-**Issue**: Spec status is "Draft" but planning is complete.
-
-**Recommendation**: Update status to "Approved" or "Ready for Implementation"
+**Status**: Fixed - Updated to "Approved"
 
 ---
 
-#### 3. [WARN] tasks.md:5-6 - MVP task count mismatch
+#### 3. [FIXED] tasks.md:5-6 - MVP task count mismatch
 
-**Location**: Header says "MVP Tasks: 35" but MVP scope section says "Total MVP: 38 tasks"
-
-**Issue**: Inconsistent MVP task count between header and body.
-
-**Recommendation**: Update header to match body (38 tasks).
+**Status**: Fixed - Updated header to "MVP Tasks: 38"
 
 ---
 
@@ -231,11 +220,11 @@ Excellent consistency.
 
 ### Should Fix (Warnings)
 
-1. **Update spec.md header** - Change status from "Draft" to "Approved" or "Ready for Implementation"
+All warnings have been fixed:
 
-2. **Fix tasks.md MVP count** - Update header from "MVP Tasks: 35" to "MVP Tasks: 38"
-
-3. **Consider rewording US-001 AC-3** - Change "highlighted as 'unused'" to neutral data language
+1. ~~**Update spec.md header**~~ - Done: Changed to "Approved"
+2. ~~**Fix tasks.md MVP count**~~ - Done: Changed to "38"
+3. ~~**Consider rewording US-001 AC-3**~~ - Done: Changed to neutral data language
 
 ### Optional Improvements
 
@@ -259,6 +248,6 @@ The 3 warnings are minor (metadata updates and presentation language). The core 
 
 ## Next Steps
 
-1. Fix the 3 warnings (optional but recommended)
+1. ~~Fix the 3 warnings~~ - Done
 2. Run `/dev.taskstolinear` to create Linear issues
 3. Begin implementation with Phase 1: Setup

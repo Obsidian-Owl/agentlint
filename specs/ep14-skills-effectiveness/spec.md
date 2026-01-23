@@ -2,7 +2,7 @@
 
 > **Epic**: EP14
 > **Created**: 2026-01-23
-> **Status**: Draft
+> **Status**: Approved
 > **Author**: Claude Code
 
 ---
@@ -48,7 +48,7 @@ The January 2026 strategic review identified that users need to know: "Are my Sk
 **Acceptance Criteria:**
 - [ ] Given `.claude/skills/` contains Skills, when I run skills analysis, then I see a list of all defined Skills with invocation counts
 - [ ] Given session logs exist for the last 30 days, when I run analysis, then each Skill shows invocation count with trend (30/60/90 day comparison if data exists)
-- [ ] Given a Skill has zero invocations, then it is highlighted as "unused"
+- [ ] Given a Skill has zero invocations, then the invocation count shows zero
 - [ ] Given analysis runs, then I see total sessions analyzed and total Skill invocations
 
 **Test Scenarios:**

@@ -3,7 +3,7 @@
 > **Epic**: EP14
 > **Generated**: 2026-01-24
 > **Total Tasks**: 52
-> **MVP Tasks**: 35
+> **MVP Tasks**: 38
 
 ---
 
