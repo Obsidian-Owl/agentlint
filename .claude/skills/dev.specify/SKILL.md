@@ -2,128 +2,106 @@
 
 > Create a feature specification from a natural language description
 
-## When to Use
+## Goal
 
-Use this skill when:
-- Starting work on a new feature from an Epic
-- Converting a feature idea into a formal specification
-- Creating the foundation for the dev workflow pipeline
+Transform a feature idea or Epic into a clear specification that enables implementation planning. The specification should capture what needs to be built, why it matters, and what success looks like.
 
-## Invocation
+## Success Criteria
 
-```
-/dev.specify [feature description]
-```
+- Spec articulates the problem being solved and why it matters
+- User stories capture actual user needs with testable acceptance criteria
+- Requirements are specific enough to implement without ambiguity
+- Agent can explain the reasoning behind scope decisions
+- Open questions are identified (not hidden or assumed away)
 
-Or describe your feature need and this skill will be auto-invoked.
+## Capabilities Available
 
-## Workflow
-
-### Step 1: Identify Epic
-
-1. Read the epic catalogue at `docs/planning/epic-catalogue.md`
-2. Present available Epics to user for selection
-3. If user provides Epic ID directly, validate it exists
-
-### Step 2: Generate Feature Name
-
-From the user's description, generate a short feature name:
-- 2-4 words maximum
-- Descriptive and unique
-- Will become part of branch name
-
-### Step 3: Check for Existing Work
-
-Before creating:
+**Scripts:**
 ```bash
-# Check for existing branches
-git branch -a | grep -i "{{EPIC_ID}}"
+# Get feature paths and context
+source "$(dirname "$0")/scripts/common.sh"
+eval "$(get_feature_paths)"
 
-# Check for existing specs
-ls specs/ | grep -i "{{EPIC_ID}}"
-```
-
-If work exists, ask user how to proceed.
-
-### Step 4: Create Feature Structure
-
-Run the creation script:
-```bash
+# Create feature branch and directory structure
 bash "$(dirname "$0")/scripts/create-new-feature.sh" "{{EPIC_ID}}" "{{FEATURE_NAME}}" --json
 ```
 
-This creates:
-- Feature branch: `ep01-feature-name`
-- Spec directory: `specs/ep01-feature-name/`
-- Spec file: `specs/ep01-feature-name/spec.md`
-- Checklists directory: `specs/ep01-feature-name/checklists/`
+**Files:**
+- `templates/spec-template.md` - Specification structure (use as guide, not rigid format)
+- `docs/planning/epic-catalogue.md` - Available epics and their definitions
+- `.specify/memory/constitution.md` - Project principles to align with
 
-### Step 5: Generate Specification
+**Tools:**
+- Read tool for existing specs, ADRs, architecture docs
+- Write tool to create spec.md
+- AskUserQuestion for clarifying user intent
+- Bash for git operations and script execution
 
-Using the template at `templates/spec-template.md`, generate a complete specification:
+## Agent Reasons About
 
-1. **Overview**: Extract from user description
-2. **User Scenarios**: Convert requirements to user stories with acceptance criteria
-3. **Requirements**: Functional and non-functional requirements with priorities
-4. **Key Entities**: Domain model outline
-5. **Success Criteria**: Measurable outcomes
-6. **Edge Cases**: Boundary conditions and error handling
-7. **Dependencies**: Internal and external dependencies
-8. **Open Questions**: Mark unclear items with [NEEDS CLARIFICATION]
+- **What Epic?** - Which epic does this work belong to? Validate it exists.
+- **Scope boundaries** - What's in vs out? Where are the edges?
+- **User value** - Who benefits and how? What's the real problem?
+- **Requirements depth** - How detailed should requirements be for THIS feature?
+- **What's unclear?** - What would block implementation if not clarified?
+- **Constitution alignment** - Does this feature serve the project's principles?
 
-### Step 6: Create Requirements Checklist
+## Patterns That Often Help
 
-Generate `checklists/requirements.md` with quality validation items:
-- Requirement completeness checks
-- Clarity and specificity checks
-- Consistency checks
-- Testability checks
+**Understanding the feature:**
+- Read the epic definition first to understand strategic context
+- Check for existing work (branches, specs) that might overlap
+- Consider who the users are and what they actually need (not just what they ask for)
 
-### Step 7: Validate Specification
+**Writing effective specs:**
+- Start with the "why" before the "what"
+- User stories should be from the user's perspective, not implementation details
+- Acceptance criteria should be testable—if you can't verify it, rephrase it
+- Mark genuinely unclear items as [NEEDS CLARIFICATION] rather than guessing
 
-Run up to 3 iterations to:
-1. Check spec against checklist
-2. Fix any obvious issues
-3. Ensure no contradictions
+**Scope management:**
+- "Out of Scope" is as important as "In Scope"
+- When in doubt about scope, ask the user
+- Features that try to do everything often do nothing well
 
-### Step 8: Handle Clarifications
+**For agentic applications (like agentlint):**
+- Distinguish between tool capabilities (data, operations) and agent reasoning (judgment, decisions)
+- Specs should describe WHAT the system does, not HOW the agent should orchestrate
+- Avoid encoding thresholds, rules, or detection logic that should be agent reasoning
 
-If there are more than 3 items marked [NEEDS CLARIFICATION]:
-- Present the top 3 to the user
-- Ask for clarification using AskUserQuestion
-- Update spec with answers
+## Workflow Guidance
+
+This is a suggested flow, not a rigid sequence. Adapt based on context.
+
+1. **Identify Epic** - Determine which epic this belongs to
+2. **Check existing work** - Look for branches/specs that might conflict
+3. **Create structure** - Branch and directory via create-new-feature.sh
+4. **Understand context** - Read related docs, existing code, ADRs
+5. **Draft specification** - Use template as guide, fill based on understanding
+6. **Validate alignment** - Check against constitution principles
+7. **Identify gaps** - Mark unclear items, don't paper over them
 
 ## Output
 
-On success, output:
-```
-Feature specification created!
+On success, the feature directory contains:
+- `spec.md` - The specification
+- `checklists/requirements.md` - Quality validation items (if needed)
 
-  Epic:     EP01
-  Branch:   ep01-feature-name
-  Spec:     specs/ep01-feature-name/spec.md
-
-  Status: Ready for clarification
-  Open Questions: X items marked [NEEDS CLARIFICATION]
-
-Next: Run /dev.clarify to resolve ambiguities
-```
+Communicate to user:
+- What was created and where
+- Key decisions made and why
+- What's unclear and needs clarification
+- Suggested next step (usually /dev.clarify if open questions exist)
 
 ## Constitution Alignment
 
 This skill supports:
 - **III. Causal-First**: Requirements trace to user outcomes
+- **VII. Intelligent Tooling**: For agentic apps, distinguish tool vs agent responsibilities
 - **IX. Agent-Aware**: Structured for agent consumption
-
-## Files
-
-- `templates/spec-template.md` - Specification template
-- `scripts/common.sh` - Shared utilities
-- `scripts/create-new-feature.sh` - Branch/directory creation
 
 ## Handoff
 
-After completing this skill, suggest:
-- `/dev.clarify` - To resolve [NEEDS CLARIFICATION] items
-- `/dev.plan` - If spec is already clear enough
-- `/dev.analyze spec` - Optional quality validation before proceeding
+After completing, suggest based on context:
+- `/dev.clarify` - If open questions exist
+- `/dev.plan` - If spec is already clear
