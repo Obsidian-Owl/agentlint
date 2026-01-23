@@ -1,9 +1,9 @@
-# EP15: Context Efficiency Engine
+# EP15: Context Efficiency Data
 
 ## Business Outcome Hypothesis
 
-**If** we implement context efficiency analysis with file re-read tracking and compression correlation,
-**Then** users can understand what's causing context pressure and how Skills/delegation reduce it,
+**If** we provide tools for context efficiency data from session logs,
+**Then** the agent can analyze what's causing context pressure and reason about how Skills/delegation reduce it,
 **Measured by** compression rate reduction, re-read ratio improvement, and efficiency delta accuracy.
 
 ## Classification
@@ -17,64 +17,68 @@
 
 ## In Scope
 
-* File operation tracking from session logs (Read/Write/Edit paths)
+* File operation extraction from session logs (Read/Write/Edit paths)
 * Re-read ratio calculation (total reads / unique files)
-* Compression correlation with skill usage
-* Compression correlation with subagent delegation
-* Efficiency delta calculation (WITH feature vs. WITHOUT)
-* Token efficiency trends over time
+* Compression event extraction with session context
+* Token usage data per session
+* Data access tools for agent-driven efficiency analysis
 
 ## Out of Scope
 
 * Real-time context monitoring
 * Automatic context optimization
 * Cross-session file access patterns
+* Programmatic "hotspot detection" (agent reasons about patterns)
 
 ## Key Deliverables
 
 ### Phase 1: Core Implementation (Weeks 1-2)
 
-1. **File Operation Tracker**
+1. **File Operation Indexer**
    - Extract file paths from Read/Write/Edit tool calls in session logs
    - Track file access patterns per session (which files, how many times)
-   - Calculate re-read ratio: total reads / unique files read
-   - Identify re-read hotspots (files read 3+ times)
+   - Store access data for agent querying
 
-2. **Compression Correlation Analyzer**
-   - Correlate compression events with skill usage in same session
-   - Correlate compression events with subagent delegation
-   - Calculate efficiency deltas:
-     - Sessions WITH skills vs. WITHOUT: compression rate delta
-     - Sessions WITH delegation vs. WITHOUT: compression rate delta
+2. **Compression Event Extractor**
+   - Extract compression events from session logs
+   - Correlate with session characteristics (timestamp, position in session)
+   - Provide context for agent to reason about causes
 
-3. **Token Efficiency Metrics**
-   - Effective token usage (total - cache hits)
-   - Context pressure score (how close to compression threshold)
-   - Token efficiency trends over time
+3. **Token Usage Data**
+   - Extract token counts per session
+   - Track effective token usage (total - cache hits where available)
+   - Provide historical data for trend analysis
 
-4. **Context Efficiency Tools**
-   - `analyzeContextEfficiencyTool` - Comprehensive efficiency analysis
-   - `getFileAccessPatternsTool` - Query file access data
-   - `calculateEfficiencyDeltaTool` - Compare feature impact on efficiency
+4. **Context Efficiency Data Tools**
+   - `getFileAccessPatternsTool` - Query file access data by session/date
+   - `getCompressionEventsTool` - Query compression events with context
+   - `getTokenUsageTool` - Query token usage metrics
+   - `getSessionEfficiencyDataTool` - Combined efficiency data for a session
+
+**Agent Reasoning (NOT tools):**
+- Whether re-read ratios indicate a problem
+- Which files are "hotspots" worth addressing
+- Whether skills/delegation correlate with better efficiency
+- What efficiency deltas are meaningful
 
 ### Phase 2: Integration (Weeks 3-4)
 
 1. **CLI Integration**
    - Add context efficiency metrics to `agentlint analyse` output
-   - Add `--context` flag for focused context efficiency analysis
-   - Show correlation insights in summary
+   - Add `--context` flag for focused efficiency analysis
+   - Agent presents correlation insights
 
 2. **Baseline Integration**
    - Store efficiency metrics in baselines for trend analysis
    - Enable delta comparison between baseline periods
-   - Add efficiency data to temporal trends
+   - Agent reasons about trends over time
 
 3. **Skills Integration**
-   - Cross-reference efficiency with skills usage from EP14
-   - Show "efficiency impact" for each skill
+   - Cross-reference efficiency data with skills usage from EP14
+   - Provide data for agent to reason about skill impact on efficiency
 
 4. **Testing**
-   - Unit tests for re-read calculation, correlation analysis
+   - Unit tests for file access extraction, compression parsing
    - Integration tests for CLI output
    - Test fixtures with varied compression patterns
 
@@ -82,20 +86,20 @@
 
 1. **Dead Code Removal**
    - Remove any redundant metrics code from EP06
-   - Clean up temporary correlation calculation scaffolding
+   - Clean up temporary data extraction scaffolding
 
 2. **Consolidation**
    - Merge overlapping metric types if any
-   - Standardize efficiency metric naming
+   - Standardize efficiency data formats
 
 3. **Documentation**
-   - Update Arc42 with Context Efficiency component
-   - Update ADR-0006 with efficiency metrics extension
-   - Add efficiency interpretation guide
+   - Update Arc42 with Context Efficiency Data component
+   - Update ADR-0006 with efficiency data extension
+   - Add efficiency data interpretation guide
 
 ## Technical Approach
 
-### File Access Tracking
+### File Access Extraction
 
 ```typescript
 interface FileAccess {
@@ -106,6 +110,7 @@ interface FileAccess {
   accessSequence: number;
 }
 
+// Deterministic extraction—tool extracts data, agent interprets
 function extractFileAccesses(entries: SessionEntry[]): FileAccess[] {
   const accesses: FileAccess[] = [];
   let sequence = 0;
@@ -147,19 +152,20 @@ CREATE INDEX idx_file_accesses_path ON file_accesses(file_path);
 
 ## Success Criteria
 
-- [ ] Can report file re-read ratios with hotspot identification
-- [ ] Can correlate compression with feature usage
-- [ ] Can quantify context savings from skills/delegation
+- [ ] Tools provide file access data, compression events, and token usage
+- [ ] Agent can reason about efficiency patterns using provided data
+- [ ] Agent can correlate efficiency with feature usage
 - [ ] Clean codebase with no redundant metrics code
-- [ ] Integration with EP17 TUI for drill-down analysis
+- [ ] Tools return data; agent provides judgment (Constitution Principle VII)
 
 ## Constitution Alignment
 
 | Principle | Alignment |
 |-----------|-----------|
-| II. Improvement-Oriented | Efficiency tracking enables continuous optimization |
-| IV. Mixed-Methods | Quantitative efficiency + qualitative correlation |
-| VIII. Compounding Value | Efficiency improvements compound over time |
+| II. Improvement-Oriented | Efficiency data enables continuous optimization |
+| IV. Mixed-Methods | Quantitative data + agent qualitative analysis |
+| VII. Intelligent Tooling | Tools provide data; agent reasons about efficiency |
+| VIII. Compounding Value | Efficiency insights compound over time |
 
 ## Related Documents
 
