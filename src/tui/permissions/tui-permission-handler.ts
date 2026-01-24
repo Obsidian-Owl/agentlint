@@ -184,12 +184,10 @@ export class TuiPermissionHandler {
       return input.path;
     }
 
-    // For Bash, use the command
-    if (toolName === 'Bash' && typeof input.command === 'string') {
-      // Extract just the command name for caching
-      const command = input.command;
-      const match = command.match(/^(\S+)/);
-      return match ? match[1] : undefined;
+    // For Bash, do NOT cache - each command should require explicit permission
+    // This prevents security issues where approving 'git status' would auto-approve 'git push --force'
+    if (toolName === 'Bash') {
+      return undefined;
     }
 
     return undefined;
