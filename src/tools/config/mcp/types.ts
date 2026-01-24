@@ -427,17 +427,6 @@ export const SENSITIVE_PATTERNS = [
   /auth/i,
   /private/i,
 ] as const;
-
-/**
- * Deprecated npm packages with migration guidance.
- */
-export const DEPRECATED_PACKAGES: Record<string, { replacement: string; reason: string }> = {
-  '@modelcontextprotocol/server-github': {
-    replacement: 'ghcr.io/github/github-mcp-server',
-    reason: 'NPM package deprecated after April 2025',
-  },
-};
-
 /**
  * Variable reference patterns for detection.
  */

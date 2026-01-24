@@ -24,5 +24,10 @@ export { validateEnv, analyzeEnvVar, isSensitiveName, detectVariableRefs } from 
 // Transport validation (T037-T041)
 export { validateTransport, validateUrl, detectDockerCommand, analyzeTransport } from './transport';
 
-// Pattern validation (to be implemented in T044-T045)
-// export { validatePatterns } from './patterns';
+// Pattern validation (T042-T045)
+export {
+  validatePatterns,
+  isDeprecatedPackage,
+  analyzeTimeout,
+  DEPRECATED_PACKAGES,
+} from './patterns';

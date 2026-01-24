@@ -198,13 +198,13 @@
 
 ### Tests (write first)
 
-- [ ] T042 [P] [US6] Unit test: deprecated package detection MCP013 in `__tests__/tools/config/mcp/validators/patterns.test.ts`
-- [ ] T043 [P] [US6] Unit test: high timeout warning MCP017 in `__tests__/tools/config/mcp/validators/patterns.test.ts`
+- [x] T042 [P] [US6] Unit test: deprecated package detection MCP013 in `__tests__/tools/config/mcp/validators/patterns.test.ts`
+- [x] T043 [P] [US6] Unit test: high timeout warning MCP017 in `__tests__/tools/config/mcp/validators/patterns.test.ts`
 
 ### Implementation
 
-- [ ] T044 [US6] Implement `validatePatterns()` in `src/tools/config/mcp/validators/patterns.ts` with DEPRECATED_PACKAGES
-- [ ] T045 [US6] Add patterns validator to index in `src/tools/config/mcp/validators/index.ts`
+- [x] T044 [US6] Implement `validatePatterns()` in `src/tools/config/mcp/validators/patterns.ts` with DEPRECATED_PACKAGES
+- [x] T045 [US6] Add patterns validator to index in `src/tools/config/mcp/validators/index.ts`
 
 **Checkpoint**: US6 complete and independently testable
 - [ ] Pattern detection identifies MCP013, MCP017, MCP020
