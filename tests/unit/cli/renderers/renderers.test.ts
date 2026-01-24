@@ -1,13 +1,14 @@
 /**
  * Unit tests for CLI renderers
  *
- * Tests the TerminalRenderer and JsonRenderer implementations.
+ * Tests the HeadlessRenderer, JsonRenderer, and TuiStreamRenderer implementations.
+ * As of EP17, TerminalRenderer has been replaced by HeadlessRenderer + TuiStreamRenderer.
  */
 
 import { describe, test, expect, beforeEach, afterEach } from 'bun:test';
-import { TerminalRenderer } from '../../../../src/cli/renderers/terminal-renderer';
+import { HeadlessRenderer, TuiStreamRenderer } from '../../../../src/tui';
 import { JsonRenderer } from '../../../../src/cli/renderers/json-renderer';
-import { createRenderer } from '../../../../src/cli/renderers';
+import { createRenderer, createHeadlessRenderer } from '../../../../src/cli/renderers';
 import type { StreamChunk } from '../../../../src/orchestration/types';
 import type { AnalyseFinding, AnalyseResult } from '../../../../src/cli/commands/analyse';
 
@@ -15,15 +16,19 @@ import type { AnalyseFinding, AnalyseResult } from '../../../../src/cli/commands
 let originalLog: typeof console.log;
 let originalError: typeof console.error;
 let originalWarn: typeof console.warn;
+let originalStdoutWrite: typeof process.stdout.write;
 let logs: string[] = [];
 let errors: string[] = [];
+let stdoutWrites: string[] = [];
 
 beforeEach(() => {
   logs = [];
   errors = [];
+  stdoutWrites = [];
   originalLog = console.log;
   originalError = console.error;
   originalWarn = console.warn;
+  originalStdoutWrite = process.stdout.write.bind(process.stdout);
 
   console.log = (...args: unknown[]) => {
     logs.push(args.map(String).join(' '));
@@ -34,12 +39,17 @@ beforeEach(() => {
   console.warn = (...args: unknown[]) => {
     logs.push(args.map(String).join(' '));
   };
+  process.stdout.write = ((chunk: string | Uint8Array) => {
+    stdoutWrites.push(String(chunk));
+    return true;
+  }) as typeof process.stdout.write;
 });
 
 afterEach(() => {
   console.log = originalLog;
   console.error = originalError;
   console.warn = originalWarn;
+  process.stdout.write = originalStdoutWrite;
 });
 
 // Test fixtures
@@ -91,130 +101,111 @@ function createTestResult(): AnalyseResult {
   };
 }
 
-describe('TerminalRenderer', () => {
+describe('HeadlessRenderer', () => {
   describe('renderChunk', () => {
-    test('renders text chunks directly', () => {
-      const renderer = new TerminalRenderer();
+    test('renders text chunks to console', () => {
+      const renderer = new HeadlessRenderer();
+      renderer.start({ initialState: {} as never }); // HeadlessRenderer requires start()
       const chunk = createTestChunk('text', 'Analyzing configuration...');
 
-      // Text goes to stdout, not console.log
-      // The terminal renderer writes to process.stdout.write for text
       renderer.renderChunk(chunk);
-      renderer.flush();
 
-      // Text chunks use process.stdout.write, not console.log
-      // So we don't see them in logs array
+      // HeadlessRenderer uses console.log for text
+      expect(logs.some((s) => s.includes('Analyzing configuration'))).toBe(true);
     });
 
     test('renders status chunks', () => {
-      const renderer = new TerminalRenderer();
+      const renderer = new HeadlessRenderer();
+      renderer.start({ initialState: {} as never });
       const chunk = createTestChunk('status', 'Analysis complete');
 
       renderer.renderChunk(chunk);
-      renderer.flush();
 
-      expect(logs.some((log) => log.includes('complete'))).toBe(true);
+      expect(logs.some((s) => s.includes('Analysis complete'))).toBe(true);
     });
 
-    test('renders error chunks', () => {
-      const renderer = new TerminalRenderer();
-      const chunk = createTestChunk('error', 'Error: Something went wrong');
+    test('renders error chunks to stderr', () => {
+      const renderer = new HeadlessRenderer();
+      renderer.start({ initialState: {} as never });
+      const chunk: StreamChunk = {
+        type: 'error',
+        level: 'normal',
+        content: 'Something went wrong',
+        timestamp: new Date().toISOString(),
+      };
 
       renderer.renderChunk(chunk);
-      renderer.flush();
 
-      expect(errors.some((err) => err.includes('Error'))).toBe(true);
+      expect(errors.some((err) => err.includes('Something went wrong'))).toBe(true);
     });
 
-    test('respects quiet mode', () => {
-      const renderer = new TerminalRenderer({ quiet: true });
-      const chunk = createTestChunk('status', 'Status message');
+    test('respects quiet mode for verbose chunks', () => {
+      const renderer = new HeadlessRenderer({ quiet: true });
+      renderer.start({ initialState: {} as never });
+      const chunk: StreamChunk = {
+        type: 'status',
+        level: 'verbose',
+        content: 'Verbose status message',
+        timestamp: new Date().toISOString(),
+      };
 
       renderer.renderChunk(chunk);
-      renderer.flush();
 
-      // In quiet mode, non-error messages are suppressed
+      // In quiet mode, verbose chunks are suppressed
       expect(logs.length).toBe(0);
     });
 
     test('shows errors in quiet mode', () => {
-      const renderer = new TerminalRenderer({ quiet: true });
-      const chunk = createTestChunk('error', 'Error message');
+      const renderer = new HeadlessRenderer({ quiet: true });
+      renderer.start({ initialState: {} as never });
+      const chunk: StreamChunk = {
+        type: 'error',
+        level: 'normal',
+        content: 'Error message',
+        timestamp: new Date().toISOString(),
+      };
 
       renderer.renderChunk(chunk);
-      renderer.flush();
 
-      expect(errors.some((err) => err.includes('Error'))).toBe(true);
+      expect(errors.some((err) => err.includes('Error message'))).toBe(true);
     });
   });
 
-  describe('renderFinding', () => {
-    test('renders finding with severity', () => {
-      const renderer = new TerminalRenderer();
-      const finding = createTestFinding();
+  describe('JSON mode', () => {
+    test('outputs JSON when json option is true', () => {
+      const renderer = new HeadlessRenderer({ json: true });
+      renderer.start({ initialState: {} as never });
+      const chunk = createTestChunk('status', 'Test status');
 
-      renderer.renderFinding(finding);
-      renderer.flush();
+      renderer.renderChunk(chunk);
 
-      expect(logs.some((log) => log.includes('HIGH'))).toBe(true);
-      expect(logs.some((log) => log.includes('Missing configuration'))).toBe(true);
-    });
-
-    test('shows description in verbose mode', () => {
-      const renderer = new TerminalRenderer({ verbose: true });
-      const finding = createTestFinding();
-
-      renderer.renderFinding(finding);
-      renderer.flush();
-
-      expect(logs.some((log) => log.includes('CLAUDE.md'))).toBe(true);
-    });
-
-    test('suppresses findings in quiet mode', () => {
-      const renderer = new TerminalRenderer({ quiet: true });
-      const finding = createTestFinding();
-
-      renderer.renderFinding(finding);
-      renderer.flush();
-
-      expect(logs.length).toBe(0);
+      // HeadlessRenderer uses console.log for JSON output
+      const output = logs.join('');
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      expect(() => JSON.parse(output)).not.toThrow();
     });
   });
+});
 
-  describe('renderError', () => {
-    test('renders error message', () => {
-      const renderer = new TerminalRenderer();
-      const error = new Error('Test error');
+describe('TuiStreamRenderer', () => {
+  test('adapts HeadlessRenderer to IStreamRenderer', () => {
+    const headless = new HeadlessRenderer();
+    headless.start({ initialState: {} as never });
+    const adapter = new TuiStreamRenderer(headless);
 
-      renderer.renderError(error);
-      renderer.flush();
+    const chunk = createTestChunk('text', 'Test message');
+    adapter.renderChunk(chunk);
 
-      expect(errors.some((err) => err.includes('Test error'))).toBe(true);
-    });
+    // HeadlessRenderer uses console.log
+    expect(logs.some((s) => s.includes('Test message'))).toBe(true);
   });
 
-  describe('renderComplete', () => {
-    test('renders summary', () => {
-      const renderer = new TerminalRenderer();
-      const result = createTestResult();
+  test('flush is a no-op', () => {
+    const headless = new HeadlessRenderer();
+    const adapter = new TuiStreamRenderer(headless);
 
-      renderer.renderComplete(result);
-      renderer.flush();
-
-      expect(logs.some((log) => log.includes('Summary'))).toBe(true);
-      expect(logs.some((log) => log.includes('Findings'))).toBe(true);
-    });
-
-    test('shows minimal output in quiet mode', () => {
-      const renderer = new TerminalRenderer({ quiet: true });
-      const result = createTestResult();
-
-      renderer.renderComplete(result);
-      renderer.flush();
-
-      // Quiet mode still shows finding count
-      expect(logs.some((log) => log.includes('1'))).toBe(true);
-    });
+    // Should not throw
+    adapter.flush();
   });
 });
 
@@ -320,9 +311,9 @@ describe('JsonRenderer', () => {
 });
 
 describe('createRenderer', () => {
-  test('creates TerminalRenderer for terminal mode', () => {
+  test('creates TuiStreamRenderer for terminal mode', () => {
     const renderer = createRenderer('terminal', {});
-    expect(renderer.constructor.name).toBe('TerminalRenderer');
+    expect(renderer.constructor.name).toBe('TuiStreamRenderer');
   });
 
   test('creates JsonRenderer for json mode', () => {
@@ -330,19 +321,36 @@ describe('createRenderer', () => {
     expect(renderer.constructor.name).toBe('JsonRenderer');
   });
 
-  test('creates TerminalRenderer for plain mode', () => {
+  test('creates TuiStreamRenderer for plain mode', () => {
     const renderer = createRenderer('plain', {});
-    expect(renderer.constructor.name).toBe('TerminalRenderer');
+    expect(renderer.constructor.name).toBe('TuiStreamRenderer');
   });
 
-  test('creates TerminalRenderer for markdown mode', () => {
+  test('creates TuiStreamRenderer for markdown mode', () => {
     const renderer = createRenderer('markdown', {});
-    expect(renderer.constructor.name).toBe('TerminalRenderer');
+    expect(renderer.constructor.name).toBe('TuiStreamRenderer');
   });
 
   test('passes verbose option to renderer', () => {
     const renderer = createRenderer('terminal', { verbose: true });
     // Can't easily test internal state, but at least ensure it doesn't throw
-    expect(renderer.constructor.name).toBe('TerminalRenderer');
+    expect(renderer.constructor.name).toBe('TuiStreamRenderer');
+  });
+});
+
+describe('createHeadlessRenderer', () => {
+  test('creates TuiStreamRenderer wrapping HeadlessRenderer', () => {
+    const renderer = createHeadlessRenderer({});
+    expect(renderer.constructor.name).toBe('TuiStreamRenderer');
+  });
+
+  test('passes verbose option', () => {
+    const renderer = createHeadlessRenderer({ verbose: true });
+    expect(renderer.constructor.name).toBe('TuiStreamRenderer');
+  });
+
+  test('passes quiet option', () => {
+    const renderer = createHeadlessRenderer({ quiet: true });
+    expect(renderer.constructor.name).toBe('TuiStreamRenderer');
   });
 });

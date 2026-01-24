@@ -118,6 +118,12 @@ export const appReducer: AppReducer = (state: AppState, message: AppMessage): Ap
       };
     }
 
+    case 'SET_PENDING_PERMISSION':
+      return {
+        ...state,
+        pendingPermission: message.payload.permission,
+      };
+
     case 'SET_FOCUS':
       return {
         ...state,

@@ -129,6 +129,8 @@ export interface GlobalOptions {
   logFile?: string;
   /** Disable automatic secret detection scanning */
   secrets?: boolean;
+  /** Non-interactive mode - run without TUI, auto-approve permissions */
+  nonInteractive?: boolean;
 }
 
 /**

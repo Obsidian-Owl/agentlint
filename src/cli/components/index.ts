@@ -6,31 +6,31 @@
  * @module cli/components
  */
 
-export { Progress, type ProgressProps } from './Progress';
-export { FindingsList, type FindingsListProps } from './FindingsList';
-export { Summary, type SummaryProps } from './Summary';
-export {
-  App,
-  type AppProps,
-  type AnalysisState,
-  createInitialState,
-  updateStateFromChunk,
-} from './App';
+// Re-export components from TUI module (moved in EP17)
+export { Progress, type ProgressProps } from '../../tui/components/Progress';
+export { FindingsList, type FindingsListProps } from '../../tui/components/FindingsList';
+export { Summary, type SummaryProps } from '../../tui/components/Summary';
 export {
   CausalTree,
   type CausalTreeProps,
   type CausalNode,
   type CausalNodeType,
-} from './CausalTree';
+} from '../../tui/components/CausalTree';
 export {
   CompareView,
   type CompareViewProps,
   type ComparisonData,
   type BaselineSummary as CompareBaselineSummary,
-} from './CompareView';
+} from '../../tui/components/CompareView';
+
+// Legacy question presenter (still used by can-use-tool.ts for AskUserQuestion)
 export {
   presentQuestionsInteractive,
   confirmPrompt,
   type QuestionAnswer,
   type PresentQuestionsOptions,
 } from './question-presenter';
+
+// Re-export App from TUI for backwards compatibility
+export { App } from '../../tui/components/App';
+export type { AppProps } from '../../tui/types';

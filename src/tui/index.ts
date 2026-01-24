@@ -18,37 +18,82 @@ export * from './types';
 // State Management
 // =============================================================================
 
-// State management exports will be added when T013-T016 are complete
-// export { appReducer } from './state/app-reducer';
-// export { AppContext, AppProvider, useAppState, useAppDispatch } from './state/app-context';
+export { appReducer } from './state/app-reducer';
+export { AppContext, AppProvider, useApp, useAppState, useAppDispatch } from './state/app-context';
 
 // =============================================================================
 // Hooks
 // =============================================================================
 
-// Hook exports will be added when T017-T019 are complete
-// export { useKeyHandler } from './hooks/useKeyHandler';
-// export { useFocusManager } from './hooks/useFocusManager';
-// export { useStreamBuffer } from './hooks/useStreamBuffer';
+export { useKeyHandler, type KeyHandlerOptions } from './hooks/useKeyHandler';
+export {
+  useFocusManager,
+  type FocusManagerOptions,
+  type FocusManagerResult,
+} from './hooks/useFocusManager';
+export {
+  useStreamBuffer,
+  type StreamBufferOptions,
+  type StreamBufferResult,
+} from './hooks/useStreamBuffer';
 
 // =============================================================================
 // Components
 // =============================================================================
 
-// Component exports will be added when T020-T031 are complete
-// export { App } from './components/App';
-// export { AgentOutput } from './components/AgentOutput';
-// export { InputField } from './components/InputField';
-// export { DialogOverlay } from './components/DialogOverlay';
-// export { PermissionDialog } from './components/PermissionDialog';
-// export { RecommendationDialog } from './components/RecommendationDialog';
-// export { Breadcrumbs } from './components/Breadcrumbs';
+export { App } from './components/App';
+export { AgentOutput } from './components/AgentOutput';
+export { InputField } from './components/InputField';
+export { DialogOverlay } from './components/DialogOverlay';
+export { PermissionDialog } from './components/PermissionDialog';
+export { RecommendationDialog } from './components/RecommendationDialog';
+export { Breadcrumbs } from './components/Breadcrumbs';
+export { Progress, type ProgressProps } from './components/Progress';
+export { FindingsList, type FindingsListProps } from './components/FindingsList';
+export { Summary, type SummaryProps } from './components/Summary';
+export {
+  CausalTree,
+  type CausalTreeProps,
+  type CausalNode,
+  type CausalNodeType,
+} from './components/CausalTree';
+export {
+  CompareView,
+  type CompareViewProps,
+  type ComparisonData,
+  type BaselineSummary as CompareBaselineSummary,
+} from './components/CompareView';
 
 // =============================================================================
 // Renderers
 // =============================================================================
 
-// Renderer exports will be added when T035-T039 are complete
-// export { InkRenderer } from './renderers/ink-renderer';
-// export { HeadlessRenderer } from './renderers/headless-renderer';
-// export type { ITuiRenderer } from './renderers/types';
+export { InkRenderer } from './renderers/ink-renderer';
+export { HeadlessRenderer, type HeadlessRendererOptions } from './renderers/headless-renderer';
+export { TuiStreamRenderer } from './renderers/tui-stream-renderer';
+export type { ITuiRenderer } from './renderers/types';
+
+// =============================================================================
+// Utils
+// =============================================================================
+
+export {
+  isInputTTY,
+  isOutputTTY,
+  isInteractive,
+  supportsColor,
+  getTerminalSize,
+  getTerminalCapabilities,
+  determineRenderMode,
+  type TerminalCapabilities,
+} from './utils/tty';
+
+// =============================================================================
+// Permissions
+// =============================================================================
+
+export {
+  TuiPermissionHandler,
+  createTuiCanUseTool,
+  type TuiPermissionHandlerOptions,
+} from './permissions';

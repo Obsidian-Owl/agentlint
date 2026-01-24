@@ -2,22 +2,44 @@
  * CLI Renderers
  *
  * Provides different output renderers for the orchestrated analysis:
- * - TerminalRenderer: Rich terminal output with colors and spinners
+ * - HeadlessRenderer: Non-interactive output for CI/automation (default)
  * - JsonRenderer: JSON Lines (NDJSON) for scripting
+ *
+ * Note: Interactive TUI mode (InkRenderer) is handled separately in the
+ * CLI commands when TTY is detected.
  *
  * @module cli/renderers
  */
 
 export type { IStreamRenderer } from './stream-renderer';
-export { TerminalRenderer, createTerminalRenderer } from './terminal-renderer';
-export type { TerminalRendererOptions } from './terminal-renderer';
 export { JsonRenderer, createJsonRenderer } from './json-renderer';
 export type { JsonRendererOptions, JsonEventType, JsonLine } from './json-renderer';
 
+// Re-export TUI renderers for backwards compatibility
+export { HeadlessRenderer, TuiStreamRenderer } from '../../tui';
+export type { HeadlessRendererOptions } from '../../tui';
+
 import type { OutputMode, GlobalOptions } from '../types';
 import type { IStreamRenderer } from './stream-renderer';
-import { createTerminalRenderer } from './terminal-renderer';
 import { createJsonRenderer } from './json-renderer';
+import { HeadlessRenderer, TuiStreamRenderer } from '../../tui';
+
+/**
+ * Create a headless renderer with options.
+ *
+ * @param options - CLI global options
+ * @returns HeadlessRenderer wrapped in TuiStreamRenderer
+ */
+export function createHeadlessRenderer(options: GlobalOptions): IStreamRenderer {
+  const headless = new HeadlessRenderer({
+    verbose: options.verbose ?? false,
+    quiet: options.quiet ?? false,
+    json: false,
+    colors: !process.env.NO_COLOR,
+    denyAll: false,
+  });
+  return new TuiStreamRenderer(headless);
+}
 
 /**
  * Create a renderer based on output mode and options.
@@ -34,12 +56,11 @@ export function createRenderer(mode: OutputMode, options: GlobalOptions): IStrea
     case 'terminal':
     case 'plain':
     case 'markdown':
-      // All non-JSON modes use terminal renderer
+      // All non-JSON modes use headless renderer
       // Plain mode will have colors disabled via environment
-      // Markdown mode falls back to terminal for now
-      return createTerminalRenderer(options);
+      return createHeadlessRenderer(options);
 
     default:
-      return createTerminalRenderer(options);
+      return createHeadlessRenderer(options);
   }
 }

@@ -1,14 +1,13 @@
 /**
- * EP17 TUI Architecture - Type Definitions
+ * EP17 TUI Architecture - Type Contracts
  *
- * These types define the state and messaging model for the TUI module.
- * They implement the contracts from specs/ep17-tui-agent-exploration/contracts/interfaces.ts.
+ * These interfaces define the public API for the TUI module.
+ * Implementation will be in src/tui/types.ts.
  *
- * @module tui/types
+ * @module specs/ep17-tui-agent-exploration/contracts
  */
 
-import type { StreamChunk, Finding, Recommendation } from '../orchestration/types';
-import type { SessionCheckpoint } from '../orchestration/checkpoint-types';
+import type { StreamChunk, Finding, Recommendation, CheckpointData } from '../../src/orchestration/types';
 
 // =============================================================================
 // Analysis Phase
@@ -16,7 +15,6 @@ import type { SessionCheckpoint } from '../orchestration/checkpoint-types';
 
 /**
  * Current phase of agent analysis.
- * This is the TUI-specific phase tracking, distinct from orchestration's AnalysisPhase.
  */
 export type AnalysisPhase = 'idle' | 'scanning' | 'presenting' | 'exploring';
 
@@ -27,7 +25,11 @@ export type AnalysisPhase = 'idle' | 'scanning' | 'presenting' | 'exploring';
 /**
  * Types of dialog overlays that can be displayed.
  */
-export type DialogType = 'permission' | 'recommendation' | 'session-list' | 'session-timeline';
+export type DialogType =
+  | 'permission'
+  | 'recommendation'
+  | 'session-list'
+  | 'session-timeline';
 
 /**
  * Focus target for key routing.
@@ -161,11 +163,9 @@ export interface AppState {
 
   // Permissions (session-only cache)
   permissionCache: Map<string, PermissionDecision>;
-  /** Pending permission request (shown in dialog) */
-  pendingPermission: { tool: string; description: string; pattern?: string } | null;
 
   // Recovery
-  lastCheckpoint: SessionCheckpoint | null;
+  lastCheckpoint: CheckpointData | null;
 }
 
 // =============================================================================
@@ -191,12 +191,8 @@ export type AppMessage =
   | { type: 'ADD_RECOMMENDATION'; payload: { recommendation: Recommendation } }
   | { type: 'SET_CONTEXT'; payload: { context: ConversationalContext } }
   | { type: 'CACHE_PERMISSION'; payload: { key: string; decision: PermissionDecision } }
-  | {
-      type: 'SET_PENDING_PERMISSION';
-      payload: { permission: { tool: string; description: string; pattern?: string } | null };
-    }
   | { type: 'SET_FOCUS'; payload: { target: FocusTarget } }
-  | { type: 'SET_CHECKPOINT'; payload: { checkpoint: SessionCheckpoint } };
+  | { type: 'SET_CHECKPOINT'; payload: { checkpoint: CheckpointData } };
 
 // =============================================================================
 // Reducer
@@ -235,7 +231,6 @@ export function createInitialState(): AppState {
     findings: [],
     recommendations: [],
     permissionCache: new Map(),
-    pendingPermission: null,
     lastCheckpoint: null,
   };
 }
@@ -348,9 +343,5 @@ export interface ITuiRenderer {
   /** Render final result */
   renderComplete(result: unknown): void;
   /** Request permission from user */
-  requestPermission(request: {
-    tool: string;
-    description: string;
-    pattern?: string;
-  }): Promise<PermissionDecision>;
+  requestPermission(request: { tool: string; description: string; pattern?: string }): Promise<PermissionDecision>;
 }
