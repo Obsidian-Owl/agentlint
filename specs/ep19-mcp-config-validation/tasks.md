@@ -153,13 +153,13 @@
 
 ### Tests (write first)
 
-- [ ] T033 [P] [US4] Unit test: sensitive name detection MCP014 in `__tests__/tools/config/mcp/validators/env.test.ts`
-- [ ] T034 [P] [US4] Unit test: variable reference detection MCP023 in `__tests__/tools/config/mcp/validators/env.test.ts`
+- [x] T033 [P] [US4] Unit test: sensitive name detection MCP014 in `__tests__/tools/config/mcp/validators/env.test.ts`
+- [x] T034 [P] [US4] Unit test: variable reference detection MCP023 in `__tests__/tools/config/mcp/validators/env.test.ts`
 
 ### Implementation
 
-- [ ] T035 [US4] Implement `validateEnv()` in `src/tools/config/mcp/validators/env.ts` with SENSITIVE_PATTERNS
-- [ ] T036 [US4] Implement variable reference pattern detection (${VAR}) in `src/tools/config/mcp/validators/env.ts`
+- [x] T035 [US4] Implement `validateEnv()` in `src/tools/config/mcp/validators/env.ts` with SENSITIVE_PATTERNS
+- [x] T036 [US4] Implement variable reference pattern detection (${VAR}) in `src/tools/config/mcp/validators/env.ts`
 
 **Checkpoint**: US4 complete and independently testable
 - [ ] Env validation detects MCP014, MCP023

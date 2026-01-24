@@ -18,8 +18,8 @@ export {
   checkExecutableInPath,
 } from './path';
 
-// Env validation (to be implemented in T035-T036)
-// export { validateEnv } from './env';
+// Env validation (T033-T036)
+export { validateEnv, analyzeEnvVar, isSensitiveName, detectVariableRefs } from './env';
 
 // Transport validation (to be implemented in T039-T041)
 // export { validateTransport } from './transport';
