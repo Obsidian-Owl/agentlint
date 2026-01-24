@@ -153,6 +153,23 @@ export function parseSessionLine(line: string, lineNumber: number): ParseLineRes
       entry.summary = raw.summary;
     }
 
+    // Extract permission request if present (EP15 US-008)
+    if (raw.permissionRequest && typeof raw.permissionRequest === 'object') {
+      const pr = raw.permissionRequest as Record<string, unknown>;
+      if (
+        typeof pr.toolName === 'string' &&
+        typeof pr.decision === 'string' &&
+        typeof pr.timestamp === 'string'
+      ) {
+        entry.permissionRequest = {
+          toolName: pr.toolName,
+          toolInput: (pr.toolInput as Record<string, unknown>) ?? {},
+          decision: pr.decision as 'approved' | 'denied' | 'auto_approved',
+          timestamp: pr.timestamp,
+        };
+      }
+    }
+
     return { success: true, entry };
   } catch (error) {
     return {

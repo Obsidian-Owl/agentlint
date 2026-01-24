@@ -228,16 +228,8 @@ export async function getPermissionEvents(
         }
 
         // Check for permission request entries (if present in session format)
-        if (entry.type === 'permission') {
-          const rawEntry = entry as unknown as { permissionRequest?: unknown };
-          if (rawEntry.permissionRequest) {
-            permEntry.permissionRequest = rawEntry.permissionRequest as {
-              toolName: string;
-              toolInput: Record<string, unknown>;
-              decision: 'approved' | 'denied' | 'auto_approved';
-              timestamp: string;
-            };
-          }
+        if (entry.type === 'permission' && entry.permissionRequest) {
+          permEntry.permissionRequest = entry.permissionRequest;
         }
 
         entries.push(permEntry);

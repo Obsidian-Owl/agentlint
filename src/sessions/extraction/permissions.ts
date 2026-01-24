@@ -305,6 +305,8 @@ export function extractPermissionEvents(
           turnIndex,
         })
       );
+      // Clear pending tool use since we have an explicit decision
+      pendingToolUses.delete(pr.toolName);
       continue;
     }
 
