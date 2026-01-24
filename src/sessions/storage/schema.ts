@@ -514,15 +514,17 @@ export function getAllTableRowCounts(db: Database): Record<SessionIntelligenceTa
 }
 
 /**
- * Delete all EP15 data for a specific session.
+ * Delete all session intelligence data for a specific session.
  * Used when re-indexing a session.
+ *
+ * Only deletes from data tables (not the version table).
  *
  * @param db - The SQLite database instance
  * @param sessionId - Session UUID to delete data for
  */
 export function deleteSessionIntelligenceData(db: Database, sessionId: string): void {
-  for (const table of SESSION_INTELLIGENCE_TABLES) {
-    if (tableExists(db, table)) {
+  for (const table of SESSION_INTELLIGENCE_DATA_TABLES) {
+    if (tableExists(db, table as SessionIntelligenceTableName)) {
       db.prepare(`DELETE FROM ${table} WHERE session_id = ?`).run(sessionId);
     }
   }
