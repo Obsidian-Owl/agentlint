@@ -184,9 +184,29 @@ export const QUALITY_SIGNALS_SCHEMA = `
 `;
 
 /**
- * Combined schema for all EP15 tables.
+ * Numeric schema version for migrations.
+ * Increment when adding or modifying EP15 tables.
+ *
+ * Version history:
+ * - 1: Initial session intelligence schema (6 tables)
  */
-export const EP15_SESSION_INTELLIGENCE_SCHEMA = `
+export const SESSION_INTELLIGENCE_SCHEMA_VERSION = 1;
+
+/**
+ * SQL schema for session_intelligence_version table.
+ * Tracks session intelligence schema version independently from other extensions.
+ */
+export const SESSION_INTELLIGENCE_VERSION_TABLE = `
+  CREATE TABLE IF NOT EXISTS session_intelligence_version (
+    version INTEGER PRIMARY KEY,
+    applied_at TEXT NOT NULL
+  );
+`;
+
+/**
+ * Combined schema for all session intelligence data tables (excluding version table).
+ */
+export const SESSION_INTELLIGENCE_DATA_SCHEMA = `
   ${TOOL_CALL_SEQUENCES_SCHEMA}
   ${FILE_ACCESSES_SCHEMA}
   ${COMPRESSION_EVENTS_SCHEMA}
@@ -196,15 +216,18 @@ export const EP15_SESSION_INTELLIGENCE_SCHEMA = `
 `;
 
 /**
- * Schema version for migrations.
- * Corresponds to SESSIONS_DB_SCHEMA_VERSION = 3 in persistence/schemas.ts
+ * Full session intelligence schema including version table.
  */
-export const EP15_SCHEMA_VERSION = '3.0.0';
+export const SESSION_INTELLIGENCE_FULL_SCHEMA = `
+  ${SESSION_INTELLIGENCE_VERSION_TABLE}
+  ${SESSION_INTELLIGENCE_DATA_SCHEMA}
+`;
 
 /**
- * List of all EP15 tables for existence checks.
+ * List of all EP15 data tables for existence checks.
+ * Does not include session_intelligence_version which is internal.
  */
-export const EP15_TABLES = [
+export const SESSION_INTELLIGENCE_DATA_TABLES = [
   'tool_call_sequences',
   'file_accesses',
   'compression_events',
@@ -213,7 +236,17 @@ export const EP15_TABLES = [
   'quality_signals',
 ] as const;
 
-export type EP15TableName = (typeof EP15_TABLES)[number];
+export type SessionIntelligenceDataTableName = (typeof SESSION_INTELLIGENCE_DATA_TABLES)[number];
+
+/**
+ * List of all EP15 tables including version table.
+ */
+export const SESSION_INTELLIGENCE_TABLES = [
+  ...SESSION_INTELLIGENCE_DATA_TABLES,
+  'session_intelligence_version',
+] as const;
+
+export type SessionIntelligenceTableName = (typeof SESSION_INTELLIGENCE_TABLES)[number];
 
 // =============================================================================
 // Schema Initialization
@@ -227,7 +260,145 @@ export type EP15TableName = (typeof EP15_TABLES)[number];
  * @throws Error if schema initialization fails
  */
 export function initializeSessionIntelligenceSchema(db: Database): void {
-  db.exec(EP15_SESSION_INTELLIGENCE_SCHEMA);
+  db.exec(SESSION_INTELLIGENCE_FULL_SCHEMA);
+}
+
+// =============================================================================
+// Schema Version Management
+// =============================================================================
+
+/**
+ * Get the current EP15 schema version from the database.
+ *
+ * @param db - The SQLite database instance
+ * @returns Current schema version (0 if no version table exists)
+ */
+export function getSessionIntelligenceSchemaVersion(db: Database): number {
+  try {
+    const result = db
+      .prepare('SELECT MAX(version) as version FROM session_intelligence_version')
+      .get() as { version: number | null } | null;
+    return result?.version ?? 0;
+  } catch {
+    // Table doesn't exist
+    return 0;
+  }
+}
+
+/**
+ * Set the EP15 schema version in the database.
+ *
+ * @param db - The SQLite database instance
+ * @param version - Version to set
+ */
+function setSessionIntelligenceSchemaVersion(db: Database, version: number): void {
+  db.prepare(
+    'INSERT OR IGNORE INTO session_intelligence_version (version, applied_at) VALUES (?, ?)'
+  ).run(version, new Date().toISOString());
+}
+
+// =============================================================================
+// Schema Migrations
+// =============================================================================
+
+/**
+ * Migration function type.
+ */
+type MigrationFn = (db: Database) => void;
+
+/**
+ * Migration registry - maps version to migration function.
+ * Each migration upgrades from (version - 1) to version.
+ */
+const migrations: Record<number, MigrationFn> = {
+  // Version 1 is the initial schema - no migration needed
+  // Future migrations would be added here:
+  // 2: (db) => { db.exec('ALTER TABLE tool_call_sequences ADD COLUMN new_field TEXT;'); },
+};
+
+/**
+ * Migrate the EP15 schema from one version to another.
+ *
+ * @param db - The SQLite database instance
+ * @param fromVersion - Current version
+ * @param toVersion - Target version
+ */
+export function migrateSessionIntelligenceSchema(
+  db: Database,
+  fromVersion: number,
+  toVersion: number
+): void {
+  if (fromVersion === 0) {
+    // Fresh database - create all tables
+    initializeSessionIntelligenceSchema(db);
+    setSessionIntelligenceSchemaVersion(db, toVersion);
+    return;
+  }
+
+  // Apply migrations sequentially
+  for (let version = fromVersion + 1; version <= toVersion; version++) {
+    const migration = migrations[version];
+    if (migration) {
+      db.transaction(() => {
+        migration(db);
+        setSessionIntelligenceSchemaVersion(db, version);
+      })();
+    } else {
+      // No migration function - just update version
+      setSessionIntelligenceSchemaVersion(db, version);
+    }
+  }
+}
+
+/**
+ * Result of EP15 schema initialization.
+ */
+export interface SessionIntelligenceInitResult {
+  /** Whether tables were newly created */
+  created: boolean;
+  /** Whether migration was performed */
+  migrated: boolean;
+  /** Current schema version after init */
+  version: number;
+  /** Previous schema version (if migrated) */
+  previousVersion?: number;
+}
+
+/**
+ * Initialize EP15 session intelligence tables in an existing database.
+ * Creates tables if they don't exist, migrates if outdated.
+ *
+ * This is the primary entry point for EP15 schema setup.
+ *
+ * @param db - The SQLite database instance (sessions.db)
+ * @returns Object with initialization details
+ */
+export function initSessionIntelligenceSchema(db: Database): SessionIntelligenceInitResult {
+  // Enable foreign keys
+  db.exec('PRAGMA foreign_keys = ON;');
+
+  const currentVersion = getSessionIntelligenceSchemaVersion(db);
+
+  if (currentVersion === 0) {
+    // Fresh - create all tables
+    initializeSessionIntelligenceSchema(db);
+    setSessionIntelligenceSchemaVersion(db, SESSION_INTELLIGENCE_SCHEMA_VERSION);
+    return { created: true, migrated: false, version: SESSION_INTELLIGENCE_SCHEMA_VERSION };
+  }
+
+  if (currentVersion < SESSION_INTELLIGENCE_SCHEMA_VERSION) {
+    // Migrate
+    migrateSessionIntelligenceSchema(db, currentVersion, SESSION_INTELLIGENCE_SCHEMA_VERSION);
+    return {
+      created: false,
+      migrated: true,
+      version: SESSION_INTELLIGENCE_SCHEMA_VERSION,
+      previousVersion: currentVersion,
+    };
+  }
+
+  // Already at current version
+  return { created: false, migrated: false, version: currentVersion };
 }
 
 /**
@@ -237,7 +408,7 @@ export function initializeSessionIntelligenceSchema(db: Database): void {
  * @param tableName - Name of the table to check
  * @returns True if the table exists
  */
-export function tableExists(db: Database, tableName: EP15TableName): boolean {
+export function tableExists(db: Database, tableName: SessionIntelligenceTableName): boolean {
   const result = db
     .prepare(`SELECT COUNT(*) as count FROM sqlite_master WHERE type='table' AND name=?`)
     .get(tableName) as { count: number } | null;
@@ -251,7 +422,7 @@ export function tableExists(db: Database, tableName: EP15TableName): boolean {
  * @returns True if all tables exist
  */
 export function sessionIntelligenceSchemaExists(db: Database): boolean {
-  return EP15_TABLES.every((table) => tableExists(db, table));
+  return SESSION_INTELLIGENCE_TABLES.every((table) => tableExists(db, table));
 }
 
 /**
@@ -260,8 +431,8 @@ export function sessionIntelligenceSchemaExists(db: Database): boolean {
  * @param db - The SQLite database instance
  * @returns Array of table names that are missing
  */
-export function getMissingTables(db: Database): EP15TableName[] {
-  return EP15_TABLES.filter((table) => !tableExists(db, table));
+export function getMissingTables(db: Database): SessionIntelligenceTableName[] {
+  return SESSION_INTELLIGENCE_TABLES.filter((table) => !tableExists(db, table));
 }
 
 /**
@@ -301,6 +472,7 @@ export function dropSessionIntelligenceSchema(db: Database): void {
     DROP TABLE IF EXISTS delegation_events;
     DROP TABLE IF EXISTS mcp_tool_calls;
     DROP TABLE IF EXISTS quality_signals;
+    DROP TABLE IF EXISTS session_intelligence_version;
   `);
 }
 
@@ -315,7 +487,7 @@ export function dropSessionIntelligenceSchema(db: Database): void {
  * @param tableName - Name of the table
  * @returns Row count, or 0 if table doesn't exist
  */
-export function getTableRowCount(db: Database, tableName: EP15TableName): number {
+export function getTableRowCount(db: Database, tableName: SessionIntelligenceTableName): number {
   if (!tableExists(db, tableName)) {
     return 0;
   }
@@ -331,13 +503,13 @@ export function getTableRowCount(db: Database, tableName: EP15TableName): number
  * @param db - The SQLite database instance
  * @returns Object with table names as keys and row counts as values
  */
-export function getAllTableRowCounts(db: Database): Record<EP15TableName, number> {
-  return EP15_TABLES.reduce(
+export function getAllTableRowCounts(db: Database): Record<SessionIntelligenceTableName, number> {
+  return SESSION_INTELLIGENCE_TABLES.reduce(
     (acc, table) => {
       acc[table] = getTableRowCount(db, table);
       return acc;
     },
-    {} as Record<EP15TableName, number>
+    {} as Record<SessionIntelligenceTableName, number>
   );
 }
 
@@ -349,7 +521,7 @@ export function getAllTableRowCounts(db: Database): Record<EP15TableName, number
  * @param sessionId - Session UUID to delete data for
  */
 export function deleteSessionIntelligenceData(db: Database, sessionId: string): void {
-  for (const table of EP15_TABLES) {
+  for (const table of SESSION_INTELLIGENCE_TABLES) {
     if (tableExists(db, table)) {
       db.prepare(`DELETE FROM ${table} WHERE session_id = ?`).run(sessionId);
     }

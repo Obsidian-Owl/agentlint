@@ -26,10 +26,10 @@ export * from './schemas';
 // export * from './subagent';
 
 /**
- * EP15 module version constant.
+ * Session Intelligence module version constant.
  * Used for schema versioning and compatibility checks.
  */
-export const EP15_VERSION = '0.1.0';
+export const SESSION_INTELLIGENCE_VERSION = '0.1.0';
 
 /**
  * Placeholder export to ensure module compiles.

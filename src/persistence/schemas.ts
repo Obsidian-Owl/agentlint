@@ -27,10 +27,11 @@ import { z } from 'zod';
 export const SESSIONS_DB_SCHEMA_VERSION = 3;
 
 /**
- * EP15 Session Intelligence schema version.
+ * Session Intelligence schema version.
  * Used for migration detection and compatibility checks.
+ * Corresponds to SESSION_INTELLIGENCE_SCHEMA_VERSION in sessions/storage/schema.ts
  */
-export const EP15_SCHEMA_VERSION = 3;
+export const SESSION_INTELLIGENCE_DB_VERSION = 3;
 
 // =============================================================================
 // Baseline Schemas
