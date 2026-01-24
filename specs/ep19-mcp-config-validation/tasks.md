@@ -219,16 +219,16 @@
 
 ### Tests (write first)
 
-- [ ] T046 [P] [US7] Unit test: ACT recognition for standard `.mcp.json` in `__tests__/tools/config/mcp/discovery.test.ts`
+- [x] T046 [P] [US7] Unit test: ACT recognition for standard `.mcp.json` in `__tests__/tools/config/mcp/discovery.test.ts`
 
 ### Implementation
 
-- [ ] T047 [US7] Implement ACT compatibility flags in `McpConfigFile` result in `src/tools/config/mcp/discovery.ts`
+- [x] T047 [US7] Implement ACT compatibility flags in `McpConfigFile` result in `src/tools/config/mcp/discovery.ts`
 
 **Checkpoint**: US7 complete and independently testable
-- [ ] Discovery returns `compatibleActs` for each config file
-- [ ] MCP021 (ACT-specific location) and MCP022 (cross-ACT note) populated
-- [ ] Unit tests pass
+- [x] Discovery returns `compatibleActs` for each config file
+- [x] MCP021 (ACT-specific location) and MCP022 (cross-ACT note) populated
+- [x] Unit tests pass
 
 ---
 
@@ -239,11 +239,11 @@
 
 ### Tests (write first)
 
-- [ ] T048 [P] [US8] Unit test: aggregate validation across multiple files in `__tests__/tools/config/mcp/integration.test.ts`
+- [x] T048 [P] [US8] Unit test: aggregate validation across multiple files in `__tests__/tools/config/mcp/integration.test.ts`
 
 ### Implementation
 
-- [ ] T049 [US8] Implement `aggregateValidation()` helper in `src/tools/config/mcp/validate-mcp-config-tool.ts`
+- [x] T049 [US8] Implement `aggregateValidation()` helper in `src/tools/config/mcp/validate-mcp-config-tool.ts`
 
 **Checkpoint**: US8 complete and independently testable
 - [ ] `validate_mcp_config` can accept multiple files and return aggregated results
@@ -257,9 +257,9 @@
 **Goal**: Complete SDK tools with rich output
 **Requirements**: FR-017
 
-- [ ] T050 Create `validate_mcp_config` tool definition in `src/tools/config/mcp/validate-mcp-config-tool.ts`
-- [ ] T051 Update `src/tools/config/mcp/index.ts` to export all tools
-- [ ] T052 Update `src/tools/config/index.ts` to export MCP module
+- [x] T050 Create `validate_mcp_config` tool definition in `src/tools/config/mcp/validate-mcp-config-tool.ts`
+- [x] T051 Update `src/tools/config/mcp/index.ts` to export all tools
+- [x] T052 Update `src/tools/config/index.ts` to export MCP module
 
 **Checkpoint**: Tool integration complete
 - [ ] Both tools registered and callable
@@ -271,14 +271,14 @@
 
 **Goal**: Documentation and final validation
 
-- [ ] T053 [P] Write integration test for full discovery → validation flow in `__tests__/tools/config/mcp/integration.test.ts`
-- [ ] T054 Verify all 24 issue codes (MCP001-MCP024) have test coverage
-- [ ] T055 Run `bun run test` to verify all tests pass
+- [x] T053 [P] Write integration test for full discovery → validation flow in `__tests__/tools/config/mcp/integration.test.ts`
+- [x] T054 Verify all 24 issue codes (MCP001-MCP024) have test coverage
+- [x] T055 Run `bun run test` to verify all tests pass
 
 **Checkpoint**: Epic complete
-- [ ] All P1 user stories pass acceptance criteria
-- [ ] Test coverage > 80% for MCP validation tools
-- [ ] All issue codes documented and tested
+- [x] All P1 user stories pass acceptance criteria
+- [x] Test coverage > 80% for MCP validation tools
+- [x] All issue codes documented and tested
 
 ---
 

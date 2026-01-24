@@ -36,3 +36,7 @@ export * from './hierarchy';
 export * from './discover-configs-tool';
 export * from './parse-config-tool';
 export * from './analyze-hierarchy-tool';
+
+// MCP Config Validation (EP19)
+// Export as namespace to avoid conflicts with config/types.ts (Point, Position)
+export * as mcp from './mcp';

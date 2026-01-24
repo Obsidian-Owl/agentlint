@@ -22,6 +22,12 @@ export * from './discovery';
 // Validators (T024-T026)
 export * from './validators';
 
-// Tools (T020)
+// Tools (T020, T050)
 export { getMcpConfigsTool } from './get-mcp-configs-tool';
-// export { validateMcpConfigTool } from './validate-mcp-config-tool';
+export {
+  validateMcpConfigTool,
+  validateMcpConfig,
+  aggregateValidation,
+  type ValidationResult,
+  type AggregatedValidation,
+} from './validate-mcp-config-tool';
