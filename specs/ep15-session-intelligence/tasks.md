@@ -30,7 +30,7 @@
 **Goal**: Initialize EP15 directory structure and configuration
 
 - [x] T001 [P] Create `src/sessions/` directory structure per plan.md
-- [ ] T002 [P] Create `src/sessions/index.ts` with placeholder exports
+- [x] T002 [P] Create `src/sessions/index.ts` with placeholder exports
 - [ ] T003 [P] Create `tests/unit/sessions/` directory structure
 - [ ] T004 [P] Create `tests/integration/sessions/` directory structure
 - [ ] T005 Add EP15 to `src/tools/index.ts` tool registration (placeholder)
