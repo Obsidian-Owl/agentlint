@@ -12,8 +12,7 @@
 // Types
 // =============================================================================
 
-// Types will be exported from ./types when T006-T012 are complete
-// export * from './types';
+export * from './types';
 
 // =============================================================================
 // State Management
