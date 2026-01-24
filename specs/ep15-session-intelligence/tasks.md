@@ -33,7 +33,7 @@
 - [x] T002 [P] Create `src/sessions/index.ts` with placeholder exports
 - [x] T003 [P] Create `tests/unit/sessions/` directory structure
 - [x] T004 [P] Create `tests/integration/sessions/` directory structure
-- [ ] T005 Add EP15 to `src/tools/index.ts` tool registration (placeholder)
+- [x] T005 Add EP15 to `src/tools/index.ts` tool registration (placeholder)
 - [ ] T006 Update `src/persistence/schemas.ts` to export EP15 schema version constant
 
 **Checkpoint**: Setup complete
