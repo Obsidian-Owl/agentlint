@@ -176,14 +176,14 @@
 
 ### Tests (write first)
 
-- [ ] T037 [P] [US5] Unit test: SSE deprecation warning MCP012 in `__tests__/tools/config/mcp/validators/transport.test.ts`
-- [ ] T038 [P] [US5] Unit test: Docker -i flag check MCP005 in `__tests__/tools/config/mcp/validators/transport.test.ts`
+- [x] T037 [P] [US5] Unit test: SSE deprecation warning MCP012 in `__tests__/tools/config/mcp/validators/transport.test.ts`
+- [x] T038 [P] [US5] Unit test: Docker -i flag check MCP005 in `__tests__/tools/config/mcp/validators/transport.test.ts`
 
 ### Implementation
 
-- [ ] T039 [US5] Implement `validateTransport()` in `src/tools/config/mcp/validators/transport.ts`
-- [ ] T040 [US5] Implement URL format validation (MCP004) in `src/tools/config/mcp/validators/transport.ts`
-- [ ] T041 [US5] Add transport validator to index in `src/tools/config/mcp/validators/index.ts`
+- [x] T039 [US5] Implement `validateTransport()` in `src/tools/config/mcp/validators/transport.ts`
+- [x] T040 [US5] Implement URL format validation (MCP004) in `src/tools/config/mcp/validators/transport.ts`
+- [x] T041 [US5] Add transport validator to index in `src/tools/config/mcp/validators/index.ts`
 
 **Checkpoint**: US5 complete and independently testable
 - [ ] Transport validation detects MCP004, MCP005, MCP012

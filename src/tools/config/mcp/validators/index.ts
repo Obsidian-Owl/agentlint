@@ -21,8 +21,8 @@ export {
 // Env validation (T033-T036)
 export { validateEnv, analyzeEnvVar, isSensitiveName, detectVariableRefs } from './env';
 
-// Transport validation (to be implemented in T039-T041)
-// export { validateTransport } from './transport';
+// Transport validation (T037-T041)
+export { validateTransport, validateUrl, detectDockerCommand, analyzeTransport } from './transport';
 
 // Pattern validation (to be implemented in T044-T045)
 // export { validatePatterns } from './patterns';
