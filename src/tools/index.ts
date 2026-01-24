@@ -99,6 +99,7 @@ export {
   getDelegationEventsTool,
   getQualitySignalsTool,
   getMcpUsageTool,
+  getPermissionEventsTool,
   spawnSessionAnalystTool,
 } from '../sessions/tools';
 
@@ -159,6 +160,7 @@ import {
   getDelegationEventsTool,
   getQualitySignalsTool,
   getMcpUsageTool,
+  getPermissionEventsTool,
   spawnSessionAnalystTool,
 } from '../sessions/tools';
 
@@ -243,6 +245,7 @@ export const EP15_SESSION_INTELLIGENCE_TOOLS: ToolDefinition[] = [
   getDelegationEventsTool,
   getQualitySignalsTool,
   getMcpUsageTool,
+  getPermissionEventsTool,
   spawnSessionAnalystTool,
 ] as ToolDefinition[];
 
@@ -392,9 +395,9 @@ export function registerEP15SessionIntelligenceTools(registry: IToolRegistry): v
  * - EP10: Recommendations (9 tools)
  * - EP11: Security (1 tool)
  * - EP14: Skills effectiveness (4 tools)
- * - EP15: Session intelligence (7 tools)
+ * - EP15: Session intelligence (8 tools)
  *
- * Total: 37 tools
+ * Total: 38 tools
  *
  * @param registry - The ToolRegistry to register tools with
  */
@@ -406,5 +409,5 @@ export function registerAllTools(registry: IToolRegistry): void {
   registerEP10Tools(registry); // Recommendations (9)
   registerEP11SecurityTools(registry); // Security (1)
   registerEP14SkillsTools(registry); // Skills (4)
-  registerEP15SessionIntelligenceTools(registry); // Session Intelligence (placeholder)
+  registerEP15SessionIntelligenceTools(registry); // Session Intelligence (8)
 }

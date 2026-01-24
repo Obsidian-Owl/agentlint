@@ -115,9 +115,9 @@ describe('EP14 Skills Tools Registration', () => {
       expect(registered).toContain('get_session_summaries');
       expect(registered).toContain('get_skill_invocations');
 
-      // Total should be 37 tools (as documented in src/tools/index.ts)
-      // EP05: 3, EP06: 3, EP07: 2, EP09: 8, EP10: 9, EP11: 1, EP14: 4, EP15: 7
-      expect(registered.length).toBe(37);
+      // Total should be 38 tools (as documented in src/tools/index.ts)
+      // EP05: 3, EP06: 3, EP07: 2, EP09: 8, EP10: 9, EP11: 1, EP14: 4, EP15: 8
+      expect(registered.length).toBe(38);
     });
 
     it('tools can be retrieved by name', () => {
@@ -159,7 +159,7 @@ describe('EP14 Skills Tools Registration', () => {
 
       // Verify all registered tools can be listed
       const registered = registry.list();
-      expect(registered.length).toBe(37);
+      expect(registered.length).toBe(38);
     });
   });
 

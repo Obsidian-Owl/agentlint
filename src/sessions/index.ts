@@ -33,6 +33,8 @@ export {
   getQualitySignals,
   getMcpUsageTool,
   getMcpUsage,
+  getPermissionEventsTool,
+  getPermissionEvents,
   spawnSessionAnalystTool,
   buildAnalysisContext,
   buildQueryPrompt,

@@ -238,7 +238,7 @@ const response = await query({
 | **Temporal Analysis (EP09)** | `store_baseline`, `query_baseline`, `list_baselines`, `calculate_delta`, `query_trends`, `conduct_review`, `get_review_history` |
 | **Recommendation Advisor (EP10)** | `spawn_recommendation_advisor`, `create_recommendation`, `get_recommendation`, `list_recommendations`, `get_recommendation_summary`, `add_recommendation_event`, `update_recommendation_status`, `refine_recommendation`, `complete_recommendation` |
 | **Skills Effectiveness (EP14)** | `get_skill_inventory`, `index_skill_invocations`, `get_session_summaries`, `get_skill_invocations` |
-| **Session Intelligence (EP15)** | `get_session_timeline`, `get_tool_sequences`, `get_file_accesses`, `get_delegation_events`, `get_quality_signals`, `get_mcp_usage`, `spawn_session_analyst` |
+| **Session Intelligence (EP15)** | `get_session_timeline`, `get_tool_sequences`, `get_file_accesses`, `get_delegation_events`, `get_quality_signals`, `get_mcp_usage`, `get_permission_events`, `spawn_session_analyst` |
 | **Git Analysis** | `query_git` |
 | **Learning** | `store_learning`, `list_learnings`, `promote_learning` |
 | **Utility** | `retrieve_result`, `agentlint_write` |
@@ -1502,6 +1502,7 @@ src/sessions/
 | `get_delegation_events` | Identifies Task tool usage and subagent patterns |
 | `get_quality_signals` | Detects test/build/lint outcomes from Bash outputs |
 | `get_mcp_usage` | Analyzes MCP server usage and error rates |
+| `get_permission_events` | Queries permission request patterns and approval rates |
 | `spawn_session_analyst` | Spawns Session Analyst subagent for deep analysis |
 
 ### Tool/Agent Boundary (ADR-0019)
