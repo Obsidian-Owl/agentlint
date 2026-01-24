@@ -6,8 +6,8 @@
  * @module sessions/extraction
  */
 
-// Timeline extraction (T020-T022)
-// export * from './timeline';
+// Timeline extraction (T020-T021)
+export * from './timeline';
 
 // Tool sequence extraction (T032-T034)
 // export * from './tool-sequences';
@@ -16,7 +16,7 @@
 // export * from './file-accesses';
 
 // Compression event extraction (T022)
-// export * from './compressions';
+export * from './compressions';
 
 // Delegation extraction (T041-T043)
 // export * from './delegations';
