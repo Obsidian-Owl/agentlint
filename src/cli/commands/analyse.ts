@@ -55,6 +55,11 @@ import { initializeDatabases } from '../../persistence';
 import { discoverSessions } from '../../tools/sessions/discovery';
 import { indexSessions } from '../../tools/sessions/indexer';
 
+// EP15 Session Intelligence imports
+import { buildSessionAnalystAgent } from '../../sessions/subagent';
+import { buildQueryPrompt } from '../../sessions/tools/spawn-session-analyst';
+import type { SessionAnalysisContext } from '../../sessions/subagent/types';
+
 /**
  * Options for the analyse command.
  */
@@ -75,6 +80,8 @@ export interface AnalyseOptions extends GlobalOptions {
   cleanSlate?: boolean;
   /** Focus analysis on skills effectiveness (EP14) - internal use */
   skills?: boolean;
+  /** Session ID or path for session-specific analysis (EP15) */
+  session?: string;
 }
 
 /**
@@ -876,6 +883,125 @@ async function runComprehensiveDiscovery(directory: string): Promise<ScanResult>
   return convertDiscoveryToScanResult(discovery, directory);
 }
 
+// =============================================================================
+// EP15 Session Analysis Mode
+// =============================================================================
+
+/**
+ * Run session-specific analysis using the Session Analyst subagent.
+ *
+ * This mode is triggered by --session <id> and focuses on understanding
+ * what happened in a specific Claude Code session.
+ *
+ * @param sessionId - Session ID or path to session JSONL
+ * @param options - Analyse options
+ * @param outputMode - Output format
+ * @returns Exit code
+ */
+async function runSessionAnalysis(
+  sessionId: string,
+  options: AnalyseOptions,
+  outputMode: OutputMode
+): Promise<number> {
+  const startTime = Date.now();
+
+  // Initialize debug logger from CLI options
+  const loggerOpts: { verbose?: boolean; debug?: string; quiet?: boolean; logFile?: string } = {};
+  if (options.verbose !== undefined) loggerOpts.verbose = options.verbose;
+  if (options.debug !== undefined) loggerOpts.debug = options.debug;
+  if (options.quiet !== undefined) loggerOpts.quiet = options.quiet;
+  if (options.logFile !== undefined) loggerOpts.logFile = options.logFile;
+  const logger = createLoggerFromCLIOptions(loggerOpts);
+  setDefaultLogger(logger);
+
+  // Build session analyst context
+  const context: SessionAnalysisContext = {
+    sessionId,
+    focus: 'comprehensive',
+    sessionFileExists: true,
+  };
+
+  // If sessionId looks like a path, use it directly
+  if (sessionId.includes('/') || sessionId.endsWith('.jsonl')) {
+    context.sessionFilePath = sessionId;
+  }
+
+  // Build the Session Analyst agent
+  const agent = buildSessionAnalystAgent();
+  const queryPrompt = buildQueryPrompt('comprehensive', context);
+
+  // Create tool registry and register all tools
+  const registry = createToolRegistry();
+  registerAllTools(registry);
+
+  // Create orchestrator
+  const verbosity = getVerbosityLevel(options);
+  const orchestrator = createOrchestrator(
+    {
+      verbosity,
+      cwd: process.cwd(),
+      settingSources: [],
+      systemPromptAppend: `\n\nSession Analysis Mode\n=====================\n\nYou are analyzing session: ${sessionId}\n\n${agent.prompt}`,
+      nonInteractive: options.nonInteractive ?? false,
+    },
+    registry
+  );
+
+  // Create renderer
+  const renderer = createRenderer(outputMode, options);
+
+  // Set up interrupt handler
+  let interrupted = false;
+  const handleInterrupt = (): void => {
+    if (!interrupted) {
+      interrupted = true;
+      void orchestrator.interrupt().then(() => {
+        renderer.renderChunk({
+          type: 'status',
+          level: 'normal',
+          content: 'Session analysis interrupted by user',
+          timestamp: new Date().toISOString(),
+        });
+      });
+    }
+  };
+  process.on('SIGINT', handleInterrupt);
+
+  try {
+    // Header
+    if (outputMode !== 'json' && !options.quiet) {
+      console.log('\n=== Session Analysis ===');
+      console.log(`Session: ${sessionId}`);
+      console.log(`Focus: comprehensive\n`);
+    }
+
+    // Run the orchestrator with session-focused prompt
+    for await (const chunk of orchestrator.run(queryPrompt)) {
+      if (interrupted) break;
+
+      if (shouldDisplay(chunk.level, verbosity)) {
+        renderer.renderChunk(chunk);
+      }
+    }
+
+    renderer.flush();
+
+    const durationMs = Date.now() - startTime;
+    if (outputMode !== 'json' && !options.quiet) {
+      console.log(`\nSession analysis completed in ${(durationMs / 1000).toFixed(1)}s`);
+    }
+
+    return 0;
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    renderer.renderError(error instanceof Error ? error : new Error(errorMessage));
+    renderer.flush();
+    return 1;
+  } finally {
+    process.removeListener('SIGINT', handleInterrupt);
+  }
+}
+
 /**
  * Runs the analyse command.
  *
@@ -891,6 +1017,15 @@ export async function runAnalyse(options: AnalyseOptions): Promise<number> {
   const directory = resolve(options.directory ?? '.');
   const outputMode = getOutputMode(options);
   const verbose = options.verbose ?? false;
+
+  // EP15: Session-specific analysis mode
+  if (options.session) {
+    if (!canUseOrchestratedAnalysis()) {
+      console.error('Error: ANTHROPIC_API_KEY required for session analysis');
+      return 1;
+    }
+    return runSessionAnalysis(options.session, options, outputMode);
+  }
 
   // Validate directory exists
   try {

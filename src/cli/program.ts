@@ -255,6 +255,7 @@ function addAnalyseCommand(program: Command): void {
     .option('--static', 'Run static analysis without LLM (fast mode)')
     .option('--non-interactive', 'Skip confirmations (for CI/automated use)')
     .option('--clean-slate', 'Clear existing recommendations before analysis')
+    .option('--session <id>', 'Analyze a specific Claude Code session by ID or path')
     .addHelpText(
       'after',
       `
@@ -263,6 +264,7 @@ Examples:
   $ agentlint analyse --non-interactive Run without confirmations (for CI)
   $ agentlint analyse --static          Fast static analysis (no LLM)
   $ agentlint analyse --config-only     Analyze only config files
+  $ agentlint analyse --session <id>    Analyze a specific session
   $ agentlint analyse --json            Output as JSON for CI
   $ agentlint analyse --verbose         Show agent reasoning and tool calls
   $ agentlint analyse --dry-run         Scan configs without full analysis
@@ -287,6 +289,7 @@ Use --static for fast analysis without LLM.`
         static?: boolean;
         nonInteractive?: boolean;
         cleanSlate?: boolean;
+        session?: string;
       }) => {
         const { runAnalyse } = await import('./commands/analyse');
         const globalOpts = extractGlobalOptions(program.opts());
