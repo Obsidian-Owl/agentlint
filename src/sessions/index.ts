@@ -7,8 +7,8 @@
  * @module sessions
  */
 
-// Types will be exported from ./types.ts (T007)
-// export * from './types';
+// Types (T007)
+export * from './types';
 
 // Schemas will be exported from ./schemas.ts (T008)
 // export * from './schemas';
