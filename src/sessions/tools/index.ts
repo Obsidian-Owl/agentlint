@@ -19,7 +19,7 @@ export * from './get-file-accesses-tool';
 export * from './get-delegation-events-tool';
 
 // Quality signals tool (T053-T054)
-// export * from './get-quality-signals-tool';
+export * from './get-quality-signals-tool';
 
 // MCP usage tool (T060-T062)
 // export * from './get-mcp-usage-tool';

@@ -25,6 +25,6 @@ export * from './delegations';
 // export * from './mcp-calls';
 
 // Quality signal extraction (T049-T052)
-// export * from './quality-signals';
+export * from './quality-signals';
 
 export const EXTRACTION_READY = false;
