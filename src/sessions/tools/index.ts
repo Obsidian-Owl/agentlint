@@ -7,7 +7,7 @@
  */
 
 // Session timeline tool (T025-T028)
-// export * from './get-session-timeline-tool';
+export * from './get-session-timeline-tool';
 
 // Tool sequences tool (T036)
 // export * from './get-tool-sequences-tool';
