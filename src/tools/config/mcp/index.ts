@@ -19,8 +19,8 @@ export * from './parser';
 // Discovery (T017-T019)
 export * from './discovery';
 
-// Validators (to be implemented in T024-T045)
-// export * from './validators';
+// Validators (T024-T026)
+export * from './validators';
 
 // Tools (T020)
 export { getMcpConfigsTool } from './get-mcp-configs-tool';

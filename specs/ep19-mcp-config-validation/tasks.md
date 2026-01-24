@@ -104,15 +104,15 @@
 
 ### Tests (write first)
 
-- [ ] T021 [P] [US2] Unit test: valid config passes schema in `__tests__/tools/config/mcp/validators/schema.test.ts`
-- [ ] T022 [P] [US2] Unit test: missing required field returns MCP001 in `__tests__/tools/config/mcp/validators/schema.test.ts`
-- [ ] T023 [P] [US2] Unit test: invalid types return MCP002 with position in `__tests__/tools/config/mcp/validators/schema.test.ts`
+- [x] T021 [P] [US2] Unit test: valid config passes schema in `__tests__/tools/config/mcp/validators/schema.test.ts`
+- [x] T022 [P] [US2] Unit test: missing required field returns MCP001 in `__tests__/tools/config/mcp/validators/schema.test.ts`
+- [x] T023 [P] [US2] Unit test: invalid types return MCP002 with position in `__tests__/tools/config/mcp/validators/schema.test.ts`
 
 ### Implementation
 
-- [ ] T024 [US2] Implement `validateSchema()` in `src/tools/config/mcp/validators/schema.ts` with position tracking
-- [ ] T025 [US2] Implement unknown field detection (MCP016) in `src/tools/config/mcp/validators/schema.ts`
-- [ ] T026 [US2] Create validators index in `src/tools/config/mcp/validators/index.ts`
+- [x] T024 [US2] Implement `validateSchema()` in `src/tools/config/mcp/validators/schema.ts` with position tracking
+- [x] T025 [US2] Implement unknown field detection (MCP016) in `src/tools/config/mcp/validators/schema.ts`
+- [x] T026 [US2] Create validators index in `src/tools/config/mcp/validators/index.ts`
 
 **Checkpoint**: US2 complete and independently testable
 - [ ] Schema validation detects MCP001, MCP002, MCP015, MCP016
