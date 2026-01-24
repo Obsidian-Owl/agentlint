@@ -25,6 +25,4 @@ export * from './get-quality-signals-tool';
 export * from './get-mcp-usage-tool';
 
 // Session analyst spawn tool (T069-T072)
-// export * from './spawn-session-analyst';
-
-export const TOOLS_READY = false;
+export * from './spawn-session-analyst';

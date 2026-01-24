@@ -7,9 +7,7 @@
  */
 
 // Subagent types (T063-T064)
-// export * from './types';
+export * from './types';
 
 // Session analyst definition (T065-T068)
-// export * from './session-analyst';
-
-export const SUBAGENT_READY = false;
+export * from './session-analyst';
