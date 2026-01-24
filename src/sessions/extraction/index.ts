@@ -27,4 +27,7 @@ export * from './mcp-calls';
 // Quality signal extraction (T049-T052)
 export * from './quality-signals';
 
+// Timeline visualization data (T079-T082)
+export * from './timeline-viz';
+
 export const EXTRACTION_READY = false;
