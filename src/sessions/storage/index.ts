@@ -10,6 +10,6 @@
 export * from './schema';
 
 // Query helpers (T013)
-// export * from './queries';
+export * from './queries';
 
 export const STORAGE_READY = true;
