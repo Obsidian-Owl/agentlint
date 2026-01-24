@@ -128,15 +128,15 @@
 
 ### Tests (write first)
 
-- [ ] T027 [P] [US3] Unit test: absolute path existence check in `__tests__/tools/config/mcp/validators/path.test.ts`
-- [ ] T028 [P] [US3] Unit test: relative path warning MCP010 in `__tests__/tools/config/mcp/validators/path.test.ts`
-- [ ] T029 [P] [US3] Unit test: shell variable detection MCP011 in `__tests__/tools/config/mcp/validators/path.test.ts`
+- [x] T027 [P] [US3] Unit test: absolute path existence check in `__tests__/tools/config/mcp/validators/path.test.ts`
+- [x] T028 [P] [US3] Unit test: relative path warning MCP010 in `__tests__/tools/config/mcp/validators/path.test.ts`
+- [x] T029 [P] [US3] Unit test: shell variable detection MCP011 in `__tests__/tools/config/mcp/validators/path.test.ts`
 
 ### Implementation
 
-- [ ] T030 [US3] Implement `validatePath()` in `src/tools/config/mcp/validators/path.ts`
-- [ ] T031 [US3] Implement known executable PATH check (npx, node, python, docker) in `src/tools/config/mcp/validators/path.ts`
-- [ ] T032 [US3] Implement package name extraction from npx args in `src/tools/config/mcp/validators/path.ts`
+- [x] T030 [US3] Implement `validatePath()` in `src/tools/config/mcp/validators/path.ts`
+- [x] T031 [US3] Implement known executable PATH check (npx, node, python, docker) in `src/tools/config/mcp/validators/path.ts`
+- [x] T032 [US3] Implement package name extraction from npx args in `src/tools/config/mcp/validators/path.ts`
 
 **Checkpoint**: US3 complete and independently testable
 - [ ] Path validation detects MCP003, MCP010, MCP011

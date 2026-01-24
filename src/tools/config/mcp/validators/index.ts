@@ -9,8 +9,14 @@
 // Schema validation (T024-T025)
 export { validateSchema, validateServerSchema } from './schema';
 
-// Path validation (to be implemented in T030-T032)
-// export { validatePath } from './path';
+// Path validation (T030-T032)
+export {
+  validatePath,
+  analyzePath,
+  extractPackageName,
+  isKnownExecutable,
+  checkExecutableInPath,
+} from './path';
 
 // Env validation (to be implemented in T035-T036)
 // export { validateEnv } from './env';
