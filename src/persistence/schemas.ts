@@ -11,6 +11,29 @@
 import { z } from 'zod';
 
 // =============================================================================
+// Schema Version Constants
+// =============================================================================
+
+/**
+ * Current schema version for sessions.db.
+ * Increment when adding new tables or modifying existing schema.
+ *
+ * Version history:
+ * - 1: EP06 Initial session analysis tables
+ * - 2: EP14 Skills effectiveness tables (skill_invocations)
+ * - 3: EP15 Session intelligence tables (tool_call_sequences, file_accesses,
+ *      compression_events, delegation_events, mcp_tool_calls, quality_signals)
+ */
+export const SESSIONS_DB_SCHEMA_VERSION = 3;
+
+/**
+ * Session Intelligence schema version.
+ * Used for migration detection and compatibility checks.
+ * Corresponds to SESSION_INTELLIGENCE_SCHEMA_VERSION in sessions/storage/schema.ts
+ */
+export const SESSION_INTELLIGENCE_DB_VERSION = 3;
+
+// =============================================================================
 // Baseline Schemas
 // =============================================================================
 

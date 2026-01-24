@@ -114,6 +114,31 @@ Read: .specify/memory/constitution.md
 
 ---
 
+## Task Progress Visibility
+
+This skill uses Claude Code Tasks for session-level progress indicators.
+
+### Batch Strategy
+- Load **5-10 ready tasks** at a time (not all 100+)
+- Creates visible progress spinners in terminal
+- Linear remains authoritative; Tasks are ephemeral
+
+### Initialize Task Batch (After Setup, Before Loop)
+
+1. Query Linear for pending tasks via `mcp__linear__list_issues`
+2. Take first 5-10 ready tasks (no blockedBy)
+3. For each, call `TaskCreate`:
+   ```
+   TaskCreate:
+     subject: "{TaskID}: {title}"
+     description: "Linear: {LinearID}\n{task description}"
+     activeForm: "Implementing {TaskID}"
+     metadata: { linearId: "{LinearID}", taskId: "{TaskID}" }
+   ```
+4. Task IDs are stored for later TaskUpdate calls
+
+---
+
 ## Process Loop
 
 **Repeat until ALL tasks complete or BLOCKED:**
@@ -140,6 +165,13 @@ Read: .specify/memory/constitution.md
   - `id`: Linear issue ID
   - `state`: "In Progress"
   - `assignee`: "me"
+- Mark Claude Code Task as in_progress:
+  ```
+  TaskUpdate:
+    taskId: {Claude Code Task ID for this task}
+    status: "in_progress"
+  ```
+  This shows a spinner in the terminal during implementation.
 
 ### Step 4: Load Context (CRITICAL - See "Spec Context Loading" above)
 
@@ -214,6 +246,12 @@ done
 - Update tasks.md checkbox: `- [ ]` → `- [x]`
 - Update `.linear-mapping.json` with status and completed_at
 - Commit changes: `{type}(scope): {title} ({TaskID}, {LinearID})`
+- Mark Claude Code Task as completed:
+  ```
+  TaskUpdate:
+    taskId: {Claude Code Task ID for this task}
+    status: "completed"
+  ```
 
 ### Step 8: Update State File
 
@@ -228,7 +266,11 @@ Update `.agent/epic-auto-mode` with progress:
 
 ### Step 9: Auto-Continue
 
-**NO confirmation prompt** - Loop back to Step 1 immediately.
+1. Check if Claude Code Task batch is exhausted (all completed)
+2. If exhausted:
+   - Query Linear for next 5-10 ready tasks
+   - Create new TaskCreate batch
+3. Loop back to Step 1 immediately (NO confirmation prompt)
 
 ---
 

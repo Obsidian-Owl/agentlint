@@ -9,10 +9,11 @@ agentlint enables continuous improvement of AI-assisted development workflows th
 
 **Strategic Pivot (Jan 2026):** From "config linting" to "effectiveness measurement" - measuring whether Skills, Agents, and practices are actually working.
 
-**Total Epics**: 21 (20 active + 1 deferred)
-**Phase 1 Complete**: EP01, EP02, EP06, EP07, EP08, EP09, EP10, EP11
-**Phase 2 Duration**: ~20 weeks (with parallelization)
-**Critical Path**: EP14 → EP17 (P0 epics)
+**Total Epics**: 19 (18 active + 1 deferred)
+**Phase 1 Complete**: EP01, EP02, EP06, EP07, EP08, EP09, EP10, EP11, EP14
+**Phase 2 Duration**: ~16 weeks (with parallelization)
+**Critical Path**: EP15 → EP17 (P1/P0 epics)
+**Consolidated**: EP16 (Symptom Patterns), EP18 (Subagent Delegation) absorbed into EP15 (Session Intelligence)
 
 ## Epic Overview
 
@@ -34,16 +35,18 @@ agentlint enables continuous improvement of AI-assisted development workflows th
 
 ### Phase 2: Strategic Pivot Epics (Jan 2026)
 
-| Epic | Name | Type | Priority | Size | Duration | Status |
-|------|------|------|----------|------|----------|--------|
-| EP14 | Skills Effectiveness Analysis | Business | P0 | L | 6 weeks | Planned |
-| EP15 | Context Efficiency Engine | Business | P1 | M | 5 weeks | Planned |
-| EP16 | Symptom Pattern Detector | Business | P1 | M | 5 weeks | Planned |
-| EP17 | TUI Architecture & Agent-Led Exploration | Foundation | P0 | XL | 10 weeks | Planned |
-| EP18 | Subagent Delegation Tracker | Business | P2 | M | 4 weeks | Planned |
-| EP19 | MCP Integration Health | Business | P2 | S | 3 weeks | Planned |
-| EP20 | User Customization System | Business | P1 | L | 5-6 weeks | Planned |
-| EP21 | CLAUDE.md Maintenance & Automation Learning | Integration | P1 | L | 6 weeks | Planned |
+| Epic | Name | Type | Priority | Size | Status |
+|------|------|------|----------|------|--------|
+| EP14 | Skills Effectiveness Analysis | Business | P0 | L | Complete |
+| EP15 | Session Intelligence | Business | P1 | L | Planned |
+| ~~EP16~~ | ~~Symptom Pattern Detector~~ | — | — | — | *Absorbed into EP15* |
+| EP17 | TUI Architecture & Agent-Led Exploration | Foundation | P0 | XL | Planned |
+| ~~EP18~~ | ~~Subagent Delegation Tracker~~ | — | — | — | *Absorbed into EP15* |
+| EP19 | MCP Config Validation | Business | P2 | S | Planned |
+| EP20 | User Customization System | Business | P1 | L | Planned |
+| EP21 | CLAUDE.md Maintenance & Automation Learning | Integration | P1 | L | Planned |
+
+**Note**: EP15 (Session Intelligence) consolidates EP16 and EP18. MCP runtime analysis moved to EP15; EP19 is now static config validation only.
 
 ## Dependency Matrix
 
@@ -212,12 +215,10 @@ All epics must respect the 9 constitutional principles:
 - [EP13: Git SDK Tools](epics/EP13-git-sdk-tools.md) *(Deferred)*
 
 #### Phase 2 Epics (Strategic Pivot - Jan 2026)
-- [EP14: Skills Effectiveness Analysis](epics/EP14-skills-effectiveness.md)
-- [EP15: Context Efficiency Engine](epics/EP15-context-efficiency.md)
-- [EP16: Symptom Pattern Detector](epics/EP16-symptom-patterns.md)
+- [EP14: Skills Effectiveness Analysis](epics/EP14-skills-effectiveness.md) *(Complete)*
+- [EP15: Session Intelligence](epics/EP15-session-intelligence.md) *(Consolidates EP16, EP18)*
 - [EP17: TUI Architecture & Agent-Led Exploration](epics/EP17-tui-architecture.md)
-- [EP18: Subagent Delegation Tracker](epics/EP18-subagent-delegation.md)
-- [EP19: MCP Integration Health](epics/EP19-mcp-health.md)
+- [EP19: MCP Config Validation](epics/EP19-mcp-config-validation.md) *(Static analysis only)*
 - [EP20: User Customization System](epics/EP20-user-customization.md)
 - [EP21: CLAUDE.md Maintenance & Automation Learning](epics/EP21-claude-md-maintenance.md)
 

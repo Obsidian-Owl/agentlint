@@ -160,6 +160,13 @@ export interface SessionEntry {
   filePath?: string;
   /** Line number in source file (1-indexed) */
   lineNumber?: number;
+  /** Permission request (for type='permission') - EP15 US-008 */
+  permissionRequest?: {
+    toolName: string;
+    toolInput: Record<string, unknown>;
+    decision: 'approved' | 'denied' | 'auto_approved';
+    timestamp: string;
+  };
 }
 
 // =============================================================================

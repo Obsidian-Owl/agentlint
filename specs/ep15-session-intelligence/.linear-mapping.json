@@ -1,0 +1,629 @@
+{
+  "metadata": {
+    "feature": "ep15-session-intelligence",
+    "project": "EP15: Session Intelligence",
+    "project_id": "4f4fdb9a-d60b-4881-a17f-0fecb694ce51",
+    "epic_label": "epic:EP15",
+    "epic_label_id": "b45b120d-db19-47a5-8003-ba5af32704ff",
+    "created_at": "2026-01-24T00:17:23.129Z",
+    "last_sync": "2026-01-24T00:23:06.707Z"
+  },
+  "mappings": {
+    "T001": {
+      "linear_id": "d1861bfb-aae7-44da-a91e-d1cb896acb57",
+      "linear_identifier": "AGE-742",
+      "title": "T001: Create src/sessions/ directory structure per plan.md",
+      "url": "https://linear.app/obsidianowl/issue/AGE-742/t001-create-srcsessions-directory-structure-per-planmd",
+      "phase": "Phase 1 (Setup)"
+    },
+    "T002": {
+      "linear_id": "6b7ac5c5-6d9b-4727-8bdc-855167c57d6f",
+      "linear_identifier": "AGE-743",
+      "title": "T002: Create src/sessions/index.ts with placeholder exports",
+      "url": "https://linear.app/obsidianowl/issue/AGE-743/t002-create-srcsessionsindexts-with-placeholder-exports",
+      "phase": "Phase 1 (Setup)"
+    },
+    "T003": {
+      "linear_id": "0b1f828b-32c0-43c9-8926-6b48c127cfd7",
+      "linear_identifier": "AGE-744",
+      "title": "T003: Create tests/unit/sessions/ directory structure",
+      "url": "https://linear.app/obsidianowl/issue/AGE-744/t003-create-testsunitsessions-directory-structure",
+      "phase": "Phase 1 (Setup)"
+    },
+    "T004": {
+      "linear_id": "587f50bf-e0b0-4b4b-8e94-6415d6938a34",
+      "linear_identifier": "AGE-745",
+      "title": "T004: Create tests/integration/sessions/ directory structure",
+      "url": "https://linear.app/obsidianowl/issue/AGE-745/t004-create-testsintegrationsessions-directory-structure",
+      "phase": "Phase 1 (Setup)"
+    },
+    "T005": {
+      "linear_id": "2aded188-9fd6-4bdb-bdd6-9a29e362560f",
+      "linear_identifier": "AGE-746",
+      "title": "T005: Add EP15 to src/tools/index.ts tool registration (placeholder)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-746/t005-add-ep15-to-srctoolsindexts-tool-registration-placeholder",
+      "phase": "Phase 1 (Setup)"
+    },
+    "T006": {
+      "linear_id": "aa65fb68-b972-441a-9d64-4090df89b8f5",
+      "linear_identifier": "AGE-747",
+      "title": "T006: Update src/persistence/schemas.ts to export EP15 schema version constant",
+      "url": "https://linear.app/obsidianowl/issue/AGE-747/t006-update-srcpersistenceschemasts-to-export-ep15-schema-version",
+      "phase": "Phase 1 (Setup)"
+    },
+    "T007": {
+      "linear_id": "37ad17c2-8c36-4e7d-986e-3a7c73a0dca8",
+      "linear_identifier": "AGE-748",
+      "title": "T007: Create src/sessions/types.ts with core type definitions",
+      "url": "https://linear.app/obsidianowl/issue/AGE-748/t007-create-srcsessionstypests-with-core-type-definitions",
+      "phase": "Phase 2 (Foundation)"
+    },
+    "T008": {
+      "linear_id": "fff895ab-bbf4-4aac-870c-43f0e93f88ab",
+      "linear_identifier": "AGE-749",
+      "title": "T008: Create src/sessions/schemas.ts with Zod validation schemas",
+      "url": "https://linear.app/obsidianowl/issue/AGE-749/t008-create-srcsessionsschemasts-with-zod-validation-schemas",
+      "phase": "Phase 2 (Foundation)"
+    },
+    "T009": {
+      "linear_id": "657c8d2f-68c6-4923-a2c3-ac91fb04bba8",
+      "linear_identifier": "AGE-750",
+      "title": "T009: Write unit test for Zod schema validation",
+      "url": "https://linear.app/obsidianowl/issue/AGE-750/t009-write-unit-test-for-zod-schema-validation",
+      "phase": "Phase 2 (Foundation)"
+    },
+    "T010": {
+      "linear_id": "b3524789-c362-44b1-9cd6-8d0c8cc76ccc",
+      "linear_identifier": "AGE-751",
+      "title": "T010: Create src/sessions/storage/schema.ts with 6 new table definitions",
+      "url": "https://linear.app/obsidianowl/issue/AGE-751/t010-create-srcsessionsstorageschemats-with-6-new-table-definitions",
+      "phase": "Phase 2 (Foundation)"
+    },
+    "T011": {
+      "linear_id": "4199777a-805e-4099-beff-8e42b2be1364",
+      "linear_identifier": "AGE-752",
+      "title": "T011: Add schema version migration logic (version 2 → 3)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-752/t011-add-schema-version-migration-logic-version-2-→-3",
+      "phase": "Phase 2 (Foundation)"
+    },
+    "T012": {
+      "linear_id": "d96d4710-09c3-46eb-876b-93c2bc5c21d2",
+      "linear_identifier": "AGE-753",
+      "title": "T012: Write unit test for schema initialization",
+      "url": "https://linear.app/obsidianowl/issue/AGE-753/t012-write-unit-test-for-schema-initialization",
+      "phase": "Phase 2 (Foundation)"
+    },
+    "T013": {
+      "linear_id": "7d41168c-9c15-4f17-af80-64387b26fb80",
+      "linear_identifier": "AGE-754",
+      "title": "T013: Create src/sessions/storage/queries.ts with SQL query helper functions",
+      "url": "https://linear.app/obsidianowl/issue/AGE-754/t013-create-srcsessionsstoragequeriests-with-sql-query-helper",
+      "phase": "Phase 2 (Foundation)"
+    },
+    "T014": {
+      "linear_id": "e345afd7-3751-481f-b89b-67f9e41fc69b",
+      "linear_identifier": "AGE-755",
+      "title": "T014: Write unit test for query helpers",
+      "url": "https://linear.app/obsidianowl/issue/AGE-755/t014-write-unit-test-for-query-helpers",
+      "phase": "Phase 2 (Foundation)"
+    },
+    "T015": {
+      "linear_id": "b80bc4ee-5b74-4fd5-85bd-fbeeaae512f0",
+      "linear_identifier": "AGE-756",
+      "title": "T015: Create src/sessions/storage/index.ts exporting schema and queries",
+      "url": "https://linear.app/obsidianowl/issue/AGE-756/t015-create-srcsessionsstorageindexts-exporting-schema-and-queries",
+      "phase": "Phase 2 (Foundation)"
+    },
+    "T016": {
+      "linear_id": "e4717b44-1cf7-487d-b162-83bf5175408a",
+      "linear_identifier": "AGE-757",
+      "title": "T016: Write integration test for database initialization",
+      "url": "https://linear.app/obsidianowl/issue/AGE-757/t016-write-integration-test-for-database-initialization",
+      "phase": "Phase 2 (Foundation)"
+    },
+    "T017": {
+      "linear_id": "22d213a0-26bc-41ac-850a-db36be2285bc",
+      "linear_identifier": "AGE-758",
+      "title": "T017: Write unit test for intent extraction",
+      "url": "https://linear.app/obsidianowl/issue/AGE-758/t017-write-unit-test-for-intent-extraction",
+      "phase": "Phase 3 (US-001)"
+    },
+    "T018": {
+      "linear_id": "f2ccf341-f7a9-4802-8b0a-732effc3ea15",
+      "linear_identifier": "AGE-759",
+      "title": "T018: Write unit test for outcome signal extraction",
+      "url": "https://linear.app/obsidianowl/issue/AGE-759/t018-write-unit-test-for-outcome-signal-extraction",
+      "phase": "Phase 3 (US-001)"
+    },
+    "T019": {
+      "linear_id": "ff6349e3-3eb5-499d-bb9f-923836ba6d0b",
+      "linear_identifier": "AGE-760",
+      "title": "T019: Write unit test for compression event extraction",
+      "url": "https://linear.app/obsidianowl/issue/AGE-760/t019-write-unit-test-for-compression-event-extraction",
+      "phase": "Phase 3 (US-001)"
+    },
+    "T020": {
+      "linear_id": "2a24947b-186a-4b18-9948-5e92f634c43d",
+      "linear_identifier": "AGE-761",
+      "title": "T020: Create src/sessions/extraction/timeline.ts with intent extraction",
+      "url": "https://linear.app/obsidianowl/issue/AGE-761/t020-create-srcsessionsextractiontimelinets-with-intent-extraction",
+      "phase": "Phase 3 (US-001)"
+    },
+    "T021": {
+      "linear_id": "bd35cead-d1e1-4b1f-b082-affe9cc2d4f7",
+      "linear_identifier": "AGE-762",
+      "title": "T021: Add outcome signal extraction to timeline.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-762/t021-add-outcome-signal-extraction-to-timelinets",
+      "phase": "Phase 3 (US-001)"
+    },
+    "T022": {
+      "linear_id": "55870111-45cc-4b27-bc31-ef32d8355b42",
+      "linear_identifier": "AGE-763",
+      "title": "T022: Create src/sessions/extraction/compressions.ts with compression event extraction",
+      "url": "https://linear.app/obsidianowl/issue/AGE-763/t022-create-srcsessionsextractioncompressionsts-with-compression-event",
+      "phase": "Phase 3 (US-001)"
+    },
+    "T023": {
+      "linear_id": "c5c89807-f86c-48a8-8627-abbc8bc32c30",
+      "linear_identifier": "AGE-764",
+      "title": "T023: Create src/sessions/extraction/index.ts exporting all extraction functions",
+      "url": "https://linear.app/obsidianowl/issue/AGE-764/t023-create-srcsessionsextractionindexts-exporting-all-extraction",
+      "phase": "Phase 3 (US-001)"
+    },
+    "T024": {
+      "linear_id": "9765e9b8-602a-4ab3-8b10-ffe79ece06dd",
+      "linear_identifier": "AGE-765",
+      "title": "T024: Write unit test for get_session_timeline tool",
+      "url": "https://linear.app/obsidianowl/issue/AGE-765/t024-write-unit-test-for-get-session-timeline-tool",
+      "phase": "Phase 3 (US-001)"
+    },
+    "T025": {
+      "linear_id": "d25cf949-e0ab-440e-b16e-6791394e8034",
+      "linear_identifier": "AGE-766",
+      "title": "T025: Create src/sessions/tools/get-session-timeline-tool.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-766/t025-create-srcsessionstoolsget-session-timeline-toolts",
+      "phase": "Phase 3 (US-001)"
+    },
+    "T026": {
+      "linear_id": "eb0c88d9-8f1e-4fab-9c02-ee391232fe8b",
+      "linear_identifier": "AGE-767",
+      "title": "T026: Write rich tool description for get_session_timeline",
+      "url": "https://linear.app/obsidianowl/issue/AGE-767/t026-write-rich-tool-description-for-get-session-timeline",
+      "phase": "Phase 3 (US-001)"
+    },
+    "T027": {
+      "linear_id": "cc4cebef-208f-4e8d-8fcf-36d004696fb4",
+      "linear_identifier": "AGE-768",
+      "title": "T027: Register get_session_timeline tool in src/sessions/tools/index.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-768/t027-register-get-session-timeline-tool-in-srcsessionstoolsindexts",
+      "phase": "Phase 3 (US-001)"
+    },
+    "T028": {
+      "linear_id": "fa2ba3df-44a4-4a66-b34a-52d6ba14f261",
+      "linear_identifier": "AGE-769",
+      "title": "T028: Write integration test for get_session_timeline",
+      "url": "https://linear.app/obsidianowl/issue/AGE-769/t028-write-integration-test-for-get-session-timeline",
+      "phase": "Phase 3 (US-001)"
+    },
+    "T029": {
+      "linear_id": "15dc04d8-1ac9-4593-b65b-4ce2af2f447c",
+      "linear_identifier": "AGE-770",
+      "title": "T029: Write unit test for tool sequence extraction",
+      "url": "https://linear.app/obsidianowl/issue/AGE-770/t029-write-unit-test-for-tool-sequence-extraction",
+      "phase": "Phase 4 (US-002)"
+    },
+    "T030": {
+      "linear_id": "9db88145-7bb5-496a-bbed-000a76d3cfa2",
+      "linear_identifier": "AGE-771",
+      "title": "T030: Write unit test for input hash calculation",
+      "url": "https://linear.app/obsidianowl/issue/AGE-771/t030-write-unit-test-for-input-hash-calculation",
+      "phase": "Phase 4 (US-002)"
+    },
+    "T031": {
+      "linear_id": "f702f9a8-28eb-40dc-aecc-baf2ec155265",
+      "linear_identifier": "AGE-772",
+      "title": "T031: Write unit test for file access extraction",
+      "url": "https://linear.app/obsidianowl/issue/AGE-772/t031-write-unit-test-for-file-access-extraction",
+      "phase": "Phase 4 (US-002)"
+    },
+    "T032": {
+      "linear_id": "f495c741-d880-4722-896e-22a9c399a014",
+      "linear_identifier": "AGE-773",
+      "title": "T032: Create src/sessions/extraction/tool-sequences.ts with sequence extraction",
+      "url": "https://linear.app/obsidianowl/issue/AGE-773/t032-create-srcsessionsextractiontool-sequencests-with-sequence",
+      "phase": "Phase 4 (US-002)"
+    },
+    "T033": {
+      "linear_id": "b1439f3e-e979-4dea-85aa-92f8b8a89a66",
+      "linear_identifier": "AGE-774",
+      "title": "T033: Add input hash calculation using SHA-256",
+      "url": "https://linear.app/obsidianowl/issue/AGE-774/t033-add-input-hash-calculation-using-sha-256",
+      "phase": "Phase 4 (US-002)"
+    },
+    "T034": {
+      "linear_id": "4393f799-9ecd-435f-bc96-3d4fc7a077ad",
+      "linear_identifier": "AGE-775",
+      "title": "T034: Add error extraction with context",
+      "url": "https://linear.app/obsidianowl/issue/AGE-775/t034-add-error-extraction-with-context",
+      "phase": "Phase 4 (US-002)"
+    },
+    "T035": {
+      "linear_id": "75a5a0cb-d614-4fae-949d-c7bb8f3588dc",
+      "linear_identifier": "AGE-776",
+      "title": "T035: Create src/sessions/extraction/file-accesses.ts with file operation tracking",
+      "url": "https://linear.app/obsidianowl/issue/AGE-776/t035-create-srcsessionsextractionfile-accessests-with-file-operation",
+      "phase": "Phase 4 (US-002)"
+    },
+    "T036": {
+      "linear_id": "4c88c3db-627b-408b-aa76-2ca7849bb1bc",
+      "linear_identifier": "AGE-777",
+      "title": "T036: Create src/sessions/tools/get-tool-sequences-tool.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-777/t036-create-srcsessionstoolsget-tool-sequences-toolts",
+      "phase": "Phase 4 (US-002)"
+    },
+    "T037": {
+      "linear_id": "e96499d1-f6ba-47f7-ab3e-1eca6713b737",
+      "linear_identifier": "AGE-778",
+      "title": "T037: Create src/sessions/tools/get-file-accesses-tool.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-778/t037-create-srcsessionstoolsget-file-accesses-toolts",
+      "phase": "Phase 4 (US-002)"
+    },
+    "T038": {
+      "linear_id": "ca88a879-4de7-465d-979d-83d7ecce21e8",
+      "linear_identifier": "AGE-779",
+      "title": "T038: Write integration test for pagination in get-tool-sequences",
+      "url": "https://linear.app/obsidianowl/issue/AGE-779/t038-write-integration-test-for-pagination-in-get-tool-sequences",
+      "phase": "Phase 4 (US-002)"
+    },
+    "T039": {
+      "linear_id": "e711a56a-d8b7-4da4-86ca-e74c88a54adf",
+      "linear_identifier": "AGE-780",
+      "title": "T039: Write unit test for delegation detection",
+      "url": "https://linear.app/obsidianowl/issue/AGE-780/t039-write-unit-test-for-delegation-detection",
+      "phase": "Phase 5 (US-003)"
+    },
+    "T040": {
+      "linear_id": "062cd1fa-86fa-455f-a47f-939ff44e9399",
+      "linear_identifier": "AGE-781",
+      "title": "T040: Write unit test for subagent type parsing",
+      "url": "https://linear.app/obsidianowl/issue/AGE-781/t040-write-unit-test-for-subagent-type-parsing",
+      "phase": "Phase 5 (US-003)"
+    },
+    "T041": {
+      "linear_id": "3475b1d8-9f6e-4e33-a43a-7bbfdf6fc884",
+      "linear_identifier": "AGE-782",
+      "title": "T041: Create src/sessions/extraction/delegations.ts with Task tool detection",
+      "url": "https://linear.app/obsidianowl/issue/AGE-782/t041-create-srcsessionsextractiondelegationsts-with-task-tool",
+      "phase": "Phase 5 (US-003)"
+    },
+    "T042": {
+      "linear_id": "a85d23dc-7eb9-4b60-bf1a-a0877ed1deea",
+      "linear_identifier": "AGE-783",
+      "title": "T042: Add subagent type, prompt, timing extraction",
+      "url": "https://linear.app/obsidianowl/issue/AGE-783/t042-add-subagent-type-prompt-timing-extraction",
+      "phase": "Phase 5 (US-003)"
+    },
+    "T043": {
+      "linear_id": "9ae084ba-98cf-495a-bdca-5ffc30e8c1d6",
+      "linear_identifier": "AGE-784",
+      "title": "T043: Add subagent session ID linking where available",
+      "url": "https://linear.app/obsidianowl/issue/AGE-784/t043-add-subagent-session-id-linking-where-available",
+      "phase": "Phase 5 (US-003)"
+    },
+    "T044": {
+      "linear_id": "c71afcbf-c3cc-4401-97f4-084585a4da64",
+      "linear_identifier": "AGE-785",
+      "title": "T044: Create src/sessions/tools/get-delegation-events-tool.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-785/t044-create-srcsessionstoolsget-delegation-events-toolts",
+      "phase": "Phase 5 (US-003)"
+    },
+    "T045": {
+      "linear_id": "0eac809a-951b-40d5-a3de-f6dce45ce0da",
+      "linear_identifier": "AGE-786",
+      "title": "T045: Write integration test for get-delegation-events",
+      "url": "https://linear.app/obsidianowl/issue/AGE-786/t045-write-integration-test-for-get-delegation-events",
+      "phase": "Phase 5 (US-003)"
+    },
+    "T046": {
+      "linear_id": "9123ad3f-56aa-4ba4-a90f-15c60ed93017",
+      "linear_identifier": "AGE-787",
+      "title": "T046: Handle nested delegation edge case (subagent spawns subagent)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-787/t046-handle-nested-delegation-edge-case-subagent-spawns-subagent",
+      "phase": "Phase 5 (US-003)"
+    },
+    "T047": {
+      "linear_id": "1937ae28-6e52-47a3-a2cc-70377aebf325",
+      "linear_identifier": "AGE-788",
+      "title": "T047: Write unit test for test output detection",
+      "url": "https://linear.app/obsidianowl/issue/AGE-788/t047-write-unit-test-for-test-output-detection",
+      "phase": "Phase 6 (US-004)"
+    },
+    "T048": {
+      "linear_id": "a3516925-59e8-40e8-a865-5b9f26f7b5ec",
+      "linear_identifier": "AGE-789",
+      "title": "T048: Write unit test for build output detection",
+      "url": "https://linear.app/obsidianowl/issue/AGE-789/t048-write-unit-test-for-build-output-detection",
+      "phase": "Phase 6 (US-004)"
+    },
+    "T049": {
+      "linear_id": "134c99fe-e56d-4c5c-8c61-6b2f48c62e40",
+      "linear_identifier": "AGE-790",
+      "title": "T049: Create src/sessions/extraction/quality-signals.ts with pattern detection",
+      "url": "https://linear.app/obsidianowl/issue/AGE-790/t049-create-srcsessionsextractionquality-signalsts-with-pattern",
+      "phase": "Phase 6 (US-004)"
+    },
+    "T050": {
+      "linear_id": "01a7af31-d175-4ca4-af37-c219688a03f1",
+      "linear_identifier": "AGE-791",
+      "title": "T050: Add test output identification (Bash results containing test patterns)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-791/t050-add-test-output-identification-bash-results-containing-test",
+      "phase": "Phase 6 (US-004)"
+    },
+    "T051": {
+      "linear_id": "e57d58a7-8732-4b97-855b-2f2cc5d97fa3",
+      "linear_identifier": "AGE-792",
+      "title": "T051: Add build/lint output identification",
+      "url": "https://linear.app/obsidianowl/issue/AGE-792/t051-add-buildlint-output-identification",
+      "phase": "Phase 6 (US-004)"
+    },
+    "T052": {
+      "linear_id": "3075f437-9a90-4a7b-b57b-5046b43bdc7c",
+      "linear_identifier": "AGE-793",
+      "title": "T052: Include raw output for agent interpretation (per C2 clarification)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-793/t052-include-raw-output-for-agent-interpretation-per-c2-clarification",
+      "phase": "Phase 6 (US-004)"
+    },
+    "T053": {
+      "linear_id": "b3fc3b5e-77d9-48db-a541-c0c550b4a452",
+      "linear_identifier": "AGE-794",
+      "title": "T053: Create src/sessions/tools/get-quality-signals-tool.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-794/t053-create-srcsessionstoolsget-quality-signals-toolts",
+      "phase": "Phase 6 (US-004)"
+    },
+    "T054": {
+      "linear_id": "4764c1db-76f1-47c6-a774-e26bcd36a93a",
+      "linear_identifier": "AGE-795",
+      "title": "T054: Write integration test for get-quality-signals",
+      "url": "https://linear.app/obsidianowl/issue/AGE-795/t054-write-integration-test-for-get-quality-signals",
+      "phase": "Phase 6 (US-004)"
+    },
+    "T055": {
+      "linear_id": "666ef19b-c98d-4e0f-95ea-5151ea8a23b3",
+      "linear_identifier": "AGE-796",
+      "title": "T055: Write unit test for MCP prefix parsing",
+      "url": "https://linear.app/obsidianowl/issue/AGE-796/t055-write-unit-test-for-mcp-prefix-parsing",
+      "phase": "Phase 7 (US-005)"
+    },
+    "T056": {
+      "linear_id": "b82d65ef-8f8a-431f-86e6-8c7b6ab9cb51",
+      "linear_identifier": "AGE-797",
+      "title": "T056: Write unit test for error rate calculation",
+      "url": "https://linear.app/obsidianowl/issue/AGE-797/t056-write-unit-test-for-error-rate-calculation",
+      "phase": "Phase 7 (US-005)"
+    },
+    "T057": {
+      "linear_id": "bc23548f-20c1-4e69-b3e8-f6f4a8337b61",
+      "linear_identifier": "AGE-798",
+      "title": "T057: Create src/sessions/extraction/mcp-calls.ts with mcp__ prefix parsing",
+      "url": "https://linear.app/obsidianowl/issue/AGE-798/t057-create-srcsessionsextractionmcp-callsts-with-mcp-prefix-parsing",
+      "phase": "Phase 7 (US-005)"
+    },
+    "T058": {
+      "linear_id": "096b6ac1-8ea3-406d-b9cc-740f623a254f",
+      "linear_identifier": "AGE-799",
+      "title": "T058: Add per-server success/error tracking",
+      "url": "https://linear.app/obsidianowl/issue/AGE-799/t058-add-per-server-successerror-tracking",
+      "phase": "Phase 7 (US-005)"
+    },
+    "T059": {
+      "linear_id": "146b60e8-c607-4f3d-a58a-da889514c0da",
+      "linear_identifier": "AGE-800",
+      "title": "T059: Include error messages for agent analysis",
+      "url": "https://linear.app/obsidianowl/issue/AGE-800/t059-include-error-messages-for-agent-analysis",
+      "phase": "Phase 7 (US-005)"
+    },
+    "T060": {
+      "linear_id": "edf8c3da-8aa9-4844-8ce9-21e81a6ff59c",
+      "linear_identifier": "AGE-801",
+      "title": "T060: Create src/sessions/tools/get-mcp-usage-tool.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-801/t060-create-srcsessionstoolsget-mcp-usage-toolts",
+      "phase": "Phase 7 (US-005)"
+    },
+    "T061": {
+      "linear_id": "25e53df4-d2bb-4c02-b592-4f4360306879",
+      "linear_identifier": "AGE-802",
+      "title": "T061: Write integration test for get-mcp-usage",
+      "url": "https://linear.app/obsidianowl/issue/AGE-802/t061-write-integration-test-for-get-mcp-usage",
+      "phase": "Phase 7 (US-005)"
+    },
+    "T062": {
+      "linear_id": "2b08063b-0712-4050-873f-d9040af2951f",
+      "linear_identifier": "AGE-803",
+      "title": "T062: Handle unparseable server name edge case (use \"unknown\")",
+      "url": "https://linear.app/obsidianowl/issue/AGE-803/t062-handle-unparseable-server-name-edge-case-use-unknown",
+      "phase": "Phase 7 (US-005)"
+    },
+    "T063": {
+      "linear_id": "890d7f5d-a723-4c06-9a48-f04493e3626c",
+      "linear_identifier": "AGE-804",
+      "title": "T063: Create src/sessions/subagent/types.ts with SESSION_ANALYST_TOOLS constant",
+      "url": "https://linear.app/obsidianowl/issue/AGE-804/t063-create-srcsessionssubagenttypests-with-session-analyst-tools",
+      "phase": "Phase 8 (US-006)"
+    },
+    "T064": {
+      "linear_id": "4dbca285-0186-4253-a286-2a4f2c0b239d",
+      "linear_identifier": "AGE-805",
+      "title": "T064: Create SessionAnalystInstructions interface matching ACTInstructions pattern",
+      "url": "https://linear.app/obsidianowl/issue/AGE-805/t064-create-sessionanalystinstructions-interface-matching",
+      "phase": "Phase 8 (US-006)"
+    },
+    "T065": {
+      "linear_id": "7c2b374c-edee-49c8-83de-3f68e0e49234",
+      "linear_identifier": "AGE-806",
+      "title": "T065: Create src/sessions/subagent/session-analyst.ts with 4-layer prompt",
+      "url": "https://linear.app/obsidianowl/issue/AGE-806/t065-create-srcsessionssubagentsession-analystts-with-4-layer-prompt",
+      "phase": "Phase 8 (US-006)"
+    },
+    "T066": {
+      "linear_id": "98ce5bf2-e058-4f61-97e0-8d17abffb162",
+      "linear_identifier": "AGE-807",
+      "title": "T066: Define prompt sections: ROLE IDENTITY, DOMAIN KNOWLEDGE, YOUR TASK, TOOLS AVAILABLE",
+      "url": "https://linear.app/obsidianowl/issue/AGE-807/t066-define-prompt-sections-role-identity-domain-knowledge-your-task",
+      "phase": "Phase 8 (US-006)"
+    },
+    "T067": {
+      "linear_id": "3300eda5-7188-42aa-8e23-e99fefd758e6",
+      "linear_identifier": "AGE-808",
+      "title": "T067: Create buildSessionAnalystAgent() function returning AgentDefinition",
+      "url": "https://linear.app/obsidianowl/issue/AGE-808/t067-create-buildsessionanalystagent-function-returning",
+      "phase": "Phase 8 (US-006)"
+    },
+    "T068": {
+      "linear_id": "f7c5815a-ab9b-4c10-bba2-f0818bfcab41",
+      "linear_identifier": "AGE-809",
+      "title": "T068: Create src/sessions/subagent/index.ts exporting builder functions",
+      "url": "https://linear.app/obsidianowl/issue/AGE-809/t068-create-srcsessionssubagentindexts-exporting-builder-functions",
+      "phase": "Phase 8 (US-006)"
+    },
+    "T069": {
+      "linear_id": "2f3e8aac-de32-4cc2-964d-1bb3bf01bd4f",
+      "linear_identifier": "AGE-810",
+      "title": "T069: Create src/sessions/tools/spawn-session-analyst.ts following spawn-analyst.ts pattern",
+      "url": "https://linear.app/obsidianowl/issue/AGE-810/t069-create-srcsessionstoolsspawn-session-analystts-following-spawn",
+      "phase": "Phase 8 (US-006)"
+    },
+    "T070": {
+      "linear_id": "5fb5d7c4-7bab-4228-8d6d-8673de10201e",
+      "linear_identifier": "AGE-811",
+      "title": "T070: Implement buildAnalysisContext() for session context preparation",
+      "url": "https://linear.app/obsidianowl/issue/AGE-811/t070-implement-buildanalysiscontext-for-session-context-preparation",
+      "phase": "Phase 8 (US-006)"
+    },
+    "T071": {
+      "linear_id": "2299c35a-fde8-4c39-8392-c7a494168e80",
+      "linear_identifier": "AGE-812",
+      "title": "T071: Implement buildQueryPrompt() for subagent prompt construction",
+      "url": "https://linear.app/obsidianowl/issue/AGE-812/t071-implement-buildqueryprompt-for-subagent-prompt-construction",
+      "phase": "Phase 8 (US-006)"
+    },
+    "T072": {
+      "linear_id": "5e6f1a3c-2576-4e56-99f5-95d17b9ad125",
+      "linear_identifier": "AGE-813",
+      "title": "T072: Write integration test for spawn-session-analyst",
+      "url": "https://linear.app/obsidianowl/issue/AGE-813/t072-write-integration-test-for-spawn-session-analyst",
+      "phase": "Phase 8 (US-006)"
+    },
+    "T073": {
+      "linear_id": "b5931dbb-6e32-4b1c-abde-d759c1dbd1aa",
+      "linear_identifier": "AGE-814",
+      "title": "T073: Register all EP15 tools in src/tools/index.ts",
+      "url": "https://linear.app/obsidianowl/issue/AGE-814/t073-register-all-ep15-tools-in-srctoolsindexts",
+      "phase": "Phase 9 (CLI Integration)"
+    },
+    "T074": {
+      "linear_id": "1fbb46d6-a317-4751-960b-6dff8798a960",
+      "linear_identifier": "AGE-815",
+      "title": "T074: Add Session Analyst subagent to orchestrator's buildACTSubagents()",
+      "url": "https://linear.app/obsidianowl/issue/AGE-815/t074-add-session-analyst-subagent-to-orchestrators-buildactsubagents",
+      "phase": "Phase 9 (CLI Integration)"
+    },
+    "T075": {
+      "linear_id": "0347b528-246f-459b-85e1-2e3ca773eafa",
+      "linear_identifier": "AGE-816",
+      "title": "T075: Add --session flag to agentlint analyse command",
+      "url": "https://linear.app/obsidianowl/issue/AGE-816/t075-add-session-flag-to-agentlint-analyse-command",
+      "phase": "Phase 9 (CLI Integration)"
+    },
+    "T076": {
+      "linear_id": "9150eeba-ed6e-4693-bca2-58f19104ed0a",
+      "linear_identifier": "AGE-817",
+      "title": "T076: Implement session analysis flow (spawn subagent, stream output)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-817/t076-implement-session-analysis-flow-spawn-subagent-stream-output",
+      "phase": "Phase 9 (CLI Integration)"
+    },
+    "T077": {
+      "linear_id": "7a9de2f5-0e72-4e32-b0ad-137a71972169",
+      "linear_identifier": "AGE-818",
+      "title": "T077: Write CLI integration test for session-analyse",
+      "url": "https://linear.app/obsidianowl/issue/AGE-818/t077-write-cli-integration-test-for-session-analyse",
+      "phase": "Phase 9 (CLI Integration)"
+    },
+    "T078": {
+      "linear_id": "ea701782-e523-4b0b-b55a-5acbe7e4de0b",
+      "linear_identifier": "AGE-819",
+      "title": "T078: Write end-to-end test with real session log (VCR pattern)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-819/t078-write-end-to-end-test-with-real-session-log-vcr-pattern",
+      "phase": "Phase 9 (CLI Integration)"
+    },
+    "T079": {
+      "linear_id": "f5a82066-716f-4aa8-861d-07670f749cc3",
+      "linear_identifier": "AGE-820",
+      "title": "T079: Write unit test for timeline structure",
+      "url": "https://linear.app/obsidianowl/issue/AGE-820/t079-write-unit-test-for-timeline-structure",
+      "phase": "Phase 10 (US-007) - P2"
+    },
+    "T080": {
+      "linear_id": "4fb91b87-2490-45c4-84af-97d12d42a52c",
+      "linear_identifier": "AGE-821",
+      "title": "T080: Add timeline event structure suitable for rendering",
+      "url": "https://linear.app/obsidianowl/issue/AGE-821/t080-add-timeline-event-structure-suitable-for-rendering",
+      "phase": "Phase 10 (US-007) - P2"
+    },
+    "T081": {
+      "linear_id": "154c40c8-68d5-44dc-86ce-e30b0defe758",
+      "linear_identifier": "AGE-822",
+      "title": "T081: Add key moment flagging (errors, compressions, milestones)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-822/t081-add-key-moment-flagging-errors-compressions-milestones",
+      "phase": "Phase 10 (US-007) - P2"
+    },
+    "T082": {
+      "linear_id": "652469a8-802c-47da-9309-748a18f3ffed",
+      "linear_identifier": "AGE-823",
+      "title": "T082: Ensure consistent event structure across all event types",
+      "url": "https://linear.app/obsidianowl/issue/AGE-823/t082-ensure-consistent-event-structure-across-all-event-types",
+      "phase": "Phase 10 (US-007) - P2"
+    },
+    "T083": {
+      "linear_id": "dbf5bba1-1e61-4f28-9543-8dabef5a590a",
+      "linear_identifier": "AGE-824",
+      "title": "T083: Write integration test for timeline visualization data",
+      "url": "https://linear.app/obsidianowl/issue/AGE-824/t083-write-integration-test-for-timeline-visualization-data",
+      "phase": "Phase 10 (US-007) - P2"
+    },
+    "T084": {
+      "linear_id": "c47f1b48-0588-4881-a07d-644ce5024665",
+      "linear_identifier": "AGE-825",
+      "title": "T084: Write unit test for permission detection",
+      "url": "https://linear.app/obsidianowl/issue/AGE-825/t084-write-unit-test-for-permission-detection",
+      "phase": "Phase 11 (US-008) - P2"
+    },
+    "T085": {
+      "linear_id": "337fcf81-d437-4230-9349-c53926572c00",
+      "linear_identifier": "AGE-826",
+      "title": "T085: Create src/sessions/extraction/permissions.ts with permission event extraction",
+      "url": "https://linear.app/obsidianowl/issue/AGE-826/t085-create-srcsessionsextractionpermissionsts-with-permission-event",
+      "phase": "Phase 11 (US-008) - P2"
+    },
+    "T086": {
+      "linear_id": "94c010e7-5d95-4d85-8dd0-69fa6fd59873",
+      "linear_identifier": "AGE-827",
+      "title": "T086: Track per-tool/command approval patterns",
+      "url": "https://linear.app/obsidianowl/issue/AGE-827/t086-track-per-toolcommand-approval-patterns",
+      "phase": "Phase 11 (US-008) - P2"
+    },
+    "T087": {
+      "linear_id": "bf1acb22-827d-4c78-9349-edf0ff696e43",
+      "linear_identifier": "AGE-828",
+      "title": "T087: Create permission data query tool (optional)",
+      "url": "https://linear.app/obsidianowl/issue/AGE-828/t087-create-permission-data-query-tool-optional",
+      "phase": "Phase 11 (US-008) - P2"
+    },
+    "T088": {
+      "linear_id": "9b524488-f406-43eb-abe9-0f5d3ee4459c",
+      "linear_identifier": "AGE-829",
+      "title": "T088: Write integration test for permission tracking",
+      "url": "https://linear.app/obsidianowl/issue/AGE-829/t088-write-integration-test-for-permission-tracking",
+      "phase": "Phase 11 (US-008) - P2"
+    }
+  }
+}
