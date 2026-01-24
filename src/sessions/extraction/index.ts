@@ -30,4 +30,7 @@ export * from './quality-signals';
 // Timeline visualization data (T079-T082)
 export * from './timeline-viz';
 
+// Permission event extraction (T084-T088)
+export * from './permissions';
+
 export const EXTRACTION_READY = false;

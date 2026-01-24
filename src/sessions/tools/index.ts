@@ -26,3 +26,6 @@ export * from './get-mcp-usage-tool';
 
 // Session analyst spawn tool (T069-T072)
 export * from './spawn-session-analyst';
+
+// Permission events tool (T087)
+export * from './get-permission-events-tool';

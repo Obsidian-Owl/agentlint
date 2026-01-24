@@ -241,6 +241,17 @@ useInput((input, key) => {
 - [ ] canUseTool permissions integrate with TUI dialogs
 - [ ] TerminalRenderer and readline removed from codebase
 - [ ] Clean integration with EP14-EP16 analysis components
+- [ ] Session timeline visualization using EP15 TimelineVizEvent structures
+
+## EP15 Integration Notes
+
+EP15 Session Intelligence provides `TimelineVizEvent` structures specifically designed for TUI rendering:
+- `src/sessions/extraction/timeline-viz.ts` - Consistent event structure for rendering
+- Key moment flagging (errors, compressions, phase transitions)
+- Tool categorization (navigation, mutation, execution, coordination, external)
+- Utility functions: `filterKeyMoments()`, `groupEventsByType()`, `getEventCounts()`
+
+The Exploration Flow Controller (Phase 2) should consume these structures for session drill-down views.
 
 ## Constitution Alignment
 
