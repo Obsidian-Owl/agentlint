@@ -22,7 +22,7 @@ export * from './get-delegation-events-tool';
 export * from './get-quality-signals-tool';
 
 // MCP usage tool (T060-T062)
-// export * from './get-mcp-usage-tool';
+export * from './get-mcp-usage-tool';
 
 // Session analyst spawn tool (T069-T072)
 // export * from './spawn-session-analyst';

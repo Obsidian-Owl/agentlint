@@ -22,7 +22,7 @@ export * from './compressions';
 export * from './delegations';
 
 // MCP call extraction (T057-T059)
-// export * from './mcp-calls';
+export * from './mcp-calls';
 
 // Quality signal extraction (T049-T052)
 export * from './quality-signals';
