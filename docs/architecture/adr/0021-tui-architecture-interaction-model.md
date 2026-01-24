@@ -1,6 +1,6 @@
 ---
-status: proposed
-date: 2026-01-23
+status: accepted
+date: 2026-01-24
 decision-makers: [Project Lead]
 consulted: []
 informed: []
@@ -10,13 +10,13 @@ informed: []
 
 ## Context and Problem Statement
 
-agentlint has Ink components (`src/cli/components/`) but uses `TerminalRenderer` with ora spinners and `console.log` as the primary output path. The question presenter uses Node.js readline directly. This creates several problems:
+agentlint had Ink components (`src/cli/components/`) but used `TerminalRenderer` with ora spinners and `console.log` as the primary output path. The question presenter used Node.js readline directly. This created several problems:
 
-1. **Bypassed Components**: Ink components exist but aren't wired as the primary rendering path
-2. **No Dialog System**: Cannot present overlays, multi-step wizards, or complex interactions
+1. **Bypassed Components**: Ink components existed but weren't wired as the primary rendering path
+2. **No Dialog System**: Could not present overlays, multi-step wizards, or complex interactions
 3. **No Focus Management**: No way to trap focus in dialogs or manage keyboard routing
-4. **Rigid Output**: TerminalRenderer can only show linear output, not interactive layouts
-5. **Poor canUseTool Integration**: Permission prompts use basic readline, not integrated with TUI
+4. **Rigid Output**: TerminalRenderer could only show linear output, not interactive layouts
+5. **Poor canUseTool Integration**: Permission prompts used basic readline, not integrated with TUI
 
 Research into OpenCode's TUI architecture (Bubble Tea-based) revealed patterns that solve these problems: central state model, dialog overlays with focus trapping, message-based component communication, and agent-led exploration flows.
 
@@ -39,41 +39,53 @@ Research into OpenCode's TUI architecture (Bubble Tea-based) revealed patterns t
 
 Chosen option: **"OpenCode-Inspired Architecture"** - Implement a full TUI architecture based on patterns from OpenCode, using Ink as the rendering framework.
 
+### Implementation Status
+
+As of EP17 (2026-01-24), the architecture has been fully implemented:
+
+- **TerminalRenderer**: Deleted, replaced by HeadlessRenderer + InkRenderer
+- **ora dependency**: Removed from package.json
+- **cli/components/App.tsx**: Deleted, replaced by tui/components/App.tsx
+- **State management**: useReducer with 17 message types in AppState
+- **Renderers**: ITuiRenderer interface with InkRenderer (interactive) and HeadlessRenderer (batch)
+- **Permission handling**: TuiPermissionHandler with session/permanent persistence
+- **TTY detection**: Automatic mode selection via determineRenderMode()
+
 ### Architecture Overview
 
 ```
-┌────────────────────────────────────────────────────────────────┐
-│                          App.tsx                                │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │                    AppState (central)                     │  │
-│  │  - viewStack: DialogType[]                                │  │
-│  │  - focusTarget: FocusTarget                               │  │
-│  │  - findings: Finding[]                                    │  │
-│  │  - explorationPath: ExplorationStep[]                     │  │
-│  └──────────────────────────────────────────────────────────┘  │
-│                              │                                  │
-│  ┌───────────────────────────┼──────────────────────────────┐  │
-│  │                    MainView                               │  │
-│  │  ┌─────────────┬─────────────────┬──────────────────┐    │  │
-│  │  │   Header    │  FindingsList   │    StatusBar     │    │  │
-│  │  └─────────────┴─────────────────┴──────────────────┘    │  │
-│  └──────────────────────────────────────────────────────────┘  │
-│                                                                 │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │                  Dialog Overlays                          │  │
-│  │  ┌─────────────┐ ┌─────────────┐ ┌───────────────────┐   │  │
-│  │  │  Findings   │ │  Permission │ │   Recommendation  │   │  │
-│  │  │   Detail    │ │   Dialog    │ │      Dialog       │   │  │
-│  │  └─────────────┘ └─────────────┘ └───────────────────┘   │  │
-│  └──────────────────────────────────────────────────────────┘  │
-│                                                                 │
-│  ┌──────────────────────────────────────────────────────────┐  │
-│  │                  Global Key Handler                       │  │
-│  │  - Routes keys based on focusTarget                       │  │
-│  │  - ESC closes active dialog                               │  │
-│  │  - j/k navigation, Enter/Space selection                  │  │
-│  └──────────────────────────────────────────────────────────┘  │
-└────────────────────────────────────────────────────────────────┘
+src/tui/
+├── index.ts                    # Public exports
+├── types.ts                    # AppState, AppMessage, ITuiRenderer, etc.
+├── state/
+│   ├── app-reducer.ts          # Central reducer (17 message types)
+│   └── app-context.tsx         # React context provider with useReducer
+├── components/
+│   ├── App.tsx                 # Root app with AppProvider wrapper
+│   ├── AgentOutput.tsx         # Streaming agent text with markdown
+│   ├── InputField.tsx          # User input capture with buffer
+│   ├── DialogOverlay.tsx       # Modal dialog system with focus trapping
+│   ├── PermissionDialog.tsx    # Session/permanent permission choice
+│   ├── RecommendationDialog.tsx# Accept/dismiss/defer actions
+│   ├── Breadcrumbs.tsx         # Navigation context display
+│   ├── Progress.tsx            # Progress bar (moved from cli)
+│   ├── FindingsList.tsx        # Finding list with keyboard navigation
+│   ├── Summary.tsx             # Analysis summary (moved from cli)
+│   ├── CausalTree.tsx          # Causal chain visualization
+│   └── CompareView.tsx         # Baseline comparison
+├── hooks/
+│   ├── useKeyHandler.ts        # Vim j/k, 1-9, ESC handling
+│   ├── useFocusManager.ts      # Dialog focus trapping
+│   └── useStreamBuffer.ts      # Input buffering during streaming
+├── renderers/
+│   ├── types.ts                # ITuiRenderer re-export
+│   ├── ink-renderer.ts         # Interactive mode with Ink
+│   ├── headless-renderer.ts    # Batch mode for CI/automation
+│   └── tui-stream-renderer.ts  # IStreamRenderer adapter
+├── permissions/
+│   └── tui-permission-handler.ts # canUseTool integration
+└── utils/
+    └── tty.ts                  # TTY detection utilities
 ```
 
 ### Key Patterns
@@ -85,37 +97,51 @@ Single source of truth for all UI state:
 ```typescript
 interface AppState {
   // View management
-  viewStack: DialogType[];
-  activeView: DialogType | 'main';
+  activeDialog: DialogType | null;
+  explorationPath: ExplorationStep[];
 
   // Focus management
-  focusStack: FocusTarget[];
+  focusTarget: FocusTarget;
   keyBlocking: boolean;
 
   // Analysis state
+  phase: AnalysisPhase;
   findings: Finding[];
   selectedFindingIndex: number;
-  explorationPath: ExplorationStep[];
 
   // Stream state
-  isAnalyzing: boolean;
-  streamBuffer: StreamChunk[];
-  progress: AnalysisProgress;
+  isStreaming: boolean;
+  streamBuffer: string;
+  inputBuffer: string;
+
+  // Permission handling
+  pendingPermission: { tool: string; description: string; pattern?: string } | null;
 }
 ```
 
 #### 2. Message-Based State Updates
 
-All state changes through typed messages:
+All state changes through typed messages (17 types):
 
 ```typescript
 type AppMessage =
-  | { type: 'PUSH_DIALOG'; dialog: DialogType }
-  | { type: 'POP_DIALOG' }
+  | { type: 'SET_PHASE'; phase: AnalysisPhase }
+  | { type: 'APPEND_STREAM'; content: string }
+  | { type: 'CLEAR_STREAM' }
+  | { type: 'SET_STREAMING'; isStreaming: boolean }
+  | { type: 'OPEN_DIALOG'; dialog: DialogType }
+  | { type: 'CLOSE_DIALOG' }
+  | { type: 'ADD_FINDING'; finding: Finding }
+  | { type: 'CLEAR_FINDINGS' }
   | { type: 'SELECT_FINDING'; index: number }
-  | { type: 'DRILL_DOWN'; findingId: string }
-  | { type: 'STREAM_CHUNK'; chunk: StreamChunk }
-  | { type: 'PERMISSION_RESPONSE'; allowed: boolean; remember: boolean };
+  | { type: 'PUSH_EXPLORATION'; step: ExplorationStep }
+  | { type: 'POP_EXPLORATION' }
+  | { type: 'CLEAR_EXPLORATION' }
+  | { type: 'SET_FOCUS'; target: FocusTarget }
+  | { type: 'SET_KEY_BLOCKING'; blocking: boolean }
+  | { type: 'SET_INPUT_BUFFER'; value: string }
+  | { type: 'APPEND_INPUT_BUFFER'; char: string }
+  | { type: 'SET_PENDING_PERMISSION'; request: PermissionRequest | null };
 ```
 
 #### 3. Dialog Overlay System
@@ -123,40 +149,65 @@ type AppMessage =
 Dialogs render as overlays with focus trapping:
 
 ```typescript
-const DialogOverlay: FC<{ visible: boolean; onClose: () => void }> = ({
+export function DialogOverlay({
   visible,
+  title,
   onClose,
   children,
-}) => {
-  useInput((input, key) => {
-    if (key.escape) onClose();
-  }, { isActive: visible });
+  trapFocus = true,
+}: DialogOverlayProps): React.ReactElement | null {
+  // Focus trapping when visible
+  useFocusManager({
+    active: visible && trapFocus,
+    onEscape: onClose,
+  });
 
   if (!visible) return null;
 
   return (
     <Box flexDirection="column" borderStyle="round" padding={1}>
+      {title && <Text bold>{title}</Text>}
       {children}
     </Box>
   );
-};
+}
 ```
 
-#### 4. Focus-Aware Key Routing
+#### 4. Renderer Interface
 
-Keys route to active focus target:
+Both interactive and headless modes implement ITuiRenderer:
 
 ```typescript
-useInput((input, key) => {
-  const target = state.focusStack[state.focusStack.length - 1];
+interface ITuiRenderer {
+  start(props: AppProps): void;
+  stop(): void;
+  renderChunk(chunk: StreamChunk): void;
+  renderComplete(result: AnalyseResult): void;
+  requestPermission(request: PermissionRequest): Promise<PermissionDecision>;
+}
+```
 
-  // Block main view keys when dialog is active
-  if (target !== 'main' && !isDialogKey(input)) {
-    return;
-  }
+### CLI Modes
 
-  dispatch(routeKeyToHandler(target, input, key));
-});
+| Mode | Trigger | Behavior |
+|------|---------|----------|
+| Interactive | `agentlint` (TTY detected) | Full TUI with dialogs and exploration |
+| Batch | `--non-interactive` | Headless output, auto-approve permissions |
+| CI | No TTY detected | Auto-batch mode |
+| JSON | `--json` | Structured JSON output |
+
+Mode selection via `determineRenderMode()`:
+
+```typescript
+export function determineRenderMode(options: {
+  nonInteractive?: boolean;
+  json?: boolean;
+  forceInteractive?: boolean;
+}): 'ink' | 'headless' {
+  if (options.nonInteractive || options.json) return 'headless';
+  if (options.forceInteractive) return 'ink';
+  return isInteractive() ? 'ink' : 'headless';
+}
 ```
 
 ### Consequences
@@ -168,46 +219,16 @@ useInput((input, key) => {
 - Keyboard-first design works in all terminals
 - State model makes testing straightforward
 - canUseTool integrates cleanly with permission dialogs
+- HeadlessRenderer supports CI/automation seamlessly
 
 **Bad:**
 - Larger codebase than minimal enhancement
 - Learning curve for Ink component patterns
-- Migration effort to replace TerminalRenderer
 
 **Neutral:**
-- Requires deprecation of TerminalRenderer
-- readline-based question presenter replaced by Ink dialogs
-
-## Technical Implementation
-
-### Phase 1: Core Architecture
-
-1. Create `AppState` type and reducer
-2. Implement `DialogOverlay` component
-3. Add focus management with `useInput` hooks
-4. Create base dialog components (confirmation, selection, text input)
-
-### Phase 2: Migration
-
-1. Replace TerminalRenderer spinner with Ink `<Spinner>`
-2. Replace console.log output with Ink `<Text>` components
-3. Migrate question-presenter to Ink dialog
-4. Wire canUseTool to permission dialog
-
-### Phase 3: Agent-Led Exploration
-
-1. Implement FindingsDetailDialog with drill-down
-2. Add RecommendationDialog with accept/dismiss
-3. Create exploration flow controller
-4. Add breadcrumb navigation
-
-### CLI Modes
-
-| Mode | Trigger | Behavior |
-|------|---------|----------|
-| Interactive | `agentlint` | Full TUI with dialogs and exploration |
-| Batch | `--non-interactive` | Headless output, JSON results |
-| CI | Detected TTY=false | Auto-batch mode |
+- TerminalRenderer deprecated and removed
+- ora dependency removed
+- Legacy cli/components/App.tsx replaced
 
 ## Constitution Compliance
 
@@ -220,16 +241,39 @@ useInput((input, key) => {
 | VII. Intelligent Tooling | Yes | Rich UI for agent reasoning |
 | IX. Agent-Aware | Yes | UI serves agent presentation needs |
 
+## Testing
+
+The TUI uses ink-testing-library for component testing:
+
+```typescript
+import { render } from 'ink-testing-library';
+
+test('renders permission dialog', () => {
+  const { lastFrame } = render(
+    <PermissionDialog
+      tool="Bash"
+      description="Run npm install"
+      onDecision={jest.fn()}
+    />
+  );
+  expect(lastFrame()).toContain('Bash');
+});
+```
+
+Tests cover:
+- State reducer transitions (unit tests)
+- Component rendering (ink-testing-library)
+- Renderer implementations (HeadlessRenderer, InkRenderer)
+- Permission handler integration
+
 ## Supersedes
 
 This ADR supersedes the earlier draft ADR-0021 (Conversational Interaction Model) which focused narrowly on canUseTool callbacks. This revision expands scope to the full TUI architecture required for agent-led exploration.
 
 ## More Information
 
-### Research Sources
-- OpenCode TUI Architecture (Bubble Tea patterns)
-- Ink documentation and examples
-- ink-testing-library for component testing
+### Implementation Epic
+- EP17: TUI Architecture & Agent-Led Exploration
 
 ### Related ADRs
 - [ADR-0004: Agent Architecture](./0004-agent-architecture.md) - Agent orchestration design

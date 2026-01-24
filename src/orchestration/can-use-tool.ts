@@ -12,8 +12,6 @@
 
 import * as readline from 'node:readline';
 import type { PermissionResult } from '@anthropic-ai/claude-agent-sdk';
-import { presentQuestionsInteractive } from '../cli/components/question-presenter';
-import type { ClarifyingQuestion } from '../recommendations/types';
 
 // =============================================================================
 // Types
@@ -106,41 +104,68 @@ async function promptForToolApproval(
 // =============================================================================
 
 /**
- * Convert SDK AskUserQuestion input to ClarifyingQuestion format.
+ * Ask a single question via readline.
  */
-function convertToQuestions(input: AskUserQuestionInput): ClarifyingQuestion[] {
-  return input.questions.map((q) => {
-    const question: ClarifyingQuestion = {
-      question: q.question,
-      context: q.header,
-      options: q.options.map((opt) => ({
-        label: opt.label,
-        description: opt.description ?? '',
-      })),
-    };
-    if (q.options[0]?.label !== undefined) {
-      question.defaultAnswer = q.options[0].label;
-    }
-    return question;
+async function askSingleQuestion(
+  rl: readline.Interface,
+  question: AskUserQuestionInput['questions'][0]
+): Promise<string> {
+  return new Promise((resolve) => {
+    console.log('');
+    console.log(`[${question.header}] ${question.question}`);
+    console.log('');
+
+    // Display options
+    question.options.forEach((opt, i) => {
+      console.log(`  ${i + 1}. ${opt.label}`);
+      if (opt.description) {
+        console.log(`     ${opt.description}`);
+      }
+    });
+
+    console.log('');
+
+    rl.question('Enter choice (number): ', (input) => {
+      const trimmed = input.trim();
+      const choice = parseInt(trimmed, 10);
+
+      // Valid option selection
+      if (choice >= 1 && choice <= question.options.length) {
+        const selectedOption = question.options[choice - 1];
+        resolve(selectedOption?.label ?? 'selected');
+        return;
+      }
+
+      // Invalid input - use first option as default
+      const firstOption = question.options[0];
+      resolve(firstOption?.label ?? 'default');
+    });
   });
 }
 
 /**
  * Handle AskUserQuestion tool call.
  *
- * Presents questions to user and returns their answers.
+ * Presents questions to user via readline and returns their answers.
  *
  * @param input - AskUserQuestion input from SDK
  * @returns PermissionResult with answers
  */
 async function handleAskUserQuestion(input: AskUserQuestionInput): Promise<PermissionResult> {
-  const questions = convertToQuestions(input);
-  const answersMap = await presentQuestionsInteractive(questions, { allowSkip: true });
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
 
-  // Convert Map to Record for SDK
   const answers: Record<string, string> = {};
-  for (const [questionText, answer] of answersMap) {
-    answers[questionText] = answer.answer;
+
+  try {
+    for (const question of input.questions) {
+      const answer = await askSingleQuestion(rl, question);
+      answers[question.question] = answer;
+    }
+  } finally {
+    rl.close();
   }
 
   return {

@@ -99,7 +99,14 @@ const DEFAULT_ALLOWED_TOOLS: string[] = [
  * Get the default orchestrator configuration.
  * These defaults are used when no config file exists or values are missing.
  */
-export function getDefaultConfig(): Required<OrchestratorConfig> {
+/**
+ * Config type with all required fields except canUseTool which remains optional.
+ */
+export type ResolvedOrchestratorConfig = Required<Omit<OrchestratorConfig, 'canUseTool'>> & {
+  canUseTool?: OrchestratorConfig['canUseTool'];
+};
+
+export function getDefaultConfig(): ResolvedOrchestratorConfig {
   return {
     model: DEFAULT_MODEL,
     checkpointIntervalMs: DEFAULT_CHECKPOINT_INTERVAL_MS,
@@ -138,12 +145,12 @@ export function getDefaultGlobalConfig(): AgentlintGlobalConfig {
  * @param overrides - Optional overrides to apply on top of loaded config
  * @returns Fully populated orchestrator configuration
  */
-export function loadConfig(overrides?: Partial<OrchestratorConfig>): Required<OrchestratorConfig> {
+export function loadConfig(overrides?: Partial<OrchestratorConfig>): ResolvedOrchestratorConfig {
   const defaults = getDefaultConfig();
   const fileConfig = loadConfigFile();
 
   // Merge: defaults <- file config <- overrides
-  return {
+  const result: ResolvedOrchestratorConfig = {
     model: overrides?.model ?? fileConfig?.model ?? defaults.model,
     checkpointIntervalMs:
       overrides?.checkpointIntervalMs ??
@@ -157,6 +164,13 @@ export function loadConfig(overrides?: Partial<OrchestratorConfig>): Required<Or
     allowedTools: overrides?.allowedTools ?? defaults.allowedTools,
     nonInteractive: overrides?.nonInteractive ?? defaults.nonInteractive,
   };
+
+  // Only add canUseTool if provided (to satisfy exactOptionalPropertyTypes)
+  if (overrides?.canUseTool) {
+    result.canUseTool = overrides.canUseTool;
+  }
+
+  return result;
 }
 
 /**
@@ -291,9 +305,9 @@ export function configFileExists(): boolean {
  */
 export function mergeWithDefaults(
   partial: Partial<OrchestratorConfig>
-): Required<OrchestratorConfig> {
+): ResolvedOrchestratorConfig {
   const defaults = getDefaultConfig();
-  return {
+  const result: ResolvedOrchestratorConfig = {
     model: partial.model ?? defaults.model,
     checkpointIntervalMs: partial.checkpointIntervalMs ?? defaults.checkpointIntervalMs,
     verbosity: partial.verbosity ?? defaults.verbosity,
@@ -304,4 +318,11 @@ export function mergeWithDefaults(
     allowedTools: partial.allowedTools ?? defaults.allowedTools,
     nonInteractive: partial.nonInteractive ?? defaults.nonInteractive,
   };
+
+  // Only add canUseTool if provided (to satisfy exactOptionalPropertyTypes)
+  if (partial.canUseTool) {
+    result.canUseTool = partial.canUseTool;
+  }
+
+  return result;
 }

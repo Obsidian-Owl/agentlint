@@ -110,6 +110,23 @@ export interface OrchestratorConfig {
    * Used for CI/CD and automation scenarios.
    */
   nonInteractive?: boolean;
+
+  /**
+   * Custom canUseTool callback for permission handling.
+   * If provided, used instead of the default readline-based handler.
+   * This allows TUI mode to use TuiPermissionHandler instead.
+   */
+  canUseTool?:
+    | ((
+        toolName: string,
+        input: Record<string, unknown>,
+        context?: unknown
+      ) => Promise<{
+        behavior: 'allow' | 'deny';
+        message?: string;
+        updatedInput?: Record<string, unknown>;
+      }>)
+    | undefined;
 }
 
 /**

@@ -15,7 +15,7 @@
 import { query, type SDKMessage } from '@anthropic-ai/claude-agent-sdk';
 import type { IToolRegistry } from './tool-registry';
 import type { OrchestratorConfig, SessionState, StreamChunk, VerbosityLevel } from './types';
-import { loadConfig, MAX_SUBAGENT_DEPTH } from './config';
+import { loadConfig, MAX_SUBAGENT_DEPTH, type ResolvedOrchestratorConfig } from './config';
 import { SubagentDepthError } from '../errors';
 import { buildACTSubagents } from '../act/index.js';
 import { getDefaultLogger } from '../debug/logger';
@@ -32,7 +32,7 @@ import type { INamespacedLogger } from '../debug/types';
  */
 export interface IOrchestrator {
   /** Current configuration (with defaults applied) */
-  readonly config: Required<OrchestratorConfig>;
+  readonly config: ResolvedOrchestratorConfig;
 
   /** Tool registry */
   readonly toolRegistry: IToolRegistry;
@@ -105,7 +105,7 @@ export interface IOrchestrator {
  */
 export class Orchestrator implements IOrchestrator {
   /** Configuration with defaults applied */
-  public readonly config: Required<OrchestratorConfig>;
+  public readonly config: ResolvedOrchestratorConfig;
 
   /** Tool registry reference */
   public readonly toolRegistry: IToolRegistry;
@@ -228,11 +228,15 @@ export class Orchestrator implements IOrchestrator {
       /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment */
 
       // ADR-0021: Create canUseTool callback for human-in-the-loop interactions
-      const canUseTool = createCanUseToolCallback({
-        nonInteractive: this.config.nonInteractive,
-        verbose: this.config.verbosity === 'verbose' || this.config.verbosity === 'debug',
-        log: (msg) => this.logger.debug(msg),
-      });
+      // Use custom canUseTool from config if provided (e.g., TuiPermissionHandler),
+      // otherwise fall back to the default readline-based handler
+      const canUseTool =
+        this.config.canUseTool ??
+        createCanUseToolCallback({
+          nonInteractive: this.config.nonInteractive,
+          verbose: this.config.verbosity === 'verbose' || this.config.verbosity === 'debug',
+          log: (msg) => this.logger.debug(msg),
+        });
 
       const queryOptions: any = {
         model: this.config.model,

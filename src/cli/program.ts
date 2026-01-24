@@ -83,7 +83,8 @@ Documentation:
     )
     .option('--quiet', 'Suppress non-error output')
     .option('--log-file <path>', 'Write debug output to file')
-    .option('--no-secrets', 'Disable automatic secret detection scanning');
+    .option('--no-secrets', 'Disable automatic secret detection scanning')
+    .option('--non-interactive', 'Run without interactive TUI (auto-approve permissions)');
 
   // Configure help behavior with terminal-aware formatter
   program.configureHelp({
@@ -160,6 +161,9 @@ export function extractGlobalOptions(options: Record<string, unknown>): GlobalOp
   }
   if (typeof options['logFile'] === 'string') {
     result.logFile = options['logFile'];
+  }
+  if (typeof options['nonInteractive'] === 'boolean') {
+    result.nonInteractive = options['nonInteractive'];
   }
 
   return result;
