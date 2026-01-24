@@ -16,12 +16,12 @@ export * from './schemas';
 // Parser (T009-T011)
 export * from './parser';
 
-// Discovery (to be implemented in T017-T020)
-// export * from './discovery';
+// Discovery (T017-T019)
+export * from './discovery';
 
 // Validators (to be implemented in T024-T045)
 // export * from './validators';
 
-// Tools (to be implemented in T020, T050)
-// export { getMcpConfigsTool } from './get-mcp-configs-tool';
+// Tools (T020)
+export { getMcpConfigsTool } from './get-mcp-configs-tool';
 // export { validateMcpConfigTool } from './validate-mcp-config-tool';

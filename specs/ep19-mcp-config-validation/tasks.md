@@ -78,17 +78,17 @@
 
 ### Tests (write first)
 
-- [ ] T013 [P] [US1] Unit test: discovers `.mcp.json` at project root in `__tests__/tools/config/mcp/discovery.test.ts`
-- [ ] T014 [P] [US1] Unit test: discovers `~/.claude.json` user config in `__tests__/tools/config/mcp/discovery.test.ts`
-- [ ] T015 [P] [US1] Unit test: discovers OpenCode configs in `__tests__/tools/config/mcp/discovery.test.ts`
-- [ ] T016 [P] [US1] Unit test: handles non-existent configs gracefully in `__tests__/tools/config/mcp/discovery.test.ts`
+- [x] T013 [P] [US1] Unit test: discovers `.mcp.json` at project root in `__tests__/tools/config/mcp/discovery.test.ts`
+- [x] T014 [P] [US1] Unit test: discovers `~/.claude.json` user config in `__tests__/tools/config/mcp/discovery.test.ts`
+- [x] T015 [P] [US1] Unit test: discovers OpenCode configs in `__tests__/tools/config/mcp/discovery.test.ts`
+- [x] T016 [P] [US1] Unit test: handles non-existent configs gracefully in `__tests__/tools/config/mcp/discovery.test.ts`
 
 ### Implementation
 
-- [ ] T017 [US1] Implement ACT config location registry in `src/tools/config/mcp/discovery.ts`
-- [ ] T018 [US1] Implement `discoverMcpConfigs()` function in `src/tools/config/mcp/discovery.ts`
-- [ ] T019 [US1] Implement user-level config detection (~/.claude.json, ~/.config/opencode/) in `src/tools/config/mcp/discovery.ts`
-- [ ] T020 [US1] Create `get_mcp_configs` tool definition in `src/tools/config/mcp/get-mcp-configs-tool.ts` with SDK tool() pattern
+- [x] T017 [US1] Implement ACT config location registry in `src/tools/config/mcp/discovery.ts`
+- [x] T018 [US1] Implement `discoverMcpConfigs()` function in `src/tools/config/mcp/discovery.ts`
+- [x] T019 [US1] Implement user-level config detection (~/.claude.json, ~/.config/opencode/) in `src/tools/config/mcp/discovery.ts`
+- [x] T020 [US1] Create `get_mcp_configs` tool definition in `src/tools/config/mcp/get-mcp-configs-tool.ts` with SDK tool() pattern
 
 **Checkpoint**: US1 complete and independently testable
 - [ ] Tool discovers configs at all P1 ACT locations
