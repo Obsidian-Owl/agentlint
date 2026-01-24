@@ -140,6 +140,32 @@ CREATE TABLE IF NOT EXISTS recommendation_outcomes (
 | `terminology_gap` | Domain terminology undefined |
 | `context_loss` | Context not preserved across sessions |
 
+### Session Intelligence Entities (EP15)
+
+| Entity | Purpose |
+|--------|---------|
+| **SessionTimeline** | Complete session overview with intent, outcome, and metrics |
+| **Intent** | First user prompt capturing what the session aimed to accomplish |
+| **SessionOutcome** | Outcome signals (thanks, done, errors) for success interpretation |
+| **ToolCallRecord** | Tool invocation with sequence number and input hash for repeat detection |
+| **FileAccessRecord** | File operation (read/write/edit) for understanding session focus |
+| **CompressionEvent** | Context compaction occurrence for context loss detection |
+| **DelegationEvent** | Task tool usage for subagent pattern analysis |
+| **QualitySignal** | Test/build/lint outcome for session quality assessment |
+| **McpToolCall** | MCP server tool usage for integration health monitoring |
+
+### Outcome Signals
+
+| Signal | Interpretation Hint |
+|--------|---------------------|
+| `containsThanks` | User expressed gratitude (often indicates success) |
+| `containsDone` | User indicated completion |
+| `endsWithError` | Last message was an error (may indicate failure) |
+| `hasUnresolvedError` | Error occurred without recovery |
+| `hasCommitActivity` | Session produced code changes |
+
+**Note**: Per ADR-0019, these are DATA signals. The agent interprets their meaning in context.
+
 ---
 
 ## 8.2 Security Concept

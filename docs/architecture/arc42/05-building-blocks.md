@@ -97,7 +97,7 @@ src/cli/
 │
 ├── commands/          Command implementations
 │   ├── scan.ts        Discover AI configurations
-│   ├── analyse.ts     Run full analysis
+│   ├── analyse.ts     Run full analysis (--session for EP15)
 │   ├── baseline.ts    Capture baseline state
 │   ├── compare.ts     Compare against baseline
 │   ├── trace.ts       Trace finding to origin
@@ -238,6 +238,7 @@ const response = await query({
 | **Temporal Analysis (EP09)** | `store_baseline`, `query_baseline`, `list_baselines`, `calculate_delta`, `query_trends`, `conduct_review`, `get_review_history` |
 | **Recommendation Advisor (EP10)** | `spawn_recommendation_advisor`, `create_recommendation`, `get_recommendation`, `list_recommendations`, `get_recommendation_summary`, `add_recommendation_event`, `update_recommendation_status`, `refine_recommendation`, `complete_recommendation` |
 | **Skills Effectiveness (EP14)** | `get_skill_inventory`, `index_skill_invocations`, `get_session_summaries`, `get_skill_invocations` |
+| **Session Intelligence (EP15)** | `get_session_timeline`, `get_tool_sequences`, `get_file_accesses`, `get_delegation_events`, `get_quality_signals`, `get_mcp_usage`, `spawn_session_analyst` |
 | **Git Analysis** | `query_git` |
 | **Learning** | `store_learning`, `list_learnings`, `promote_learning` |
 | **Utility** | `retrieve_result`, `agentlint_write` |
@@ -975,6 +976,7 @@ src/act/
 | Subagent | ACT Types | Priority | Tools |
 |----------|-----------|----------|-------|
 | `claude-code-analyzer` | claude-code | 100 | discover_configs, parse_config, analyze_hierarchy, search_sessions, get_session_stats |
+| `session-analyst` | session | 80 | get_session_timeline, get_tool_sequences, get_file_accesses, get_delegation_events, get_quality_signals, get_mcp_usage |
 | `recommendation-advisor` | recommendation | 80 | create_recommendation, get_recommendation, list_recommendations, get_recommendation_summary, add_recommendation_event, update_recommendation_status, refine_recommendation, complete_recommendation |
 | `temporal-analyzer` | temporal | 75 | store_baseline, query_baseline, list_baselines, calculate_delta, query_trends, conduct_review, get_review_history |
 | `temporal-analyzer-readonly` | temporal | 50 | query_baseline, list_baselines, calculate_delta, query_trends, get_review_history |
@@ -1437,3 +1439,261 @@ Skills metrics are optionally captured in baselines via `store_baseline --includ
 | Invocation indexing | <2s for 100 sessions | Streaming JSONL parse + batch SQLite inserts |
 | Query by skill | <50ms | SQLite indexed queries |
 | Session summaries | <500ms for 50 sessions | Aggregate query with limits |
+
+---
+
+## Level 3: Session Intelligence Tools (EP15)
+
+The session intelligence module provides tools for understanding what happened in Claude Code sessions and why. It enables narrative understanding rather than raw metrics, supporting post-session analysis and pattern detection.
+
+```
+src/sessions/
+├── index.ts                    Public exports + module version
+├── types.ts                    Core type definitions (SessionTimeline, Intent, Outcome, etc.)
+├── schemas.ts                  Zod validation schemas for all types
+│
+├── extraction/                 Static extraction functions
+│   ├── index.ts                Extraction exports
+│   ├── timeline.ts             Intent and outcome extraction
+│   ├── compressions.ts         Context compression event detection
+│   ├── tool-sequences.ts       Tool call sequence extraction
+│   ├── file-accesses.ts        File operation tracking
+│   ├── delegations.ts          Task tool delegation detection
+│   ├── quality-signals.ts      Test/build/lint outcome detection
+│   ├── mcp-calls.ts            MCP tool usage extraction
+│   ├── permissions.ts          Permission request tracking
+│   └── timeline-viz.ts         Timeline visualization data structures
+│
+├── storage/                    Database operations
+│   ├── index.ts                Storage exports
+│   ├── schema.ts               6 new tables extending sessions.db
+│   └── queries.ts              Query functions for all tables
+│
+├── tools/                      SDK tool definitions
+│   ├── index.ts                Tool exports + EP15_SESSION_INTELLIGENCE_TOOLS
+│   ├── get-session-timeline-tool.ts     Timeline extraction
+│   ├── get-tool-sequences-tool.ts       Tool flow analysis
+│   ├── get-file-accesses-tool.ts        File operation queries
+│   ├── get-delegation-events-tool.ts    Task tool usage
+│   ├── get-quality-signals-tool.ts      Test/build/lint outcomes
+│   ├── get-mcp-usage-tool.ts            MCP server health
+│   └── spawn-session-analyst.ts         Subagent spawning
+│
+└── subagent/                   Session Analyst subagent
+    ├── index.ts                Subagent exports
+    ├── types.ts                Subagent type definitions
+    └── session-analyst.ts      Agent prompt + builder
+```
+
+| Module | Responsibility |
+|--------|----------------|
+| `extraction/` | Static functions for extracting structured data from session JSONL |
+| `storage/` | SQLite schema and queries for session intelligence data |
+| `tools/` | SDK tool definitions following ADR-0005 patterns |
+| `subagent/` | Session Analyst subagent for narrative analysis |
+
+### EP15 Tool Definitions
+
+| Tool | Description |
+|------|-------------|
+| `get_session_timeline` | Extracts session intent, outcome signals, and token metrics |
+| `get_tool_sequences` | Extracts tool call sequences with repeat pattern detection |
+| `get_file_accesses` | Tracks file read/write/edit operations per session |
+| `get_delegation_events` | Identifies Task tool usage and subagent patterns |
+| `get_quality_signals` | Detects test/build/lint outcomes from Bash outputs |
+| `get_mcp_usage` | Analyzes MCP server usage and error rates |
+| `spawn_session_analyst` | Spawns Session Analyst subagent for deep analysis |
+
+### Tool/Agent Boundary (ADR-0019)
+
+Per [ADR-0019](../adr/0019-tool-agent-boundary-temporal.md), session tools provide DATA while the agent provides JUDGMENT:
+
+| Tool Provides | Agent Reasons About |
+|--------------|---------------------|
+| Raw timeline (intent, outcome signals) | "Was this session successful?" |
+| Tool sequences with repeat counts | "Is the agent stuck in a loop?" |
+| File access patterns | "What was the focus area?" |
+| Quality signal outcomes | "Did the tests pass? Is the code ready?" |
+| MCP error rates | "Is this integration healthy?" |
+
+**Critical Design Principle**: Tools return signals (containsThanks, endsWithError, repeatCount); the agent interprets what they mean in context.
+
+### Session Analyst Subagent
+
+The Session Analyst is a specialized subagent for narrative understanding:
+
+```typescript
+// 4-layer prompt structure (~7KB)
+const SESSION_ANALYST_PROMPT = `
+## ROLE IDENTITY
+You are the Session Analyst, a specialist for understanding Claude Code sessions...
+
+## DOMAIN KNOWLEDGE
+Session structure, tool categories, phase detection guidance...
+
+## YOUR TASK
+Analyze session data to provide actionable insights...
+
+## TOOLS AVAILABLE
+get_session_timeline, get_tool_sequences, get_file_accesses,
+get_delegation_events, get_quality_signals, get_mcp_usage
+`;
+
+// Per Constitution C8: No Task tool (depth=1)
+const SESSION_ANALYST_TOOLS = [
+  'get_session_timeline',
+  'get_tool_sequences',
+  'get_file_accesses',
+  'get_delegation_events',
+  'get_quality_signals',
+  'get_mcp_usage',
+];
+```
+
+Focus options for `spawn_session_analyst`:
+- `narrative`: Session story and key decisions
+- `flow`: Tool patterns and phase detection
+- `quality`: Test/build outcomes and reliability
+- `comprehensive`: All of the above combined
+
+### Key Entity Types
+
+```typescript
+interface SessionTimeline {
+  sessionId: string;
+  projectPath: string;
+  startTime: string;
+  endTime: string;
+  duration: number;              // milliseconds
+  turnCount: number;
+  intent: Intent;
+  outcome: SessionOutcome;
+  metrics: SessionMetrics;
+}
+
+interface Intent {
+  firstUserPrompt?: string;
+  timestamp?: string;
+  promptLength: number;
+}
+
+interface SessionOutcome {
+  lastUserPrompt?: string;
+  lastToolCall?: { name: string; success: boolean };
+  hasCommitActivity: boolean;
+  turnCount: number;
+  signals: OutcomeSignals;
+}
+
+interface OutcomeSignals {
+  containsThanks: boolean;       // User expressed gratitude
+  containsDone: boolean;         // User indicated completion
+  endsWithError: boolean;        // Last message was error
+  hasUnresolvedError: boolean;   // Error without recovery
+}
+
+interface ToolCallRecord {
+  sessionId: string;
+  sequenceNumber: number;
+  toolName: string;
+  timestamp: string;
+  inputHash: string;             // For repeat detection
+  isError: boolean;
+  filePath: string;              // Source for causal tracing
+  lineNumber: number;
+}
+
+interface QualitySignalRecord {
+  sessionId: string;
+  signalType: 'test' | 'build' | 'lint';
+  outcome: 'pass' | 'fail' | 'indeterminate';
+  rawOutput: string;             // For agent interpretation
+  timestamp: string;
+}
+```
+
+### Database Schema
+
+EP15 adds 6 tables to `sessions.db`:
+
+```sql
+-- Tool call sequences for flow analysis
+CREATE TABLE tool_call_sequences (
+  id TEXT PRIMARY KEY,
+  session_id TEXT NOT NULL,
+  sequence_number INTEGER NOT NULL,
+  tool_name TEXT NOT NULL,
+  timestamp TEXT NOT NULL,
+  input_hash TEXT,
+  is_error INTEGER DEFAULT 0,
+  file_path TEXT,
+  line_number INTEGER
+);
+
+-- File access tracking
+CREATE TABLE file_accesses (
+  id TEXT PRIMARY KEY,
+  session_id TEXT NOT NULL,
+  file_path TEXT NOT NULL,
+  operation TEXT NOT NULL,        -- 'read' | 'write' | 'edit'
+  timestamp TEXT NOT NULL,
+  source_tool TEXT
+);
+
+-- Compression events for context loss detection
+CREATE TABLE compression_events (
+  id TEXT PRIMARY KEY,
+  session_id TEXT NOT NULL,
+  compression_type TEXT NOT NULL, -- 'compact' | 'microcompact'
+  timestamp TEXT NOT NULL,
+  summary_length INTEGER
+);
+
+-- Delegation events for Task tool analysis
+CREATE TABLE delegation_events (
+  id TEXT PRIMARY KEY,
+  session_id TEXT NOT NULL,
+  subagent_type TEXT NOT NULL,
+  prompt_summary TEXT,
+  success INTEGER,
+  timestamp TEXT NOT NULL
+);
+
+-- MCP tool calls for integration health
+CREATE TABLE mcp_tool_calls (
+  id TEXT PRIMARY KEY,
+  session_id TEXT NOT NULL,
+  server_name TEXT NOT NULL,
+  tool_name TEXT NOT NULL,
+  timestamp TEXT NOT NULL,
+  is_error INTEGER DEFAULT 0
+);
+
+-- Quality signals for test/build/lint outcomes
+CREATE TABLE quality_signals (
+  id TEXT PRIMARY KEY,
+  session_id TEXT NOT NULL,
+  signal_type TEXT NOT NULL,      -- 'test' | 'build' | 'lint'
+  outcome TEXT NOT NULL,          -- 'pass' | 'fail' | 'indeterminate'
+  raw_output TEXT,
+  timestamp TEXT NOT NULL
+);
+```
+
+### CLI Integration
+
+The `agentlint analyse --session` command enables session analysis:
+
+```bash
+agentlint analyse --session <id>    # Analyze specific session
+agentlint analyse --session <path>  # Analyze from file path
+```
+
+### Performance Characteristics (NFR)
+
+| Metric | Target | Implementation |
+|--------|--------|----------------|
+| Timeline extraction | <500ms | Streaming JSONL parse |
+| Tool sequence query | <100ms | SQLite indexed queries |
+| Quality signal detection | <200ms | Regex pattern matching |
+| Full session analysis | <5s | Parallel extraction + subagent |
