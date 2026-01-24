@@ -48,20 +48,20 @@
 
 ### Types and Schemas
 
-- [ ] T005 [P] Create MCP type definitions in `src/tools/config/mcp/types.ts` (copy from contracts/interfaces.ts with adjustments)
-- [ ] T006 [P] Create standard MCP Zod schema in `src/tools/config/mcp/schemas.ts` (McpServerConfigSchema)
-- [ ] T007 [P] Create OpenCode-specific Zod schema in `src/tools/config/mcp/schemas.ts` (OpenCodeMcpConfigSchema)
-- [ ] T008 Add MCP issue code constants in `src/tools/config/mcp/types.ts` (MCP001-MCP024)
+- [x] T005 [P] Create MCP type definitions in `src/tools/config/mcp/types.ts` (copy from contracts/interfaces.ts with adjustments)
+- [x] T006 [P] Create standard MCP Zod schema in `src/tools/config/mcp/schemas.ts` (McpServerConfigSchema)
+- [x] T007 [P] Create OpenCode-specific Zod schema in `src/tools/config/mcp/schemas.ts` (OpenCodeMcpConfigSchema)
+- [x] T008 Add MCP issue code constants in `src/tools/config/mcp/types.ts` (MCP001-MCP024)
 
 ### Parser
 
-- [ ] T009 Implement JSONC parser wrapper in `src/tools/config/mcp/parser.ts` with `parseTree()` support
-- [ ] T010 Implement `offsetToPosition()` helper for line:column conversion in `src/tools/config/mcp/parser.ts`
-- [ ] T011 Implement `parseMcpConfig()` function that returns parsed config with position map
+- [x] T009 Implement JSONC parser wrapper in `src/tools/config/mcp/parser.ts` with `parseTree()` support
+- [x] T010 Implement `offsetToPosition()` helper for line:column conversion in `src/tools/config/mcp/parser.ts`
+- [x] T011 Implement `parseMcpConfig()` function that returns parsed config with position map
 
 ### Tests
 
-- [ ] T012 Write unit tests for JSONC parser in `__tests__/tools/config/mcp/parser.test.ts`
+- [x] T012 Write unit tests for JSONC parser in `__tests__/tools/config/mcp/parser.test.ts`
 
 **Checkpoint**: Core infrastructure complete
 - [ ] Types compile without errors

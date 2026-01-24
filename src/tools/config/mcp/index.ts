@@ -7,14 +7,14 @@
  * @module tools/config/mcp
  */
 
-// Types (to be implemented in T005)
+// Types (T005, T008)
 export * from './types';
 
-// Schemas (to be implemented in T006-T007)
-// export * from './schemas';
+// Schemas (T006-T007)
+export * from './schemas';
 
-// Parser (to be implemented in T009-T011)
-// export * from './parser';
+// Parser (T009-T011)
+export * from './parser';
 
 // Discovery (to be implemented in T017-T020)
 // export * from './discovery';
