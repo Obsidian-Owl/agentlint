@@ -36,9 +36,8 @@ import type { VerbosityLevel, StreamChunk } from '../../orchestration/types';
 import { registerAllTools } from '../../tools';
 import { createLoggerFromCLIOptions, setDefaultLogger } from '../../debug/logger';
 import { createRenderer } from '../renderers';
+import { TuiStreamRenderer, createTuiCanUseTool, type ITuiRenderer } from '../../tui';
 import { buildAnalysisPrompt } from './analyse-prompt';
-import { presentQuestionsInteractive } from '../components/question-presenter';
-import type { ClarifyingQuestion } from '../../recommendations/types';
 
 // Recommendation storage imports for clean-slate functionality and findings count
 import {
@@ -509,27 +508,52 @@ async function runOrchestratedAnalysis(
   const registry = createToolRegistry();
   registerAllTools(registry);
 
-  // Create orchestrator with configuration
-  // Issue 3 fix: Use agentlint's cwd, NOT target directory, to avoid loading
-  // target's .mcp.json which causes MCP connection timeouts (90s+ delays)
-  const verbosity = getVerbosityLevel(options);
-  const orchestrator = createOrchestrator(
-    {
-      verbosity,
-      cwd: process.cwd(), // Agentlint's directory, NOT target
-      settingSources: [], // Don't load ANY .mcp.json files
-      systemPromptAppend: `\nAnalysis target directory: ${directory}`,
-      // ADR-0021: Pass nonInteractive for CI/automation mode
-      nonInteractive: options.nonInteractive ?? false,
-    },
-    registry
-  );
-
   // Build the analysis prompt (async to load existing recommendations context)
   const prompt = await buildAnalysisPrompt(directory, scanResult, options);
 
   // Create renderer for output
   const renderer = createRenderer(outputMode, options);
+
+  // Extract TUI renderer if using Ink mode for lifecycle management and permission handling
+  let tuiRenderer: ITuiRenderer | undefined;
+  let canUseTool:
+    | ((
+        toolName: string,
+        input: Record<string, unknown>
+      ) => Promise<{
+        behavior: 'allow' | 'deny';
+        message?: string;
+        updatedInput?: Record<string, unknown>;
+      }>)
+    | undefined;
+  if (renderer instanceof TuiStreamRenderer) {
+    tuiRenderer = renderer.tuiRenderer;
+    // Only pass autoApprove if explicitly true (to satisfy exactOptionalPropertyTypes)
+    const permissionOptions = options.nonInteractive === true ? { autoApprove: true } : {};
+    canUseTool = createTuiCanUseTool(tuiRenderer, permissionOptions);
+  }
+
+  // Create orchestrator with configuration
+  // Issue 3 fix: Use agentlint's cwd, NOT target directory, to avoid loading
+  // target's .mcp.json which causes MCP connection timeouts (90s+ delays)
+  const verbosity = getVerbosityLevel(options);
+
+  // Build orchestrator config
+  const orchestratorConfig: Parameters<typeof createOrchestrator>[0] = {
+    verbosity,
+    cwd: process.cwd(), // Agentlint's directory, NOT target
+    settingSources: [], // Don't load ANY .mcp.json files
+    systemPromptAppend: `\nAnalysis target directory: ${directory}`,
+    // ADR-0021: Pass nonInteractive for CI/automation mode
+    nonInteractive: options.nonInteractive ?? false,
+  };
+
+  // EP17: Use TuiPermissionHandler when TUI mode is active
+  if (canUseTool) {
+    orchestratorConfig.canUseTool = canUseTool;
+  }
+
+  const orchestrator = createOrchestrator(orchestratorConfig, registry);
 
   // Set up interrupt handler
   let interrupted = false;
@@ -549,6 +573,18 @@ async function runOrchestratedAnalysis(
 
   // Bind interrupt handler
   process.on('SIGINT', handleInterrupt);
+
+  // Start TUI renderer if present (for Ink mode)
+  if (tuiRenderer) {
+    tuiRenderer.start({
+      onInput: (_input) => {
+        // Future: feed back into orchestrator for follow-up prompts
+      },
+      onExit: () => {
+        interrupted = true;
+      },
+    });
+  }
 
   try {
     // Run the orchestrator with execution context so tools know the target directory
@@ -614,22 +650,11 @@ async function runOrchestratedAnalysis(
         }
 
         // Handle human-in-the-loop questions
+        // Note: Interactive question answering is now handled via TuiPermissionHandler
+        // when the AskUserQuestion tool is used. The chunk is informational only.
         if (chunk.type === 'user_question') {
-          const questions = chunk.metadata?.questions as ClarifyingQuestion[] | undefined;
-          if (questions && questions.length > 0) {
-            if (options.nonInteractive) {
-              // In non-interactive mode, skip questions and use defaults
-              if (!options.quiet) {
-                console.log('\n[Non-interactive mode: Skipping questions, using default answers]');
-              }
-            } else {
-              // Present questions to user and collect answers
-              // Note: The answers aren't fed back to the agent in this implementation
-              // because the SDK doesn't support injecting user responses mid-session.
-              // This is primarily for user awareness/logging.
-              renderer.flush(); // Ensure any pending output is shown
-              await presentQuestionsInteractive(questions, { allowSkip: true });
-            }
+          if (options.nonInteractive && !options.quiet) {
+            console.log('\n[Non-interactive mode: Questions answered automatically]');
           }
         }
       }
@@ -660,6 +685,8 @@ async function runOrchestratedAnalysis(
     // Return result with error
     return buildAnalyseResult(directory, scanResult, findings, startTime, errorMessage);
   } finally {
+    // Stop TUI renderer if present
+    tuiRenderer?.stop();
     // Clean up interrupt handler
     process.removeListener('SIGINT', handleInterrupt);
   }

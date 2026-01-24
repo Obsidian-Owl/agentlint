@@ -409,6 +409,66 @@ describe('appReducer', () => {
     });
   });
 
+  describe('SET_PENDING_PERMISSION', () => {
+    test('should set pending permission', () => {
+      const state = createInitialState();
+      const permission = { tool: 'read_file', description: 'Read a file' };
+      const action: AppMessage = { type: 'SET_PENDING_PERMISSION', payload: { permission } };
+
+      const newState = appReducer(state, action);
+
+      expect(newState.pendingPermission).toEqual(permission);
+    });
+
+    test('should clear pending permission when null', () => {
+      const state = {
+        ...createInitialState(),
+        pendingPermission: { tool: 'read_file', description: 'Read a file' },
+      };
+      const action: AppMessage = { type: 'SET_PENDING_PERMISSION', payload: { permission: null } };
+
+      const newState = appReducer(state, action);
+
+      expect(newState.pendingPermission).toBeNull();
+    });
+  });
+
+  describe('SET_PENDING_QUESTIONS', () => {
+    test('should set pending questions', () => {
+      const state = createInitialState();
+      const questions = [
+        {
+          question: 'What is your name?',
+          header: 'Name',
+          options: [{ label: 'Option 1' }, { label: 'Option 2' }],
+        },
+      ];
+      const action: AppMessage = { type: 'SET_PENDING_QUESTIONS', payload: { questions } };
+
+      const newState = appReducer(state, action);
+
+      expect(newState.pendingQuestions).toEqual(questions);
+    });
+
+    test('should clear pending questions when null', () => {
+      const state = {
+        ...createInitialState(),
+        pendingQuestions: [
+          {
+            question: 'What is your name?',
+            header: 'Name',
+            options: [{ label: 'Option 1' }],
+          },
+        ],
+      };
+      const action: AppMessage = { type: 'SET_PENDING_QUESTIONS', payload: { questions: null } };
+
+      const newState = appReducer(state, action);
+
+      expect(newState.pendingQuestions).toBeNull();
+    });
+  });
+
   describe('SET_FOCUS', () => {
     test('should update focusTarget to main', () => {
       const state = { ...createInitialState(), focusTarget: 'dialog' as const };

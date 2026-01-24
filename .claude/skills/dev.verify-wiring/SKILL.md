@@ -26,6 +26,8 @@ Use this skill when:
 - `--scope=all` - Check entire src/ directory
 - `--strict` - Fail on any warning (not just errors)
 
+---
+
 ## Execution Steps
 
 ### Phase 1: Build Export Manifest
@@ -59,9 +61,21 @@ Entry points are the roots of the import graph:
 - **CLI**: `src/cli.ts` or `program.ts`
 - **Tools**: `tool-registry.ts`
 - **Orchestrator**: `orchestrator.ts`
+- **Commands**: `src/cli/commands/*.ts`
 
 For each export, trace the import chain back to an entry point.
 A valid path means the export is reachable from user-facing code.
+
+**CRITICAL**: Check not just imports but **actual invocation**:
+```typescript
+// INSUFFICIENT: File is imported but export not used
+import { InkRenderer } from './renderers';
+// InkRenderer is never instantiated or called
+
+// SUFFICIENT: Export is actually invoked
+import { InkRenderer } from './renderers';
+const renderer = new InkRenderer();  // Actually used
+```
 
 ### Phase 4: Identify Patterns
 
@@ -71,6 +85,7 @@ A valid path means the export is reachable from user-facing code.
 | Disconnected Subgraph | Group imports each other but nothing imports any | FAIL |
 | Test-Only Usage | Export only imported by tests/ | WARNING |
 | Wiring Task Incomplete | "Wire X to Y" but no import exists | FAIL |
+| **Imported But Unused** | Import exists but export never invoked | FAIL |
 
 **Orphaned Export:**
 ```
@@ -85,13 +100,196 @@ export function App() { ... }  // Never imported anywhere in src/
 // Nothing outside this group imports any of them
 ```
 
-**Test-Only Usage:**
-```
-export function helperFn() { ... }
-// Only imported by tests/unit/helper.test.ts
+**Imported But Unused (NEW):**
+```typescript
+// index.ts exports InkRenderer
+export { InkRenderer } from './ink-renderer';
+
+// Some file imports but never uses
+import { InkRenderer } from './tui';
+// InkRenderer never instantiated, called, or passed anywhere
 ```
 
-### Phase 5: Generate Report
+---
+
+## Phase 5: Criticality Assessment (NEW - REQUIRED)
+
+**This phase is CRITICAL. Do not skip or defer issues without explicit justification.**
+
+For EACH flagged issue, determine criticality by checking:
+
+### 5.1: Epic Scope Check
+
+Read the current epic's spec to determine if the unintegrated code is IN SCOPE:
+
+```
+specs/<current-epic>/spec.md
+specs/<current-epic>/plan.md
+specs/<current-epic>/tasks.md
+```
+
+**Questions to answer:**
+1. Is this export listed in the epic's deliverables?
+2. Does the plan reference this component being wired?
+3. Are there tasks for wiring this component?
+
+| Scope Status | Criticality |
+|--------------|-------------|
+| Explicitly in epic deliverables | **CRITICAL** - Must be wired before PR |
+| Mentioned in plan but no wiring task | **HIGH** - Likely missing wiring task |
+| Not mentioned anywhere | **MEDIUM** - May be future work or dead code |
+
+### 5.2: Intent Verification
+
+Read the source file's JSDoc/comments to understand intent:
+
+```typescript
+/**
+ * InkRenderer - Ink-based TUI Renderer
+ *
+ * Used by CLI when TTY is detected for interactive mode.
+ * Wired via createRenderer() in src/cli/renderers/index.ts
+ */
+```
+
+**Check if:**
+- Comments describe HOW it should be wired
+- Comments say "for future use" (defer is valid)
+- Comments say it's an internal helper (test-only may be OK)
+
+### 5.3: Cross-Reference Linear Tasks
+
+Check Linear for related wiring tasks:
+
+```
+mcp__linear__list_issues with label "wiring" or search "wire"
+```
+
+| Linear Status | Interpretation |
+|---------------|----------------|
+| Wiring task exists, status=Done | **FAIL** - Wiring incomplete despite "Done" |
+| Wiring task exists, status=Todo | **HIGH** - Wiring deferred but planned |
+| No wiring task exists | **HIGH** - Missing task, needs triage |
+
+### 5.4: Assign Final Criticality
+
+| Criticality | Criteria | Action Required |
+|-------------|----------|-----------------|
+| **CRITICAL** | In epic scope + should be wired per spec | Block PR, fix immediately |
+| **HIGH** | In epic scope but ambiguous | Clarify with user, likely needs fix |
+| **REQUIRES_USER_DECISION** | Not explicitly in scope | MUST ask user - cannot assume |
+
+**IMPORTANT**: There is no "MEDIUM" or "LOW" that allows deferral without user input.
+
+If code appears unintegrated and is not explicitly documented as "for future use" in the spec, you MUST ask the user:
+
+```
+WIRING DECISION REQUIRED
+
+Export: InkRenderer in src/tui/renderers/ink-renderer.ts
+Status: Built but not wired to any entry point
+
+This export is not explicitly mentioned in the current epic spec.
+I cannot determine if this is:
+  A) Missing wiring that should be fixed now
+  B) Intentionally deferred for a future epic
+
+Please confirm:
+  1. FIX NOW - This should be wired in this PR
+  2. DEFER - This is explicitly for future work (I will create a tracking issue)
+  3. REMOVE - This is dead code and should be deleted
+```
+
+**NEVER assume code is "for future use" without explicit user confirmation.**
+
+---
+
+## Phase 6: Deep Validation (Subagent)
+
+**For all CRITICAL and HIGH issues, spawn a validation subagent.**
+
+The subagent performs deep verification:
+
+### 6.1: Subagent Prompt
+
+```
+You are verifying a potential wiring issue.
+
+ISSUE: {export_name} in {file_path} appears unintegrated.
+DETECTION: {detection_method}
+INITIAL_CRITICALITY: {criticality}
+
+Your task:
+1. Read the source file to understand what the export does
+2. Read the epic spec (specs/{epic}/spec.md, plan.md, tasks.md)
+3. Search for any usage patterns that might have been missed
+4. Check if there are conditional code paths that use this export
+5. Determine if this is truly unintegrated or a false positive
+
+CRITICAL RULES:
+- You CANNOT decide something is "for future use" on your own
+- You CANNOT assume code is scaffolding or utility that's OK to skip
+- If you cannot PROVE it's wired or PROVE it's in epic scope, return REQUIRES_USER_DECISION
+
+Report (choose ONE):
+- VERIFIED_CRITICAL: Unintegrated AND explicitly in epic scope - must fix
+- VERIFIED_HIGH: Unintegrated, likely should be in scope - should fix
+- FALSE_POSITIVE: Actually wired via {specific_code_path}
+- REQUIRES_USER_DECISION: Cannot determine - user must decide
+
+You MUST NOT return any "deferred" or "medium" status. If unsure, return REQUIRES_USER_DECISION.
+```
+
+### 6.2: Subagent Checks
+
+The subagent MUST check:
+
+1. **Conditional Paths**: Is the export used in an if/switch branch?
+   ```typescript
+   if (mode === 'interactive') {
+     return new InkRenderer();  // Might be missed by static analysis
+   }
+   ```
+
+2. **Factory Functions**: Is it created dynamically?
+   ```typescript
+   const renderers = { ink: InkRenderer, headless: HeadlessRenderer };
+   return new renderers[mode]();
+   ```
+
+3. **Re-exports**: Is it exported for external consumers?
+   ```typescript
+   // index.ts
+   export { InkRenderer } from './ink-renderer';
+   // Even if not used internally, may be public API
+   ```
+
+4. **Spec Alignment**: Does the spec say this should work?
+   ```markdown
+   ## Deliverables
+   - InkRenderer wired to CLI via TTY detection
+   ```
+   If spec says it should be wired but it isn't → CRITICAL
+
+### 6.3: Subagent Verdict
+
+The subagent returns one of:
+- `VERIFIED_CRITICAL`: Confirmed unintegrated, in epic scope, blocks PR
+- `VERIFIED_HIGH`: Confirmed issue, should fix before PR
+- `FALSE_POSITIVE`: Actually integrated, detection was wrong
+- `REQUIRES_USER_DECISION`: Cannot determine scope/intent, MUST ask user
+
+**IMPORTANT**: There is no "MEDIUM" or "DEFERRED" option that allows the agent to skip issues without user input.
+
+If the subagent cannot definitively prove:
+1. The export is actually wired (FALSE_POSITIVE), OR
+2. The export is explicitly in epic scope (CRITICAL/HIGH)
+
+Then it MUST return `REQUIRES_USER_DECISION` and the skill MUST ask the user before proceeding.
+
+---
+
+## Phase 7: Generate Report
 
 ```markdown
 ## Wiring Verification Report
@@ -103,32 +301,74 @@ export function helperFn() { ... }
 | Test-Only | 12 | WARNING |
 | NOT INTEGRATED | 3 | FAIL |
 
-### Critical: Unintegrated Exports (MUST FIX)
+### Criticality Summary
 
-#### src/cli/components/App.tsx
-- **Export**: `App` (React Component)
-- **Imported By**: NONE
-- **Fix**: Wire to analyse command or remove
+| Criticality | Count | Blocking? |
+|-------------|-------|-----------|
+| CRITICAL | 1 | YES - Must fix |
+| HIGH | 2 | YES - Should fix |
+| REQUIRES_USER_DECISION | 1 | YES - Cannot proceed without user input |
+| FALSE_POSITIVE | 1 | NO - Resolved |
 
-#### src/cli/components/Progress.tsx
+### CRITICAL: Must Fix Before PR
+
+#### src/tui/renderers/ink-renderer.ts
+- **Export**: `InkRenderer` (class)
+- **Detection**: Orphaned - only imported by index.ts re-export
+- **Epic Scope**: YES - EP17 spec says "InkRenderer wired to CLI"
+- **Linear Task**: T045 "Wire TUI to CLI" marked Done
+- **Subagent Verdict**: VERIFIED_CRITICAL
+  - Checked createRenderer() - always returns HeadlessRenderer
+  - Spec explicitly requires TTY detection to use InkRenderer
+  - This is the "Ink component pattern" - code exists but isn't wired
+- **Fix**: Modify createRenderer() to check TTY and instantiate InkRenderer
+
+#### src/tui/components/Progress.tsx
 - **Export**: `Progress` (React Component)
-- **Imported By**: App.tsx (which is itself unintegrated)
-- **Fix**: Wire App.tsx first, then Progress will be integrated
+- **Detection**: Disconnected subgraph with App.tsx, FindingsList.tsx
+- **Epic Scope**: YES - EP17 deliverable
+- **Subagent Verdict**: VERIFIED_CRITICAL
+  - App.tsx imports Progress but App.tsx itself is never used
+  - Entry point trace fails: analyse.ts → createRenderer → HeadlessRenderer (not InkRenderer)
+- **Fix**: Wire InkRenderer first, then Progress will be reachable
 
-#### src/cli/components/FindingsList.tsx
-- **Export**: `FindingsList` (React Component)
-- **Imported By**: App.tsx (which is itself unintegrated)
-- **Fix**: Wire App.tsx first
+### HIGH: Should Fix Before PR
 
-### Warnings: Test-Only Exports
+#### src/tui/permissions/tui-permission-handler.ts
+- **Export**: `TuiPermissionHandler` (class)
+- **Detection**: Test-only usage
+- **Epic Scope**: YES - EP17 deliverable for TUI permission dialogs
+- **Subagent Verdict**: VERIFIED_HIGH
+  - Only imported by tests and by index.ts re-export
+  - Orchestrator uses readline-based handler instead
+  - Should be wired to orchestrator when TUI mode is active
+- **Fix**: Add canUseTool config option, wire TuiPermissionHandler
 
-These exports are only used by tests. Consider if they should be:
-1. Exposed as public API (add to index.ts)
-2. Made private (remove export)
-3. Left as-is (test utilities)
+### REQUIRES USER DECISION (Cannot proceed without input)
 
-- `src/utils/test-helpers.ts`: `createMockConfig()` - Test utility, OK
-- `src/parsers/internal.ts`: `parseRaw()` - Consider making private
+#### src/tui/utils/helpers.ts
+- **Export**: `formatDuration` (function)
+- **Detection**: Only imported by tests
+- **Epic Scope**: NOT MENTIONED in spec
+- **Subagent Verdict**: REQUIRES_USER_DECISION
+  - Cannot determine if this is:
+    A) A utility that should be wired to Progress component
+    B) A test helper that's correctly test-only
+    C) Dead code that should be removed
+- **User must choose**:
+  1. FIX NOW - Wire to Progress.tsx
+  2. DEFER - Create tracking issue
+  3. REMOVE - Delete as unused
+
+### Resolved: False Positives
+
+#### src/tui/utils/tty.ts
+- **Export**: `determineRenderMode` (function)
+- **Detection**: Appeared orphaned
+- **Subagent Verdict**: FALSE_POSITIVE
+  - PROOF: Used in createRenderer() at line 63 in conditional branch
+  - Was checking wrong import path initially
+- **Resolution**: Actually wired, no action needed
 ```
 
 ---
@@ -155,6 +395,15 @@ for exp in $exports; do
 done
 ```
 
+### Invocation Check (NEW)
+
+For each imported symbol, verify it's actually used:
+
+```bash
+# Check if symbol is invoked (not just imported)
+grep -E "(new ${symbol}|${symbol}\(|${symbol}\.)" "$importing_file"
+```
+
 ### Disconnected Subgraph Detection
 
 1. Build directed graph: file → files it imports
@@ -167,6 +416,7 @@ done
 ```
 Entry points:
   - src/cli.ts
+  - src/cli/commands/*.ts (all command files)
   - src/orchestration/tool-registry.ts
   - src/orchestration/orchestrator.ts
 
@@ -174,7 +424,62 @@ For each export:
   1. Find all files that import it
   2. For each importing file, recursively find its importers
   3. Stop when reaching an entry point (PASS) or exhausting graph (FAIL)
+  4. If PASS, verify the import is actually INVOKED (not just imported)
 ```
+
+---
+
+## Anti-Patterns to Catch
+
+### The "Ink Component Pattern"
+
+Components are built but never wired to the command that should use them:
+
+```
+src/tui/components/App.tsx      ← Built
+src/tui/components/Progress.tsx  ← Built
+src/tui/renderers/ink-renderer.ts ← Built
+src/cli/commands/analyse.ts      ← Uses HeadlessRenderer only!
+```
+
+**Detection**: Trace from analyse.ts → createRenderer() → HeadlessRenderer
+**Miss**: InkRenderer exists but is never in the execution path
+
+### The "Index Re-export Illusion"
+
+A module's index.ts re-exports everything, creating false impression of usage:
+
+```typescript
+// src/tui/index.ts
+export { InkRenderer } from './renderers/ink-renderer';
+export { HeadlessRenderer } from './renderers/headless-renderer';
+
+// Somewhere else
+import { HeadlessRenderer } from './tui';
+// InkRenderer is NOT imported, but appears "used" because index.ts imports it
+```
+
+**Detection**: Check actual imports at use sites, not just index.ts
+
+### The "Future Feature Excuse" (NEVER ACCEPT WITHOUT USER CONFIRMATION)
+
+Code flagged as unintegrated is dismissed as "for a future feature":
+
+```
+"This will be wired when we implement interactive mode"
+→ But the epic deliverables SAY interactive mode should work NOW
+```
+
+**CRITICAL RULE**: You CANNOT decide that code is "for future use" on your own.
+
+Even if:
+- The code looks like a utility that might be used later
+- The component seems like scaffolding for future features
+- You think it's obvious this isn't needed yet
+
+You MUST still ask the user. The pattern of "I'll assume this is for later" is exactly how EP17's TUI wiring was missed.
+
+**Detection**: Cross-reference with spec. If not explicitly in scope, ASK THE USER.
 
 ---
 
@@ -198,18 +503,62 @@ Wiring verification complete!
   Exports:   45 total
 
   Results:
-    Integrated:     42 (93%)
-    Test-Only:       2 (4%) [WARNING]
-    Unintegrated:    1 (2%) [FAIL]
+    Integrated:     40 (89%)
+    Test-Only:       2 (4%)  [WARNING]
+    Unintegrated:    3 (7%)  [FAIL]
 
-  Status: FAIL (1 unintegrated export)
+  Criticality Breakdown:
+    CRITICAL:            1 (blocks PR - must fix)
+    HIGH:                2 (should fix before PR)
+    REQUIRES_DECISION:   1 (BLOCKED - needs user input)
+    FALSE_POSITIVE:      1 (resolved)
 
-  Unintegrated:
-    - src/cli/components/NewFeature.tsx: NewFeature
-      → Fix: Import in src/cli/commands/analyse.ts
+  Status: BLOCKED (1 requires user decision)
 
-Run with --strict to fail on test-only warnings.
+  CRITICAL (must fix):
+    - src/tui/renderers/ink-renderer.ts: InkRenderer
+      Epic: EP17 | Linear: T045 (marked Done but not wired)
+      → Fix: Wire to createRenderer() with TTY detection
+
+  HIGH (should fix):
+    - src/tui/permissions/tui-permission-handler.ts: TuiPermissionHandler
+      Epic: EP17 | Linear: not found
+      → Fix: Wire to orchestrator canUseTool
+
+  REQUIRES USER DECISION:
+    - src/tui/utils/someHelper.ts: helperFunction
+      Status: Built but not used in any code path
+      Not mentioned in epic spec - cannot determine intent
+
+      Please choose:
+        1. FIX NOW - Wire this in current PR
+        2. DEFER - Create tracking issue for future epic
+        3. REMOVE - Delete as dead code
+
+Cannot proceed to PR until user decisions are made.
 ```
+
+---
+
+## Key Principle: Assume Issues Are Real, Require User Decisions
+
+**DEFAULT ASSUMPTION**: If code appears unintegrated, it IS unintegrated and MUST be fixed.
+
+**FORBIDDEN ASSUMPTIONS** (you CANNOT make these on your own):
+- "This will be used later" → ASK USER
+- "It's just a hook/utility" → ASK USER
+- "The component tree will use it" → VERIFY THE PATH
+- "This is scaffolding for future work" → ASK USER
+- "This looks like it's meant for a different feature" → ASK USER
+
+**The only valid reasons to NOT fix an unintegrated export:**
+1. User explicitly says "defer this to future epic X"
+2. Spec explicitly documents it as "for future implementation"
+3. Subagent verification proves it's a false positive (actually wired)
+
+The subagent validation exists to CONFIRM issues, not to find excuses to ignore them.
+
+**If in doubt, ASK THE USER. Never silently defer.**
 
 ---
 
@@ -226,6 +575,10 @@ This skill supports:
 ## Handoff
 
 After running this skill:
-- If PASS: Proceed to `/dev.pr`
-- If FAIL: Fix unintegrated exports, then re-run
-- If WARNINGS: Review test-only exports, decide if intentional
+- If CRITICAL issues: Stop, fix them, re-run
+- If HIGH issues: Fix before PR unless explicitly deferred by user
+- If REQUIRES_USER_DECISION: STOP and ask user - cannot proceed without their input
+- If WARNING (test-only): Document in PR, but still confirm with user if large
+- If all PASS: Proceed to `/dev.pr`
+
+**BLOCKING REQUIREMENT**: Any issue that requires user decision MUST be resolved before proceeding. Do not silently skip or defer.

@@ -26,16 +26,6 @@ export { AppContext, AppProvider, useApp, useAppState, useAppDispatch } from './
 // =============================================================================
 
 export { useKeyHandler, type KeyHandlerOptions } from './hooks/useKeyHandler';
-export {
-  useFocusManager,
-  type FocusManagerOptions,
-  type FocusManagerResult,
-} from './hooks/useFocusManager';
-export {
-  useStreamBuffer,
-  type StreamBufferOptions,
-  type StreamBufferResult,
-} from './hooks/useStreamBuffer';
 
 // =============================================================================
 // Components
@@ -47,6 +37,7 @@ export { InputField } from './components/InputField';
 export { DialogOverlay } from './components/DialogOverlay';
 export { PermissionDialog } from './components/PermissionDialog';
 export { RecommendationDialog } from './components/RecommendationDialog';
+export { QuestionDialog } from './components/QuestionDialog';
 export { Breadcrumbs } from './components/Breadcrumbs';
 export { Progress, type ProgressProps } from './components/Progress';
 export { FindingsList, type FindingsListProps } from './components/FindingsList';

@@ -9,8 +9,15 @@
 import React from 'react';
 import { render, type Instance } from 'ink';
 import { App } from '../components/App';
-import type { ITuiRenderer, AppProps, PermissionDecision, AppState } from '../types';
-import type { StreamChunk } from '../../orchestration/types';
+import type {
+  ITuiRenderer,
+  AppProps,
+  PermissionDecision,
+  AppState,
+  UserQuestion,
+  AnalysisPhase,
+} from '../types';
+import type { StreamChunk, Finding } from '../../orchestration/types';
 
 // =============================================================================
 // Types
@@ -21,6 +28,11 @@ interface PermissionRequest {
   description: string;
   pattern?: string;
   resolve: (decision: PermissionDecision) => void;
+}
+
+interface QuestionRequest {
+  questions: UserQuestion[];
+  resolve: (answers: Record<string, string>) => void;
 }
 
 // =============================================================================
@@ -36,8 +48,11 @@ interface PermissionRequest {
 export class InkRenderer implements ITuiRenderer {
   private instance: Instance | null = null;
   private chunks: StreamChunk[] = [];
+  private findings: Finding[] = [];
+  private currentPhase: AnalysisPhase = 'scanning';
   private isStreaming = false;
   private pendingPermission: PermissionRequest | null = null;
+  private pendingQuestions: QuestionRequest | null = null;
   private onInputCallback?: (input: string) => void;
   private onExitCallback?: () => void;
   private onStartCallback?: () => void;
@@ -55,6 +70,8 @@ export class InkRenderer implements ITuiRenderer {
       ...props.initialState,
       streamBuffer: this.chunks,
       isStreaming: this.isStreaming,
+      analysisPhase: this.currentPhase,
+      findings: this.findings,
     };
 
     // If there's a pending permission, add it to state
@@ -68,6 +85,14 @@ export class InkRenderer implements ITuiRenderer {
       }
       initialState.pendingPermission = pendingPerm;
       initialState.viewStack = ['permission'];
+    }
+
+    // If there's pending questions, add to state
+    if (this.pendingQuestions) {
+      initialState.pendingQuestions = this.pendingQuestions.questions;
+      if (!initialState.viewStack) {
+        initialState.viewStack = ['question'];
+      }
     }
 
     // Create wrapped callbacks to handle permission resolution
@@ -103,8 +128,11 @@ export class InkRenderer implements ITuiRenderer {
       this.instance = null;
     }
     this.chunks = [];
+    this.findings = [];
+    this.currentPhase = 'idle';
     this.isStreaming = false;
     this.pendingPermission = null;
+    this.pendingQuestions = null;
   }
 
   /**
@@ -113,6 +141,17 @@ export class InkRenderer implements ITuiRenderer {
   renderChunk(chunk: StreamChunk): void {
     this.chunks.push(chunk);
     this.isStreaming = true;
+
+    // Track phase changes
+    if (chunk.type === 'phase_change' && chunk.metadata?.newPhase) {
+      this.currentPhase = chunk.metadata.newPhase as AnalysisPhase;
+    }
+
+    // Extract findings
+    if (chunk.type === 'finding' && chunk.metadata?.finding) {
+      this.findings.push(chunk.metadata.finding as Finding);
+    }
+
     this.rerender();
   }
 
@@ -121,6 +160,7 @@ export class InkRenderer implements ITuiRenderer {
    */
   renderComplete(_result: unknown): void {
     this.isStreaming = false;
+    this.currentPhase = 'presenting';
     this.rerender();
   }
 
@@ -146,6 +186,23 @@ export class InkRenderer implements ITuiRenderer {
   }
 
   /**
+   * Request answers to questions from user.
+   *
+   * Opens the question dialog and waits for user answers.
+   */
+  requestUserAnswers(request: { questions: UserQuestion[] }): Promise<Record<string, string>> {
+    return new Promise((resolve) => {
+      this.pendingQuestions = {
+        questions: request.questions,
+        resolve,
+      };
+
+      // Rerender with question dialog
+      this.rerender();
+    });
+  }
+
+  /**
    * Rerender the app with current state.
    */
   private rerender(): void {
@@ -156,6 +213,8 @@ export class InkRenderer implements ITuiRenderer {
     const initialState: Partial<AppState> = {
       streamBuffer: this.chunks,
       isStreaming: this.isStreaming,
+      analysisPhase: this.currentPhase,
+      findings: this.findings,
     };
 
     if (this.pendingPermission) {
@@ -168,6 +227,14 @@ export class InkRenderer implements ITuiRenderer {
       }
       initialState.pendingPermission = pendingPerm;
       initialState.viewStack = ['permission'];
+    }
+
+    if (this.pendingQuestions) {
+      initialState.pendingQuestions = this.pendingQuestions.questions;
+      // Only set viewStack if not already set by permission
+      if (!initialState.viewStack) {
+        initialState.viewStack = ['question'];
+      }
     }
 
     // Note: Ink's rerender() is deprecated - in a real implementation

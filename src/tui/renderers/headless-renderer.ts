@@ -7,7 +7,8 @@
  * @module tui/renderers/headless-renderer
  */
 
-import type { ITuiRenderer, AppProps, PermissionDecision } from '../types';
+import * as readline from 'node:readline';
+import type { ITuiRenderer, AppProps, PermissionDecision, UserQuestion } from '../types';
 import type { StreamChunk } from '../../orchestration/types';
 
 // =============================================================================
@@ -195,6 +196,101 @@ export class HeadlessRenderer implements ITuiRenderer {
     }
 
     return Promise.resolve(decision);
+  }
+
+  /**
+   * Request answers to questions from user.
+   *
+   * In headless mode with denyAll/quiet, auto-selects first option.
+   * Otherwise, uses readline for interactive input.
+   */
+  async requestUserAnswers(request: {
+    questions: UserQuestion[];
+  }): Promise<Record<string, string>> {
+    const answers: Record<string, string> = {};
+
+    // In denyAll mode or quiet mode, auto-select first option
+    if (this.options.denyAll || this.options.quiet) {
+      for (const question of request.questions) {
+        const firstOption = question.options[0];
+        answers[question.question] = firstOption?.label ?? 'skipped';
+      }
+
+      if (this.options.json) {
+        this.outputJson({
+          type: 'questions',
+          questions: request.questions.map((q) => q.question),
+          answers,
+          mode: 'auto',
+        });
+      }
+
+      return answers;
+    }
+
+    // Interactive mode: use readline
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    });
+
+    try {
+      for (const question of request.questions) {
+        const answer = await this.askQuestion(rl, question);
+        answers[question.question] = answer;
+      }
+    } finally {
+      rl.close();
+    }
+
+    if (this.options.json) {
+      this.outputJson({
+        type: 'questions',
+        questions: request.questions.map((q) => q.question),
+        answers,
+        mode: 'interactive',
+      });
+    }
+
+    return answers;
+  }
+
+  /**
+   * Ask a single question via readline.
+   */
+  private askQuestion(rl: readline.Interface, question: UserQuestion): Promise<string> {
+    return new Promise((resolve) => {
+      // Display question
+      console.log('');
+      console.log(`[${question.header}] ${question.question}`);
+      console.log('');
+
+      // Display options
+      question.options.forEach((opt, i) => {
+        console.log(`  ${i + 1}. ${opt.label}`);
+        if (opt.description) {
+          console.log(`     ${opt.description}`);
+        }
+      });
+
+      console.log('');
+
+      rl.question('Enter choice (number): ', (input) => {
+        const trimmed = input.trim();
+        const choice = parseInt(trimmed, 10);
+
+        // Valid option selection
+        if (choice >= 1 && choice <= question.options.length) {
+          const selectedOption = question.options[choice - 1];
+          resolve(selectedOption?.label ?? 'selected');
+          return;
+        }
+
+        // Invalid input - use first option as default
+        const firstOption = question.options[0];
+        resolve(firstOption?.label ?? 'default');
+      });
+    });
   }
 
   /**

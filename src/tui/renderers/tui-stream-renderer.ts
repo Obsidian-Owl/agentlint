@@ -23,17 +23,24 @@ import type { AnalyseFinding, AnalyseResult } from '../../cli/commands/analyse';
  * used wherever IStreamRenderer is expected.
  */
 export class TuiStreamRenderer implements IStreamRenderer {
-  private tuiRenderer: ITuiRenderer;
+  private _tuiRenderer: ITuiRenderer;
 
   constructor(tuiRenderer: ITuiRenderer) {
-    this.tuiRenderer = tuiRenderer;
+    this._tuiRenderer = tuiRenderer;
+  }
+
+  /**
+   * Access underlying TUI renderer for lifecycle management.
+   */
+  get tuiRenderer(): ITuiRenderer {
+    return this._tuiRenderer;
   }
 
   /**
    * Render a stream chunk.
    */
   renderChunk(chunk: StreamChunk): void {
-    this.tuiRenderer.renderChunk(chunk);
+    this._tuiRenderer.renderChunk(chunk);
   }
 
   /**
@@ -59,7 +66,7 @@ export class TuiStreamRenderer implements IStreamRenderer {
         },
       },
     };
-    this.tuiRenderer.renderChunk(chunk);
+    this._tuiRenderer.renderChunk(chunk);
   }
 
   /**
@@ -78,7 +85,7 @@ export class TuiStreamRenderer implements IStreamRenderer {
         stack: error.stack,
       },
     };
-    this.tuiRenderer.renderChunk(chunk);
+    this._tuiRenderer.renderChunk(chunk);
   }
 
   /**

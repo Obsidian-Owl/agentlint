@@ -22,7 +22,7 @@ export type { HeadlessRendererOptions } from '../../tui';
 import type { OutputMode, GlobalOptions } from '../types';
 import type { IStreamRenderer } from './stream-renderer';
 import { createJsonRenderer } from './json-renderer';
-import { HeadlessRenderer, TuiStreamRenderer } from '../../tui';
+import { HeadlessRenderer, TuiStreamRenderer, InkRenderer, determineRenderMode } from '../../tui';
 
 /**
  * Create a headless renderer with options.
@@ -53,11 +53,23 @@ export function createRenderer(mode: OutputMode, options: GlobalOptions): IStrea
     case 'json':
       return createJsonRenderer(options);
 
-    case 'terminal':
+    case 'terminal': {
+      // Use TTY detection to choose renderer
+      const renderMode = determineRenderMode({
+        nonInteractive: options.nonInteractive === true,
+        json: false,
+      });
+
+      if (renderMode === 'ink') {
+        const inkRenderer = new InkRenderer();
+        return new TuiStreamRenderer(inkRenderer);
+      }
+      return createHeadlessRenderer(options);
+    }
+
     case 'plain':
     case 'markdown':
-      // All non-JSON modes use headless renderer
-      // Plain mode will have colors disabled via environment
+      // Plain and markdown modes always use headless renderer
       return createHeadlessRenderer(options);
 
     default:

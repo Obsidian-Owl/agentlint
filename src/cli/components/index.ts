@@ -23,14 +23,6 @@ export {
   type BaselineSummary as CompareBaselineSummary,
 } from '../../tui/components/CompareView';
 
-// Legacy question presenter (still used by can-use-tool.ts for AskUserQuestion)
-export {
-  presentQuestionsInteractive,
-  confirmPrompt,
-  type QuestionAnswer,
-  type PresentQuestionsOptions,
-} from './question-presenter';
-
 // Re-export App from TUI for backwards compatibility
 export { App } from '../../tui/components/App';
 export type { AppProps } from '../../tui/types';

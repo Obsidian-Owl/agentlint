@@ -38,6 +38,7 @@ function createMockRenderer(): ITuiRenderer & { mockDecision: PermissionDecision
     renderChunk: mock((_chunk: StreamChunk) => {}),
     renderComplete: mock((_result: unknown) => {}),
     requestPermission: mock(async (_request) => mockDecision),
+    requestUserAnswers: mock(async (_request) => ({})),
   };
 }
 
@@ -198,6 +199,108 @@ describe('TuiPermissionHandler', () => {
       );
       expect(call[0].description).toContain('/tmp/output.txt');
     });
+  });
+});
+
+describe('AskUserQuestion handling', () => {
+  let mockRenderer: ReturnType<typeof createMockRenderer>;
+  let handler: TuiPermissionHandler;
+
+  beforeEach(() => {
+    mockRenderer = createMockRenderer();
+    handler = new TuiPermissionHandler(mockRenderer);
+  });
+
+  test('should call requestUserAnswers for AskUserQuestion tool', async () => {
+    const questions = [
+      {
+        question: 'What framework?',
+        header: 'Framework',
+        options: [{ label: 'React' }, { label: 'Vue' }],
+      },
+    ];
+
+    await handler.canUseTool('AskUserQuestion', { questions });
+
+    expect(mockRenderer.requestUserAnswers).toHaveBeenCalled();
+  });
+
+  test('should not call requestPermission for AskUserQuestion', async () => {
+    const questions = [
+      {
+        question: 'What framework?',
+        header: 'Framework',
+        options: [{ label: 'React' }, { label: 'Vue' }],
+      },
+    ];
+
+    await handler.canUseTool('AskUserQuestion', { questions });
+
+    expect(mockRenderer.requestPermission).not.toHaveBeenCalled();
+  });
+
+  test('should return allow behavior with answers in updatedInput', async () => {
+    const mockAnswers = { 'What framework?': 'React' };
+    mockRenderer.requestUserAnswers = mock(async () => mockAnswers);
+
+    const questions = [
+      {
+        question: 'What framework?',
+        header: 'Framework',
+        options: [{ label: 'React' }, { label: 'Vue' }],
+      },
+    ];
+
+    const result = await handler.canUseTool('AskUserQuestion', { questions });
+
+    expect(result.behavior).toBe('allow');
+    if (result.behavior === 'allow') {
+      expect(result.updatedInput).toBeDefined();
+      expect((result.updatedInput as { answers: Record<string, string> }).answers).toEqual(
+        mockAnswers
+      );
+    }
+  });
+
+  test('should auto-approve in autoApprove mode without asking questions', async () => {
+    handler = new TuiPermissionHandler(mockRenderer, { autoApprove: true });
+
+    const questions = [
+      {
+        question: 'What framework?',
+        header: 'Framework',
+        options: [{ label: 'React' }],
+      },
+    ];
+
+    const result = await handler.canUseTool('AskUserQuestion', { questions });
+
+    expect(result.behavior).toBe('allow');
+    expect(mockRenderer.requestUserAnswers).not.toHaveBeenCalled();
+  });
+
+  test('should auto-deny in autoDeny mode', async () => {
+    handler = new TuiPermissionHandler(mockRenderer, { autoDeny: true });
+
+    const questions = [
+      {
+        question: 'What framework?',
+        header: 'Framework',
+        options: [{ label: 'React' }],
+      },
+    ];
+
+    const result = await handler.canUseTool('AskUserQuestion', { questions });
+
+    expect(result.behavior).toBe('deny');
+    expect(mockRenderer.requestUserAnswers).not.toHaveBeenCalled();
+  });
+
+  test('should handle empty questions array', async () => {
+    const result = await handler.canUseTool('AskUserQuestion', { questions: [] });
+
+    expect(result.behavior).toBe('allow');
+    expect(mockRenderer.requestUserAnswers).not.toHaveBeenCalled();
   });
 });
 

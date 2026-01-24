@@ -8,7 +8,7 @@
  */
 
 import type { PermissionResult } from '@anthropic-ai/claude-agent-sdk';
-import type { ITuiRenderer, PermissionDecision } from '../types';
+import type { ITuiRenderer, PermissionDecision, UserQuestion, UserQuestionOption } from '../types';
 
 // =============================================================================
 // Types
@@ -54,6 +54,11 @@ export class TuiPermissionHandler {
    * @returns Permission result
    */
   async canUseTool(toolName: string, input: Record<string, unknown>): Promise<PermissionResult> {
+    // Special handling for AskUserQuestion tool
+    if (toolName === 'AskUserQuestion') {
+      return this.handleAskUserQuestion(input);
+    }
+
     // Generate cache key
     const pattern = this.extractPattern(toolName, input);
     const cacheKey = pattern ? `${toolName}:${pattern}` : toolName;
@@ -107,6 +112,64 @@ export class TuiPermissionHandler {
    */
   getCache(): Map<string, PermissionDecision> {
     return new Map(this.cache);
+  }
+
+  /**
+   * Handle AskUserQuestion tool specially.
+   *
+   * Instead of asking for permission, presents questions to the user
+   * and returns the answers via updatedInput.
+   */
+  private async handleAskUserQuestion(input: Record<string, unknown>): Promise<PermissionResult> {
+    // Auto-approve mode - skip questions
+    if (this.options.autoApprove) {
+      return { behavior: 'allow' };
+    }
+
+    // Auto-deny mode - deny the tool entirely
+    if (this.options.autoDeny) {
+      return { behavior: 'deny', message: 'Questions auto-denied' };
+    }
+
+    // Extract questions from input
+    const rawQuestions = input.questions;
+    if (!Array.isArray(rawQuestions) || rawQuestions.length === 0) {
+      // No questions to ask, allow the tool
+      return { behavior: 'allow' };
+    }
+
+    // Convert SDK question format to our UserQuestion format
+    const questions: UserQuestion[] = rawQuestions.map((q: unknown) => {
+      const question = q as Record<string, unknown>;
+      const options = (question.options as Array<Record<string, unknown>> | undefined) ?? [];
+
+      return {
+        question: (question.question as string) ?? '',
+        header: (question.header as string) ?? 'Question',
+        options: options.map((opt): UserQuestionOption => {
+          const optionObj: UserQuestionOption = {
+            label: (opt.label as string) ?? '',
+          };
+          if (typeof opt.description === 'string') {
+            optionObj.description = opt.description;
+          }
+          return optionObj;
+        }),
+        multiSelect: (question.multiSelect as boolean) ?? false,
+      };
+    });
+
+    // Request answers from user via TUI
+    const answers = await this.renderer.requestUserAnswers({ questions });
+
+    // Return with updatedInput containing answers
+    return {
+      behavior: 'allow',
+      updatedInput: {
+        ...input,
+        answers,
+      },
+    };
   }
 
   /**

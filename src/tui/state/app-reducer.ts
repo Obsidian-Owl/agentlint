@@ -124,6 +124,12 @@ export const appReducer: AppReducer = (state: AppState, message: AppMessage): Ap
         pendingPermission: message.payload.permission,
       };
 
+    case 'SET_PENDING_QUESTIONS':
+      return {
+        ...state,
+        pendingQuestions: message.payload.questions,
+      };
+
     case 'SET_FOCUS':
       return {
         ...state,

@@ -27,7 +27,41 @@ export type AnalysisPhase = 'idle' | 'scanning' | 'presenting' | 'exploring';
 /**
  * Types of dialog overlays that can be displayed.
  */
-export type DialogType = 'permission' | 'recommendation' | 'session-list' | 'session-timeline';
+export type DialogType =
+  | 'permission'
+  | 'recommendation'
+  | 'question'
+  | 'session-list'
+  | 'session-timeline';
+
+// =============================================================================
+// User Questions (AskUserQuestion Tool)
+// =============================================================================
+
+/**
+ * Option for a user question.
+ */
+export interface UserQuestionOption {
+  /** Display label for the option */
+  label: string;
+  /** Description explaining the option */
+  description?: string;
+}
+
+/**
+ * A question to present to the user.
+ * Maps to the AskUserQuestion tool's question structure.
+ */
+export interface UserQuestion {
+  /** The complete question to ask */
+  question: string;
+  /** Short header/label for the question */
+  header: string;
+  /** Available options (2-4 options) */
+  options: UserQuestionOption[];
+  /** Whether multiple options can be selected */
+  multiSelect?: boolean;
+}
 
 /**
  * Focus target for key routing.
@@ -164,6 +198,10 @@ export interface AppState {
   /** Pending permission request (shown in dialog) */
   pendingPermission: { tool: string; description: string; pattern?: string } | null;
 
+  // Questions (AskUserQuestion tool)
+  /** Pending questions from AskUserQuestion tool */
+  pendingQuestions: UserQuestion[] | null;
+
   // Recovery
   lastCheckpoint: SessionCheckpoint | null;
 }
@@ -194,6 +232,10 @@ export type AppMessage =
   | {
       type: 'SET_PENDING_PERMISSION';
       payload: { permission: { tool: string; description: string; pattern?: string } | null };
+    }
+  | {
+      type: 'SET_PENDING_QUESTIONS';
+      payload: { questions: UserQuestion[] | null };
     }
   | { type: 'SET_FOCUS'; payload: { target: FocusTarget } }
   | { type: 'SET_CHECKPOINT'; payload: { checkpoint: SessionCheckpoint } };
@@ -236,6 +278,7 @@ export function createInitialState(): AppState {
     recommendations: [],
     permissionCache: new Map(),
     pendingPermission: null,
+    pendingQuestions: null,
     lastCheckpoint: null,
   };
 }
@@ -321,6 +364,18 @@ export interface RecommendationDialogProps {
 }
 
 /**
+ * Props for QuestionDialog component.
+ */
+export interface QuestionDialogProps {
+  /** Questions to present to the user */
+  questions: UserQuestion[];
+  /** Handler for when all questions are answered */
+  onSubmit: (answers: Record<string, string>) => void;
+  /** Handler for when user cancels (Escape) */
+  onCancel?: () => void;
+}
+
+/**
  * Props for Breadcrumbs component.
  */
 export interface BreadcrumbsProps {
@@ -353,4 +408,6 @@ export interface ITuiRenderer {
     description: string;
     pattern?: string;
   }): Promise<PermissionDecision>;
+  /** Request answers to questions from user (AskUserQuestion tool) */
+  requestUserAnswers(request: { questions: UserQuestion[] }): Promise<Record<string, string>>;
 }
