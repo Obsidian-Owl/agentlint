@@ -10,10 +10,10 @@
 export * from './timeline';
 
 // Tool sequence extraction (T032-T034)
-// export * from './tool-sequences';
+export * from './tool-sequences';
 
 // File access extraction (T035)
-// export * from './file-accesses';
+export * from './file-accesses';
 
 // Compression event extraction (T022)
 export * from './compressions';
