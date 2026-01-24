@@ -51,7 +51,7 @@
 ### Types (write first)
 
 - [x] T007 [P] Create `src/sessions/types.ts` with core type definitions from contracts/interfaces.ts
-- [ ] T008 [P] Create `src/sessions/schemas.ts` with Zod validation schemas
+- [x] T008 [P] Create `src/sessions/schemas.ts` with Zod validation schemas
 - [ ] T009 Write unit test for Zod schema validation in `tests/unit/sessions/schemas.test.ts`
 
 ### Database Schema

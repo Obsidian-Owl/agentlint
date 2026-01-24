@@ -10,8 +10,8 @@
 // Types (T007)
 export * from './types';
 
-// Schemas will be exported from ./schemas.ts (T008)
-// export * from './schemas';
+// Schemas (T008)
+export * from './schemas';
 
 // Extraction functions will be exported from ./extraction (Phase 3-7)
 // export * from './extraction';
