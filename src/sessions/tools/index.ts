@@ -16,7 +16,7 @@ export * from './get-tool-sequences-tool';
 export * from './get-file-accesses-tool';
 
 // Delegation events tool (T044-T046)
-// export * from './get-delegation-events-tool';
+export * from './get-delegation-events-tool';
 
 // Quality signals tool (T053-T054)
 // export * from './get-quality-signals-tool';

@@ -19,7 +19,7 @@ export * from './file-accesses';
 export * from './compressions';
 
 // Delegation extraction (T041-T043)
-// export * from './delegations';
+export * from './delegations';
 
 // MCP call extraction (T057-T059)
 // export * from './mcp-calls';
