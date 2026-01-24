@@ -7,7 +7,7 @@
     "epic_label_id": "f55ba727-60a5-4f1c-bf32-6d641609bdc0",
     "team_id": "026f9bb0-5934-4186-b047-155812ae914d",
     "created_at": "2026-01-24T07:02:31.000Z",
-    "last_sync": "2026-01-24T07:06:04.000Z"
+    "last_sync": "2026-01-24T09:30:00.000Z"
   },
   "mappings": {
     "T001": {
@@ -15,7 +15,7 @@
       "linear_identifier": "AGE-830",
       "title": "T001: Create src/tui/ directory structure per plan.md",
       "url": "https://linear.app/obsidianowl/issue/AGE-830",
-      "status": "Todo",
+      "status": "Done",
       "phase": 1
     },
     "T002": {
@@ -23,7 +23,7 @@
       "linear_identifier": "AGE-831",
       "title": "T002: Create src/tui/index.ts with public exports",
       "url": "https://linear.app/obsidianowl/issue/AGE-831",
-      "status": "Todo",
+      "status": "Done",
       "phase": 1
     },
     "T003": {
@@ -31,7 +31,7 @@
       "linear_identifier": "AGE-832",
       "title": "T003: Verify ink 5.x and @inkjs/ui 2.x are in dependencies",
       "url": "https://linear.app/obsidianowl/issue/AGE-832",
-      "status": "Todo",
+      "status": "Done",
       "phase": 1
     },
     "T004": {
@@ -39,7 +39,7 @@
       "linear_identifier": "AGE-833",
       "title": "T004: Add ink-testing-library to devDependencies",
       "url": "https://linear.app/obsidianowl/issue/AGE-833",
-      "status": "Todo",
+      "status": "Done",
       "phase": 1
     },
     "T005": {
@@ -47,7 +47,7 @@
       "linear_identifier": "AGE-834",
       "title": "T005: Create src/tui/permissions/ directory for permission persistence",
       "url": "https://linear.app/obsidianowl/issue/AGE-834",
-      "status": "Todo",
+      "status": "Done",
       "phase": 1
     },
     "T006": {
@@ -55,7 +55,7 @@
       "linear_identifier": "AGE-835",
       "title": "T006: Create type definitions in src/tui/types.ts matching contracts",
       "url": "https://linear.app/obsidianowl/issue/AGE-835",
-      "status": "Todo",
+      "status": "Done",
       "phase": 2
     },
     "T007": {
@@ -63,7 +63,7 @@
       "linear_identifier": "AGE-836",
       "title": "T007: Create AnalysisPhase, DialogType, FocusTarget enums in types.ts",
       "url": "https://linear.app/obsidianowl/issue/AGE-836",
-      "status": "Todo",
+      "status": "Done",
       "phase": 2
     },
     "T008": {
@@ -71,7 +71,7 @@
       "linear_identifier": "AGE-837",
       "title": "T008: Create ExplorationStep, AgentOption, ConversationalContext interfaces",
       "url": "https://linear.app/obsidianowl/issue/AGE-837",
-      "status": "Todo",
+      "status": "Done",
       "phase": 2
     },
     "T009": {
@@ -79,7 +79,7 @@
       "linear_identifier": "AGE-838",
       "title": "T009: Create PermissionDecision, PermissionRecord, PermissionStore interfaces",
       "url": "https://linear.app/obsidianowl/issue/AGE-838",
-      "status": "Todo",
+      "status": "Done",
       "phase": 2
     },
     "T010": {
@@ -87,7 +87,7 @@
       "linear_identifier": "AGE-839",
       "title": "T010: Create AppState interface with all fields per data-model.md",
       "url": "https://linear.app/obsidianowl/issue/AGE-839",
-      "status": "Todo",
+      "status": "Done",
       "phase": 2
     },
     "T011": {
@@ -95,7 +95,7 @@
       "linear_identifier": "AGE-840",
       "title": "T011: Create AppMessage discriminated union type for reducer actions",
       "url": "https://linear.app/obsidianowl/issue/AGE-840",
-      "status": "Todo",
+      "status": "Done",
       "phase": 2
     },
     "T012": {
@@ -103,7 +103,7 @@
       "linear_identifier": "AGE-841",
       "title": "T012: Create createInitialState() factory function",
       "url": "https://linear.app/obsidianowl/issue/AGE-841",
-      "status": "Todo",
+      "status": "Done",
       "phase": 2
     },
     "T013": {
@@ -111,7 +111,7 @@
       "linear_identifier": "AGE-842",
       "title": "T013: Write unit tests for appReducer",
       "url": "https://linear.app/obsidianowl/issue/AGE-842",
-      "status": "Todo",
+      "status": "Done",
       "phase": 2
     },
     "T014": {
@@ -119,7 +119,7 @@
       "linear_identifier": "AGE-843",
       "title": "T014: Implement appReducer with all state transitions",
       "url": "https://linear.app/obsidianowl/issue/AGE-843",
-      "status": "Todo",
+      "status": "Done",
       "phase": 2
     },
     "T015": {
@@ -127,7 +127,7 @@
       "linear_identifier": "AGE-844",
       "title": "T015: Create AppContext provider with useReducer",
       "url": "https://linear.app/obsidianowl/issue/AGE-844",
-      "status": "Todo",
+      "status": "Done",
       "phase": 2
     },
     "T016": {
@@ -135,7 +135,7 @@
       "linear_identifier": "AGE-845",
       "title": "T016: Write unit tests for AppContext",
       "url": "https://linear.app/obsidianowl/issue/AGE-845",
-      "status": "Todo",
+      "status": "Done",
       "phase": 2
     },
     "T017": {
@@ -143,7 +143,7 @@
       "linear_identifier": "AGE-846",
       "title": "T017: Implement useKeyHandler hook (vim j/k, 1-9, ESC)",
       "url": "https://linear.app/obsidianowl/issue/AGE-846",
-      "status": "Todo",
+      "status": "Done",
       "phase": 2
     },
     "T018": {
@@ -151,7 +151,7 @@
       "linear_identifier": "AGE-847",
       "title": "T018: Implement useFocusManager hook for dialog focus trapping",
       "url": "https://linear.app/obsidianowl/issue/AGE-847",
-      "status": "Todo",
+      "status": "Done",
       "phase": 2
     },
     "T019": {
@@ -159,7 +159,7 @@
       "linear_identifier": "AGE-848",
       "title": "T019: Implement useStreamBuffer hook for input buffering",
       "url": "https://linear.app/obsidianowl/issue/AGE-848",
-      "status": "Todo",
+      "status": "Done",
       "phase": 2
     },
     "T020": {
@@ -167,7 +167,7 @@
       "linear_identifier": "AGE-849",
       "title": "T020: Write component tests for DialogOverlay",
       "url": "https://linear.app/obsidianowl/issue/AGE-849",
-      "status": "Todo",
+      "status": "Done",
       "phase": 3
     },
     "T021": {
@@ -175,7 +175,7 @@
       "linear_identifier": "AGE-850",
       "title": "T021: Write component tests for AgentOutput",
       "url": "https://linear.app/obsidianowl/issue/AGE-850",
-      "status": "Todo",
+      "status": "Done",
       "phase": 3
     },
     "T022": {
@@ -183,7 +183,7 @@
       "linear_identifier": "AGE-851",
       "title": "T022: Write component tests for InputField",
       "url": "https://linear.app/obsidianowl/issue/AGE-851",
-      "status": "Todo",
+      "status": "Done",
       "phase": 3
     },
     "T023": {
@@ -191,7 +191,7 @@
       "linear_identifier": "AGE-852",
       "title": "T023: Write component tests for Breadcrumbs",
       "url": "https://linear.app/obsidianowl/issue/AGE-852",
-      "status": "Todo",
+      "status": "Done",
       "phase": 3
     },
     "T024": {
@@ -199,7 +199,7 @@
       "linear_identifier": "AGE-853",
       "title": "T024: Implement DialogOverlay component with focus trapping",
       "url": "https://linear.app/obsidianowl/issue/AGE-853",
-      "status": "Todo",
+      "status": "Done",
       "phase": 3
     },
     "T025": {
@@ -207,7 +207,7 @@
       "linear_identifier": "AGE-854",
       "title": "T025: Implement AgentOutput component with markdown streaming",
       "url": "https://linear.app/obsidianowl/issue/AGE-854",
-      "status": "Todo",
+      "status": "Done",
       "phase": 3
     },
     "T026": {
@@ -215,7 +215,7 @@
       "linear_identifier": "AGE-855",
       "title": "T026: Implement InputField component with buffer",
       "url": "https://linear.app/obsidianowl/issue/AGE-855",
-      "status": "Todo",
+      "status": "Done",
       "phase": 3
     },
     "T027": {
@@ -223,7 +223,7 @@
       "linear_identifier": "AGE-856",
       "title": "T027: Implement Breadcrumbs component",
       "url": "https://linear.app/obsidianowl/issue/AGE-856",
-      "status": "Todo",
+      "status": "Done",
       "phase": 3
     },
     "T028": {
@@ -231,7 +231,7 @@
       "linear_identifier": "AGE-857",
       "title": "T028: Write component tests for PermissionDialog",
       "url": "https://linear.app/obsidianowl/issue/AGE-857",
-      "status": "Todo",
+      "status": "Done",
       "phase": 3
     },
     "T029": {
@@ -239,7 +239,7 @@
       "linear_identifier": "AGE-858",
       "title": "T029: Implement PermissionDialog with session/permanent choice",
       "url": "https://linear.app/obsidianowl/issue/AGE-858",
-      "status": "Todo",
+      "status": "Done",
       "phase": 3
     },
     "T030": {
@@ -247,7 +247,7 @@
       "linear_identifier": "AGE-859",
       "title": "T030: Write component tests for RecommendationDialog",
       "url": "https://linear.app/obsidianowl/issue/AGE-859",
-      "status": "Todo",
+      "status": "Done",
       "phase": 3
     },
     "T031": {
@@ -255,7 +255,7 @@
       "linear_identifier": "AGE-860",
       "title": "T031: Implement RecommendationDialog with accept/dismiss/defer",
       "url": "https://linear.app/obsidianowl/issue/AGE-860",
-      "status": "Todo",
+      "status": "Done",
       "phase": 3
     },
     "T032": {
@@ -263,7 +263,7 @@
       "linear_identifier": "AGE-861",
       "title": "T032: Write component tests for new App component",
       "url": "https://linear.app/obsidianowl/issue/AGE-861",
-      "status": "Todo",
+      "status": "Done",
       "phase": 4
     },
     "T033": {
@@ -271,7 +271,7 @@
       "linear_identifier": "AGE-862",
       "title": "T033: Implement new App component (replaces cli/components/App.tsx)",
       "url": "https://linear.app/obsidianowl/issue/AGE-862",
-      "status": "Todo",
+      "status": "Done",
       "phase": 4
     },
     "T034": {
@@ -279,7 +279,7 @@
       "linear_identifier": "AGE-863",
       "title": "T034: Wire App to use AppContext provider",
       "url": "https://linear.app/obsidianowl/issue/AGE-863",
-      "status": "Todo",
+      "status": "Done",
       "phase": 4
     },
     "T035": {
@@ -287,7 +287,7 @@
       "linear_identifier": "AGE-864",
       "title": "T035: Create ITuiRenderer interface in src/tui/renderers/types.ts",
       "url": "https://linear.app/obsidianowl/issue/AGE-864",
-      "status": "Todo",
+      "status": "Done",
       "phase": 4
     },
     "T036": {
@@ -295,7 +295,7 @@
       "linear_identifier": "AGE-865",
       "title": "T036: Write tests for InkRenderer",
       "url": "https://linear.app/obsidianowl/issue/AGE-865",
-      "status": "Todo",
+      "status": "Done",
       "phase": 4
     },
     "T037": {
@@ -303,7 +303,7 @@
       "linear_identifier": "AGE-866",
       "title": "T037: Implement InkRenderer implementing ITuiRenderer",
       "url": "https://linear.app/obsidianowl/issue/AGE-866",
-      "status": "Todo",
+      "status": "Done",
       "phase": 4
     },
     "T038": {
@@ -311,7 +311,7 @@
       "linear_identifier": "AGE-867",
       "title": "T038: Write tests for HeadlessRenderer",
       "url": "https://linear.app/obsidianowl/issue/AGE-867",
-      "status": "Todo",
+      "status": "Done",
       "phase": 4
     },
     "T039": {
@@ -319,7 +319,7 @@
       "linear_identifier": "AGE-868",
       "title": "T039: Implement HeadlessRenderer for --non-interactive mode",
       "url": "https://linear.app/obsidianowl/issue/AGE-868",
-      "status": "Todo",
+      "status": "Done",
       "phase": 4
     },
     "T040": {
@@ -327,7 +327,7 @@
       "linear_identifier": "AGE-869",
       "title": "T040: Wire orchestrator StreamChunk to AgentOutput via InkRenderer",
       "url": "https://linear.app/obsidianowl/issue/AGE-869",
-      "status": "Todo",
+      "status": "Done",
       "phase": 4
     },
     "T041": {
@@ -335,7 +335,7 @@
       "linear_identifier": "AGE-870",
       "title": "T041: Integrate canUseTool with PermissionDialog overlays",
       "url": "https://linear.app/obsidianowl/issue/AGE-870",
-      "status": "Todo",
+      "status": "Done",
       "phase": 4
     },
     "T042": {
@@ -343,7 +343,7 @@
       "linear_identifier": "AGE-871",
       "title": "T042: Add TTY detection utility in src/tui/utils/tty.ts",
       "url": "https://linear.app/obsidianowl/issue/AGE-871",
-      "status": "Todo",
+      "status": "Done",
       "phase": 4
     },
     "T043": {
@@ -351,7 +351,7 @@
       "linear_identifier": "AGE-872",
       "title": "T043: Update CLI entrypoint to use TUI by default",
       "url": "https://linear.app/obsidianowl/issue/AGE-872",
-      "status": "Todo",
+      "status": "Done",
       "phase": 4
     },
     "T044": {
@@ -359,7 +359,7 @@
       "linear_identifier": "AGE-873",
       "title": "T044: Move Progress component from cli/components/ to tui/components/",
       "url": "https://linear.app/obsidianowl/issue/AGE-873",
-      "status": "Todo",
+      "status": "Done",
       "phase": 5
     },
     "T045": {
@@ -367,7 +367,7 @@
       "linear_identifier": "AGE-874",
       "title": "T045: Move FindingsList component and enhance with keyboard selection",
       "url": "https://linear.app/obsidianowl/issue/AGE-874",
-      "status": "Todo",
+      "status": "Done",
       "phase": 5
     },
     "T046": {
@@ -375,7 +375,7 @@
       "linear_identifier": "AGE-875",
       "title": "T046: Move Summary, CausalTree, CompareView components to tui/components/",
       "url": "https://linear.app/obsidianowl/issue/AGE-875",
-      "status": "Todo",
+      "status": "Done",
       "phase": 5
     },
     "T047": {
@@ -383,7 +383,7 @@
       "linear_identifier": "AGE-876",
       "title": "T047: Delete src/cli/renderers/terminal-renderer.ts",
       "url": "https://linear.app/obsidianowl/issue/AGE-876",
-      "status": "Todo",
+      "status": "Done",
       "phase": 5
     },
     "T048": {
@@ -391,15 +391,16 @@
       "linear_identifier": "AGE-877",
       "title": "T048: Delete src/cli/components/question-presenter.ts",
       "url": "https://linear.app/obsidianowl/issue/AGE-877",
-      "status": "Todo",
-      "phase": 5
+      "status": "Blocked",
+      "phase": 5,
+      "blocked_reason": "Still used by can-use-tool.ts for AskUserQuestion"
     },
     "T049": {
       "linear_id": "af67b719-a7f8-4161-bbbc-efbb22a7df00",
       "linear_identifier": "AGE-878",
       "title": "T049: Delete src/cli/components/App.tsx (replaced by tui/components/App.tsx)",
       "url": "https://linear.app/obsidianowl/issue/AGE-878",
-      "status": "Todo",
+      "status": "Done",
       "phase": 5
     },
     "T050": {
@@ -407,7 +408,7 @@
       "linear_identifier": "AGE-879",
       "title": "T050: Remove ora dependency from package.json",
       "url": "https://linear.app/obsidianowl/issue/AGE-879",
-      "status": "Todo",
+      "status": "Done",
       "phase": 5
     },
     "T051": {
@@ -415,7 +416,7 @@
       "linear_identifier": "AGE-880",
       "title": "T051: Update ADR-0021 with final TUI architecture",
       "url": "https://linear.app/obsidianowl/issue/AGE-880",
-      "status": "Todo",
+      "status": "Done",
       "phase": 5
     }
   }
