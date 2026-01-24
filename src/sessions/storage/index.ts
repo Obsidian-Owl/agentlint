@@ -7,9 +7,9 @@
  */
 
 // Schema definitions (T010-T011)
-// export * from './schema';
+export * from './schema';
 
 // Query helpers (T013)
 // export * from './queries';
 
-export const STORAGE_READY = false;
+export const STORAGE_READY = true;

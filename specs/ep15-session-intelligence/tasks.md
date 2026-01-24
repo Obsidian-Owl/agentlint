@@ -56,7 +56,7 @@
 
 ### Database Schema
 
-- [ ] T010 [P] Create `src/sessions/storage/schema.ts` with 6 new table definitions (tool_call_sequences, file_accesses, compression_events, delegation_events, mcp_tool_calls, quality_signals)
+- [x] T010 [P] Create `src/sessions/storage/schema.ts` with 6 new table definitions (tool_call_sequences, file_accesses, compression_events, delegation_events, mcp_tool_calls, quality_signals)
 - [ ] T011 [P] Add schema version migration logic (version 2 → 3)
 - [ ] T012 Write unit test for schema initialization in `tests/unit/sessions/storage/schema.test.ts`
 - [ ] T013 Create `src/sessions/storage/queries.ts` with SQL query helper functions
