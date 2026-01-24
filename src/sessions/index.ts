@@ -13,17 +13,33 @@ export * from './types';
 // Schemas (T008)
 export * from './schemas';
 
-// Extraction functions will be exported from ./extraction (Phase 3-7)
-// export * from './extraction';
+// Extraction functions (Phase 3-7)
+export * from './extraction';
 
-// Storage helpers will be exported from ./storage (T010-T016)
-// export * from './storage';
+// Storage helpers (T010-T016)
+export * from './storage';
 
-// Tools will be exported from ./tools (Phase 3-9)
-// export * from './tools';
+// Tools (Phase 3-9) - export tools only, not type re-definitions
+export {
+  getSessionTimelineTool,
+  getSessionTimeline,
+  getToolSequencesTool,
+  getToolSequences,
+  getFileAccessesTool,
+  getFileAccesses,
+  getDelegationEventsTool,
+  getDelegationEvents,
+  getQualitySignalsTool,
+  getQualitySignals,
+  getMcpUsageTool,
+  getMcpUsage,
+  spawnSessionAnalystTool,
+  buildAnalysisContext,
+  buildQueryPrompt,
+} from './tools';
 
-// Subagent will be exported from ./subagent (Phase 8)
-// export * from './subagent';
+// Subagent (Phase 8)
+export * from './subagent';
 
 /**
  * Session Intelligence module version constant.
@@ -32,7 +48,6 @@ export * from './schemas';
 export const SESSION_INTELLIGENCE_VERSION = '0.1.0';
 
 /**
- * Placeholder export to ensure module compiles.
- * Will be replaced with actual exports as implementation progresses.
+ * Session Intelligence module is ready.
  */
-export const SESSION_INTELLIGENCE_READY = false;
+export const SESSION_INTELLIGENCE_READY = true;

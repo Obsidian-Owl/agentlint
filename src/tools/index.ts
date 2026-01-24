@@ -91,6 +91,17 @@ export {
   getSkillInvocationsTool,
 } from '../skills';
 
+// EP15 Session intelligence tools
+export {
+  getSessionTimelineTool,
+  getToolSequencesTool,
+  getFileAccessesTool,
+  getDelegationEventsTool,
+  getQualitySignalsTool,
+  getMcpUsageTool,
+  spawnSessionAnalystTool,
+} from '../sessions/tools';
+
 // =============================================================================
 // Tool Registration Helpers (T072)
 // =============================================================================
@@ -140,8 +151,16 @@ import {
   getSkillInvocationsTool,
 } from '../skills';
 
-// EP15 Session intelligence tools (placeholder - tools added in Phase 3+)
-// import { } from '../sessions/tools';
+// EP15 Session intelligence tools
+import {
+  getSessionTimelineTool,
+  getToolSequencesTool,
+  getFileAccessesTool,
+  getDelegationEventsTool,
+  getQualitySignalsTool,
+  getMcpUsageTool,
+  spawnSessionAnalystTool,
+} from '../sessions/tools';
 
 /**
  * All EP05 config analysis tools as an array for bulk registration.
@@ -216,17 +235,15 @@ export const EP14_SKILLS_TOOLS: ToolDefinition[] = [
 
 /**
  * All EP15 session intelligence tools as an array for bulk registration.
- * Placeholder - tools will be added in Phase 3+.
  */
 export const EP15_SESSION_INTELLIGENCE_TOOLS: ToolDefinition[] = [
-  // Tools will be added as they are implemented:
-  // - get_session_timeline (T025)
-  // - get_tool_sequences (T036)
-  // - get_file_accesses (T037)
-  // - get_delegation_events (T044)
-  // - get_quality_signals (T053)
-  // - get_mcp_usage (T060)
-  // - spawn_session_analyst (T069)
+  getSessionTimelineTool,
+  getToolSequencesTool,
+  getFileAccessesTool,
+  getDelegationEventsTool,
+  getQualitySignalsTool,
+  getMcpUsageTool,
+  spawnSessionAnalystTool,
 ] as ToolDefinition[];
 
 /**
@@ -350,7 +367,6 @@ export function registerEP14SkillsTools(registry: IToolRegistry): void {
 
 /**
  * Register all EP15 session intelligence tools with a ToolRegistry.
- * Placeholder - tools will be added in Phase 3+.
  *
  * @param registry - The ToolRegistry to register tools with
  * @example
@@ -376,9 +392,9 @@ export function registerEP15SessionIntelligenceTools(registry: IToolRegistry): v
  * - EP10: Recommendations (9 tools)
  * - EP11: Security (1 tool)
  * - EP14: Skills effectiveness (4 tools)
- * - EP15: Session intelligence (0 tools, placeholder)
+ * - EP15: Session intelligence (7 tools)
  *
- * Total: 30 tools (EP15 tools to be added)
+ * Total: 37 tools
  *
  * @param registry - The ToolRegistry to register tools with
  */
