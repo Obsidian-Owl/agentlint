@@ -10,10 +10,10 @@
 export * from './get-session-timeline-tool';
 
 // Tool sequences tool (T036)
-// export * from './get-tool-sequences-tool';
+export * from './get-tool-sequences-tool';
 
 // File accesses tool (T037)
-// export * from './get-file-accesses-tool';
+export * from './get-file-accesses-tool';
 
 // Delegation events tool (T044-T046)
 // export * from './get-delegation-events-tool';
