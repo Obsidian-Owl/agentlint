@@ -134,11 +134,11 @@ describe('isKnownExecutable', () => {
 });
 
 describe('checkExecutableInPath', () => {
-  it('should find npx in PATH (if installed)', async () => {
-    // This test depends on npx being installed
-    const result = await checkExecutableInPath('npx');
-    // Can be true or false depending on environment
-    expect(typeof result).toBe('boolean');
+  it('should find common system executables in PATH', async () => {
+    // Use guaranteed executables that exist on all Unix systems
+    // sh is POSIX-required and always available
+    const shResult = await checkExecutableInPath('sh');
+    expect(shResult).toBe(true);
   });
 
   it('should return false for non-existent executable', async () => {
@@ -360,6 +360,7 @@ describe('validatePath', () => {
       const mcp003 = issues.find((i) => i.code === 'MCP003');
       // We don't report MCP003 for non-absolute, non-known executables
       // because we can't know if they exist without checking PATH
+      expect(mcp003).toBeUndefined();
     });
   });
 });

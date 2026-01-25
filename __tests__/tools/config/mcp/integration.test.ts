@@ -19,8 +19,8 @@ describe('Integration: Discovery → Validation', () => {
   let projectDir: string;
 
   beforeEach(async () => {
-    // Create temp directory for testing
-    projectDir = join(tmpdir(), `mcp-integration-test-${Date.now()}`);
+    // Create temp directory for testing with random suffix for parallel safety
+    projectDir = join(tmpdir(), `mcp-integration-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
     await mkdir(projectDir, { recursive: true });
   });
 

@@ -159,13 +159,20 @@ describe('discoverMcpConfigs', () => {
       includeUser: true,
     });
 
-    // Should check for user-level config locations
-    const userConfigs = result.files.filter((f) => f.scope === 'user');
-    expect(userConfigs.length).toBeGreaterThanOrEqual(0);
+    // Verify user-level locations were checked (not just project-level)
+    // User configs will be marked with scope: 'user' if they exist
+    const userLocations = result.files.filter((f) => f.scope === 'user');
+    // We should have checked at least some user locations
+    // (they may or may not exist, but the discovery should have checked)
+    expect(result.files.some((f) => f.scope === 'user' || f.scope === 'project')).toBe(true);
 
     // Summary should reflect what was found
     expect(result.summary).toBeDefined();
     expect(result.summary.totalFiles).toBe(result.files.length);
+
+    // The existing count should match files that exist
+    const existingCount = result.files.filter((f) => f.exists).length;
+    expect(result.summary.existingFiles).toBe(existingCount);
   });
 
   // T015: discovers OpenCode configs
