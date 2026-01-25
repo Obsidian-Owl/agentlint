@@ -132,25 +132,6 @@ export function detectConfigFormat(
   return 'unknown';
 }
 
-/**
- * Get the appropriate schema for a config format.
- */
-export function getSchemaForFormat(
-  format: 'standard' | 'opencode' | 'vscode-copilot' | 'unknown'
-): z.ZodType {
-  switch (format) {
-    case 'standard':
-      return McpConfigFileSchema;
-    case 'opencode':
-      return OpenCodeConfigSchema;
-    case 'vscode-copilot':
-      return VsCodeMcpConfigSchema;
-    default:
-      // For unknown, try standard format
-      return McpConfigFileSchema;
-  }
-}
-
 // =============================================================================
 // Standard Fields Definition
 // =============================================================================

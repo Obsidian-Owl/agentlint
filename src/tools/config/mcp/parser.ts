@@ -60,26 +60,6 @@ export function getNodePosition(content: string, node: Node): Position {
   return { start, end };
 }
 
-/**
- * Get the position of a specific property within an object node.
- *
- * @param content - The source content
- * @param objectNode - The parent object node
- * @param propertyName - The property key to find
- * @returns Position of the property value, or null if not found
- */
-export function getPropertyPosition(
-  content: string,
-  objectNode: Node,
-  propertyName: string
-): Position | null {
-  const propertyNode = findNodeAtLocation(objectNode, [propertyName]);
-  if (!propertyNode) {
-    return null;
-  }
-  return getNodePosition(content, propertyNode);
-}
-
 // =============================================================================
 // Parse Error Conversion
 // =============================================================================
@@ -253,17 +233,6 @@ export function getPositionAtPath(content: string, tree: Node, path: string[]): 
     return null;
   }
   return getNodePosition(content, node);
-}
-
-/**
- * Get the node at a specific path.
- *
- * @param tree - The AST root node
- * @param path - Array of path segments
- * @returns The node or null if not found
- */
-export function getNodeAtPath(tree: Node, path: string[]): Node | null {
-  return findNodeAtLocation(tree, path) ?? null;
 }
 
 // =============================================================================
