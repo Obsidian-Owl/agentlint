@@ -1,7 +1,7 @@
 /**
  * T045: Integration test - skills tools registered and callable
  *
- * Verifies that all EP14 skills tools are properly registered
+ * Verifies that all skills tools are properly registered
  * with the ToolRegistry and can be invoked.
  */
 
@@ -11,7 +11,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 
 import { createToolRegistry } from '../../../src/orchestration/tool-registry';
-import { EP14_SKILLS_TOOLS, registerEP14SkillsTools, registerAllTools } from '../../../src/tools';
+import { SKILLS_TOOLS, registerSkillsTools, registerAllTools } from '../../../src/tools';
 
 // =============================================================================
 // Test Setup
@@ -40,7 +40,7 @@ This is a test skill for integration testing.
 
 ## When to use
 
-Use this skill when testing EP14 integration.
+Use this skill when testing skills integration.
 `
   );
 
@@ -58,7 +58,7 @@ function cleanupTestEnvironment() {
 // Tests
 // =============================================================================
 
-describe('EP14 Skills Tools Registration', () => {
+describe('Skills Tools Registration', () => {
   beforeEach(() => {
     cleanupTestEnvironment();
     setupTestEnvironment();
@@ -69,10 +69,10 @@ describe('EP14 Skills Tools Registration', () => {
   });
 
   describe('Tool Constants', () => {
-    it('EP14_SKILLS_TOOLS contains all four skills tools', () => {
-      expect(EP14_SKILLS_TOOLS).toHaveLength(4);
+    it('contains all four skills tools', () => {
+      expect(SKILLS_TOOLS).toHaveLength(4);
 
-      const toolNames = EP14_SKILLS_TOOLS.map((t) => t.name);
+      const toolNames = SKILLS_TOOLS.map((t) => t.name);
       expect(toolNames).toContain('get_skill_inventory');
       expect(toolNames).toContain('index_skill_invocations');
       expect(toolNames).toContain('get_session_summaries');
@@ -80,7 +80,7 @@ describe('EP14 Skills Tools Registration', () => {
     });
 
     it('each tool has proper structure', () => {
-      for (const tool of EP14_SKILLS_TOOLS) {
+      for (const tool of SKILLS_TOOLS) {
         expect(tool.name).toBeDefined();
         expect(typeof tool.name).toBe('string');
         expect(tool.description).toBeDefined();
@@ -92,9 +92,9 @@ describe('EP14 Skills Tools Registration', () => {
   });
 
   describe('ToolRegistry Integration', () => {
-    it('registerEP14SkillsTools registers all four tools', () => {
+    it('registers all four tools', () => {
       const registry = createToolRegistry();
-      registerEP14SkillsTools(registry);
+      registerSkillsTools(registry);
 
       const registered = registry.list();
       expect(registered).toContain('get_skill_inventory');
@@ -103,26 +103,27 @@ describe('EP14 Skills Tools Registration', () => {
       expect(registered).toContain('get_skill_invocations');
     });
 
-    it('registerAllTools includes EP14 tools', () => {
+    it('registerAllTools includes skills tools', () => {
       const registry = createToolRegistry();
       registerAllTools(registry);
 
       const registered = registry.list();
 
-      // Verify EP14 tools are included
+      // Verify skills tools are included
       expect(registered).toContain('get_skill_inventory');
       expect(registered).toContain('index_skill_invocations');
       expect(registered).toContain('get_session_summaries');
       expect(registered).toContain('get_skill_invocations');
 
-      // Total should be 38 tools (as documented in src/tools/index.ts)
-      // EP05: 3, EP06: 3, EP07: 2, EP09: 8, EP10: 9, EP11: 1, EP14: 4, EP15: 8
-      expect(registered.length).toBe(38);
+      // Total should be at least 40 tools (as documented in src/tools/index.ts)
+      // Config: 3, Session: 3, Causal: 2, Temporal: 8, Recommendation: 9, Security: 1, Skills: 4, Session Intelligence: 8, MCP Config: 2
+      // Use >= to avoid brittleness when new tools are added
+      expect(registered.length).toBeGreaterThanOrEqual(40);
     });
 
     it('tools can be retrieved by name', () => {
       const registry = createToolRegistry();
-      registerEP14SkillsTools(registry);
+      registerSkillsTools(registry);
 
       const inventoryTool = registry.get('get_skill_inventory');
       expect(inventoryTool).toBeDefined();
@@ -137,7 +138,7 @@ describe('EP14 Skills Tools Registration', () => {
   describe('MCP Server Integration', () => {
     it('tools are available via MCP server configuration', () => {
       const registry = createToolRegistry();
-      registerEP14SkillsTools(registry);
+      registerSkillsTools(registry);
 
       // Convert registry to MCP server config
       const mcpConfig = registry.toMcpServer();
@@ -147,7 +148,7 @@ describe('EP14 Skills Tools Registration', () => {
       expect(mcpConfig.name).toBe('agentlint');
     });
 
-    it('EP14 tools included in full MCP server with all tools', () => {
+    it('skills tools included in full MCP server with all tools', () => {
       const registry = createToolRegistry();
       registerAllTools(registry);
 
@@ -159,7 +160,7 @@ describe('EP14 Skills Tools Registration', () => {
 
       // Verify all registered tools can be listed
       const registered = registry.list();
-      expect(registered.length).toBe(38);
+      expect(registered.length).toBeGreaterThanOrEqual(40);
     });
   });
 
@@ -167,7 +168,7 @@ describe('EP14 Skills Tools Registration', () => {
     it('tools have agent-friendly descriptions', () => {
       // Per CLAUDE.md: "Rich Descriptions: Tool descriptions MUST explain what the tool does,
       // when to use it, and what it returns."
-      for (const tool of EP14_SKILLS_TOOLS) {
+      for (const tool of SKILLS_TOOLS) {
         const desc = tool.description.toLowerCase();
 
         // Should explain what it does

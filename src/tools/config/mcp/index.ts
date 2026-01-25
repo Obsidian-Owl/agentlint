@@ -1,0 +1,33 @@
+/**
+ * MCP Config Validation Module
+ *
+ * Provides tools for discovering and validating MCP server configurations
+ * across multiple AI Coding Tools (ACTs).
+ *
+ * @module tools/config/mcp
+ */
+
+// Types (T005, T008)
+export * from './types';
+
+// Schemas (T006-T007)
+export * from './schemas';
+
+// Parser (T009-T011)
+export * from './parser';
+
+// Discovery (T017-T019)
+export * from './discovery';
+
+// Validators (T024-T026)
+export * from './validators';
+
+// Tools (T020, T050)
+export { getMcpConfigsTool } from './get-mcp-configs-tool';
+export {
+  validateMcpConfigTool,
+  validateMcpConfig,
+  aggregateValidation,
+  type ValidationResult,
+  type AggregatedValidation,
+} from './validate-mcp-config-tool';

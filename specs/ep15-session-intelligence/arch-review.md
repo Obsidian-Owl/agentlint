@@ -90,9 +90,9 @@
 
 **E4: Tool Registration Pattern**
 - Location: `src/tools/index.ts`
-- Alignment: Follows established EP05-EP14 registration pattern
-  - `EP15_SESSION_INTELLIGENCE_TOOLS` array
-  - `registerEP15SessionIntelligenceTools()` function
+- Alignment: Follows established tool registration pattern
+  - `SESSION_INTELLIGENCE_TOOLS` array
+  - `registerSessionIntelligenceTools()` function
   - Registered in `registerAllTools()` (now 37 tools total)
 - Quality: Clean, consistent with existing patterns
 

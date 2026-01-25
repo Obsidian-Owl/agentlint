@@ -20,7 +20,7 @@ import {
   queryTrendsTool,
   conductReviewTool,
   getReviewHistoryTool,
-  EP09_TEMPORAL_TOOLS,
+  TEMPORAL_TOOLS,
 } from '../../src/tools';
 
 // Import config and qualitative modules
@@ -36,11 +36,11 @@ import { getBaselinesDir, getBaselinesDbPath } from '../../src/persistence/commo
 describe('Quickstart: Tool Registration', () => {
   test('all 7 temporal tools are exported', () => {
     // Quickstart documents 7 tools
-    expect(EP09_TEMPORAL_TOOLS.length).toBe(7);
+    expect(TEMPORAL_TOOLS.length).toBe(7);
   });
 
   test('all documented tool names are correct', () => {
-    const toolNames = EP09_TEMPORAL_TOOLS.map((t) => t.name);
+    const toolNames = TEMPORAL_TOOLS.map((t) => t.name);
 
     // Matches quickstart.md Tool Reference section
     expect(toolNames).toContain('store_baseline');
@@ -53,7 +53,7 @@ describe('Quickstart: Tool Registration', () => {
   });
 
   test('tools have descriptions for help output', () => {
-    for (const tool of EP09_TEMPORAL_TOOLS) {
+    for (const tool of TEMPORAL_TOOLS) {
       expect(tool.description).toBeDefined();
       expect(tool.description.length).toBeGreaterThan(10);
     }
@@ -61,7 +61,7 @@ describe('Quickstart: Tool Registration', () => {
 
   test('all tools have input schemas', () => {
     // Tools use Claude Agent SDK tool() which provides inputSchema
-    for (const tool of EP09_TEMPORAL_TOOLS) {
+    for (const tool of TEMPORAL_TOOLS) {
       expect(tool.inputSchema).toBeDefined();
       // SDK tools have inputSchema as the raw Zod shape, not JSON Schema
     }

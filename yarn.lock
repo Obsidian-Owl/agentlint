@@ -1165,6 +1165,11 @@ json-stable-stringify-without-jsonify@^1.0.1:
   resolved "https://registry.npmjs.org/json-stable-stringify-without-jsonify/-/json-stable-stringify-without-jsonify-1.0.1.tgz"
   integrity sha512-Bdboy+l7tA3OGW6FjyFHWkP5LuByj1Tk33Ljyq0axyzdk9//JSi2u3fP1QSmd1KNwq6VOKYGlAu87CisVir6Pw==
 
+jsonc-parser@3.3.1:
+  version "3.3.1"
+  resolved "https://registry.npmjs.org/jsonc-parser/-/jsonc-parser-3.3.1.tgz"
+  integrity sha512-HUgH65KyejrUFPvHFPbqOY0rsFip3Bo5wb4ngvdi1EpCYWUQDC5V+Y7mZws+DLkr4M//zQJoanu1SP+87Dv1oQ==
+
 jsondiffpatch@0.7.3:
   version "0.7.3"
   resolved "https://registry.npmjs.org/jsondiffpatch/-/jsondiffpatch-0.7.3.tgz"
@@ -1861,7 +1866,7 @@ react@>=18.0.0, react@^18.0.0, react@^18.3.1:
   dependencies:
     loose-envify "^1.1.0"
 
-react-devtools-core@7.0.1:
+react-devtools-core@7.0.1, react-devtools-core@^4.19.1:
   version "7.0.1"
   resolved "https://registry.npmjs.org/react-devtools-core/-/react-devtools-core-7.0.1.tgz"
   integrity sha512-C3yNvRHaizlpiASzy7b9vbnBGLrhvdhl1CbdU6EnZgxPNbai60szdLtl+VL76UNOt5bOoVTOz5rNWZxgGt+Gsw==

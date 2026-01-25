@@ -103,6 +103,9 @@ export {
   spawnSessionAnalystTool,
 } from '../sessions/tools';
 
+// EP19 MCP config validation tools
+export { getMcpConfigsTool, validateMcpConfigTool } from './config/mcp';
+
 // =============================================================================
 // Tool Registration Helpers (T072)
 // =============================================================================
@@ -164,37 +167,40 @@ import {
   spawnSessionAnalystTool,
 } from '../sessions/tools';
 
+// EP19 MCP config validation tools
+import { getMcpConfigsTool, validateMcpConfigTool } from './config/mcp';
+
 /**
- * All EP05 config analysis tools as an array for bulk registration.
+ * All config analysis tools as an array for bulk registration.
  * Cast to ToolDefinition[] for compatibility with ToolRegistry.
  */
-export const EP05_CONFIG_TOOLS: ToolDefinition[] = [
+export const CONFIG_TOOLS: ToolDefinition[] = [
   discoverConfigsTool,
   parseConfigTool,
   analyzeHierarchyTool,
 ] as ToolDefinition[];
 
 /**
- * All EP06 session analysis tools as an array for bulk registration.
+ * All session analysis tools as an array for bulk registration.
  */
-export const EP06_SESSION_TOOLS: ToolDefinition[] = [
+export const SESSION_TOOLS: ToolDefinition[] = [
   searchSessionsTool,
   getSessionStatsTool,
   indexSessionsTool,
 ] as ToolDefinition[];
 
 /**
- * All EP07 causal tracing tools as an array for bulk registration.
+ * All causal tracing tools as an array for bulk registration.
  */
-export const EP07_CAUSAL_TOOLS: ToolDefinition[] = [
+export const CAUSAL_TOOLS: ToolDefinition[] = [
   traceIssueOriginTool,
   getIssuePatternsTool,
 ] as ToolDefinition[];
 
 /**
- * All EP09 temporal analysis tools as an array for bulk registration.
+ * All temporal analysis tools as an array for bulk registration.
  */
-export const EP09_TEMPORAL_TOOLS: ToolDefinition[] = [
+export const TEMPORAL_TOOLS: ToolDefinition[] = [
   storeBaselineTool,
   queryBaselineTool,
   listBaselinesTool,
@@ -206,9 +212,9 @@ export const EP09_TEMPORAL_TOOLS: ToolDefinition[] = [
 ] as ToolDefinition[];
 
 /**
- * All EP10 recommendation tools as an array for bulk registration.
+ * All recommendation tools as an array for bulk registration.
  */
-export const EP10_RECOMMENDATION_TOOLS: ToolDefinition[] = [
+export const RECOMMENDATION_TOOLS: ToolDefinition[] = [
   createRecommendationTool,
   getRecommendationTool,
   listRecommendationsTool,
@@ -221,14 +227,14 @@ export const EP10_RECOMMENDATION_TOOLS: ToolDefinition[] = [
 ] as ToolDefinition[];
 
 /**
- * All EP11 security tools as an array for bulk registration.
+ * All security tools as an array for bulk registration.
  */
-export const EP11_SECURITY_TOOLS: ToolDefinition[] = [classifySecretTool] as ToolDefinition[];
+export const SECURITY_TOOLS: ToolDefinition[] = [classifySecretTool] as ToolDefinition[];
 
 /**
- * All EP14 skills effectiveness tools as an array for bulk registration.
+ * All skills effectiveness tools as an array for bulk registration.
  */
-export const EP14_SKILLS_TOOLS: ToolDefinition[] = [
+export const SKILLS_TOOLS: ToolDefinition[] = [
   getSkillInventoryTool,
   indexSkillInvocationsTool,
   getSessionSummariesTool,
@@ -236,9 +242,9 @@ export const EP14_SKILLS_TOOLS: ToolDefinition[] = [
 ] as ToolDefinition[];
 
 /**
- * All EP15 session intelligence tools as an array for bulk registration.
+ * All session intelligence tools as an array for bulk registration.
  */
-export const EP15_SESSION_INTELLIGENCE_TOOLS: ToolDefinition[] = [
+export const SESSION_INTELLIGENCE_TOOLS: ToolDefinition[] = [
   getSessionTimelineTool,
   getToolSequencesTool,
   getFileAccessesTool,
@@ -250,164 +256,192 @@ export const EP15_SESSION_INTELLIGENCE_TOOLS: ToolDefinition[] = [
 ] as ToolDefinition[];
 
 /**
- * Register all EP05 config analysis tools with a ToolRegistry.
+ * MCP config validation tools for discovering and validating MCP server configurations.
+ */
+export const MCP_CONFIG_TOOLS: ToolDefinition[] = [
+  getMcpConfigsTool,
+  validateMcpConfigTool,
+] as ToolDefinition[];
+
+/**
+ * Register all config analysis tools with a ToolRegistry.
  *
  * @param registry - The ToolRegistry to register tools with
  * @example
  * ```typescript
  * import { createToolRegistry } from './orchestration';
- * import { registerEP05Tools } from './tools';
+ * import { registerConfigTools } from './tools';
  *
  * const registry = createToolRegistry();
- * registerEP05Tools(registry);
+ * registerConfigTools(registry);
  * ```
  */
-export function registerEP05Tools(registry: IToolRegistry): void {
-  registry.registerMany(EP05_CONFIG_TOOLS);
+export function registerConfigTools(registry: IToolRegistry): void {
+  registry.registerMany(CONFIG_TOOLS);
 }
 
 /**
- * Register all EP06 session analysis tools with a ToolRegistry.
+ * Register all session analysis tools with a ToolRegistry.
  *
  * @param registry - The ToolRegistry to register tools with
  * @example
  * ```typescript
  * import { createToolRegistry } from './orchestration';
- * import { registerEP06Tools } from './tools';
+ * import { registerSessionTools } from './tools';
  *
  * const registry = createToolRegistry();
- * registerEP06Tools(registry);
+ * registerSessionTools(registry);
  * ```
  */
-export function registerEP06Tools(registry: IToolRegistry): void {
-  registry.registerMany(EP06_SESSION_TOOLS);
+export function registerSessionTools(registry: IToolRegistry): void {
+  registry.registerMany(SESSION_TOOLS);
 }
 
 /**
- * Register all EP07 causal tracing tools with a ToolRegistry.
+ * Register all causal tracing tools with a ToolRegistry.
  *
  * @param registry - The ToolRegistry to register tools with
  * @example
  * ```typescript
  * import { createToolRegistry } from './orchestration';
- * import { registerEP07Tools } from './tools';
+ * import { registerCausalTools } from './tools';
  *
  * const registry = createToolRegistry();
- * registerEP07Tools(registry);
+ * registerCausalTools(registry);
  * ```
  */
-export function registerEP07Tools(registry: IToolRegistry): void {
-  registry.registerMany(EP07_CAUSAL_TOOLS);
+export function registerCausalTools(registry: IToolRegistry): void {
+  registry.registerMany(CAUSAL_TOOLS);
 }
 
 /**
- * Register all EP09 temporal analysis tools with a ToolRegistry.
+ * Register all temporal analysis tools with a ToolRegistry.
  *
  * @param registry - The ToolRegistry to register tools with
  * @example
  * ```typescript
  * import { createToolRegistry } from './orchestration';
- * import { registerEP09Tools } from './tools';
+ * import { registerTemporalTools } from './tools';
  *
  * const registry = createToolRegistry();
- * registerEP09Tools(registry);
+ * registerTemporalTools(registry);
  * ```
  */
-export function registerEP09Tools(registry: IToolRegistry): void {
-  registry.registerMany(EP09_TEMPORAL_TOOLS);
+export function registerTemporalTools(registry: IToolRegistry): void {
+  registry.registerMany(TEMPORAL_TOOLS);
 }
 
 /**
- * Register all EP10 recommendation tools with a ToolRegistry.
+ * Register all recommendation tools with a ToolRegistry.
  *
  * @param registry - The ToolRegistry to register tools with
  * @example
  * ```typescript
  * import { createToolRegistry } from './orchestration';
- * import { registerEP10Tools } from './tools';
+ * import { registerRecommendationTools } from './tools';
  *
  * const registry = createToolRegistry();
- * registerEP10Tools(registry);
+ * registerRecommendationTools(registry);
  * ```
  */
-export function registerEP10Tools(registry: IToolRegistry): void {
-  registry.registerMany(EP10_RECOMMENDATION_TOOLS);
+export function registerRecommendationTools(registry: IToolRegistry): void {
+  registry.registerMany(RECOMMENDATION_TOOLS);
 }
 
 /**
- * Register all EP11 security tools with a ToolRegistry.
+ * Register all security tools with a ToolRegistry.
  *
  * @param registry - The ToolRegistry to register tools with
  * @example
  * ```typescript
  * import { createToolRegistry } from './orchestration';
- * import { registerEP11SecurityTools } from './tools';
+ * import { registerSecurityTools } from './tools';
  *
  * const registry = createToolRegistry();
- * registerEP11SecurityTools(registry);
+ * registerSecurityTools(registry);
  * ```
  */
-export function registerEP11SecurityTools(registry: IToolRegistry): void {
-  registry.registerMany(EP11_SECURITY_TOOLS);
+export function registerSecurityTools(registry: IToolRegistry): void {
+  registry.registerMany(SECURITY_TOOLS);
 }
 
 /**
- * Register all EP14 skills effectiveness tools with a ToolRegistry.
+ * Register all skills effectiveness tools with a ToolRegistry.
  *
  * @param registry - The ToolRegistry to register tools with
  * @example
  * ```typescript
  * import { createToolRegistry } from './orchestration';
- * import { registerEP14SkillsTools } from './tools';
+ * import { registerSkillsTools } from './tools';
  *
  * const registry = createToolRegistry();
- * registerEP14SkillsTools(registry);
+ * registerSkillsTools(registry);
  * ```
  */
-export function registerEP14SkillsTools(registry: IToolRegistry): void {
-  registry.registerMany(EP14_SKILLS_TOOLS);
+export function registerSkillsTools(registry: IToolRegistry): void {
+  registry.registerMany(SKILLS_TOOLS);
 }
 
 /**
- * Register all EP15 session intelligence tools with a ToolRegistry.
+ * Register all session intelligence tools with a ToolRegistry.
  *
  * @param registry - The ToolRegistry to register tools with
  * @example
  * ```typescript
  * import { createToolRegistry } from './orchestration';
- * import { registerEP15SessionIntelligenceTools } from './tools';
+ * import { registerSessionIntelligenceTools } from './tools';
  *
  * const registry = createToolRegistry();
- * registerEP15SessionIntelligenceTools(registry);
+ * registerSessionIntelligenceTools(registry);
  * ```
  */
-export function registerEP15SessionIntelligenceTools(registry: IToolRegistry): void {
-  registry.registerMany(EP15_SESSION_INTELLIGENCE_TOOLS);
+export function registerSessionIntelligenceTools(registry: IToolRegistry): void {
+  registry.registerMany(SESSION_INTELLIGENCE_TOOLS);
+}
+
+/**
+ * Register MCP config validation tools with a ToolRegistry.
+ *
+ * @param registry - The ToolRegistry to register tools with
+ * @example
+ * ```typescript
+ * import { createToolRegistry } from './orchestration';
+ * import { registerMcpConfigTools } from './tools';
+ *
+ * const registry = createToolRegistry();
+ * registerMcpConfigTools(registry);
+ * ```
+ */
+export function registerMcpConfigTools(registry: IToolRegistry): void {
+  registry.registerMany(MCP_CONFIG_TOOLS);
 }
 
 /**
  * Register all agentlint tools with a ToolRegistry.
- * Includes EP05-EP15 tools:
- * - EP05: Config analysis (3 tools)
- * - EP06: Session analysis (3 tools)
- * - EP07: Causal tracing (2 tools)
- * - EP09: Temporal analysis (8 tools)
- * - EP10: Recommendations (9 tools)
- * - EP11: Security (1 tool)
- * - EP14: Skills effectiveness (4 tools)
- * - EP15: Session intelligence (8 tools)
  *
- * Total: 38 tools
+ * Tool categories:
+ * - Config analysis: 3 tools
+ * - Session analysis: 3 tools
+ * - Causal tracing: 2 tools
+ * - Temporal analysis: 8 tools
+ * - Recommendations: 9 tools
+ * - Security: 1 tool
+ * - Skills effectiveness: 4 tools
+ * - Session intelligence: 8 tools
+ * - MCP config validation: 2 tools
+ *
+ * Total: 40 tools
  *
  * @param registry - The ToolRegistry to register tools with
  */
 export function registerAllTools(registry: IToolRegistry): void {
-  registerEP05Tools(registry); // Config (3)
-  registerEP06Tools(registry); // Sessions (3)
-  registerEP07Tools(registry); // Causal (2)
-  registerEP09Tools(registry); // Temporal (8)
-  registerEP10Tools(registry); // Recommendations (9)
-  registerEP11SecurityTools(registry); // Security (1)
-  registerEP14SkillsTools(registry); // Skills (4)
-  registerEP15SessionIntelligenceTools(registry); // Session Intelligence (8)
+  registerConfigTools(registry); // Config (3)
+  registerSessionTools(registry); // Sessions (3)
+  registerCausalTools(registry); // Causal (2)
+  registerTemporalTools(registry); // Temporal (8)
+  registerRecommendationTools(registry); // Recommendations (9)
+  registerSecurityTools(registry); // Security (1)
+  registerSkillsTools(registry); // Skills (4)
+  registerSessionIntelligenceTools(registry); // Session Intelligence (8)
+  registerMcpConfigTools(registry); // MCP Config Validation (2)
 }

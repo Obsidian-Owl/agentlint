@@ -117,7 +117,7 @@ EP05 implements the mdast + Adapter pattern from ADR-0007:
 
 **E4: Tool Registration Pattern**
 - Location: `src/tools/index.ts`
-- Alignment: Provides `registerEP05Tools()` and `registerAllTools()` helpers
+- Alignment: Provides `registerConfigTools()` and `registerAllTools()` helpers
 - Status: ✓ Documented in §5 with usage example
 
 ## Constitution Alignment

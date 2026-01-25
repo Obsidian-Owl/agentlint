@@ -1,0 +1,33 @@
+/**
+ * MCP Config Validators
+ *
+ * Exports all validation functions for MCP configurations.
+ *
+ * @module tools/config/mcp/validators
+ */
+
+// Schema validation (T024-T025)
+export { validateSchema, validateServerSchema } from './schema';
+
+// Path validation (T030-T032)
+export {
+  validatePath,
+  analyzePath,
+  extractPackageName,
+  isKnownExecutable,
+  checkExecutableInPath,
+} from './path';
+
+// Env validation (T033-T036)
+export { validateEnv, analyzeEnvVar, isSensitiveName, detectVariableRefs } from './env';
+
+// Transport validation (T037-T041)
+export { validateTransport, validateUrl, detectDockerCommand, analyzeTransport } from './transport';
+
+// Pattern validation (T042-T045)
+export {
+  validatePatterns,
+  isDeprecatedPackage,
+  analyzeTimeout,
+  DEPRECATED_PACKAGES,
+} from './patterns';

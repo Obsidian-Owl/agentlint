@@ -239,6 +239,7 @@ const response = await query({
 | **Recommendation Advisor (EP10)** | `spawn_recommendation_advisor`, `create_recommendation`, `get_recommendation`, `list_recommendations`, `get_recommendation_summary`, `add_recommendation_event`, `update_recommendation_status`, `refine_recommendation`, `complete_recommendation` |
 | **Skills Effectiveness (EP14)** | `get_skill_inventory`, `index_skill_invocations`, `get_session_summaries`, `get_skill_invocations` |
 | **Session Intelligence (EP15)** | `get_session_timeline`, `get_tool_sequences`, `get_file_accesses`, `get_delegation_events`, `get_quality_signals`, `get_mcp_usage`, `get_permission_events`, `spawn_session_analyst` |
+| **MCP Config Validation (EP19)** | `get_mcp_configs`, `validate_mcp_config` |
 | **Git Analysis** | `query_git` |
 | **Learning** | `store_learning`, `list_learnings`, `promote_learning` |
 | **Utility** | `retrieve_result`, `agentlint_write` |
@@ -291,14 +292,14 @@ src/tools/config/
 
 ```typescript
 import { createToolRegistry } from './orchestration';
-import { registerAllTools, registerEP05Tools } from './tools';
+import { registerAllTools, registerConfigTools } from './tools';
 
 // Register all available tools
 const registry = createToolRegistry();
 registerAllTools(registry);
 
-// Or register EP05 tools only
-registerEP05Tools(registry);
+// Or register config tools only
+registerConfigTools(registry);
 
 // Get MCP server for SDK integration
 const mcpServer = registry.toMcpServer();
@@ -345,6 +346,118 @@ interface Skill {
 | Discovery time | <5s typical projects | fast-glob with early exclusion |
 | Parse memory | <50MB for 1000-line configs | Streaming parser, no caching |
 | Quality scoring | <100ms per file | In-memory analysis |
+
+---
+
+## Level 3: MCP Config Validation Tools (EP19)
+
+The MCP config validation module provides static analysis tools for validating Model Context Protocol (MCP) server configurations across multiple AI Coding Tools (ACTs).
+
+```
+src/tools/config/mcp/
+├── index.ts                    Public exports + registration helpers
+├── types.ts                    Entity interfaces (McpValidationIssue, McpServerConfig, etc.)
+├── schemas.ts                  Zod schemas for config formats (standard, opencode, vscode-copilot)
+│
+├── discovery.ts                Multi-ACT config file discovery
+├── get-mcp-configs-tool.ts     SDK tool definition: get_mcp_configs
+│
+├── parser.ts                   JSONC parsing with position tracking
+├── validate-mcp-config-tool.ts SDK tool definition: validate_mcp_config
+│
+└── validators/                 Validation modules
+    ├── index.ts                Validator exports
+    ├── schema.ts               JSON schema validation per format
+    ├── path.ts                 Executable path validation
+    ├── env.ts                  Environment variable validation
+    ├── transport.ts            Transport-specific validation (stdio, HTTP, SSE)
+    └── patterns.ts             Anti-pattern detection (deprecated packages, etc.)
+```
+
+| Module | Responsibility |
+|--------|----------------|
+| `discovery.ts` | Discovers MCP config files across ACT-specific locations (Claude Code, OpenCode, VS Code Copilot, Cursor, Windsurf, Amazon Q) |
+| `parser.ts` | Parses JSON/JSONC with position tracking for accurate line:column references |
+| `schemas.ts` | Zod schemas for different config formats, format detection |
+| `validators/schema.ts` | Validates required fields per transport type, field types |
+| `validators/path.ts` | Checks executable existence, PATH availability, relative path warnings |
+| `validators/env.ts` | Detects sensitive variable names, variable reference patterns |
+| `validators/transport.ts` | Validates URL format, Docker flags, SSE deprecation |
+| `validators/patterns.ts` | Detects deprecated npm packages, timeout issues |
+
+### EP19 Tool Definitions
+
+| Tool | Description |
+|------|-------------|
+| `get_mcp_configs` | Discovers MCP configuration files across ACT locations with format detection |
+| `validate_mcp_config` | Validates MCP config with schema, path, env, transport, and pattern checks |
+
+### ACT Support Matrix
+
+| ACT | Config Locations | Format |
+|-----|-----------------|--------|
+| Claude Code | `.mcp.json`, `~/.claude.json` | standard |
+| OpenCode | `opencode.json`, `~/.config/opencode/opencode.json` | opencode |
+| VS Code Copilot | `.vscode/mcp.json` | vscode-copilot |
+| Cursor | `mcp.json`, `.cursor/mcp.json` | standard |
+| Windsurf | `~/.codeium/windsurf/mcp_config.json` | standard |
+| Amazon Q | `.amazonq/mcp.json`, `~/.aws/amazonq/mcp.json` | standard |
+
+### Key Entity Types
+
+```typescript
+interface McpValidationIssue {
+  code: McpIssueCode;           // Structured issue identifier
+  severity: IssueSeverity;      // 'error' | 'warning' | 'info'
+  message: string;              // Human-readable description
+  file: string;                 // Absolute file path
+  position: Position;           // Line and column range
+  serverName?: string;          // Which server has the issue
+  suggestion?: string;          // Fix recommendation
+}
+
+interface McpServerConfig {
+  command?: string;             // Executable for stdio transport
+  args?: string[];              // Command arguments
+  env?: Record<string, string>; // Environment variables
+  url?: string;                 // URL for HTTP transport
+  timeout?: number;             // Server timeout in seconds
+}
+
+interface McpConfigInventory {
+  files: McpConfigFile[];       // Discovered config files
+  summary: InventorySummary;    // Aggregated statistics
+}
+```
+
+### Issue Code Categories
+
+| Category | Codes | Examples |
+|----------|-------|----------|
+| Schema | `MISSING_COMMAND`, `INVALID_ARGS_TYPE` | Missing required field, wrong type |
+| Path | `PATH_NOT_FOUND`, `NOT_EXECUTABLE` | Executable doesn't exist |
+| Environment | `SENSITIVE_ENV_NAME`, `VARIABLE_REF` | Secrets in config, unresolved variables |
+| Transport | `INVALID_URL`, `DOCKER_MISSING_FLAG` | Bad URL format, missing `-i` flag |
+| Patterns | `DEPRECATED_PACKAGE`, `HIGH_TIMEOUT` | Old npm package, excessive timeout |
+
+### Tool/Agent Boundary (ADR-0019)
+
+Per [ADR-0019](../adr/0019-tool-agent-boundary-temporal.md), MCP validation tools provide DATA while the agent provides JUDGMENT:
+
+| Tool Provides | Agent Reasons About |
+|--------------|---------------------|
+| Issue with severity and code | "Should this block the user?" |
+| Path existence check result | "Is this a critical missing executable?" |
+| Sensitive variable name detection | "Is this actually a secret or false positive?" |
+| Deprecated package identification | "What's the migration path?" |
+
+### Performance Characteristics (NFR)
+
+| Metric | Target | Implementation |
+|--------|--------|----------------|
+| Config discovery | <2s for project + user dirs | Parallel file existence checks |
+| Single file validation | <500ms | In-memory validation |
+| Position tracking | <50ms overhead | JSONC AST with offset mapping |
 
 ---
 
