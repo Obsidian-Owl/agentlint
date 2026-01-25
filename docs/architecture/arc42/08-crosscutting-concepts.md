@@ -339,9 +339,54 @@ Performance tests run in CI but are excluded from standard `bun test` to avoid f
 | Concern | Approach |
 |---------|----------|
 | User Output | Streaming via Ink; progressive disclosure |
-| Debug Logging | `DEBUG=agentlint:*` environment control |
+| Debug Logging | Always-on file logging to `~/.agentlint/logs/` (disable via `--no-log`) |
 | Agent Transparency | Tool invocations visible in verbose mode |
-| Session Recording | Analysis logged to `.agentlint/session-state/` |
+| Session Recording | Analysis logged to `~/.agentlint/sessions/` (disable via `--no-session`) |
+| Telemetry | Opt-in only via `AGENTLINT_TELEMETRY=1` |
+
+### Default Logging Behavior
+
+Following Claude Code / OpenCode patterns, agentlint logs **everything by default**:
+
+| Setting | Default | Override |
+|---------|---------|----------|
+| Log level | `info` | `--verbose` (debug), `--quiet` (error) |
+| Console output | `stderr` | `--quiet` to suppress |
+| File output | `~/.agentlint/logs/{YYYY-MM-DD}.ndjson` | `--log-file <path>` or `--no-log` |
+| Session recording | `~/.agentlint/sessions/{id}/` | `--no-session` |
+
+### Log Rotation
+
+Log files are automatically rotated on startup:
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| Max files | 10 | Keep last N log files |
+| Max size | 500MB | Total size cap across all files |
+| Format | NDJSON | One JSON entry per line |
+
+### CLI Flags
+
+| Flag | Effect |
+|------|--------|
+| `--no-log` | Disable file logging for this run |
+| `--no-session` | Disable session recording for this run |
+| `--log-file <path>` | Override default log file location |
+| `--verbose` | Increase verbosity to debug level |
+| `--quiet` | Suppress console output (file logging continues) |
+| `--debug-level <level>` | Control debug verbosity: `minimal`, `normal`, `verbose` |
+
+### Storage Layout
+
+```
+~/.agentlint/
+├── logs/                         Debug logs (NDJSON format)
+│   ├── 2026-01-25.ndjson
+│   └── 2026-01-24.ndjson
+├── sessions/                     Session checkpoints
+│   └── {session-id}/
+└── config.json                   User configuration
+```
 
 ### Color Handling (EP04)
 

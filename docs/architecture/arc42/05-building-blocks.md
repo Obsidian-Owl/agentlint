@@ -1159,7 +1159,14 @@ This prevents infinite delegation chains while enabling specialized analysis.
 
 ## Level 3: Debug Infrastructure (EP11)
 
-The debug module provides structured logging with namespace-based filtering and automatic secret redaction for safe debugging output.
+The debug module provides structured logging with namespace-based filtering, automatic secret redaction, and log rotation for safe debugging output.
+
+**Default Behavior** (following Claude Code / OpenCode pattern):
+- Log level: `info` (log everything useful by default)
+- Output: `both` (console stderr + file)
+- Default log file: `~/.agentlint/logs/{YYYY-MM-DD}.ndjson`
+- Log rotation: Keep last 10 files, 500MB max total size
+- Use `--no-log` to disable file logging
 
 ```
 src/debug/
@@ -1168,15 +1175,45 @@ src/debug/
 ├── namespaces.ts               Standard namespace constants (DEBUG_NAMESPACES)
 ├── logger.ts                   DebugLogger class with namespace filtering
 ├── redaction.ts                Secret redaction (patterns, redact(), redactObject())
-└── metrics.ts                  TokenTracker for LLM call metrics
+├── metrics.ts                  TokenTracker for LLM call metrics
+└── rotation.ts                 Log rotation (file count + size limits)
 ```
 
 | Module | Responsibility |
 |--------|----------------|
-| `logger.ts` | Namespace-based debug logging with verbosity levels |
+| `logger.ts` | Namespace-based debug logging with verbosity levels, default file output |
 | `namespaces.ts` | Standard namespace constants (TOOLS, LLM, ORCHESTRATION, etc.) |
 | `redaction.ts` | Pattern-based secret detection and replacement in strings/objects |
 | `metrics.ts` | Token usage tracking, latency timers, LLM call metrics aggregation |
+| `rotation.ts` | Log file rotation: keep last N files, enforce total size cap, cleanup on startup |
+
+### Log Rotation
+
+The rotation module follows the OpenCode pattern for managing log file growth:
+
+| Configuration | Default | Description |
+|---------------|---------|-------------|
+| `maxFiles` | 10 | Maximum number of log files to keep |
+| `maxSizeBytes` | 500MB | Maximum total size of all log files |
+| `logDir` | `~/.agentlint/logs` | Log directory location |
+
+```typescript
+// Rotation runs automatically on startup
+cleanupLogsOnStartup();
+
+// Or manually with custom config
+rotateLogFiles({ maxFiles: 5, maxSizeBytes: 100 * 1024 * 1024 });
+```
+
+### CLI Flags
+
+| Flag | Effect |
+|------|--------|
+| `--no-log` | Disable file logging for this run |
+| `--no-session` | Disable session recording for this run |
+| `--log-file <path>` | Override default log file location |
+| `--verbose` | Increase console verbosity to debug level |
+| `--quiet` | Suppress console output (file logging continues) |
 
 ### Key Entity Types
 
@@ -1399,6 +1436,70 @@ Gitleaks patterns use Go regex syntax, which differs from JavaScript:
 | File scan | <1s/file | Regex pattern matching |
 | Entropy calculation | <1ms/string | Shannon formula |
 | Pattern loading | <100ms | TOML parsing + regex compilation |
+
+---
+
+## Level 3: Telemetry Infrastructure (EP11)
+
+The telemetry module provides opt-in observability infrastructure for agentlint. **Disabled by default** per Constitution Principle I (Local-First).
+
+**Enable via:**
+- Environment variable: `AGENTLINT_TELEMETRY=1`
+- Config file: `~/.agentlint/config.json` → `telemetry.enabled: true`
+
+```
+src/telemetry/
+├── index.ts                    Public exports, client factory, configuration
+```
+
+| Module | Responsibility |
+|--------|----------------|
+| `index.ts` | Telemetry client interface, NoOp/Console implementations, event types |
+
+### Telemetry Events
+
+When enabled, captures aggregate metrics (never user content):
+
+| Event Type | Data Captured |
+|------------|---------------|
+| `session_start` | Session ID, timestamp |
+| `session_end` | Duration, tool call count, finding count, tokens used |
+| `tool_call` | Tool name (no arguments) |
+| `finding` | Finding type (no content) |
+| `error` | Error type (no stack traces) |
+
+### Key Entity Types
+
+```typescript
+interface ITelemetryClient {
+  isEnabled(): boolean;
+  record(event: TelemetryEvent): void;
+  sessionStart(sessionId: string): void;
+  sessionEnd(metrics: SessionTelemetry): void;
+  flush(): Promise<void>;
+  shutdown(): Promise<void>;
+}
+
+interface TelemetryConfig {
+  enabled: boolean;              // Default: false
+  endpoint?: string;             // OTLP endpoint (via OTEL_EXPORTER_OTLP_ENDPOINT)
+  redactContent: boolean;        // Default: true (always redact user content)
+}
+```
+
+### Client Implementations
+
+| Client | Used When | Behavior |
+|--------|-----------|----------|
+| `NoOpTelemetryClient` | Telemetry disabled | All methods are no-ops |
+| `ConsoleTelemetryClient` | Telemetry enabled | Buffers events, logs to stderr if `AGENTLINT_TELEMETRY_DEBUG=1` |
+
+### Constitution Compliance
+
+| Principle | Implementation |
+|-----------|----------------|
+| I. Local-First | Disabled by default, explicit opt-in required |
+| Privacy | User content never transmitted (`redactContent: true` always) |
 
 ---
 
