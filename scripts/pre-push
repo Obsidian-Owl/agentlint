@@ -74,6 +74,20 @@ else
 fi
 echo ""
 
+# 6. Telemetry API (if changed)
+if git diff --cached --name-only HEAD~1 2>/dev/null | grep -q "^apps/telemetry-api/" || \
+   git diff --name-only HEAD~1 2>/dev/null | grep -q "^apps/telemetry-api/"; then
+  echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+  echo "📡 Building Telemetry API..."
+  if (cd apps/telemetry-api && npm install --silent && npm run build); then
+    echo -e "${GREEN}✓ Telemetry API build passed${NC}"
+  else
+    echo -e "${RED}✗ Telemetry API build failed${NC}"
+    FAILED=1
+  fi
+  echo ""
+fi
+
 # Summary
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 if [ $FAILED -eq 0 ]; then
