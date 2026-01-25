@@ -4,11 +4,18 @@
  * DebugLogger implementation with namespace filtering, log levels,
  * redaction, and multiple output destinations.
  *
+ * Default behavior (following Claude Code / OpenCode pattern):
+ * - Log level: info (not warn)
+ * - Output: both console and file
+ * - Default log file: ~/.agentlint/logs/{date}.ndjson
+ * - Use --no-log to disable file logging
+ *
  * @module debug/logger
  */
 
 import { appendFileSync, existsSync, mkdirSync } from 'fs';
-import { dirname } from 'path';
+import { dirname, join } from 'path';
+import { homedir } from 'os';
 import type { DebugConfig, LogLevel, LogEntry, IDebugLogger, INamespacedLogger } from './types';
 import { LOG_LEVEL_VALUES } from './types';
 import { isNamespaceEnabled, parseDebugEnv } from './namespaces';
@@ -19,13 +26,36 @@ import { redact, redactObject, BUILTIN_REDACTION_PATTERNS } from './redaction';
 // =============================================================================
 
 /**
+ * Get the default log directory path (~/.agentlint/logs).
+ */
+export function getDefaultLogDir(): string {
+  return join(homedir(), '.agentlint', 'logs');
+}
+
+/**
+ * Generate a default log file path for the current date.
+ * Format: ~/.agentlint/logs/{YYYY-MM-DD}.ndjson
+ */
+export function getDefaultLogFilePath(): string {
+  const date = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+  return join(getDefaultLogDir(), `${date}.ndjson`);
+}
+
+/**
  * Default debug configuration.
- * Note: Default level is 'warn' to avoid polluting CLI output (AGE-663).
- * Use --verbose or --debug flags to see more detailed logs.
+ *
+ * Following Claude Code / OpenCode pattern:
+ * - Log level: info (log everything useful by default)
+ * - Output: console (file logging is set up separately)
+ *
+ * Note: logFile is NOT set in defaults - it's set explicitly in createLoggerFromCLIOptions
+ * when file logging is enabled. This allows --no-log to properly disable file logging.
+ *
+ * Use --no-log to disable file logging, --quiet to suppress console output.
  */
 export const DEFAULT_DEBUG_CONFIG: DebugConfig = {
-  level: 'warn',
-  namespaces: [],
+  level: 'info',
+  namespaces: ['agentlint:*'],
   output: 'console',
   format: 'pretty',
   redactionPatterns: BUILTIN_REDACTION_PATTERNS,
@@ -61,18 +91,33 @@ export class DebugLogger implements IDebugLogger {
     // Merge with defaults and check environment
     const envNamespaces = parseDebugEnv(process.env.DEBUG);
 
+    // Determine namespaces:
+    // 1. If config.namespaces is explicitly set (even empty array), use it
+    // 2. Else if DEBUG env var is set, use those
+    // 3. Else use defaults
+    let namespaces: string[];
+    if (config.namespaces !== undefined) {
+      namespaces = config.namespaces; // Respect explicit empty array
+    } else if (envNamespaces.length > 0) {
+      namespaces = envNamespaces;
+    } else {
+      namespaces = DEFAULT_DEBUG_CONFIG.namespaces;
+    }
+
     this.config = {
       ...DEFAULT_DEBUG_CONFIG,
       ...config,
-      // Merge namespaces from env and config
-      namespaces:
-        config.namespaces && config.namespaces.length > 0
-          ? config.namespaces
-          : envNamespaces.length > 0
-            ? envNamespaces
-            : DEFAULT_DEBUG_CONFIG.namespaces,
+      namespaces,
       redactionPatterns: config.redactionPatterns ?? DEFAULT_DEBUG_CONFIG.redactionPatterns,
     };
+
+    // Ensure log directory exists when file logging is enabled
+    if ((this.config.output === 'file' || this.config.output === 'both') && this.config.logFile) {
+      const dir = dirname(this.config.logFile);
+      if (!existsSync(dir)) {
+        mkdirSync(dir, { recursive: true });
+      }
+    }
   }
 
   // ===========================================================================
@@ -329,36 +374,55 @@ export function createDebugLogger(config: Partial<DebugConfig> = {}): IDebugLogg
 /**
  * Create a logger from CLI options.
  *
+ * By default, logging is enabled:
+ * - Level: info
+ * - Output: both console stderr and file
+ * - File: ~/.agentlint/logs/{date}.ndjson
+ *
+ * Use --no-log to disable file logging.
+ * Use --quiet to suppress console output (file logging continues).
+ * Use --verbose to increase console verbosity.
+ *
  * @param options - CLI debug options
  * @returns Configured DebugLogger
  */
 export function createLoggerFromCLIOptions(options: {
   verbose?: boolean;
-  debug?: string;
   quiet?: boolean;
   logFile?: string;
+  noLog?: boolean;
 }): IDebugLogger {
-  const config: Partial<DebugConfig> = {};
+  // Determine if file logging is enabled
+  const enableFileLogging = !options.noLog;
 
+  // Start with defaults (info level, both outputs, default log file)
+  const config: Partial<DebugConfig> = {
+    level: 'info',
+    namespaces: ['agentlint:*'],
+    output: enableFileLogging ? 'both' : 'console',
+  };
+
+  // Only set logFile if file logging is enabled
+  if (enableFileLogging) {
+    config.logFile = options.logFile ?? getDefaultLogFilePath();
+  }
+
+  // --verbose: increase console verbosity to debug level
+  // Note: must check before --quiet so quiet can override
+  if (options.verbose && !options.quiet) {
+    config.level = 'debug';
+    config.namespaces = ['agentlint:*'];
+  }
+
+  // --quiet: suppress most output, error level only, no namespaces
+  // Takes precedence over --verbose
   if (options.quiet) {
     config.level = 'error';
-    config.namespaces = [];
-  } else if (options.verbose) {
-    config.level = 'info';
-    config.namespaces = ['agentlint:tools', 'agentlint:llm'];
-  }
-
-  if (options.debug) {
-    config.level = 'debug';
-    config.namespaces = options.debug
-      .split(',')
-      .map((cat) => (cat.trim() === '*' ? 'agentlint:*' : `agentlint:${cat.trim()}`));
-  }
-
-  if (options.logFile) {
-    // Always use 'both' when log file is specified - write to file AND console
-    config.output = 'both';
-    config.logFile = options.logFile;
+    config.namespaces = []; // Disable all namespaces in quiet mode
+    if (enableFileLogging) {
+      config.output = 'file'; // Only file, no console
+    }
+    // If noLog is also set, output stays as 'console' for errors only
   }
 
   return new DebugLogger(config);
