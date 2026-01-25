@@ -67,6 +67,9 @@ import type {
 // Log rotation imports (clean up old logs on startup)
 import { cleanupLogsOnStartup } from '../../debug/rotation';
 
+// Telemetry imports
+import { getTelemetryClient } from '../../telemetry';
+
 // EP15 Session Intelligence imports
 import { buildSessionAnalystAgent } from '../../sessions/subagent';
 import { buildQueryPrompt } from '../../sessions/tools/spawn-session-analyst';
@@ -597,6 +600,16 @@ async function runOrchestratedAnalysis(
     await recordCheckpointIfActive(recordingState, 'phase_transition');
   }
 
+  // Initialize telemetry (opt-in only, disabled by default)
+  const telemetry = getTelemetryClient();
+  const telemetrySessionId = recordingState?.sessionId ?? generateSessionId();
+  if (telemetry.isEnabled()) {
+    telemetry.sessionStart(telemetrySessionId, {
+      command: 'analyse',
+      hasConfig: false, // Will be updated after scan
+    });
+  }
+
   // Issue 4 fix: Initialize databases before tools can use them
   // This ensures baselines, learnings, recommendations directories and DBs exist
   await initializeDatabases({ projectPath: directory });
@@ -768,6 +781,16 @@ async function runOrchestratedAnalysis(
             // Record checkpoint on tool completion
             await recordCheckpointIfActive(recordingState, 'tool_complete');
           }
+
+          // Track tool call for telemetry (privacy-safe: tool name and duration only)
+          if (telemetry.isEnabled() && typeof toolName === 'string') {
+            telemetry.trackTool(
+              telemetrySessionId,
+              toolName,
+              (chunk.metadata?.durationMs as number) ?? 0,
+              !chunk.metadata?.error
+            );
+          }
         }
 
         // Track LLM calls for session recording
@@ -799,6 +822,15 @@ async function runOrchestratedAnalysis(
               });
               await recordCheckpointIfActive(recordingState, 'finding');
             }
+
+            // Track finding for telemetry (privacy-safe: type and severity only)
+            if (telemetry.isEnabled()) {
+              telemetry.trackFinding(
+                telemetrySessionId,
+                finding.type ?? 'unknown',
+                (finding.severity as 'info' | 'warning' | 'error' | 'critical') ?? 'info'
+              );
+            }
           }
         }
 
@@ -808,6 +840,27 @@ async function runOrchestratedAnalysis(
         if (chunk.type === 'user_question') {
           if (options.nonInteractive && !options.quiet) {
             console.log('\n[Non-interactive mode: Questions answered automatically]');
+          }
+        }
+
+        // Track token usage from status chunks (session completion has totals)
+        if (chunk.type === 'status' && chunk.metadata?.inputTokens !== undefined) {
+          const inputTokens = chunk.metadata.inputTokens as number;
+          const outputTokens = (chunk.metadata.outputTokens as number) ?? 0;
+
+          // Update session recording metrics
+          if (recordingState) {
+            recordingState.metrics.tokensUsed = inputTokens + outputTokens;
+          }
+
+          // Track for telemetry
+          if (telemetry.isEnabled()) {
+            telemetry.trackLLM(
+              telemetrySessionId,
+              'claude', // Model name not exposed in status, use generic
+              inputTokens,
+              outputTokens
+            );
           }
         }
       }
@@ -831,6 +884,20 @@ async function runOrchestratedAnalysis(
       result.summary.sessionFindings = recCounts.sessionFindings;
       result.summary.totalOpen = recCounts.totalOpen;
 
+      // Record telemetry session end (success case)
+      if (telemetry.isEnabled()) {
+        telemetry.sessionEnd(telemetrySessionId, {
+          durationMs: Date.now() - startTime,
+          toolCallCount: recordingState?.metrics.toolCalls ?? 0,
+          findingCount: findings.length,
+          recommendationCount: recCounts.sessionFindings ?? 0,
+          totalInputTokens: recordingState?.metrics.tokensUsed ?? 0,
+          totalOutputTokens: 0, // Not tracked separately
+          success: true,
+          interrupted,
+        });
+      }
+
       renderer.renderComplete(result);
       renderer.flush();
 
@@ -841,6 +908,21 @@ async function runOrchestratedAnalysis(
     renderer.renderError(error instanceof Error ? error : new Error(errorMessage));
     renderer.flush();
 
+    // Track error for telemetry (error type only, no message content)
+    if (telemetry.isEnabled()) {
+      telemetry.trackError(
+        telemetrySessionId,
+        error instanceof Error ? error.name : 'UnknownError'
+      );
+      telemetry.sessionEnd(telemetrySessionId, {
+        durationMs: Date.now() - startTime,
+        toolCallCount: recordingState?.metrics.toolCalls ?? 0,
+        findingCount: findings.length,
+        success: false,
+        interrupted,
+      });
+    }
+
     // Record error checkpoint before returning
     if (recordingState) {
       await recordCheckpointIfActive(recordingState, 'session_end');
@@ -849,6 +931,9 @@ async function runOrchestratedAnalysis(
     // Return result with error
     return buildAnalyseResult(directory, scanResult, findings, startTime, errorMessage);
   } finally {
+    // Shutdown telemetry (flushes any buffered events)
+    await telemetry.shutdown();
+
     // Stop session recording
     if (recordingState) {
       recordingState.recorder.stopRecording();

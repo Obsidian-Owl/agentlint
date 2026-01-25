@@ -400,15 +400,25 @@ export interface LoggingConfig {
 }
 
 /**
+ * Telemetry mode.
+ * - alpha: Send to agentlint's proxy for learning how the tool is used
+ * - otel: User's own OTEL backend (future)
+ * - disabled: No telemetry
+ */
+export type TelemetryMode = 'alpha' | 'otel' | 'disabled';
+
+/**
  * Telemetry configuration (opt-in only).
  */
 export interface TelemetryConfig {
-  /** Enable telemetry (default: false, requires AGENTLINT_TELEMETRY=1) */
+  /** Enable telemetry (default: false, requires explicit opt-in) */
   enabled: boolean;
-  /** OTLP export endpoint */
+  /** Telemetry mode (default: disabled) */
+  mode: TelemetryMode;
+  /** For OTEL mode: user's OTLP export endpoint */
   endpoint?: string;
-  /** Redact content in telemetry (default: true) */
-  redactContent: boolean;
+  /** Redact content in telemetry - always true, cannot be disabled */
+  redactContent: true;
 }
 
 /**
@@ -458,6 +468,7 @@ export const DEFAULT_LOGGING_CONFIG: LoggingConfig = {
  */
 export const DEFAULT_TELEMETRY_CONFIG: TelemetryConfig = {
   enabled: false,
+  mode: 'disabled',
   redactContent: true,
 };
 
