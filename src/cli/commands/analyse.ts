@@ -382,12 +382,11 @@ interface SessionRecordingState {
 }
 
 /**
- * Generate a unique session ID.
+ * Generate a unique session ID using cryptographically secure randomness.
  */
 function generateSessionId(): string {
-  const timestamp = Date.now().toString(36);
-  const random = Math.random().toString(36).slice(2, 8);
-  return `${timestamp}-${random}`;
+  // Use crypto.randomUUID() for proper entropy (defense-in-depth)
+  return crypto.randomUUID();
 }
 
 /**

@@ -112,10 +112,11 @@ export class DebugLogger implements IDebugLogger {
     };
 
     // Ensure log directory exists when file logging is enabled
+    // Use mode 0o700 for owner-only access (defense-in-depth)
     if ((this.config.output === 'file' || this.config.output === 'both') && this.config.logFile) {
       const dir = dirname(this.config.logFile);
       if (!existsSync(dir)) {
-        mkdirSync(dir, { recursive: true });
+        mkdirSync(dir, { recursive: true, mode: 0o700 });
       }
     }
   }

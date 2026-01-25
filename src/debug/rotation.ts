@@ -9,7 +9,7 @@
  * @module debug/rotation
  */
 
-import { existsSync, readdirSync, rmSync, statSync, mkdirSync } from 'fs';
+import { existsSync, readdirSync, rmSync, lstatSync, mkdirSync } from 'fs';
 import { join } from 'path';
 import { getDefaultLogDir } from './logger';
 
@@ -88,13 +88,18 @@ function getLogFiles(logDir: string): LogFileInfo[] {
 
     const path = join(logDir, name);
     try {
-      const stats = statSync(path);
-      if (stats.isFile()) {
+      // Use lstatSync first to detect symlinks (defense-in-depth)
+      const lstats = lstatSync(path);
+      if (lstats.isSymbolicLink()) {
+        // Skip symlinks entirely - don't follow them
+        continue;
+      }
+      if (lstats.isFile()) {
         files.push({
           name,
           path,
-          size: stats.size,
-          mtime: stats.mtime,
+          size: lstats.size,
+          mtime: lstats.mtime,
         });
       }
     } catch {
@@ -123,9 +128,9 @@ export function rotateLogFiles(config: Partial<LogRotationConfig> = {}): Rotatio
   const maxFiles = config.maxFiles ?? DEFAULT_MAX_FILES;
   const maxSizeBytes = config.maxSizeBytes ?? DEFAULT_MAX_SIZE_BYTES;
 
-  // Ensure directory exists
+  // Ensure directory exists with owner-only permissions (defense-in-depth)
   if (!existsSync(logDir)) {
-    mkdirSync(logDir, { recursive: true });
+    mkdirSync(logDir, { recursive: true, mode: 0o700 });
     return {
       deletedCount: 0,
       bytesFreed: 0,
