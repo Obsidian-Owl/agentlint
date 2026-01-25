@@ -240,9 +240,8 @@ export async function POST(request: Request): Promise<Response> {
     return NextResponse.json({ error: 'Invalid payload schema' }, { status: 400 });
   }
 
-  // Forward to HoneyHive (don't wait, respond immediately)
-  // eslint-disable-next-line @typescript-eslint/no-floating-promises
-  forwardToHoneyHive(body.events);
+  // Forward to HoneyHive and wait for completion to prevent event loss
+  await forwardToHoneyHive(body.events);
 
   return NextResponse.json({ success: true, eventsReceived: body.events.length });
 }
