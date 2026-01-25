@@ -73,16 +73,14 @@ Documentation:
     .option('--verbose', 'Show detailed output including tool calls')
     .option('--fail-on-findings', 'Exit with code 1 if findings are present')
     .option(
-      '--debug [categories]',
-      'Enable debug output (optional: "tools,llm" or "*" for all, default: "*")'
-    )
-    .option(
       '--debug-level <level>',
       'Debug verbosity: minimal (errors/tools), normal (skip small chunks), verbose (everything)',
-      'verbose'
+      'normal'
     )
     .option('--quiet', 'Suppress non-error output')
-    .option('--log-file <path>', 'Write debug output to file')
+    .option('--log-file <path>', 'Override default log file location (~/.agentlint/logs/)')
+    .option('--no-log', 'Disable file logging for this run')
+    .option('--no-session', 'Disable session recording for this run')
     .option('--no-secrets', 'Disable automatic secret detection scanning')
     .option('--non-interactive', 'Run without interactive TUI (auto-approve permissions)');
 
@@ -146,10 +144,6 @@ export function extractGlobalOptions(options: Record<string, unknown>): GlobalOp
   if (typeof options['failOnFindings'] === 'boolean') {
     result.failOnFindings = options['failOnFindings'];
   }
-  if (options['debug'] !== undefined) {
-    // --debug can be passed without value (boolean true) or with value (string)
-    result.debug = typeof options['debug'] === 'string' ? options['debug'] : '*';
-  }
   if (typeof options['debugLevel'] === 'string') {
     const level = options['debugLevel'];
     if (level === 'minimal' || level === 'normal' || level === 'verbose') {
@@ -162,6 +156,14 @@ export function extractGlobalOptions(options: Record<string, unknown>): GlobalOp
   if (typeof options['logFile'] === 'string') {
     result.logFile = options['logFile'];
   }
+  // Commander.js converts --no-log to options.log = false
+  if (options['log'] === false) {
+    result.noLog = true;
+  }
+  // Commander.js converts --no-session to options.session = false
+  if (options['session'] === false) {
+    result.noSession = true;
+  }
   if (typeof options['nonInteractive'] === 'boolean') {
     result.nonInteractive = options['nonInteractive'];
   }
@@ -173,7 +175,10 @@ export function extractGlobalOptions(options: Record<string, unknown>): GlobalOp
  * Initializes the debug logger from global CLI options.
  *
  * This function should be called at the start of command handlers to
- * configure the debug logger based on --verbose, --debug, --quiet, and --log-file flags.
+ * configure the debug logger based on --verbose, --quiet, --log-file, and --no-log flags.
+ *
+ * By default, logging is enabled at info level to ~/.agentlint/logs/.
+ * Use --no-log to disable file logging.
  *
  * @param options - Global options from CLI
  * @returns Configured debug logger
@@ -181,29 +186,29 @@ export function extractGlobalOptions(options: Record<string, unknown>): GlobalOp
  * @example
  * ```typescript
  * const logger = initializeDebugLogger(globalOpts);
- * logger.debug('agentlint:tools', 'Starting analysis');
+ * logger.info('agentlint:tools', 'Starting analysis');
  * ```
  */
 export function initializeDebugLogger(options: GlobalOptions): IDebugLogger {
   // Build options object, only including defined values
   const loggerOptions: {
     verbose?: boolean;
-    debug?: string;
     quiet?: boolean;
     logFile?: string;
+    noLog?: boolean;
   } = {};
 
   if (options.verbose !== undefined) {
     loggerOptions.verbose = options.verbose;
-  }
-  if (options.debug !== undefined) {
-    loggerOptions.debug = options.debug;
   }
   if (options.quiet !== undefined) {
     loggerOptions.quiet = options.quiet;
   }
   if (options.logFile !== undefined) {
     loggerOptions.logFile = options.logFile;
+  }
+  if (options.noLog !== undefined) {
+    loggerOptions.noLog = options.noLog;
   }
 
   const logger = createLoggerFromCLIOptions(loggerOptions);

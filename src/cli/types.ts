@@ -119,14 +119,16 @@ export interface GlobalOptions {
   verbose?: boolean;
   /** Exit 1 if findings present */
   failOnFindings?: boolean;
-  /** Debug mode - enable specific debug namespaces (e.g., "tools,llm" or "*" for all) */
-  debug?: string;
-  /** Debug output verbosity: minimal, normal, verbose (default: verbose for backwards compat) */
+  /** Debug output verbosity: minimal, normal, verbose (default: normal) */
   debugLevel?: DebugLevel;
   /** Quiet mode - suppress non-error output */
   quiet?: boolean;
-  /** Log file path - write debug output to file */
+  /** Log file path - override default log file location */
   logFile?: string;
+  /** Disable file logging for this run */
+  noLog?: boolean;
+  /** Disable session recording for this run */
+  noSession?: boolean;
   /** Disable automatic secret detection scanning */
   secrets?: boolean;
   /** Non-interactive mode - run without TUI, auto-approve permissions */

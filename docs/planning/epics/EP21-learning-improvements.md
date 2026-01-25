@@ -1,10 +1,10 @@
-# EP21: CLAUDE.md Maintenance & Automation Learning
+# EP21: Learning Improvements
 
 ## Business Outcome Hypothesis
 
 **If** we provide tools for session learning extraction, CLAUDE.md maintenance, and automation recommendations,
 **Then** the agent can identify what works well in sessions, suggest CLAUDE.md improvements grounded in evidence, and recommend automations (skills, hooks, MCP) based on actual usage patterns,
-**Measured by** CLAUDE.md quality improvement over time, learning adoption rate, and automation recommendation implementation rate.
+**Measured by** CLAUDE.md, Rules and Skills (ACT configs) as well as other documentation standards (docstrings, repo .md files following progressive disclosure and search ability practices) quality improvement over time, learning adoption rate, and automation recommendation implementation rate.
 
 ## Classification
 
@@ -20,6 +20,7 @@
 This epic addresses functionality similar to Anthropic's official Claude Code plugins:
 - **claude-md-management** - CLAUDE.md quality auditing and session learning capture
 - **claude-code-setup** - Automation recommendations (skills, hooks, MCP)
+- **Superpowers** - https://github.com/obra/superpowers especially the skill creation skill
 
 agentlint's advantage: We have **historical session data**, **temporal baselines**, and **causal tracing** that these plugins lack. This epic leverages that data to provide evidence-based recommendations rather than just current-state analysis.
 
@@ -27,7 +28,8 @@ agentlint's advantage: We have **historical session data**, **temporal baselines
 
 * **Session Learning Extraction** - Aggregate insights from session history (not just current session)
 * **CLAUDE.md Quality Trends** - Track quality improvement over time via baselines
-* **Evidence-Grounded Improvements** - Suggest CLAUDE.md updates traced to specific session issues
+* **Skills Quality Trends** - Track quality improvement over time via baselines
+* **Evidence-Grounded Improvements** - Suggest updates traced to specific session issues
 * **Automation Recommendations** - Recommend skills, hooks, MCP servers based on usage patterns
 * **Effectiveness Measurement** - Track whether recommended changes actually improve outcomes
 

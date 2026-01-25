@@ -372,3 +372,110 @@ export const DEFAULT_PERSISTENCE_CONFIG: PersistenceConfig = {
   fileMode: 0o600,
   dirMode: 0o700,
 };
+
+// =============================================================================
+// Logging Configuration Types
+// =============================================================================
+
+/**
+ * Log retention configuration.
+ */
+export interface LogRetentionConfig {
+  /** Maximum number of log files to keep (default: 10) */
+  maxFiles: number;
+  /** Maximum total size in MB (default: 500) */
+  maxSizeMB: number;
+}
+
+/**
+ * Logging configuration (from ~/.agentlint/config.json).
+ */
+export interface LoggingConfig {
+  /** Enable logging (default: true) */
+  enabled: boolean;
+  /** Log level (default: info) */
+  level: 'trace' | 'debug' | 'info' | 'warn' | 'error';
+  /** Log retention settings */
+  retention: LogRetentionConfig;
+}
+
+/**
+ * Telemetry mode.
+ * - alpha: Send to agentlint's proxy for learning how the tool is used
+ * - otel: User's own OTEL backend (future)
+ * - disabled: No telemetry
+ */
+export type TelemetryMode = 'alpha' | 'otel' | 'disabled';
+
+/**
+ * Telemetry configuration (opt-in only).
+ */
+export interface TelemetryConfig {
+  /** Enable telemetry (default: false, requires explicit opt-in) */
+  enabled: boolean;
+  /** Telemetry mode (default: disabled) */
+  mode: TelemetryMode;
+  /** For OTEL mode: user's OTLP export endpoint */
+  endpoint?: string;
+  /** Redact content in telemetry - always true, cannot be disabled */
+  redactContent: true;
+}
+
+/**
+ * Session recording configuration.
+ */
+export interface SessionRecordingConfig {
+  /** Enable session recording (default: true) */
+  enabled: boolean;
+  /** Retention in days (default: 7) */
+  retentionDays: number;
+}
+
+/**
+ * Full agentlint configuration (from ~/.agentlint/config.json).
+ */
+export interface AgentlintConfig {
+  /** Model to use for analysis (default: claude-sonnet-4-20250514) */
+  model?: string;
+  /** Checkpoint configuration */
+  checkpoint?: {
+    intervalMs: number;
+  };
+  /** Output verbosity (default: normal) */
+  verbosity?: 'quiet' | 'normal' | 'verbose' | 'debug';
+  /** Logging configuration */
+  logging?: LoggingConfig;
+  /** Telemetry configuration (opt-in) */
+  telemetry?: TelemetryConfig;
+  /** Session recording configuration */
+  sessionRecording?: SessionRecordingConfig;
+}
+
+/**
+ * Default logging configuration.
+ */
+export const DEFAULT_LOGGING_CONFIG: LoggingConfig = {
+  enabled: true,
+  level: 'info',
+  retention: {
+    maxFiles: 10,
+    maxSizeMB: 500,
+  },
+};
+
+/**
+ * Default telemetry configuration (disabled by default).
+ */
+export const DEFAULT_TELEMETRY_CONFIG: TelemetryConfig = {
+  enabled: false,
+  mode: 'disabled',
+  redactContent: true,
+};
+
+/**
+ * Default session recording configuration.
+ */
+export const DEFAULT_SESSION_RECORDING_CONFIG: SessionRecordingConfig = {
+  enabled: true,
+  retentionDays: 7,
+};

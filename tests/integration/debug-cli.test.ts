@@ -1,8 +1,11 @@
 /**
  * EP11 Quality & Security - Debug CLI Integration Tests
  *
- * Integration tests for CLI flags (--verbose, --debug, --quiet, --log-file).
+ * Integration tests for CLI flags (--verbose, --quiet, --log-file, --no-log).
  * These test the underlying logger functions that would be used by CLI flags.
+ *
+ * Note: --debug flag was removed in favor of default logging being always on.
+ * Use --verbose for debug-level logging, --no-log to disable file logging.
  *
  * @module tests/integration/debug-cli
  */
@@ -58,34 +61,48 @@ describe('Debug CLI Flags', () => {
     });
   });
 
-  describe('--debug flag', () => {
-    it('should enable specific debug category', () => {
-      const logger = createLoggerFromCLIOptions({ debug: 'tools' });
-
-      expect(logger.isEnabled('agentlint:tools')).toBe(true);
-      expect(logger.isEnabled('agentlint:other')).toBe(false);
-    });
-
-    it('should support multiple categories', () => {
-      const logger = createLoggerFromCLIOptions({ debug: 'tools,llm' });
-
-      expect(logger.isEnabled('agentlint:tools')).toBe(true);
-      expect(logger.isEnabled('agentlint:llm')).toBe(true);
-    });
-
-    it('should enable all categories with *', () => {
-      const logger = createLoggerFromCLIOptions({ debug: '*' });
-
-      expect(logger.isEnabled('agentlint:anything')).toBe(true);
-      expect(logger.isEnabled('agentlint:tools')).toBe(true);
-      expect(logger.isEnabled('agentlint:llm')).toBe(true);
-    });
-
-    it('should set log level to debug', () => {
-      const logger = createLoggerFromCLIOptions({ debug: 'tools' });
+  describe('--no-log flag', () => {
+    it('should disable file logging', () => {
+      const logger = createLoggerFromCLIOptions({ noLog: true });
       const config = (logger as DebugLogger).getConfig();
 
+      expect(config.output).toBe('console');
+      expect(config.logFile).toBeUndefined();
+    });
+
+    it('should still allow console output', () => {
+      const logger = createLoggerFromCLIOptions({ noLog: true });
+      const config = (logger as DebugLogger).getConfig();
+
+      expect(config.output).toBe('console');
+      expect(config.level).toBe('info'); // Default level
+    });
+
+    it('should combine with --verbose for debug-level console output', () => {
+      const logger = createLoggerFromCLIOptions({ noLog: true, verbose: true });
+      const config = (logger as DebugLogger).getConfig();
+
+      expect(config.output).toBe('console');
       expect(config.level).toBe('debug');
+    });
+  });
+
+  describe('default behavior (logging always on)', () => {
+    it('should enable logging by default', () => {
+      const logger = createLoggerFromCLIOptions({});
+      const config = (logger as DebugLogger).getConfig();
+
+      expect(config.level).toBe('info');
+      expect(config.output).toBe('both');
+      expect(config.logFile).toBeDefined();
+    });
+
+    it('should enable agentlint:* namespaces by default', () => {
+      const logger = createLoggerFromCLIOptions({});
+
+      expect(logger.isEnabled('agentlint:tools')).toBe(true);
+      expect(logger.isEnabled('agentlint:llm')).toBe(true);
+      expect(logger.isEnabled('agentlint:anything')).toBe(true);
     });
   });
 
@@ -268,11 +285,12 @@ describe('Debug CLI Flags', () => {
     });
 
     it('CLI flags should configure logger properly', () => {
-      const logger = createLoggerFromCLIOptions({ debug: 'tools,llm' });
+      const logger = createLoggerFromCLIOptions({ verbose: true });
       const config = (logger as DebugLogger).getConfig();
 
-      expect(config.namespaces).toContain('agentlint:tools');
-      expect(config.namespaces).toContain('agentlint:llm');
+      // Default enables all agentlint:* namespaces
+      expect(config.namespaces).toContain('agentlint:*');
+      expect(config.level).toBe('debug');
     });
   });
 });

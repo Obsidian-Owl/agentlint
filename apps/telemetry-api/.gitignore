@@ -1,0 +1,21 @@
+# Dependencies
+node_modules/
+
+# Build output
+.next/
+out/
+
+# Generated files
+next-env.d.ts
+*.tsbuildinfo
+
+# Lock files (use repo root)
+package-lock.json
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Vercel
+.vercel

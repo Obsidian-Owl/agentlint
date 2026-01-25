@@ -44,7 +44,7 @@ agentlint enables continuous improvement of AI-assisted development workflows th
 | ~~EP18~~ | ~~Subagent Delegation Tracker~~ | — | — | — | *Absorbed into EP15* |
 | EP19 | MCP Config Validation | Business | P2 | S | Planned |
 | EP20 | User Customization System | Business | P1 | L | Planned |
-| EP21 | CLAUDE.md Maintenance & Automation Learning | Integration | P1 | L | Planned |
+| EP21 | Learning Improvements | Integration | P1 | L | Planned |
 
 **Note**: EP15 (Session Intelligence) consolidates EP16 and EP18. MCP runtime analysis moved to EP15; EP19 is now static config validation only.
 
@@ -220,7 +220,7 @@ All epics must respect the 9 constitutional principles:
 - [EP17: TUI Architecture & Agent-Led Exploration](epics/EP17-tui-architecture.md)
 - [EP19: MCP Config Validation](epics/EP19-mcp-config-validation.md) *(Static analysis only)*
 - [EP20: User Customization System](epics/EP20-user-customization.md)
-- [EP21: CLAUDE.md Maintenance & Automation Learning](epics/EP21-claude-md-maintenance.md)
+- [EP21: Learning Improvements](epics/EP21-learning-improvements.md)
 
 ### Related Documents
 

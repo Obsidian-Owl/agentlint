@@ -46,7 +46,21 @@ export {
   getDefaultLogger,
   setDefaultLogger,
   DEFAULT_DEBUG_CONFIG,
+  getDefaultLogDir,
+  getDefaultLogFilePath,
 } from './logger';
+
+// Re-export rotation utilities
+export {
+  rotateLogFiles,
+  getLogStats,
+  cleanupLogsOnStartup,
+  DEFAULT_MAX_FILES,
+  DEFAULT_MAX_SIZE_BYTES,
+  type LogRotationConfig,
+  type RotationResult,
+  type LogStats,
+} from './rotation';
 
 // Re-export metrics (EP11 T057)
 export {

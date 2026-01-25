@@ -628,25 +628,25 @@ describe('Factory Functions', () => {
       expect(logger.getConfig().level).toBe('error');
     });
 
-    it('should enable tools and llm namespaces with --verbose', () => {
+    it('should enable all agentlint namespaces with --verbose', () => {
       const logger = createLoggerFromCLIOptions({ verbose: true });
       const config = logger.getConfig();
-      expect(config.namespaces).toContain('agentlint:tools');
-      expect(config.namespaces).toContain('agentlint:llm');
-    });
-
-    it('should enable specific categories with --debug', () => {
-      const logger = createLoggerFromCLIOptions({ debug: 'tools,eval' });
-      const config = logger.getConfig();
-      expect(config.namespaces).toContain('agentlint:tools');
-      expect(config.namespaces).toContain('agentlint:eval');
+      expect(config.namespaces).toContain('agentlint:*');
       expect(config.level).toBe('debug');
     });
 
-    it('should enable all categories with --debug=*', () => {
-      const logger = createLoggerFromCLIOptions({ debug: '*' });
+    it('should enable all namespaces by default', () => {
+      const logger = createLoggerFromCLIOptions({});
       const config = logger.getConfig();
       expect(config.namespaces).toContain('agentlint:*');
+      expect(config.level).toBe('info');
+    });
+
+    it('should disable file logging with --no-log', () => {
+      const logger = createLoggerFromCLIOptions({ noLog: true });
+      const config = logger.getConfig();
+      expect(config.output).toBe('console');
+      expect(config.logFile).toBeUndefined();
     });
   });
 });

@@ -54,6 +54,22 @@ import { initializeDatabases } from '../../persistence';
 import { discoverSessions } from '../../tools/sessions/discovery';
 import { indexSessions } from '../../tools/sessions/indexer';
 
+// Session recording imports (default logging feature)
+import { createSessionRecorder, type SessionRecorder } from '../../orchestration/checkpoint';
+import type {
+  SessionCheckpoint,
+  SessionCheckpointTrigger,
+  SessionMetrics,
+  ToolHistoryEntry,
+  CheckpointFindingSummary,
+} from '../../orchestration/checkpoint-types';
+
+// Log rotation imports (clean up old logs on startup)
+import { cleanupLogsOnStartup } from '../../debug/rotation';
+
+// Telemetry imports
+import { getTelemetryClient } from '../../telemetry';
+
 // EP15 Session Intelligence imports
 import { buildSessionAnalystAgent } from '../../sessions/subagent';
 import { buildQueryPrompt } from '../../sessions/tools/spawn-session-analyst';
@@ -81,6 +97,12 @@ export interface AnalyseOptions extends GlobalOptions {
   skills?: boolean;
   /** Session ID or path for session-specific analysis (EP15) */
   session?: string;
+  /** Disable session recording for this run */
+  noSession?: boolean;
+  /** Override default log file location */
+  logFile?: string;
+  /** Disable file logging for this run */
+  noLog?: boolean;
 }
 
 /**
@@ -345,6 +367,67 @@ function formatGapLocation(location: string): string {
 }
 
 // =============================================================================
+// Session Recording Helpers
+// =============================================================================
+
+/**
+ * State tracked during analysis for session recording.
+ */
+interface SessionRecordingState {
+  sessionId: string;
+  recorder: SessionRecorder;
+  sequence: number;
+  startTime: number;
+  toolHistory: ToolHistoryEntry[];
+  findings: CheckpointFindingSummary[];
+  metrics: SessionMetrics;
+  phase: 'init' | 'scan' | 'analyze' | 'recommend' | 'complete';
+}
+
+/**
+ * Generate a unique session ID using cryptographically secure randomness.
+ */
+function generateSessionId(): string {
+  // Use crypto.randomUUID() for proper entropy (defense-in-depth)
+  return crypto.randomUUID();
+}
+
+/**
+ * Create a session checkpoint from current state.
+ */
+function createCheckpoint(
+  state: SessionRecordingState,
+  trigger: SessionCheckpointTrigger
+): SessionCheckpoint {
+  return {
+    version: '1.0',
+    sessionId: state.sessionId,
+    timestamp: new Date().toISOString(),
+    sequence: ++state.sequence,
+    phase: state.phase,
+    trigger,
+    toolHistory: state.toolHistory.slice(-20), // Keep last 20 tool calls
+    findings: state.findings,
+    metrics: {
+      ...state.metrics,
+      elapsedMs: Date.now() - state.startTime,
+    },
+  };
+}
+
+/**
+ * Record a checkpoint if session recording is active.
+ */
+async function recordCheckpointIfActive(
+  state: SessionRecordingState | null,
+  trigger: SessionCheckpointTrigger
+): Promise<void> {
+  if (!state) return;
+  const checkpoint = createCheckpoint(state, trigger);
+  await state.recorder.recordCheckpoint(checkpoint);
+}
+
+// =============================================================================
 // Orchestrated Analysis (Default Mode)
 // =============================================================================
 
@@ -352,7 +435,6 @@ function formatGapLocation(location: string): string {
  * Determine the verbosity level from CLI options.
  */
 function getVerbosityLevel(options: AnalyseOptions): VerbosityLevel {
-  if (options.debug) return 'debug';
   if (options.verbose) return 'verbose';
   if (options.quiet) return 'quiet';
   return 'normal';
@@ -476,14 +558,57 @@ async function runOrchestratedAnalysis(
   const startTime = Date.now();
   const findings: AnalyseFinding[] = [];
 
+  // Clean up old log files on startup (log rotation)
+  if (!options.noLog) {
+    cleanupLogsOnStartup();
+  }
+
   // Initialize debug logger from CLI options
-  const loggerOpts: { verbose?: boolean; debug?: string; quiet?: boolean; logFile?: string } = {};
+  // By default, logs to ~/.agentlint/logs/{date}.ndjson
+  const loggerOpts: { verbose?: boolean; quiet?: boolean; logFile?: string; noLog?: boolean } = {};
   if (options.verbose !== undefined) loggerOpts.verbose = options.verbose;
-  if (options.debug !== undefined) loggerOpts.debug = options.debug;
   if (options.quiet !== undefined) loggerOpts.quiet = options.quiet;
   if (options.logFile !== undefined) loggerOpts.logFile = options.logFile;
+  if (options.noLog !== undefined) loggerOpts.noLog = options.noLog;
   const logger = createLoggerFromCLIOptions(loggerOpts);
   setDefaultLogger(logger);
+
+  // Initialize session recording (unless --no-session)
+  let recordingState: SessionRecordingState | null = null;
+  if (!options.noSession) {
+    const sessionId = generateSessionId();
+    const recorder = createSessionRecorder();
+    recorder.startRecording(sessionId);
+
+    recordingState = {
+      sessionId,
+      recorder,
+      sequence: 0,
+      startTime,
+      toolHistory: [],
+      findings: [],
+      metrics: {
+        toolCalls: 0,
+        llmCalls: 0,
+        tokensUsed: 0,
+        elapsedMs: 0,
+      },
+      phase: 'init',
+    };
+
+    // Record initial checkpoint
+    await recordCheckpointIfActive(recordingState, 'phase_transition');
+  }
+
+  // Initialize telemetry (opt-in only, disabled by default)
+  const telemetry = getTelemetryClient();
+  const telemetrySessionId = recordingState?.sessionId ?? generateSessionId();
+  if (telemetry.isEnabled()) {
+    telemetry.sessionStart(telemetrySessionId, {
+      command: 'analyse',
+      hasConfig: false, // Will be updated after scan
+    });
+  }
 
   // Issue 4 fix: Initialize databases before tools can use them
   // This ensures baselines, learnings, recommendations directories and DBs exist
@@ -598,9 +723,9 @@ async function runOrchestratedAnalysis(
         }
 
         // Debug logging for chunk flow - helps diagnose rendering issues (AGE-671, AGE-682)
-        // Respects --debug-level: minimal|normal|verbose
-        if (options.debug) {
-          const debugLevel = options.debugLevel ?? 'verbose';
+        // Enabled via --verbose flag, respects --debug-level: minimal|normal|verbose
+        if (options.verbose) {
+          const debugLevel = options.debugLevel ?? 'normal';
 
           // Determine if this chunk should be shown based on debug level
           let shouldLog = true;
@@ -640,12 +765,72 @@ async function runOrchestratedAnalysis(
           renderer.renderChunk(chunk);
         }
 
+        // Track tool calls for session recording
+        if (chunk.type === 'tool_result' && recordingState) {
+          const toolName = chunk.metadata?.toolName;
+          if (typeof toolName === 'string') {
+            recordingState.toolHistory.push({
+              tool: toolName,
+              arguments: (chunk.metadata?.arguments as Record<string, unknown>) ?? {},
+              resultSummary: chunk.content.slice(0, 500),
+              timestamp: chunk.timestamp,
+              durationMs: (chunk.metadata?.durationMs as number) ?? 0,
+            });
+            recordingState.metrics.toolCalls++;
+
+            // Record checkpoint on tool completion
+            await recordCheckpointIfActive(recordingState, 'tool_complete');
+          }
+
+          // Track tool call for telemetry (privacy-safe: tool name and duration only)
+          if (telemetry.isEnabled() && typeof toolName === 'string') {
+            telemetry.trackTool(
+              telemetrySessionId,
+              toolName,
+              (chunk.metadata?.durationMs as number) ?? 0,
+              !chunk.metadata?.error
+            );
+          }
+        }
+
+        // Track LLM calls for session recording
+        if (chunk.type === 'text' && recordingState) {
+          // Update phase based on content hints
+          if (recordingState.phase === 'init' && recordingState.metrics.toolCalls > 0) {
+            recordingState.phase = 'analyze';
+            await recordCheckpointIfActive(recordingState, 'phase_transition');
+          }
+        }
+
         // Collect findings from chunks
         if (chunk.type === 'finding') {
           const finding = convertChunkToFinding(chunk);
           if (finding) {
             findings.push(finding);
             renderer.renderFinding(finding);
+
+            // Track finding for session recording
+            if (recordingState) {
+              recordingState.findings.push({
+                id: finding.id,
+                type: finding.type,
+                location: {
+                  file: finding.location?.file ?? 'unknown',
+                  line: finding.location?.line ?? 0,
+                },
+                summary: finding.title,
+              });
+              await recordCheckpointIfActive(recordingState, 'finding');
+            }
+
+            // Track finding for telemetry (privacy-safe: type and severity only)
+            if (telemetry.isEnabled()) {
+              telemetry.trackFinding(
+                telemetrySessionId,
+                finding.type ?? 'unknown',
+                (finding.severity as 'info' | 'warning' | 'error' | 'critical') ?? 'info'
+              );
+            }
           }
         }
 
@@ -657,12 +842,39 @@ async function runOrchestratedAnalysis(
             console.log('\n[Non-interactive mode: Questions answered automatically]');
           }
         }
+
+        // Track token usage from status chunks (session completion has totals)
+        if (chunk.type === 'status' && chunk.metadata?.inputTokens !== undefined) {
+          const inputTokens = chunk.metadata.inputTokens as number;
+          const outputTokens = (chunk.metadata.outputTokens as number) ?? 0;
+
+          // Update session recording metrics
+          if (recordingState) {
+            recordingState.metrics.tokensUsed = inputTokens + outputTokens;
+          }
+
+          // Track for telemetry
+          if (telemetry.isEnabled()) {
+            telemetry.trackLLM(
+              telemetrySessionId,
+              'claude', // Model name not exposed in status, use generic
+              inputTokens,
+              outputTokens
+            );
+          }
+        }
       }
 
       // AGE-679: Removed stored rec rendering - it duplicated streaming output.
       // The agent's streaming shows findings as they're discovered. Loading stored
       // recommendations and re-rendering them was redundant and overwhelming.
       // Findings array already contains chunk findings from streaming above.
+
+      // Record final checkpoint
+      if (recordingState) {
+        recordingState.phase = 'complete';
+        await recordCheckpointIfActive(recordingState, 'session_end');
+      }
 
       // Build and output final result
       const result = buildAnalyseResult(directory, scanResult, findings, startTime);
@@ -671,6 +883,20 @@ async function runOrchestratedAnalysis(
       const recCounts = await countRecommendations(directory, startTime);
       result.summary.sessionFindings = recCounts.sessionFindings;
       result.summary.totalOpen = recCounts.totalOpen;
+
+      // Record telemetry session end (success case)
+      if (telemetry.isEnabled()) {
+        telemetry.sessionEnd(telemetrySessionId, {
+          durationMs: Date.now() - startTime,
+          toolCallCount: recordingState?.metrics.toolCalls ?? 0,
+          findingCount: findings.length,
+          recommendationCount: recCounts.sessionFindings ?? 0,
+          totalInputTokens: recordingState?.metrics.tokensUsed ?? 0,
+          totalOutputTokens: 0, // Not tracked separately
+          success: true,
+          interrupted,
+        });
+      }
 
       renderer.renderComplete(result);
       renderer.flush();
@@ -682,9 +908,36 @@ async function runOrchestratedAnalysis(
     renderer.renderError(error instanceof Error ? error : new Error(errorMessage));
     renderer.flush();
 
+    // Track error for telemetry (error type only, no message content)
+    if (telemetry.isEnabled()) {
+      telemetry.trackError(
+        telemetrySessionId,
+        error instanceof Error ? error.name : 'UnknownError'
+      );
+      telemetry.sessionEnd(telemetrySessionId, {
+        durationMs: Date.now() - startTime,
+        toolCallCount: recordingState?.metrics.toolCalls ?? 0,
+        findingCount: findings.length,
+        success: false,
+        interrupted,
+      });
+    }
+
+    // Record error checkpoint before returning
+    if (recordingState) {
+      await recordCheckpointIfActive(recordingState, 'session_end');
+    }
+
     // Return result with error
     return buildAnalyseResult(directory, scanResult, findings, startTime, errorMessage);
   } finally {
+    // Shutdown telemetry (flushes any buffered events)
+    await telemetry.shutdown();
+
+    // Stop session recording
+    if (recordingState) {
+      recordingState.recorder.stopRecording();
+    }
     // Stop TUI renderer if present
     tuiRenderer?.stop();
     // Clean up interrupt handler
@@ -933,11 +1186,11 @@ async function runSessionAnalysis(
   const startTime = Date.now();
 
   // Initialize debug logger from CLI options
-  const loggerOpts: { verbose?: boolean; debug?: string; quiet?: boolean; logFile?: string } = {};
+  const loggerOpts: { verbose?: boolean; quiet?: boolean; logFile?: string; noLog?: boolean } = {};
   if (options.verbose !== undefined) loggerOpts.verbose = options.verbose;
-  if (options.debug !== undefined) loggerOpts.debug = options.debug;
   if (options.quiet !== undefined) loggerOpts.quiet = options.quiet;
   if (options.logFile !== undefined) loggerOpts.logFile = options.logFile;
+  if (options.noLog !== undefined) loggerOpts.noLog = options.noLog;
   const logger = createLoggerFromCLIOptions(loggerOpts);
   setDefaultLogger(logger);
 
