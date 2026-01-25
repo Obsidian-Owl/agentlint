@@ -78,6 +78,8 @@ export type McpIssueCode =
   | 'MCP003' // Executable not found
   | 'MCP004' // Invalid URL format
   | 'MCP005' // Docker missing -i flag
+  | 'MCP006' // Parse error (invalid JSON/JSONC)
+  | 'MCP007' // File read error
   // Warnings (MCP010-MCP019)
   | 'MCP010' // Relative path in command
   | 'MCP011' // Shell variable may not expand
@@ -106,6 +108,8 @@ export const ISSUE_CODE_METADATA: Record<
   MCP003: { severity: 'error', description: 'Executable not found' },
   MCP004: { severity: 'error', description: 'Invalid URL format' },
   MCP005: { severity: 'error', description: 'Docker missing -i flag' },
+  MCP006: { severity: 'error', description: 'Parse error (invalid JSON/JSONC)' },
+  MCP007: { severity: 'error', description: 'File read error' },
   MCP010: { severity: 'warning', description: 'Relative path in command' },
   MCP011: { severity: 'warning', description: 'Shell variable may not expand' },
   MCP012: { severity: 'warning', description: 'Deprecated transport (SSE)' },

@@ -92,7 +92,7 @@ export async function validateMcpConfig(
       // Add parse errors as issues
       for (const error of parseResult.errors) {
         issues.push({
-          code: 'MCP015',
+          code: 'MCP006',
           severity: 'error',
           message: `Parse error: ${error.message}`,
           file: filePath,
@@ -213,7 +213,7 @@ export async function validateMcpConfig(
     // File read error or unexpected error
     const errorMessage = error instanceof Error ? error.message : String(error);
     issues.push({
-      code: 'MCP015',
+      code: 'MCP007',
       severity: 'error',
       message: `Failed to read config: ${errorMessage}`,
       file: filePath,
@@ -313,8 +313,9 @@ function countBySeverity(issues: McpValidationIssue[]): {
  * Detect config format from content.
  */
 function detectFormat(config: Record<string, unknown>): McpFormat {
+  if ('mcp' in config) return 'opencode';
   if ('mcpServers' in config) return 'standard';
-  if ('servers' in config) return 'opencode';
+  if ('servers' in config) return 'vscode-copilot';
   return 'standard';
 }
 
