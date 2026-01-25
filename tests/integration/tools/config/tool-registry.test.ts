@@ -1,7 +1,7 @@
 /**
  * T076: Test tool integration with ToolRegistry
  *
- * Tests that EP05 tools register correctly with the ToolRegistry
+ * Tests that config tools register correctly with the ToolRegistry
  * and can be converted to MCP server configuration.
  *
  * @module tests/integration/tools/config/tool-registry.test.ts
@@ -17,8 +17,8 @@ import {
   discoverConfigsTool,
   parseConfigTool,
   analyzeHierarchyTool,
-  EP05_CONFIG_TOOLS,
-  registerEP05Tools,
+  CONFIG_TOOLS,
+  registerConfigTools,
   registerAllTools,
 } from '../../../../src/tools';
 
@@ -28,7 +28,7 @@ const discoverTool = discoverConfigsTool as ToolDefinition;
 const parseTool = parseConfigTool as ToolDefinition;
 const hierarchyTool = analyzeHierarchyTool as ToolDefinition;
 
-describe('EP05 Tool Registration', () => {
+describe('Config Tool Registration', () => {
   let registry: ToolRegistry;
 
   beforeEach(() => {
@@ -70,8 +70,8 @@ describe('EP05 Tool Registration', () => {
   });
 
   describe('bulk registration', () => {
-    it('should register all EP05 tools via registerMany', () => {
-      registry.registerMany([...EP05_CONFIG_TOOLS]);
+    it('should register all config tools via registerMany', () => {
+      registry.registerMany([...CONFIG_TOOLS]);
 
       const tools = registry.list();
       expect(tools.length).toBe(3);
@@ -80,8 +80,8 @@ describe('EP05 Tool Registration', () => {
       expect(tools).toContain('analyze_hierarchy');
     });
 
-    it('should register all EP05 tools via registerEP05Tools helper', () => {
-      registerEP05Tools(registry);
+    it('should register all config tools via registerConfigTools helper', () => {
+      registerConfigTools(registry);
 
       const tools = registry.list();
       expect(tools.length).toBe(3);
@@ -111,7 +111,7 @@ describe('EP05 Tool Registration', () => {
 
   describe('MCP server generation', () => {
     it('should generate MCP server config with all tools', () => {
-      registerEP05Tools(registry);
+      registerConfigTools(registry);
 
       const mcpServer = registry.toMcpServer();
 
@@ -121,7 +121,7 @@ describe('EP05 Tool Registration', () => {
     });
 
     it('should cache MCP server config', () => {
-      registerEP05Tools(registry);
+      registerConfigTools(registry);
 
       const server1 = registry.toMcpServer();
       const server2 = registry.toMcpServer();
@@ -163,14 +163,14 @@ describe('EP05 Tool Registration', () => {
     });
   });
 
-  describe('EP05_CONFIG_TOOLS constant', () => {
-    it('should export all EP05 tools as array', () => {
-      expect(EP05_CONFIG_TOOLS).toBeInstanceOf(Array);
-      expect(EP05_CONFIG_TOOLS.length).toBe(3);
+  describe('CONFIG_TOOLS constant', () => {
+    it('should export all config tools as array', () => {
+      expect(CONFIG_TOOLS).toBeInstanceOf(Array);
+      expect(CONFIG_TOOLS.length).toBe(3);
     });
 
     it('should contain valid tool definitions', () => {
-      for (const tool of EP05_CONFIG_TOOLS) {
+      for (const tool of CONFIG_TOOLS) {
         expect(tool).toBeDefined();
         // Tools should have name property (internal structure)
         expect(typeof tool).toBe('object');

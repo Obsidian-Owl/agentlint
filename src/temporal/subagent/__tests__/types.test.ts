@@ -42,7 +42,7 @@ function createValidInstructions(
 
 describe('temporal/subagent/types', () => {
   describe('TEMPORAL_SUBAGENT_TOOLS', () => {
-    it('should include all EP09 temporal tools', () => {
+    it('should include all temporal tools', () => {
       expect(TEMPORAL_SUBAGENT_TOOLS).toContain('store_baseline');
       expect(TEMPORAL_SUBAGENT_TOOLS).toContain('query_baseline');
       expect(TEMPORAL_SUBAGENT_TOOLS).toContain('list_baselines');

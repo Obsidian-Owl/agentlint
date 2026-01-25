@@ -67,6 +67,23 @@ For single-task implementation with confirmation between tasks, use `/dev.implem
 - **Feature specs**: Created in `specs/ep##-feature-name/` with spec.md, plan.md, tasks.md
 - **Task tracking**: Linear integration via MCP (configured in `.mcp.json`)
 
+## Naming Conventions
+
+### Transient vs Permanent Artifacts
+
+Epic identifiers (EP##) are appropriate for **transient artifacts**:
+- Git branches: `ep15-session-intelligence`
+- Spec directories: `specs/ep15-session-intelligence/`
+- Linear issues: `EP15-T001`
+
+Epic identifiers are **NOT appropriate** for permanent code:
+- Exported constants: `CONFIG_TOOLS` not `EP05_CONFIG_TOOLS`
+- Exported functions: `registerConfigTools` not `registerEP05Tools`
+- Type names: `SessionMetrics` not `EP06SessionMetrics`
+- Test describe blocks: `'Config Tool Registration'` not `'EP05 Tool Registration'`
+
+**Rationale**: Code identifiers outlive their epic context. `CONFIG_TOOLS` is self-documenting; `EP05_CONFIG_TOOLS` requires lookup.
+
 ## Key Architecture Concepts
 
 **6-Layer Architecture**: CLI → Orchestration (Claude Agent SDK) → Tools → ACT Adapters → Persistence → Integration

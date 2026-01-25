@@ -291,14 +291,14 @@ src/tools/config/
 
 ```typescript
 import { createToolRegistry } from './orchestration';
-import { registerAllTools, registerEP05Tools } from './tools';
+import { registerAllTools, registerConfigTools } from './tools';
 
 // Register all available tools
 const registry = createToolRegistry();
 registerAllTools(registry);
 
-// Or register EP05 tools only
-registerEP05Tools(registry);
+// Or register config tools only
+registerConfigTools(registry);
 
 // Get MCP server for SDK integration
 const mcpServer = registry.toMcpServer();
