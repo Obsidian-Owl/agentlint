@@ -207,6 +207,21 @@ export interface LearnAddOptions extends GlobalOptions {
  */
 export type LearnPromoteOptions = GlobalOptions;
 
+/**
+ * Options for the clean command.
+ * Removes .agentlint state with optional backup.
+ */
+export interface CleanOptions extends GlobalOptions {
+  /** Project directory to clean (default: .) */
+  directory?: string;
+  /** Actually perform the clean (without this, preview only) */
+  force?: boolean;
+  /** Skip creating backup before cleaning */
+  noBackup?: boolean;
+  /** Also clean global ~/.agentlint directory */
+  global?: boolean;
+}
+
 // =============================================================================
 // Progress & Display Types
 // =============================================================================
