@@ -141,6 +141,9 @@ export class Orchestrator implements IOrchestrator {
   /** Map toolId -> start time for duration calculation */
   private readonly toolStartTimes = new Map<string, number>();
 
+  /** Counter for periodic orphan cleanup (every 10 tools) */
+  private toolCleanupCounter = 0;
+
   /** Map toolId -> tool input arguments for telemetry */
   private readonly toolInputs = new Map<string, Record<string, unknown>>();
 
@@ -497,11 +500,20 @@ export class Orchestrator implements IOrchestrator {
    * @param input - The tool input to store (will be truncated)
    */
   private storeToolInput(toolId: string, input: Record<string, unknown>): void {
-    // Evict oldest entry if at capacity
+    // Evict oldest entry (by start time) if at capacity - LRU-style eviction
     if (this.toolInputs.size >= Orchestrator.MAX_PENDING_TOOLS) {
-      const firstKey = this.toolInputs.keys().next().value;
-      if (firstKey) {
-        this.toolInputs.delete(firstKey);
+      let oldestId: string | null = null;
+      let oldestTime = Infinity;
+      for (const [id, time] of this.toolStartTimes) {
+        if (time < oldestTime) {
+          oldestTime = time;
+          oldestId = id;
+        }
+      }
+      if (oldestId) {
+        this.toolInputs.delete(oldestId);
+        this.toolIdToName.delete(oldestId);
+        this.toolStartTimes.delete(oldestId);
       }
     }
 
@@ -693,8 +705,10 @@ export class Orchestrator implements IOrchestrator {
       if (event?.type === 'content_block_start' && event.content_block?.type === 'tool_use') {
         const toolBlock = event.content_block;
         this.logger.info('Tool invocation starting (stream)', { tool: toolBlock.name });
-        // Clean up orphaned entries before adding new ones (P2 memory leak fix)
-        this.cleanupOrphanedToolEntries();
+        // Periodic cleanup of orphaned entries (every 10 tools to reduce O(n) overhead)
+        if (++this.toolCleanupCounter % 10 === 0) {
+          this.cleanupOrphanedToolEntries();
+        }
         // Track toolId -> toolName for later correlation with tool_result
         this.toolIdToName.set(toolBlock.id, toolBlock.name);
         // Track start time for duration calculation
