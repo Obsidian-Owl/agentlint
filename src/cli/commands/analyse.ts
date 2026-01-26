@@ -17,6 +17,7 @@
 import { resolve, relative } from 'node:path';
 import { stat } from 'node:fs/promises';
 import { getOutputMode } from '../utils/output';
+import { printException, printIOError } from '../utils/error';
 import type { GlobalOptions, OutputMode } from '../types';
 import { scanForConfigs, type ScanResult, type ConfigFile as ScanConfigFile } from './scan';
 import { discoverConfigs, type DiscoverConfigsResult } from '../../tools/config';
@@ -34,7 +35,8 @@ import {
 } from '../../orchestration';
 import type { VerbosityLevel, StreamChunk } from '../../orchestration/types';
 import { registerAllTools } from '../../tools';
-import { createLoggerFromCLIOptions, setDefaultLogger } from '../../debug/logger';
+import { createLoggerFromCLIOptions, setDefaultLogger, getDefaultLogger } from '../../debug/logger';
+import { DEBUG_NAMESPACES } from '../../debug/namespaces';
 import { createRenderer } from '../renderers';
 import { TuiStreamRenderer, createTuiCanUseTool, type ITuiRenderer } from '../../tui';
 import { buildAnalysisPrompt } from './analyse-prompt';
@@ -164,6 +166,32 @@ export interface AnalyseFinding {
 }
 
 /**
+ * Detect the primary project type from scan results.
+ * Used for telemetry to categorize analysis sessions.
+ */
+function detectProjectType(scanResult: ScanResult): string {
+  const types = scanResult.configs.map((c) => c.type);
+
+  // Check for Claude Code configs
+  if (types.includes('claude-code')) {
+    return 'claude-code';
+  }
+  // Check for Cursor configs
+  if (types.includes('cursor')) {
+    return 'cursor';
+  }
+  // Check for GitHub Copilot configs
+  if (types.includes('github-copilot')) {
+    return 'github-copilot';
+  }
+  if (types.length > 0) {
+    return types[0] ?? 'unknown';
+  }
+
+  return 'no-config';
+}
+
+/**
  * Perform static analysis on discovered configs.
  * Uses quality assessment and gap analysis to produce findings.
  */
@@ -217,8 +245,9 @@ function performStaticAnalysis(
           ],
         });
       }
-    } catch {
-      // Skip files that can't be parsed
+    } catch (error) {
+      // Log parsing error but continue with other configs
+      printException(error, `Parsing config ${config.path}`);
     }
   }
 
@@ -591,6 +620,8 @@ async function runOrchestratedAnalysis(
         toolCalls: 0,
         llmCalls: 0,
         tokensUsed: 0,
+        inputTokens: 0,
+        outputTokens: 0,
         elapsedMs: 0,
       },
       phase: 'init',
@@ -604,9 +635,16 @@ async function runOrchestratedAnalysis(
   const telemetry = getTelemetryClient();
   const telemetrySessionId = recordingState?.sessionId ?? generateSessionId();
   if (telemetry.isEnabled()) {
+    // Detect project type from scan results for context
+    const hasConfig = scanResult.configs.length > 0;
+    const projectType = detectProjectType(scanResult);
+
     telemetry.sessionStart(telemetrySessionId, {
       command: 'analyse',
-      hasConfig: false, // Will be updated after scan
+      hasConfig,
+      projectType,
+      // Include directory basename for human-readable session naming in HoneyHive
+      directory: directory.split('/').pop() ?? directory,
     });
   }
 
@@ -616,17 +654,29 @@ async function runOrchestratedAnalysis(
 
   // Issue 2 fix: Auto-index sessions before analysis so session tools have data
   // This populates the sessions database with any discovered session files
+  const sessionLogger = getDefaultLogger().child(DEBUG_NAMESPACES.TOOLS);
   try {
+    sessionLogger.debug('Starting session discovery', { directory });
     const discovered = await discoverSessions({ projectPath: directory });
+    sessionLogger.debug('Sessions discovered', {
+      count: discovered.files.length,
+      totalSize: discovered.totalSize,
+      projects: discovered.projects,
+    });
     if (discovered.files.length > 0) {
+      sessionLogger.debug('Indexing discovered sessions', { count: discovered.files.length });
       await indexSessions(
         discovered.files.map((f) => ({ path: f.path, projectPath: f.projectPath })),
         { force: false }
       );
+      sessionLogger.debug('Session indexing complete');
     }
-  } catch {
-    // Don't block analysis if session indexing fails - it's supplementary
-    // The agent can still analyze configs without session data
+  } catch (error) {
+    // Session indexing is supplementary - log but don't block analysis
+    sessionLogger.debug('Session indexing failed', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    printException(error, 'Session indexing');
   }
 
   // Create tool registry and register all tools
@@ -673,6 +723,17 @@ async function runOrchestratedAnalysis(
     nonInteractive: options.nonInteractive ?? false,
   };
 
+  // Pass telemetry client for direct instrumentation (more reliable than chunk observation)
+  // Only add these fields when telemetry is enabled (exactOptionalPropertyTypes compliance)
+  if (telemetry.isEnabled()) {
+    orchestratorConfig.telemetryClient = telemetry;
+    orchestratorConfig.telemetrySessionId = telemetrySessionId;
+    const parentEventId = telemetry.getSessionEventId?.(telemetrySessionId);
+    if (parentEventId) {
+      orchestratorConfig.telemetryParentEventId = parentEventId;
+    }
+  }
+
   // EP17: Use TuiPermissionHandler when TUI mode is active
   if (canUseTool) {
     orchestratorConfig.canUseTool = canUseTool;
@@ -685,14 +746,23 @@ async function runOrchestratedAnalysis(
   const handleInterrupt = (): void => {
     if (!interrupted) {
       interrupted = true;
-      void orchestrator.interrupt().then(() => {
-        renderer.renderChunk({
-          type: 'status',
-          level: 'normal',
-          content: 'Analysis interrupted by user',
-          timestamp: new Date().toISOString(),
+      orchestrator
+        .interrupt()
+        .then(() => {
+          renderer.renderChunk({
+            type: 'status',
+            level: 'normal',
+            content: 'Analysis interrupted by user',
+            timestamp: new Date().toISOString(),
+          });
+        })
+        .catch((error) => {
+          // Interrupt failed - log but continue shutdown
+          console.error(
+            'Failed to interrupt orchestrator:',
+            error instanceof Error ? error.message : error
+          );
         });
-      });
     }
   };
 
@@ -766,9 +836,19 @@ async function runOrchestratedAnalysis(
         }
 
         // Track tool calls for session recording
-        if (chunk.type === 'tool_result' && recordingState) {
+        // Note: Telemetry tracking is now handled directly by the Orchestrator
+        // for more reliable timing and hierarchy (see orchestrator.ts processMessage)
+        if (chunk.type === 'tool_result') {
           const toolName = chunk.metadata?.toolName;
-          if (typeof toolName === 'string') {
+          // DEBUG: Log tool_result chunks to diagnose telemetry
+          if (process.env['AGENTLINT_TELEMETRY_DEBUG'] === '1') {
+            console.error(
+              `[DEBUG] tool_result: toolName=${String(toolName)}, metadata keys=${Object.keys(chunk.metadata ?? {}).join(',')}`
+            );
+          }
+
+          // Track for session recording (if enabled)
+          if (recordingState && typeof toolName === 'string') {
             recordingState.toolHistory.push({
               tool: toolName,
               arguments: (chunk.metadata?.arguments as Record<string, unknown>) ?? {},
@@ -781,16 +861,7 @@ async function runOrchestratedAnalysis(
             // Record checkpoint on tool completion
             await recordCheckpointIfActive(recordingState, 'tool_complete');
           }
-
-          // Track tool call for telemetry (privacy-safe: tool name and duration only)
-          if (telemetry.isEnabled() && typeof toolName === 'string') {
-            telemetry.trackTool(
-              telemetrySessionId,
-              toolName,
-              (chunk.metadata?.durationMs as number) ?? 0,
-              !chunk.metadata?.error
-            );
-          }
+          // Note: telemetry.trackTool removed - orchestrator handles this directly
         }
 
         // Track LLM calls for session recording
@@ -844,24 +915,20 @@ async function runOrchestratedAnalysis(
         }
 
         // Track token usage from status chunks (session completion has totals)
+        // Note: Telemetry LLM tracking is now handled directly by the Orchestrator
+        // for accurate per-turn tracking with timing (see orchestrator.ts processMessage)
         if (chunk.type === 'status' && chunk.metadata?.inputTokens !== undefined) {
           const inputTokens = chunk.metadata.inputTokens as number;
           const outputTokens = (chunk.metadata.outputTokens as number) ?? 0;
 
-          // Update session recording metrics
+          // Update session recording metrics (track input/output separately for telemetry)
           if (recordingState) {
-            recordingState.metrics.tokensUsed = inputTokens + outputTokens;
+            recordingState.metrics.tokensUsed += inputTokens + outputTokens;
+            recordingState.metrics.inputTokens += inputTokens;
+            recordingState.metrics.outputTokens += outputTokens;
+            recordingState.metrics.llmCalls++;
           }
-
-          // Track for telemetry
-          if (telemetry.isEnabled()) {
-            telemetry.trackLLM(
-              telemetrySessionId,
-              'claude', // Model name not exposed in status, use generic
-              inputTokens,
-              outputTokens
-            );
-          }
+          // Note: telemetry.trackLLM removed - orchestrator handles this directly
         }
       }
 
@@ -891,8 +958,8 @@ async function runOrchestratedAnalysis(
           toolCallCount: recordingState?.metrics.toolCalls ?? 0,
           findingCount: findings.length,
           recommendationCount: recCounts.sessionFindings ?? 0,
-          totalInputTokens: recordingState?.metrics.tokensUsed ?? 0,
-          totalOutputTokens: 0, // Not tracked separately
+          totalInputTokens: recordingState?.metrics.inputTokens ?? 0,
+          totalOutputTokens: recordingState?.metrics.outputTokens ?? 0,
           success: true,
           interrupted,
         });
@@ -918,6 +985,9 @@ async function runOrchestratedAnalysis(
         durationMs: Date.now() - startTime,
         toolCallCount: recordingState?.metrics.toolCalls ?? 0,
         findingCount: findings.length,
+        recommendationCount: 0,
+        totalInputTokens: recordingState?.metrics.inputTokens ?? 0,
+        totalOutputTokens: recordingState?.metrics.outputTokens ?? 0,
         success: false,
         interrupted,
       });
@@ -1235,14 +1305,23 @@ async function runSessionAnalysis(
   const handleInterrupt = (): void => {
     if (!interrupted) {
       interrupted = true;
-      void orchestrator.interrupt().then(() => {
-        renderer.renderChunk({
-          type: 'status',
-          level: 'normal',
-          content: 'Session analysis interrupted by user',
-          timestamp: new Date().toISOString(),
+      orchestrator
+        .interrupt()
+        .then(() => {
+          renderer.renderChunk({
+            type: 'status',
+            level: 'normal',
+            content: 'Session analysis interrupted by user',
+            timestamp: new Date().toISOString(),
+          });
+        })
+        .catch((error) => {
+          // Interrupt failed - log but continue shutdown
+          console.error(
+            'Failed to interrupt orchestrator:',
+            error instanceof Error ? error.message : error
+          );
         });
-      });
     }
   };
   process.on('SIGINT', handleInterrupt);
@@ -1319,12 +1398,13 @@ export async function runAnalyse(options: AnalyseOptions): Promise<number> {
       }
       return 1;
     }
-  } catch {
-    const error = `Directory not found: ${directory}`;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    const error = `Cannot access directory: ${message}`;
     if (outputMode === 'json') {
-      console.log(JSON.stringify({ status: 'error', error }, null, 2));
+      console.log(JSON.stringify({ status: 'error', error, directory }, null, 2));
     } else {
-      console.error(`Error: ${error}`);
+      printIOError(error, directory);
     }
     return 1;
   }

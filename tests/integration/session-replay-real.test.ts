@@ -65,6 +65,8 @@ function createTestCheckpoint(
       toolCalls: toolCallsCount,
       llmCalls: Math.ceil(toolCallsCount / 2),
       tokensUsed: toolCallsCount * 500,
+      inputTokens: Math.floor(toolCallsCount * 300),
+      outputTokens: Math.floor(toolCallsCount * 200),
       elapsedMs: sequence * 2000,
     },
   };

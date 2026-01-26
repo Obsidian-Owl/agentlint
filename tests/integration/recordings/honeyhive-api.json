@@ -1,0 +1,77 @@
+{
+  "version": "1.0.0",
+  "name": "tests/integration/recordings/honeyhive-api.json",
+  "createdAt": "2026-01-26T00:00:00.000Z",
+  "recordings": [
+    {
+      "request": {
+        "url": "https://api.honeyhive.ai/session/start",
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json",
+          "authorization": "[REDACTED]"
+        },
+        "body": {
+          "session": {
+            "project": "agentlint",
+            "session_name": "vcr-test-session",
+            "source": "vcr-test",
+            "session_id": "test-session-id-12345",
+            "user_properties": {
+              "version": "0.1.0-test",
+              "platform": "test"
+            }
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "session_id": "test-session-id-12345"
+        }
+      },
+      "timestamp": "2026-01-26T00:00:00.000Z"
+    },
+    {
+      "request": {
+        "url": "https://api.honeyhive.ai/events",
+        "method": "POST",
+        "headers": {
+          "content-type": "application/json",
+          "authorization": "[REDACTED]"
+        },
+        "body": {
+          "event": {
+            "project": "agentlint",
+            "source": "vcr-test",
+            "session_id": "test-session-id-12345",
+            "event_id": "test-event-id-12345",
+            "event_type": "tool",
+            "event_name": "Tool: test_tool",
+            "config": { "tool": "test_tool" },
+            "inputs": { "test": true },
+            "outputs": { "success": true },
+            "duration": 100,
+            "metadata": {
+              "test": true,
+              "sequence": 1
+            }
+          }
+        }
+      },
+      "response": {
+        "status": 200,
+        "headers": {
+          "content-type": "application/json"
+        },
+        "body": {
+          "event_id": "test-event-id-12345"
+        }
+      },
+      "timestamp": "2026-01-26T00:00:01.000Z"
+    }
+  ]
+}

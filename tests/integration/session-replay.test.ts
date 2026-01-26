@@ -26,9 +26,10 @@ import type {
 // =============================================================================
 
 /**
- * Mock session recorder for integration testing.
+ * In-memory session recorder for integration testing.
+ * Combines in-memory storage with filesystem persistence for realistic testing.
  */
-class MockSessionRecorder implements ISessionRecorder {
+class InMemorySessionRecorder implements ISessionRecorder {
   private sessions: Map<string, SessionCheckpoint[]> = new Map();
   private currentSessionId: string | null = null;
   private storageDir: string;
@@ -148,12 +149,13 @@ class MockSessionRecorder implements ISessionRecorder {
 }
 
 /**
- * Mock session replayer for integration testing.
+ * In-memory session replayer for integration testing.
+ * Works with InMemorySessionRecorder to provide test doubles.
  */
-class MockSessionReplayer implements ISessionReplayer {
-  private recorder: MockSessionRecorder;
+class InMemorySessionReplayer implements ISessionReplayer {
+  private recorder: InMemorySessionRecorder;
 
-  constructor(recorder: MockSessionRecorder) {
+  constructor(recorder: InMemorySessionRecorder) {
     this.recorder = recorder;
   }
 
@@ -224,6 +226,8 @@ function createTestCheckpoint(
       toolCalls: sequence * 2,
       llmCalls: sequence,
       tokensUsed: sequence * 500,
+      inputTokens: sequence * 300,
+      outputTokens: sequence * 200,
       elapsedMs: sequence * 1000,
     },
     workspaceState: {
@@ -238,14 +242,14 @@ function createTestCheckpoint(
 // =============================================================================
 
 let tempDir: string;
-let recorder: MockSessionRecorder;
-let replayer: MockSessionReplayer;
+let recorder: InMemorySessionRecorder;
+let replayer: InMemorySessionReplayer;
 
 beforeEach(() => {
   tempDir = join(tmpdir(), `session-replay-test-${randomUUID()}`);
   mkdirSync(tempDir, { recursive: true });
-  recorder = new MockSessionRecorder(tempDir);
-  replayer = new MockSessionReplayer(recorder);
+  recorder = new InMemorySessionRecorder(tempDir);
+  replayer = new InMemorySessionReplayer(recorder);
 });
 
 afterEach(() => {
@@ -285,7 +289,7 @@ describe('Session Replay Integration', () => {
       await recorder.stopRecording();
 
       // Create new instance
-      const newRecorder = new MockSessionRecorder(tempDir);
+      const newRecorder = new InMemorySessionRecorder(tempDir);
       const checkpoints = await newRecorder.getCheckpoints(sessionId);
 
       expect(checkpoints).toHaveLength(2);
@@ -439,8 +443,8 @@ describe('Session Replay Integration', () => {
       await recorder.stopRecording();
 
       // 4. Create new recorder/replayer instances (simulates restart)
-      const newRecorder = new MockSessionRecorder(tempDir);
-      const newReplayer = new MockSessionReplayer(newRecorder);
+      const newRecorder = new InMemorySessionRecorder(tempDir);
+      const newReplayer = new InMemorySessionReplayer(newRecorder);
 
       // 5. Check replay availability
       expect(await newReplayer.canReplay(sessionId)).toBe(true);
@@ -480,8 +484,8 @@ describe('Session Replay Integration', () => {
       // recorder left dangling...
 
       // 4. New instance discovers incomplete session
-      const recoveryRecorder = new MockSessionRecorder(tempDir);
-      const recoveryReplayer = new MockSessionReplayer(recoveryRecorder);
+      const recoveryRecorder = new InMemorySessionRecorder(tempDir);
+      const recoveryReplayer = new InMemorySessionReplayer(recoveryRecorder);
 
       // 5. Find sessions that can be recovered
       const sessions = await recoveryRecorder.listSessions();

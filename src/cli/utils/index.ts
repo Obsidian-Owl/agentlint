@@ -33,3 +33,14 @@ export {
   padText,
   formatDuration,
 } from './terminal';
+
+// Error utilities (P3 tech debt remediation)
+export {
+  printError,
+  printException,
+  printValidationError,
+  printIOError,
+  printConfigError,
+  type CLIErrorCategory,
+  type PrintErrorOptions,
+} from './error';

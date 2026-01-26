@@ -44,6 +44,59 @@ const MAX_BUFFER_SIZE = 100;
 const REQUEST_TIMEOUT_MS = 5_000;
 
 // =============================================================================
+// Error Classification
+// =============================================================================
+
+/**
+ * Categories for telemetry errors to enable structured analysis.
+ */
+export type TelemetryErrorCategory =
+  | 'timeout'
+  | 'network'
+  | 'rate_limited'
+  | 'server_error'
+  | 'unknown';
+
+/**
+ * Structured telemetry error for observability.
+ */
+export interface TelemetryError {
+  category: TelemetryErrorCategory;
+  message: string;
+  eventCount: number;
+  timestamp: string;
+}
+
+/**
+ * Options for AlphaTelemetryClient.
+ */
+export interface TelemetryClientOptions {
+  /**
+   * Optional callback invoked when telemetry operations fail.
+   * Enables callers to observe failures without breaking graceful degradation.
+   */
+  onError?: (error: TelemetryError) => void;
+}
+
+/**
+ * Metrics tracking telemetry health for observability.
+ */
+export interface TelemetryMetrics {
+  /** Total flush attempts */
+  flushAttempts: number;
+  /** Successful flush count */
+  flushSuccesses: number;
+  /** Failed flush count */
+  flushFailures: number;
+  /** Total events dropped due to errors */
+  eventsDropped: number;
+  /** Total events successfully sent */
+  eventsSent: number;
+  /** Error counts by category */
+  errorsByCategory: Record<TelemetryErrorCategory, number>;
+}
+
+// =============================================================================
 // Alpha Telemetry Client
 // =============================================================================
 
@@ -58,11 +111,137 @@ export class AlphaTelemetryClient implements ITelemetryClient {
   private flushInterval: ReturnType<typeof setInterval> | null = null;
   private sequence = 0;
 
+  /** Maximum tracked sessions to prevent unbounded memory growth */
+  private static readonly MAX_TRACKED_SESSIONS = 100;
+
+  /** Maximum time to keep session tracking entries (1 hour) */
+  private static readonly SESSION_TTL_MS = 60 * 60 * 1000;
+
   /** Maps sessionId to the session.start event ID for hierarchy */
   private sessionEventIds = new Map<string, string>();
 
   /** Maps sessionId to start time for duration calculation */
   private sessionStartTimes = new Map<string, number>();
+
+  /** Optional error callback for observability */
+  private onError: ((error: TelemetryError) => void) | null = null;
+
+  /** Metrics tracking telemetry health */
+  private metrics: TelemetryMetrics = {
+    flushAttempts: 0,
+    flushSuccesses: 0,
+    flushFailures: 0,
+    eventsDropped: 0,
+    eventsSent: 0,
+    errorsByCategory: {
+      timeout: 0,
+      network: 0,
+      rate_limited: 0,
+      server_error: 0,
+      unknown: 0,
+    },
+  };
+
+  /**
+   * Configure client options.
+   * Call before init() to set error callback.
+   */
+  configure(options: TelemetryClientOptions): void {
+    this.onError = options.onError ?? null;
+  }
+
+  /**
+   * Get telemetry health metrics.
+   * Useful for monitoring and debugging telemetry issues.
+   */
+  getMetrics(): TelemetryMetrics {
+    return { ...this.metrics };
+  }
+
+  /**
+   * Classify an error for structured reporting.
+   */
+  private classifyError(error: unknown, eventCount: number): TelemetryError {
+    const timestamp = new Date().toISOString();
+
+    if (error instanceof Error) {
+      if (error.name === 'AbortError') {
+        return { category: 'timeout', message: error.message, eventCount, timestamp };
+      }
+      if (
+        error.message.includes('fetch') ||
+        error.message.includes('network') ||
+        error.message.includes('ECONNREFUSED') ||
+        error.message.includes('ENOTFOUND')
+      ) {
+        return { category: 'network', message: error.message, eventCount, timestamp };
+      }
+    }
+
+    return {
+      category: 'unknown',
+      message: error instanceof Error ? error.message : String(error),
+      eventCount,
+      timestamp,
+    };
+  }
+
+  /**
+   * Handle a telemetry error with logging and optional callback.
+   */
+  private handleError(error: unknown, eventCount: number, context: string): void {
+    const classified = this.classifyError(error, eventCount);
+
+    this.logWarning(
+      `${context}: ${classified.category} - ${classified.message} (${eventCount} events)`
+    );
+
+    if (this.onError) {
+      this.onError(classified);
+    }
+  }
+
+  /**
+   * Clean up stale session tracking entries older than TTL.
+   * Prevents memory leaks when sessionEnd() is never called.
+   */
+  private cleanupStaleSessions(): void {
+    const now = Date.now();
+    const ttl = AlphaTelemetryClient.SESSION_TTL_MS;
+
+    for (const [sessionId, startTime] of this.sessionStartTimes) {
+      if (now - startTime > ttl) {
+        this.sessionEventIds.delete(sessionId);
+        this.sessionStartTimes.delete(sessionId);
+        this.logWarning(`Cleaned up stale session: ${sessionId}`);
+      }
+    }
+  }
+
+  /**
+   * Enforce maximum tracked sessions by removing oldest entries.
+   */
+  private enforceMaxSessions(): void {
+    const maxSessions = AlphaTelemetryClient.MAX_TRACKED_SESSIONS;
+
+    if (this.sessionStartTimes.size >= maxSessions) {
+      // Find and remove the oldest session
+      let oldestId: string | null = null;
+      let oldestTime = Infinity;
+
+      for (const [sessionId, startTime] of this.sessionStartTimes) {
+        if (startTime < oldestTime) {
+          oldestTime = startTime;
+          oldestId = sessionId;
+        }
+      }
+
+      if (oldestId) {
+        this.sessionEventIds.delete(oldestId);
+        this.sessionStartTimes.delete(oldestId);
+      }
+    }
+  }
 
   /**
    * Initialize the telemetry client.
@@ -76,7 +255,9 @@ export class AlphaTelemetryClient implements ITelemetryClient {
 
     // Start periodic flush
     this.flushInterval = setInterval(() => {
-      void this.flush();
+      this.flush().catch((error) => {
+        this.handleError(error, this.buffer.length, 'Interval flush');
+      });
     }, FLUSH_INTERVAL_MS);
 
     // Ensure interval doesn't prevent process exit
@@ -106,7 +287,9 @@ export class AlphaTelemetryClient implements ITelemetryClient {
 
     // Flush if buffer is full
     if (this.buffer.length >= MAX_BUFFER_SIZE) {
-      void this.flush();
+      this.flush().catch((error) => {
+        this.handleError(error, this.buffer.length, 'Buffer overflow flush');
+      });
     }
   }
 
@@ -118,23 +301,32 @@ export class AlphaTelemetryClient implements ITelemetryClient {
       return;
     }
 
+    // Clean up stale sessions and enforce max limit before adding new session
+    this.cleanupStaleSessions();
+    this.enforceMaxSessions();
+
     this.sequence = 0;
     const startTime = Date.now();
 
     // Track session start time for later duration calculation
     this.sessionStartTimes.set(sessionId, startTime);
 
-    const event = createTelemetryEvent(
-      'session.start',
-      sessionId,
-      this.sequence++,
-      {
-        command: data?.command ?? 'analyse',
-        hasConfig: data?.hasConfig ?? false,
-        projectType: data?.projectType,
-      },
-      { startTime, endTime: startTime }
-    );
+    // Build event data, only including defined fields
+    const eventData: Record<string, unknown> = {
+      command: data?.command ?? 'analyse',
+      hasConfig: data?.hasConfig ?? false,
+    };
+    if (data?.projectType !== undefined) {
+      eventData.projectType = data.projectType;
+    }
+    if (data?.directory !== undefined) {
+      eventData.directory = data.directory;
+    }
+
+    const event = createTelemetryEvent('session.start', sessionId, this.sequence++, eventData, {
+      startTime,
+      endTime: startTime,
+    });
 
     // Track the session event ID for hierarchy (child events use this as parent)
     this.sessionEventIds.set(sessionId, event.eventId);
@@ -212,18 +404,30 @@ export class AlphaTelemetryClient implements ITelemetryClient {
       eventOptions.parentEventId = parentEventId;
     }
 
+    // Build event data with optional fields
+    const eventData: Record<string, unknown> = {
+      tool: options.tool,
+      durationMs: options.durationMs,
+      success: options.success,
+    };
+
+    // Include full tool inputs if available (sanitized by createTelemetryEvent)
+    if (options.toolInput !== undefined) {
+      eventData.toolInput = options.toolInput;
+    }
+
+    // Include tool output if available (sanitized by createTelemetryEvent)
+    if (options.toolOutput !== undefined) {
+      eventData.toolOutput = options.toolOutput;
+    }
+
+    // Include error message if tool failed
+    if (options.errorMessage !== undefined) {
+      eventData.errorMessage = options.errorMessage;
+    }
+
     this.record(
-      createTelemetryEvent(
-        'tool.call',
-        sessionId,
-        this.sequence++,
-        {
-          tool: options.tool,
-          durationMs: options.durationMs,
-          success: options.success,
-        },
-        eventOptions
-      )
+      createTelemetryEvent('tool.call', sessionId, this.sequence++, eventData, eventOptions)
     );
   }
 
@@ -308,6 +512,26 @@ export class AlphaTelemetryClient implements ITelemetryClient {
     if (options.cost !== undefined) {
       eventData.cost = options.cost;
     }
+    // Model parameters for HoneyHive config
+    if (options.temperature !== undefined) {
+      eventData.temperature = options.temperature;
+    }
+    if (options.maxTokens !== undefined) {
+      eventData.maxTokens = options.maxTokens;
+    }
+    if (options.topP !== undefined) {
+      eventData.topP = options.topP;
+    }
+    if (options.stopReason !== undefined) {
+      eventData.stopReason = options.stopReason;
+    }
+    // Cache token tracking (prompt caching)
+    if (options.cacheReadTokens !== undefined) {
+      eventData.cacheReadTokens = options.cacheReadTokens;
+    }
+    if (options.cacheCreationTokens !== undefined) {
+      eventData.cacheCreationTokens = options.cacheCreationTokens;
+    }
 
     // Build options object, only including parentEventId if defined
     const eventOptions: { startTime: number; endTime: number; parentEventId?: string } = {
@@ -366,6 +590,9 @@ export class AlphaTelemetryClient implements ITelemetryClient {
     const events = [...this.buffer];
     this.buffer = [];
 
+    // Track metrics
+    this.metrics.flushAttempts++;
+
     try {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -382,26 +609,45 @@ export class AlphaTelemetryClient implements ITelemetryClient {
 
       clearTimeout(timeoutId);
 
-      if (!response.ok) {
-        // Rate limited or server error - log but don't crash
-        if (response.status === 429) {
-          // Rate limited - back off
-          this.logWarning('Telemetry rate limited, events dropped');
-        } else if (response.status >= 500) {
-          // Server error - could retry but for now just drop
-          this.logWarning(`Telemetry server error: ${response.status}`);
+      if (response.ok) {
+        // Success - track metrics
+        this.metrics.flushSuccesses++;
+        this.metrics.eventsSent += events.length;
+      } else {
+        // Rate limited or server error - classify and report
+        const category: TelemetryErrorCategory =
+          response.status === 429 ? 'rate_limited' : 'server_error';
+        const classified: TelemetryError = {
+          category,
+          message: `HTTP ${response.status}`,
+          eventCount: events.length,
+          timestamp: new Date().toISOString(),
+        };
+
+        // Track failure metrics
+        this.metrics.flushFailures++;
+        this.metrics.eventsDropped += events.length;
+        this.metrics.errorsByCategory[category]++;
+
+        this.logWarning(
+          `Telemetry ${category}: ${classified.message} (${events.length} events dropped)`
+        );
+
+        if (this.onError) {
+          this.onError(classified);
         }
         // Don't re-add events to buffer to avoid memory growth
       }
     } catch (error) {
-      // Network error - graceful degradation
-      if (error instanceof Error) {
-        if (error.name === 'AbortError') {
-          this.logWarning('Telemetry request timed out');
-        } else {
-          this.logWarning(`Telemetry send failed: ${error.name}`);
-        }
-      }
+      // Network error - graceful degradation with structured error
+      const classified = this.classifyError(error, events.length);
+
+      // Track failure metrics
+      this.metrics.flushFailures++;
+      this.metrics.eventsDropped += events.length;
+      this.metrics.errorsByCategory[classified.category]++;
+
+      this.handleError(error, events.length, 'Telemetry flush');
       // Don't crash, just continue
     }
   }

@@ -1,0 +1,101 @@
+{
+  "version": "1.0.0",
+  "timestamp": "2026-01-26T00:00:00Z",
+  "scope": "changed_files",
+  "filesAnalyzed": 17,
+  "score": 32,
+  "grade": "F",
+  "categories": {
+    "boundary": { "findings": 0, "impact": 0 },
+    "prompt": { "findings": 8, "impact": -24 },
+    "context": { "findings": 11, "impact": -66 },
+    "testing": { "findings": 2, "impact": -12 },
+    "error": { "findings": 12, "impact": -68 },
+    "state": { "findings": 6, "impact": -42 },
+    "observability": { "findings": 15, "impact": -63 },
+    "subagent": { "findings": 0, "impact": 0 }
+  },
+  "findings": [
+    {
+      "pattern": "SILENT_FAILURE",
+      "category": "error",
+      "file": "src/telemetry/alpha-client.ts",
+      "line": 433,
+      "snippet": "} catch (error) { // Network error - graceful degradation",
+      "severity": 8
+    },
+    {
+      "pattern": "UNHANDLED_REJECTION",
+      "category": "error",
+      "file": "src/telemetry/alpha-client.ts",
+      "line": 79,
+      "snippet": "void this.flush();",
+      "severity": 7
+    },
+    {
+      "pattern": "MISSING_TIMEOUT",
+      "category": "error",
+      "file": "apps/telemetry-api/app/api/events/route.ts",
+      "line": 578,
+      "snippet": "const sessionResponse = await fetch('https://api.honeyhive.ai/session/start'",
+      "severity": 5
+    },
+    {
+      "pattern": "MISSING_VCR",
+      "category": "testing",
+      "file": "tests/integration/honeyhive-api-live.test.ts",
+      "line": 44,
+      "snippet": "const response = await fetch(`${HONEYHIVE_API_URL}/session/start`",
+      "severity": 6
+    },
+    {
+      "pattern": "MISSING_VCR",
+      "category": "testing",
+      "file": "tests/integration/vercel-proxy-live.test.ts",
+      "line": 51,
+      "snippet": "const response = await fetch(VERCEL_ENDPOINT",
+      "severity": 6
+    },
+    {
+      "pattern": "HARDCODED_PROMPT",
+      "category": "prompt",
+      "file": "src/cli/commands/analyse-prompt.ts",
+      "line": 239,
+      "snippet": "return `\\nYou are analyzing an AI-assisted development project...",
+      "severity": 3
+    },
+    {
+      "pattern": "UNBOUNDED_DATA",
+      "category": "context",
+      "file": "src/orchestration/orchestrator.ts",
+      "line": 145,
+      "snippet": "private readonly toolInputs = new Map<string, Record<string, unknown>>()",
+      "severity": 7
+    },
+    {
+      "pattern": "UNBOUNDED_HISTORY",
+      "category": "state",
+      "file": "apps/telemetry-api/app/api/events/route.ts",
+      "line": 89,
+      "snippet": "const rateLimitMap = new Map<string, { count: number; resetTime: number }>()",
+      "severity": 10
+    },
+    {
+      "pattern": "NO_TRACING",
+      "category": "observability",
+      "file": "apps/telemetry-api/app/api/events/route.ts",
+      "line": 509,
+      "snippet": "for (const [sessionId, sessionEvents] of eventsBySession)",
+      "severity": 5
+    },
+    {
+      "pattern": "OPAQUE_ERROR",
+      "category": "observability",
+      "file": "apps/telemetry-api/app/api/events/route.ts",
+      "line": 702,
+      "snippet": "} catch (error) { console.error('[telemetry-api] HoneyHive forwarding error:'",
+      "severity": 5
+    }
+  ],
+  "trend": null
+}

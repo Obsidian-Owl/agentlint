@@ -99,6 +99,8 @@ function createMockCheckpoint() {
       toolCalls: 0,
       llmCalls: 0,
       tokensUsed: 0,
+      inputTokens: 0,
+      outputTokens: 0,
       elapsedMs: 0,
     },
   };

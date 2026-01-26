@@ -18,7 +18,13 @@ import { join } from 'path';
 import { homedir } from 'os';
 import { query, type SDKMessage } from '@anthropic-ai/claude-agent-sdk';
 import type { IToolRegistry } from './tool-registry';
-import type { OrchestratorConfig, SessionState, StreamChunk, VerbosityLevel } from './types';
+import type {
+  OrchestratorConfig,
+  SessionState,
+  StreamChunk,
+  VerbosityLevel,
+  IOrchestratorTelemetryClient,
+} from './types';
 import { loadConfig, MAX_SUBAGENT_DEPTH, type ResolvedOrchestratorConfig } from './config';
 import { SubagentDepthError } from '../errors';
 import { buildACTSubagents } from '../act/index.js';
@@ -129,6 +135,39 @@ export class Orchestrator implements IOrchestrator {
   /** Debug logger for LLM calls */
   private readonly llmLogger: INamespacedLogger;
 
+  /** Map toolId -> toolName for correlating tool_result with tool_start */
+  private readonly toolIdToName = new Map<string, string>();
+
+  /** Map toolId -> start time for duration calculation */
+  private readonly toolStartTimes = new Map<string, number>();
+
+  /** Counter for periodic orphan cleanup (every 10 tools) */
+  private toolCleanupCounter = 0;
+
+  /** Map toolId -> tool input arguments for telemetry */
+  private readonly toolInputs = new Map<string, Record<string, unknown>>();
+
+  /** Maximum pending tool entries to prevent unbounded memory growth */
+  private static readonly MAX_PENDING_TOOLS = 100;
+
+  /** Maximum time to keep orphaned tool tracking entries (5 minutes) */
+  private static readonly TOOL_TRACKING_TTL_MS = 5 * 60 * 1000;
+
+  /** Telemetry client (if provided) */
+  private readonly telemetry: IOrchestratorTelemetryClient | null;
+
+  /** Telemetry session ID for event correlation */
+  private readonly telemetrySessionId: string | undefined;
+
+  /** Parent event ID for trace hierarchy */
+  private readonly telemetryParentEventId: string | undefined;
+
+  /** Turn counter for LLM tracking */
+  private turnCount = 0;
+
+  /** Start time of current turn for latency tracking */
+  private turnStartTime: number | null = null;
+
   /**
    * Create a new Orchestrator.
    *
@@ -142,6 +181,11 @@ export class Orchestrator implements IOrchestrator {
     this.logger = getDefaultLogger().child(DEBUG_NAMESPACES.ORCHESTRATION);
     this.llmLogger = getDefaultLogger().child(DEBUG_NAMESPACES.LLM);
 
+    // Initialize telemetry from config
+    this.telemetry = config.telemetryClient ?? null;
+    this.telemetrySessionId = config.telemetrySessionId;
+    this.telemetryParentEventId = config.telemetryParentEventId;
+
     // Validate depth limit (T050)
     if (this.config.depth > MAX_SUBAGENT_DEPTH) {
       throw new SubagentDepthError(this.config.depth, MAX_SUBAGENT_DEPTH);
@@ -151,6 +195,7 @@ export class Orchestrator implements IOrchestrator {
       model: this.config.model,
       depth: this.config.depth,
       verbosity: this.config.verbosity,
+      telemetryEnabled: this.telemetry?.isEnabled() ?? false,
     });
   }
 
@@ -290,6 +335,13 @@ export class Orchestrator implements IOrchestrator {
           break;
         }
 
+        // DEBUG: Log all message types to understand SDK message flow
+        if (process.env['AGENTLINT_TELEMETRY_DEBUG'] === '1') {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-member-access
+          const msgType = (message as any).type;
+          console.error(`[ORCH DEBUG] msg.type=${String(msgType)}`);
+        }
+
         // Convert SDK message to StreamChunk(s)
         const chunks = this.processMessage(message);
         for (const chunk of chunks) {
@@ -344,6 +396,191 @@ export class Orchestrator implements IOrchestrator {
   // ===========================================================================
   // Private Methods
   // ===========================================================================
+
+  /**
+   * Truncate tool output for telemetry to prevent excessive payload sizes.
+   * Handles strings, objects, and arrays.
+   *
+   * @param output - Raw tool output
+   * @param maxLength - Maximum length in characters (default 5000)
+   * @returns Truncated output suitable for telemetry
+   */
+  private truncateToolOutput(output: unknown, maxLength = 5000): unknown {
+    if (output === null || output === undefined) {
+      return output;
+    }
+
+    // Handle strings
+    if (typeof output === 'string') {
+      if (output.length <= maxLength) {
+        return output;
+      }
+      return output.slice(0, maxLength) + '... [truncated]';
+    }
+
+    // Handle arrays - truncate long arrays
+    if (Array.isArray(output)) {
+      const stringified = JSON.stringify(output);
+      if (stringified.length <= maxLength) {
+        return output;
+      }
+      // Return first few items with truncation notice
+      const truncated = output.slice(0, 3);
+      return {
+        items: truncated,
+        _truncated: true,
+        _totalItems: output.length,
+      };
+    }
+
+    // Handle objects - stringify and truncate
+    if (typeof output === 'object') {
+      const stringified = JSON.stringify(output);
+      if (stringified.length <= maxLength) {
+        return output;
+      }
+      return {
+        _summary: stringified.slice(0, maxLength) + '... [truncated]',
+        _truncated: true,
+      };
+    }
+
+    // Return primitives as-is
+    return output;
+  }
+
+  /**
+   * Truncate tool input for telemetry to prevent excessive payload sizes.
+   * Mirrors the output truncation pattern for consistency.
+   *
+   * @param input - Raw tool input
+   * @param maxLength - Maximum length in characters (default 5000)
+   * @returns Truncated input suitable for telemetry
+   */
+  private truncateToolInput(
+    input: Record<string, unknown>,
+    maxLength = 5000
+  ): Record<string, unknown> {
+    const stringified = JSON.stringify(input);
+
+    if (stringified.length <= maxLength) {
+      return input;
+    }
+
+    const truncated: Record<string, unknown> = {};
+    let currentLength = 2; // Account for {}
+
+    for (const [key, value] of Object.entries(input)) {
+      const valueStr = JSON.stringify(value);
+
+      if (currentLength + key.length + valueStr.length + 4 > maxLength) {
+        // Truncate large string values, mark others as truncated
+        if (typeof value === 'string' && value.length > 100) {
+          truncated[key] = value.slice(0, 100) + '... [truncated]';
+        } else {
+          truncated[key] = '[truncated]';
+        }
+      } else {
+        truncated[key] = value;
+        currentLength += key.length + valueStr.length + 4;
+      }
+    }
+
+    truncated._inputTruncated = true;
+    truncated._originalSize = stringified.length;
+
+    return truncated;
+  }
+
+  /**
+   * Store tool input with bounds checking.
+   * Evicts oldest entry if map exceeds MAX_PENDING_TOOLS.
+   *
+   * @param toolId - The tool use ID
+   * @param input - The tool input to store (will be truncated)
+   */
+  private storeToolInput(toolId: string, input: Record<string, unknown>): void {
+    // Evict oldest entry (by start time) if at capacity - LRU-style eviction
+    if (this.toolInputs.size >= Orchestrator.MAX_PENDING_TOOLS) {
+      let oldestId: string | null = null;
+      let oldestTime = Infinity;
+      for (const [id, time] of this.toolStartTimes) {
+        if (time < oldestTime) {
+          oldestTime = time;
+          oldestId = id;
+        }
+      }
+      if (oldestId) {
+        this.toolInputs.delete(oldestId);
+        this.toolIdToName.delete(oldestId);
+        this.toolStartTimes.delete(oldestId);
+      }
+    }
+
+    // Truncate and store
+    const truncatedInput = this.truncateToolInput(input);
+    this.toolInputs.set(toolId, truncatedInput);
+  }
+
+  /**
+   * Clean up orphaned tool tracking entries older than TTL.
+   * Called before adding new tool entries to prevent memory leaks
+   * when tool execution fails without a tool_result message.
+   */
+  private cleanupOrphanedToolEntries(): void {
+    const now = Date.now();
+    const ttl = Orchestrator.TOOL_TRACKING_TTL_MS;
+
+    for (const [toolId, startTime] of this.toolStartTimes) {
+      if (now - startTime > ttl) {
+        this.toolIdToName.delete(toolId);
+        this.toolStartTimes.delete(toolId);
+        this.toolInputs.delete(toolId);
+        this.logger.debug('Cleaned up orphaned tool entry', { toolId, ageMs: now - startTime });
+      }
+    }
+  }
+
+  /**
+   * Extract error message from tool output.
+   * Handles various error formats from SDK.
+   *
+   * @param output - Raw tool output (usually error content)
+   * @returns Extracted error message string
+   */
+  private extractErrorMessage(output: unknown): string | undefined {
+    if (typeof output === 'string') {
+      return output.slice(0, 500); // Limit error message length
+    }
+
+    if (Array.isArray(output) && output.length > 0) {
+      // SDK often returns array with text content blocks
+      const firstBlock = output[0] as unknown;
+      if (typeof firstBlock === 'object' && firstBlock !== null && 'text' in firstBlock) {
+        const textBlock = firstBlock as { text: unknown };
+        return String(textBlock.text).slice(0, 500);
+      }
+      if (typeof firstBlock === 'string') {
+        return firstBlock.slice(0, 500);
+      }
+    }
+
+    if (typeof output === 'object' && output !== null) {
+      // Try common error fields
+      const obj = output as Record<string, unknown>;
+      if ('message' in obj && typeof obj.message === 'string') {
+        return obj.message.slice(0, 500);
+      }
+      if ('error' in obj && typeof obj.error === 'string') {
+        return obj.error.slice(0, 500);
+      }
+      if ('text' in obj && typeof obj.text === 'string') {
+        return obj.text.slice(0, 500);
+      }
+    }
+
+    return undefined;
+  }
 
   /**
    * Resolve the path to Claude Code executable.
@@ -468,13 +705,33 @@ export class Orchestrator implements IOrchestrator {
       if (event?.type === 'content_block_start' && event.content_block?.type === 'tool_use') {
         const toolBlock = event.content_block;
         this.logger.info('Tool invocation starting (stream)', { tool: toolBlock.name });
+        // Periodic cleanup of orphaned entries (every 10 tools to reduce O(n) overhead)
+        if (++this.toolCleanupCounter % 10 === 0) {
+          this.cleanupOrphanedToolEntries();
+        }
+        // Track toolId -> toolName for later correlation with tool_result
+        this.toolIdToName.set(toolBlock.id, toolBlock.name);
+        // Track start time for duration calculation
+        this.toolStartTimes.set(toolBlock.id, Date.now());
+        // Track tool input arguments for telemetry (may be populated in subsequent delta events)
+        const toolInput = (toolBlock.input as Record<string, unknown>) ?? {};
+        this.storeToolInput(toolBlock.id, toolInput);
         chunks.push(
           this.createChunk('tool_start', 'verbose', `Calling tool: ${toolBlock.name}`, {
             toolName: toolBlock.name,
             toolId: toolBlock.id,
+            arguments: toolInput, // Include arguments in chunk metadata
           })
         );
       }
+
+      // Track turn start for LLM latency
+      if (event?.type === 'message_start') {
+        this.turnCount++;
+        this.turnStartTime = Date.now();
+        this.logger.debug('LLM turn starting', { turn: this.turnCount });
+      }
+
       return chunks;
     }
 
@@ -493,25 +750,132 @@ export class Orchestrator implements IOrchestrator {
           });
         } else if (block.type === 'tool_use') {
           // Tool_use blocks are already emitted via content_block_start stream events
-          // (see line 393-402). We only log here for debugging, don't emit duplicate chunk.
-          this.logger.debug('Tool use block in assistant message (already emitted via stream)', {
-            tool: block.name,
-          });
+          // But the FULL input is only available here (stream sends input incrementally)
+          // Update the toolInputs map with the complete input for telemetry
+          if (block.id && block.input) {
+            this.storeToolInput(block.id, block.input as Record<string, unknown>);
+            this.logger.debug('Tool input captured from assistant message', {
+              tool: block.name,
+              inputKeys: Object.keys(block.input as Record<string, unknown>),
+            });
+          }
         } else {
           this.logger.debug('Unknown block type', { blockType: block.type });
         }
       }
+    } else if (msg.type === 'user') {
+      // User messages may contain tool results
+      // The SDK sends tool results as user messages with content array
+      const content = msg.message?.content;
+      if (Array.isArray(content)) {
+        for (const block of content) {
+          if (block.type === 'tool_result') {
+            const toolId = block.tool_use_id;
+            const toolName = this.toolIdToName.get(toolId);
+            const startTime = this.toolStartTimes.get(toolId);
+            const toolInput = this.toolInputs.get(toolId);
+            const endTime = Date.now();
+            const durationMs = startTime ? endTime - startTime : 0;
+
+            // Extract tool output (truncate if too large for telemetry)
+            const rawOutput = block.content;
+            const toolOutput = this.truncateToolOutput(rawOutput, 5000);
+
+            // Extract error message if tool failed
+            const errorMessage = block.is_error ? this.extractErrorMessage(rawOutput) : undefined;
+
+            this.logger.info('Tool completed (from user message)', {
+              toolId,
+              toolName,
+              durationMs,
+            });
+
+            // Direct telemetry tracking (more reliable than chunk observation)
+            if (this.telemetry?.isEnabled() && this.telemetrySessionId && toolName) {
+              // Build options object, only including optional fields when defined
+              // (exactOptionalPropertyTypes compliance)
+              const trackOptions: Parameters<NonNullable<typeof this.telemetry.trackToolEx>>[1] = {
+                tool: toolName,
+                durationMs,
+                success: !block.is_error,
+                endTime,
+              };
+              if (startTime !== undefined) trackOptions.startTime = startTime;
+              if (this.telemetryParentEventId)
+                trackOptions.parentEventId = this.telemetryParentEventId;
+              if (toolInput) trackOptions.toolInput = toolInput;
+              if (toolOutput !== undefined) trackOptions.toolOutput = toolOutput;
+              if (errorMessage) trackOptions.errorMessage = errorMessage;
+              this.telemetry.trackToolEx?.(this.telemetrySessionId, trackOptions);
+            }
+
+            chunks.push(
+              this.createChunk('tool_result', 'verbose', 'Tool completed', {
+                toolId,
+                toolName,
+                durationMs,
+                result: block.content,
+              })
+            );
+            // Clean up mappings to prevent memory growth
+            this.toolIdToName.delete(toolId);
+            this.toolStartTimes.delete(toolId);
+            this.toolInputs.delete(toolId);
+          }
+        }
+      }
     } else if (msg.type === 'tool_result') {
-      // Tool result
+      // Legacy path: Tool result as direct message type (may not be used by SDK)
+      const toolId = msg.tool_use_id;
+      const toolName = this.toolIdToName.get(toolId);
+      const startTime = this.toolStartTimes.get(toolId);
+      const toolInput = this.toolInputs.get(toolId);
+      const endTime = Date.now();
+      const durationMs = startTime ? endTime - startTime : 0;
+
+      // Extract tool output (truncate if too large for telemetry)
+      const rawOutput = msg.content;
+      const toolOutput = this.truncateToolOutput(rawOutput, 5000);
+
+      // Extract error message if tool failed
+      const errorMessage = msg.is_error ? this.extractErrorMessage(rawOutput) : undefined;
+
       this.logger.info('Tool completed', {
-        toolId: msg.tool_use_id,
+        toolId,
+        toolName,
+        durationMs,
       });
+
+      // Direct telemetry tracking (more reliable than chunk observation)
+      if (this.telemetry?.isEnabled() && this.telemetrySessionId && toolName) {
+        // Build options object, only including optional fields when defined
+        // (exactOptionalPropertyTypes compliance)
+        const trackOptions: Parameters<NonNullable<typeof this.telemetry.trackToolEx>>[1] = {
+          tool: toolName,
+          durationMs,
+          success: !msg.is_error,
+          endTime,
+        };
+        if (startTime !== undefined) trackOptions.startTime = startTime;
+        if (this.telemetryParentEventId) trackOptions.parentEventId = this.telemetryParentEventId;
+        if (toolInput) trackOptions.toolInput = toolInput;
+        if (toolOutput !== undefined) trackOptions.toolOutput = toolOutput;
+        if (errorMessage) trackOptions.errorMessage = errorMessage;
+        this.telemetry.trackToolEx?.(this.telemetrySessionId, trackOptions);
+      }
+
       chunks.push(
         this.createChunk('tool_result', 'verbose', 'Tool completed', {
-          toolId: msg.tool_use_id,
+          toolId,
+          toolName, // Include for CLI rendering
+          durationMs,
           result: msg.content,
         })
       );
+      // Clean up mappings to prevent memory growth
+      this.toolIdToName.delete(toolId);
+      this.toolStartTimes.delete(toolId);
+      this.toolInputs.delete(toolId);
 
       // Check for clarifying questions in tool result (human-in-the-loop)
       // Tool results may be a JSON string or an object with clarifyingQuestions
@@ -548,21 +912,74 @@ export class Orchestrator implements IOrchestrator {
       );
     } else if (msg.type === 'result') {
       // Final result - also log LLM call metrics
+      const endTime = Date.now();
+      const inputTokens = msg.input_tokens as number;
+      const outputTokens = msg.output_tokens as number;
+      const latencyMs = msg.duration_api_ms as number | undefined;
+      // Extract stop_reason if available (SDK may provide this)
+      const stopReason = (msg as Record<string, unknown>).stop_reason as string | undefined;
+      // Extract cache tokens if available (prompt caching)
+      const cacheReadTokens = (msg as Record<string, unknown>).cache_read_input_tokens as
+        | number
+        | undefined;
+      const cacheCreationTokens = (msg as Record<string, unknown>).cache_creation_input_tokens as
+        | number
+        | undefined;
+
       this.logger.info('Session result', {
         sessionId: msg.session_id,
-        inputTokens: msg.input_tokens,
-        outputTokens: msg.output_tokens,
+        inputTokens,
+        outputTokens,
+        stopReason,
+        cacheReadTokens,
+        cacheCreationTokens,
       });
       this.llmLogger.info('LLM call completed', {
         model: this.config.model,
-        inputTokens: msg.input_tokens,
-        outputTokens: msg.output_tokens,
+        inputTokens,
+        outputTokens,
+        latencyMs,
+        stopReason,
+        cacheReadTokens,
+        cacheCreationTokens,
       });
+
+      // Direct telemetry tracking for LLM usage
+      // Include model config parameters for HoneyHive observability
+      if (this.telemetry?.isEnabled() && this.telemetrySessionId) {
+        // Extract config with type assertion for optional fields
+        const configWithOptionals = this.config as Record<string, unknown>;
+
+        // Build options object, only including optional fields when defined
+        // (exactOptionalPropertyTypes compliance)
+        const llmOptions: Parameters<NonNullable<typeof this.telemetry.trackLLMEx>>[1] = {
+          model: this.config.model,
+          inputTokens,
+          outputTokens,
+          startTime: this.turnStartTime ?? endTime - (latencyMs ?? 0),
+          endTime,
+          provider: 'anthropic',
+        };
+        if (latencyMs !== undefined) llmOptions.latencyMs = latencyMs;
+        if (this.telemetryParentEventId) llmOptions.parentEventId = this.telemetryParentEventId;
+        // Model parameters from config (if set)
+        const configTemp = configWithOptionals.temperature as number | undefined;
+        const configMaxTokens = configWithOptionals.maxTokens as number | undefined;
+        if (configTemp !== undefined) llmOptions.temperature = configTemp;
+        if (configMaxTokens !== undefined) llmOptions.maxTokens = configMaxTokens;
+        // Stop reason from result
+        if (stopReason) llmOptions.stopReason = stopReason;
+        // Cache tokens (prompt caching)
+        if (cacheReadTokens !== undefined) llmOptions.cacheReadTokens = cacheReadTokens;
+        if (cacheCreationTokens !== undefined) llmOptions.cacheCreationTokens = cacheCreationTokens;
+        this.telemetry.trackLLMEx?.(this.telemetrySessionId, llmOptions);
+      }
+
       chunks.push(
         this.createChunk('status', 'normal', 'Session completed', {
           sessionId: msg.session_id,
-          inputTokens: msg.input_tokens,
-          outputTokens: msg.output_tokens,
+          inputTokens,
+          outputTokens,
         })
       );
     }
