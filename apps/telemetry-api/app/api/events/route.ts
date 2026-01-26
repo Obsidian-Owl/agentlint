@@ -136,29 +136,35 @@ async function forwardToHoneyHive(events: TelemetryEvent[]): Promise<void> {
       const firstEvent = sessionEvents[0];
 
       // Create or update session in HoneyHive
-      const sessionResponse = await fetch('https://api.honeyhive.ai/session', {
+      // API expects body wrapped in { session: { ... } }
+      const sessionResponse = await fetch('https://api.honeyhive.ai/session/start', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${apiKey}`,
         },
         body: JSON.stringify({
-          project: 'agentlint',
-          session_name: sessionId,
-          source: 'agentlint-cli',
-          session_id: sessionId,
-          user_properties: {
-            version: firstEvent?.meta.version ?? 'unknown',
-            platform: firstEvent?.meta.platform ?? 'unknown',
+          session: {
+            project: 'agentlint',
+            session_name: sessionId,
+            source: 'agentlint-cli',
+            session_id: sessionId,
+            user_properties: {
+              version: firstEvent?.meta.version ?? 'unknown',
+              platform: firstEvent?.meta.platform ?? 'unknown',
+            },
           },
         }),
       });
 
       if (!sessionResponse.ok) {
+        const errorBody = await sessionResponse.text();
         console.error(
-          `[telemetry-api] HoneyHive session create failed: ${sessionResponse.status}`
+          `[telemetry-api] HoneyHive session create failed: ${sessionResponse.status} - ${errorBody}`
         );
         // Continue anyway to try logging events
+      } else {
+        console.log(`[telemetry-api] HoneyHive session created: ${sessionId}`);
       }
 
       // Log individual events
@@ -171,24 +177,29 @@ async function forwardToHoneyHive(events: TelemetryEvent[]): Promise<void> {
           eventType = 'tool';
         }
 
+        // API expects body wrapped in { event: { ... } }
+        // Required fields: project, event_type, event_name, source, config, inputs, duration
         const eventPayload = {
-          project: 'agentlint',
-          session_id: sessionId,
-          event_id: event.eventId,
-          event_type: eventType,
-          event_name: event.type,
-          config: {},
-          inputs: {},
-          outputs: {},
-          duration:
-            typeof event.data.durationMs === 'number' ? event.data.durationMs : 0,
-          metadata: {
-            ...event.data,
-            agentlint_version: event.meta.version,
-            platform: event.meta.platform,
-            sequence: event.sequence,
+          event: {
+            project: 'agentlint',
+            source: 'agentlint-cli',
+            session_id: sessionId,
+            event_id: event.eventId,
+            event_type: eventType,
+            event_name: event.type,
+            config: {},
+            inputs: {},
+            outputs: {},
+            duration:
+              typeof event.data.durationMs === 'number' ? event.data.durationMs : 0,
+            metadata: {
+              ...event.data,
+              agentlint_version: event.meta.version,
+              platform: event.meta.platform,
+              sequence: event.sequence,
+            },
+            parent_id: event.parentEventId,
           },
-          parent_id: event.parentEventId,
         };
 
         const eventResponse = await fetch('https://api.honeyhive.ai/events', {
@@ -201,8 +212,9 @@ async function forwardToHoneyHive(events: TelemetryEvent[]): Promise<void> {
         });
 
         if (!eventResponse.ok) {
+          const errorBody = await eventResponse.text();
           console.error(
-            `[telemetry-api] HoneyHive event log failed: ${eventResponse.status}`
+            `[telemetry-api] HoneyHive event log failed: ${eventResponse.status} - ${errorBody}`
           );
         }
       }

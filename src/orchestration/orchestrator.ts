@@ -12,6 +12,10 @@
  * @module orchestration/orchestrator
  */
 
+import { existsSync } from 'fs';
+import { execSync } from 'child_process';
+import { join } from 'path';
+import { homedir } from 'os';
 import { query, type SDKMessage } from '@anthropic-ai/claude-agent-sdk';
 import type { IToolRegistry } from './tool-registry';
 import type { OrchestratorConfig, SessionState, StreamChunk, VerbosityLevel } from './types';
@@ -253,6 +257,10 @@ export class Orchestrator implements IOrchestrator {
         includePartialMessages: true,
         // ADR-0021: Enable human-in-the-loop via canUseTool callback
         canUseTool,
+        // Path to Claude Code CLI - required for bundled builds where the SDK's
+        // relative path resolution breaks (it defaults to finding cli.js relative
+        // to the SDK's location, which in bundled builds points to our own CLI)
+        pathToClaudeCodeExecutable: this.resolveClaudeCodePath(),
       };
 
       // Only add systemPrompt if we have custom content
@@ -336,6 +344,57 @@ export class Orchestrator implements IOrchestrator {
   // ===========================================================================
   // Private Methods
   // ===========================================================================
+
+  /**
+   * Resolve the path to Claude Code executable.
+   *
+   * Search order:
+   * 1. CLAUDE_CODE_PATH environment variable
+   * 2. Common installation locations (macOS, Linux)
+   * 3. PATH lookup via `which claude`
+   *
+   * @returns Path to Claude Code executable
+   * @throws Error if Claude Code is not found
+   */
+  private resolveClaudeCodePath(): string {
+    // 1. Environment variable override
+    const envPath = process.env['CLAUDE_CODE_PATH'];
+    if (envPath && existsSync(envPath)) {
+      return envPath;
+    }
+
+    // 2. Common installation locations
+    const home = homedir();
+    const commonPaths = [
+      join(home, '.local', 'bin', 'claude'), // npm global install
+      join(home, '.claude', 'local', 'claude'), // native installer
+      '/usr/local/bin/claude', // system-wide
+      '/opt/homebrew/bin/claude', // Homebrew on Apple Silicon
+      '/usr/bin/claude', // Linux system
+    ];
+
+    for (const p of commonPaths) {
+      if (existsSync(p)) {
+        return p;
+      }
+    }
+
+    // 3. PATH lookup
+    try {
+      const whichResult = execSync('which claude', { encoding: 'utf-8' }).trim();
+      if (whichResult && existsSync(whichResult)) {
+        return whichResult;
+      }
+    } catch {
+      // `which` failed, continue to error
+    }
+
+    // Not found - provide helpful error
+    throw new Error(
+      'Claude Code CLI not found. Please install Claude Code or set CLAUDE_CODE_PATH environment variable.\n' +
+        'Install: https://claude.ai/download'
+    );
+  }
 
   /**
    * Create initial session state.
