@@ -30,11 +30,18 @@ describe('Telemetry Events', () => {
       expect(meta).toHaveProperty('version');
       expect(meta).toHaveProperty('platform');
       expect(meta).toHaveProperty('nodeVersion');
+      expect(meta).toHaveProperty('source');
     });
 
     test('platform matches process.platform', () => {
       const meta = getTelemetryMeta();
       expect(meta.platform).toBe(process.platform);
+    });
+
+    test('source is set correctly for test environment', () => {
+      const meta = getTelemetryMeta();
+      // In test environment, should be 'agentlint-cli-test'
+      expect(meta.source).toBe('agentlint-cli-test');
     });
   });
 
@@ -181,6 +188,49 @@ describe('Telemetry Events', () => {
       const timestamp = new Date(event.timestamp);
       expect(timestamp).toBeInstanceOf(Date);
       expect(timestamp.getTime()).not.toBeNaN();
+    });
+
+    test('includes startTime and endTime', () => {
+      const before = Date.now();
+      const event = createTelemetryEvent('tool.call', 'session-123', 1, {
+        tool: 'test',
+      });
+      const after = Date.now();
+
+      expect(event.startTime).toBeGreaterThanOrEqual(before);
+      expect(event.startTime).toBeLessThanOrEqual(after);
+      expect(event.endTime).toBeGreaterThanOrEqual(before);
+      expect(event.endTime).toBeLessThanOrEqual(after);
+    });
+
+    test('uses provided startTime and endTime', () => {
+      const startTime = 1700000000000;
+      const endTime = 1700000001000;
+
+      const event = createTelemetryEvent(
+        'tool.call',
+        'session-123',
+        1,
+        { tool: 'test' },
+        { startTime, endTime }
+      );
+
+      expect(event.startTime).toBe(startTime);
+      expect(event.endTime).toBe(endTime);
+    });
+
+    test('accepts options object with parentEventId', () => {
+      const event = createTelemetryEvent(
+        'finding.detected',
+        'session-123',
+        10,
+        { findingType: 'test' },
+        { parentEventId: 'parent-123', startTime: 1000, endTime: 2000 }
+      );
+
+      expect(event.parentEventId).toBe('parent-123');
+      expect(event.startTime).toBe(1000);
+      expect(event.endTime).toBe(2000);
     });
   });
 

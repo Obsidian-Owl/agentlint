@@ -116,6 +116,33 @@ export function getTelemetryConfig(): TelemetryConfig {
 // =============================================================================
 
 /**
+ * Options for tool tracking with timing and hierarchy.
+ */
+export interface TrackToolOptions {
+  tool: string;
+  durationMs: number;
+  success: boolean;
+  startTime?: number;
+  endTime?: number;
+  parentEventId?: string;
+}
+
+/**
+ * Options for LLM tracking with timing and hierarchy.
+ */
+export interface TrackLLMOptions {
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+  latencyMs?: number;
+  startTime?: number;
+  endTime?: number;
+  parentEventId?: string;
+  provider?: string;
+  cost?: number;
+}
+
+/**
  * Telemetry client interface.
  */
 export interface ITelemetryClient {
@@ -137,8 +164,11 @@ export interface ITelemetryClient {
   /** Record session end with metrics */
   sessionEnd(sessionId: string, metrics: SessionMetrics): void;
 
-  /** Track a tool call */
+  /** Track a tool call (simple signature for backward compat) */
   trackTool(sessionId: string, tool: string, durationMs: number, success: boolean): void;
+
+  /** Track a tool call with extended options */
+  trackToolEx?(sessionId: string, options: TrackToolOptions): void;
 
   /** Track a finding */
   trackFinding(
@@ -147,7 +177,7 @@ export interface ITelemetryClient {
     severity: 'info' | 'warning' | 'error' | 'critical'
   ): void;
 
-  /** Track LLM usage */
+  /** Track LLM usage (simple signature for backward compat) */
   trackLLM(
     sessionId: string,
     model: string,
@@ -155,6 +185,9 @@ export interface ITelemetryClient {
     outputTokens: number,
     latencyMs?: number
   ): void;
+
+  /** Track LLM usage with extended options */
+  trackLLMEx?(sessionId: string, options: TrackLLMOptions): void;
 
   /** Track an error (type only) */
   trackError(sessionId: string, errorType: string, errorCode?: string): void;
@@ -164,6 +197,9 @@ export interface ITelemetryClient {
 
   /** Shutdown the client */
   shutdown(): Promise<void>;
+
+  /** Get current session's parent event ID for hierarchy */
+  getSessionEventId?(sessionId: string): string | undefined;
 }
 
 // =============================================================================
@@ -232,151 +268,42 @@ class NoOpTelemetryClient implements ITelemetryClient {
 }
 
 // =============================================================================
-// Console Debug Client
+// Debug Alpha Client (Logs AND Sends)
 // =============================================================================
 
 /**
- * Console-based telemetry client for debugging.
- * Logs telemetry events to stderr when AGENTLINT_TELEMETRY_DEBUG=1.
+ * Debug telemetry client that logs to console AND sends to the server.
+ * This fixes the debug mode bug where AGENTLINT_TELEMETRY_DEBUG=1 was only
+ * logging but not sending events.
+ *
+ * Extends AlphaTelemetryClient and adds console logging for debugging.
  */
-class ConsoleTelemetryClient implements ITelemetryClient {
-  readonly mode = 'alpha' as const;
+class DebugAlphaTelemetryClient extends AlphaTelemetryClient {
+  /**
+   * Override record to log AND send.
+   */
+  override record(event: import('./events').TelemetryEvent): void {
+    // Log to console for debugging
+    console.error(`[TELEMETRY] ${event.type}:`, JSON.stringify(event.data));
 
-  private debugMode = false;
-
-  init(_config: TelemetryConfig): Promise<void> {
-    this.debugMode = process.env['AGENTLINT_TELEMETRY_DEBUG'] === '1';
-    return Promise.resolve();
+    // Also send to server (parent behavior)
+    super.record(event);
   }
 
-  isEnabled(): boolean {
-    return true;
+  /**
+   * Log flush for debugging.
+   */
+  override async flush(): Promise<void> {
+    console.error('[TELEMETRY] Flush called');
+    await super.flush();
   }
 
-  record(event: import('./events').TelemetryEvent): void {
-    if (this.debugMode) {
-      console.error(`[TELEMETRY] ${event.type}:`, JSON.stringify(event.data));
-    }
-  }
-
-  sessionStart(sessionId: string, data?: SessionStartData): void {
-    this.record({
-      type: 'session.start',
-      timestamp: new Date().toISOString(),
-      sessionId,
-      eventId: crypto.randomUUID(),
-      sequence: 0,
-      data: (data ?? {}) as Record<string, unknown>,
-      meta: {
-        version: process.env['npm_package_version'] ?? 'unknown',
-        platform: process.platform,
-        nodeVersion: process.version,
-      },
-    });
-  }
-
-  sessionEnd(sessionId: string, metrics: SessionMetrics): void {
-    this.record({
-      type: 'session.end',
-      timestamp: new Date().toISOString(),
-      sessionId,
-      eventId: crypto.randomUUID(),
-      sequence: 999,
-      data: metrics as unknown as Record<string, unknown>,
-      meta: {
-        version: process.env['npm_package_version'] ?? 'unknown',
-        platform: process.platform,
-        nodeVersion: process.version,
-      },
-    });
-  }
-
-  trackTool(sessionId: string, tool: string, durationMs: number, success: boolean): void {
-    this.record({
-      type: 'tool.call',
-      timestamp: new Date().toISOString(),
-      sessionId,
-      eventId: crypto.randomUUID(),
-      sequence: 0,
-      data: { tool, durationMs, success },
-      meta: {
-        version: process.env['npm_package_version'] ?? 'unknown',
-        platform: process.platform,
-        nodeVersion: process.version,
-      },
-    });
-  }
-
-  trackFinding(
-    sessionId: string,
-    findingType: string,
-    severity: 'info' | 'warning' | 'error' | 'critical'
-  ): void {
-    this.record({
-      type: 'finding.detected',
-      timestamp: new Date().toISOString(),
-      sessionId,
-      eventId: crypto.randomUUID(),
-      sequence: 0,
-      data: { findingType, severity },
-      meta: {
-        version: process.env['npm_package_version'] ?? 'unknown',
-        platform: process.platform,
-        nodeVersion: process.version,
-      },
-    });
-  }
-
-  trackLLM(
-    sessionId: string,
-    model: string,
-    inputTokens: number,
-    outputTokens: number,
-    latencyMs?: number
-  ): void {
-    this.record({
-      type: 'llm.usage',
-      timestamp: new Date().toISOString(),
-      sessionId,
-      eventId: crypto.randomUUID(),
-      sequence: 0,
-      data: { model, inputTokens, outputTokens, latencyMs },
-      meta: {
-        version: process.env['npm_package_version'] ?? 'unknown',
-        platform: process.platform,
-        nodeVersion: process.version,
-      },
-    });
-  }
-
-  trackError(sessionId: string, errorType: string, errorCode?: string): void {
-    this.record({
-      type: 'session.error',
-      timestamp: new Date().toISOString(),
-      sessionId,
-      eventId: crypto.randomUUID(),
-      sequence: 0,
-      data: { errorType, errorCode },
-      meta: {
-        version: process.env['npm_package_version'] ?? 'unknown',
-        platform: process.platform,
-        nodeVersion: process.version,
-      },
-    });
-  }
-
-  flush(): Promise<void> {
-    if (this.debugMode) {
-      console.error('[TELEMETRY] Flush called');
-    }
-    return Promise.resolve();
-  }
-
-  shutdown(): Promise<void> {
-    if (this.debugMode) {
-      console.error('[TELEMETRY] Shutdown');
-    }
-    return Promise.resolve();
+  /**
+   * Log shutdown for debugging.
+   */
+  override async shutdown(): Promise<void> {
+    console.error('[TELEMETRY] Shutdown');
+    await super.shutdown();
   }
 }
 
@@ -410,10 +337,10 @@ export function createTelemetryClient(config?: TelemetryConfig): ITelemetryClien
 
   switch (effectiveConfig.mode) {
     case 'alpha':
-      // Use AlphaTelemetryClient for production
-      // Use ConsoleTelemetryClient for debug mode
+      // Use DebugAlphaTelemetryClient for debug mode (logs AND sends)
+      // Use AlphaTelemetryClient for production (sends only)
       if (process.env['AGENTLINT_TELEMETRY_DEBUG'] === '1') {
-        return new ConsoleTelemetryClient();
+        return new DebugAlphaTelemetryClient();
       }
       return new AlphaTelemetryClient();
 
