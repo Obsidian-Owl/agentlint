@@ -144,6 +144,9 @@ export class Orchestrator implements IOrchestrator {
   /** Map toolId -> tool input arguments for telemetry */
   private readonly toolInputs = new Map<string, Record<string, unknown>>();
 
+  /** Maximum pending tool entries to prevent unbounded memory growth */
+  private static readonly MAX_PENDING_TOOLS = 100;
+
   /** Telemetry client (if provided) */
   private readonly telemetry: IOrchestratorTelemetryClient | null;
 
@@ -441,6 +444,70 @@ export class Orchestrator implements IOrchestrator {
   }
 
   /**
+   * Truncate tool input for telemetry to prevent excessive payload sizes.
+   * Mirrors the output truncation pattern for consistency.
+   *
+   * @param input - Raw tool input
+   * @param maxLength - Maximum length in characters (default 5000)
+   * @returns Truncated input suitable for telemetry
+   */
+  private truncateToolInput(
+    input: Record<string, unknown>,
+    maxLength = 5000
+  ): Record<string, unknown> {
+    const stringified = JSON.stringify(input);
+
+    if (stringified.length <= maxLength) {
+      return input;
+    }
+
+    const truncated: Record<string, unknown> = {};
+    let currentLength = 2; // Account for {}
+
+    for (const [key, value] of Object.entries(input)) {
+      const valueStr = JSON.stringify(value);
+
+      if (currentLength + key.length + valueStr.length + 4 > maxLength) {
+        // Truncate large string values, mark others as truncated
+        if (typeof value === 'string' && value.length > 100) {
+          truncated[key] = value.slice(0, 100) + '... [truncated]';
+        } else {
+          truncated[key] = '[truncated]';
+        }
+      } else {
+        truncated[key] = value;
+        currentLength += key.length + valueStr.length + 4;
+      }
+    }
+
+    truncated._inputTruncated = true;
+    truncated._originalSize = stringified.length;
+
+    return truncated;
+  }
+
+  /**
+   * Store tool input with bounds checking.
+   * Evicts oldest entry if map exceeds MAX_PENDING_TOOLS.
+   *
+   * @param toolId - The tool use ID
+   * @param input - The tool input to store (will be truncated)
+   */
+  private storeToolInput(toolId: string, input: Record<string, unknown>): void {
+    // Evict oldest entry if at capacity
+    if (this.toolInputs.size >= Orchestrator.MAX_PENDING_TOOLS) {
+      const firstKey = this.toolInputs.keys().next().value;
+      if (firstKey) {
+        this.toolInputs.delete(firstKey);
+      }
+    }
+
+    // Truncate and store
+    const truncatedInput = this.truncateToolInput(input);
+    this.toolInputs.set(toolId, truncatedInput);
+  }
+
+  /**
    * Extract error message from tool output.
    * Handles various error formats from SDK.
    *
@@ -610,7 +677,7 @@ export class Orchestrator implements IOrchestrator {
         this.toolStartTimes.set(toolBlock.id, Date.now());
         // Track tool input arguments for telemetry (may be populated in subsequent delta events)
         const toolInput = (toolBlock.input as Record<string, unknown>) ?? {};
-        this.toolInputs.set(toolBlock.id, toolInput);
+        this.storeToolInput(toolBlock.id, toolInput);
         chunks.push(
           this.createChunk('tool_start', 'verbose', `Calling tool: ${toolBlock.name}`, {
             toolName: toolBlock.name,
@@ -648,7 +715,7 @@ export class Orchestrator implements IOrchestrator {
           // But the FULL input is only available here (stream sends input incrementally)
           // Update the toolInputs map with the complete input for telemetry
           if (block.id && block.input) {
-            this.toolInputs.set(block.id, block.input as Record<string, unknown>);
+            this.storeToolInput(block.id, block.input as Record<string, unknown>);
             this.logger.debug('Tool input captured from assistant message', {
               tool: block.name,
               inputKeys: Object.keys(block.input as Record<string, unknown>),

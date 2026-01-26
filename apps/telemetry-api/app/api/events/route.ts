@@ -51,6 +51,38 @@ interface TelemetryPayload {
 }
 
 // =============================================================================
+// Error Classification
+// =============================================================================
+
+type ErrorCategory = 'timeout' | 'network' | 'api_error' | 'validation' | 'unknown';
+
+interface ClassifiedError {
+  category: ErrorCategory;
+  name: string;
+  message: string;
+}
+
+/**
+ * Classify an error for structured logging.
+ * Helps with debugging and alerting by categorizing error types.
+ */
+function classifyError(error: unknown): ClassifiedError {
+  if (error instanceof Error) {
+    if (error.name === 'AbortError') {
+      return { category: 'timeout', name: 'AbortError', message: error.message };
+    }
+    if (error.message.includes('fetch') || error.message.includes('network') || error.message.includes('ECONNREFUSED')) {
+      return { category: 'network', name: error.name, message: error.message };
+    }
+    if (error.message.includes('API') || error.message.includes('401') || error.message.includes('403')) {
+      return { category: 'api_error', name: error.name, message: error.message };
+    }
+    return { category: 'unknown', name: error.name, message: error.message };
+  }
+  return { category: 'unknown', name: 'UnknownError', message: String(error) };
+}
+
+// =============================================================================
 // Validation
 // =============================================================================
 
@@ -86,19 +118,54 @@ function isValidPayload(body: unknown): body is TelemetryPayload {
 // Rate Limiting (Simple in-memory for now, switch to Upstash later)
 // =============================================================================
 
-const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
+/** Maximum entries in rate limit map before LRU eviction */
+const RATE_LIMIT_MAX_ENTRIES = 10_000;
+/** Number of oldest entries to evict when limit reached */
+const RATE_LIMIT_EVICTION_BATCH = 1_000;
+
+interface RateLimitEntry {
+  count: number;
+  resetTime: number;
+  lastAccess: number;
+}
+
+const rateLimitMap = new Map<string, RateLimitEntry>();
 const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
 const RATE_LIMIT_MAX_REQUESTS = 100; // 100 requests per minute per IP
 
 /** HoneyHive API request timeout - leaves margin within 10s Edge Function limit */
 const HONEYHIVE_TIMEOUT_MS = 5_000;
 
+/**
+ * Evict oldest entries when map exceeds size limit.
+ * Uses LRU-style eviction based on lastAccess timestamp.
+ * More reliable than setInterval in Edge Function contexts.
+ */
+function evictOldestEntries(): void {
+  if (rateLimitMap.size <= RATE_LIMIT_MAX_ENTRIES) return;
+
+  // Sort by lastAccess and evict oldest
+  const entries = [...rateLimitMap.entries()]
+    .sort((a, b) => a[1].lastAccess - b[1].lastAccess)
+    .slice(0, RATE_LIMIT_EVICTION_BATCH);
+
+  for (const [ip] of entries) {
+    rateLimitMap.delete(ip);
+  }
+}
+
 function checkRateLimit(ip: string): boolean {
   const now = Date.now();
   const entry = rateLimitMap.get(ip);
 
   if (!entry || now > entry.resetTime) {
-    rateLimitMap.set(ip, { count: 1, resetTime: now + RATE_LIMIT_WINDOW_MS });
+    // Evict old entries inline (more reliable than setInterval in Edge Functions)
+    evictOldestEntries();
+    rateLimitMap.set(ip, {
+      count: 1,
+      resetTime: now + RATE_LIMIT_WINDOW_MS,
+      lastAccess: now,
+    });
     return true;
   }
 
@@ -107,18 +174,17 @@ function checkRateLimit(ip: string): boolean {
   }
 
   entry.count++;
+  entry.lastAccess = now;
   return true;
 }
 
-// Cleanup old entries periodically
-setInterval(() => {
-  const now = Date.now();
-  for (const [ip, entry] of rateLimitMap.entries()) {
-    if (now > entry.resetTime) {
-      rateLimitMap.delete(ip);
-    }
-  }
-}, RATE_LIMIT_WINDOW_MS);
+/**
+ * Generate a unique request ID for tracing.
+ * Format: req-{timestamp_base36}-{random}
+ */
+function generateRequestId(): string {
+  return `req-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
 
 // =============================================================================
 // HoneyHive Forwarding
@@ -492,11 +558,17 @@ function buildHoneyHiveMetadata(event: TelemetryEvent): Record<string, unknown> 
   return base;
 }
 
-async function forwardToHoneyHive(events: TelemetryEvent[]): Promise<void> {
+async function forwardToHoneyHive(events: TelemetryEvent[], requestId: string): Promise<void> {
   const apiKey = process.env['HONEYHIVE_API_KEY'];
 
   if (!apiKey) {
-    console.error('[telemetry-api] HONEYHIVE_API_KEY not configured');
+    console.error(JSON.stringify({
+      level: 'error',
+      requestId,
+      event: 'config_error',
+      message: 'HONEYHIVE_API_KEY not configured',
+      timestamp: new Date().toISOString(),
+    }));
     return;
   }
 
@@ -616,13 +688,25 @@ async function forwardToHoneyHive(events: TelemetryEvent[]): Promise<void> {
 
       if (!sessionResponse.ok) {
         const errorBody = await sessionResponse.text();
-        console.error(
-          `[telemetry-api] HoneyHive session create failed for session ${sessionId}: ` +
-          `${sessionResponse.status} - ${errorBody.slice(0, 200)}`
-        );
+        console.error(JSON.stringify({
+          level: 'error',
+          requestId,
+          sessionId,
+          event: 'session_create_error',
+          status: sessionResponse.status,
+          errorBody: errorBody.slice(0, 200),
+          timestamp: new Date().toISOString(),
+        }));
         // Continue anyway to try logging events
       } else {
-        console.log(`[telemetry-api] HoneyHive session created: ${sessionName} (id: ${sessionId})`);
+        console.log(JSON.stringify({
+          level: 'info',
+          requestId,
+          sessionId,
+          event: 'session_created',
+          sessionName,
+          timestamp: new Date().toISOString(),
+        }));
       }
 
       // Log individual events
@@ -709,21 +793,32 @@ async function forwardToHoneyHive(events: TelemetryEvent[]): Promise<void> {
 
         if (!eventResponse.ok) {
           const errorBody = await eventResponse.text();
-          console.error(
-            `[telemetry-api] HoneyHive event log failed for session ${sessionId} ` +
-            `(event ${event.eventId}, type ${event.type}): ${eventResponse.status} - ${errorBody.slice(0, 200)}`
-          );
+          console.error(JSON.stringify({
+            level: 'error',
+            requestId,
+            sessionId,
+            event: 'event_log_error',
+            eventId: event.eventId,
+            eventType: event.type,
+            status: eventResponse.status,
+            errorBody: errorBody.slice(0, 200),
+            timestamp: new Date().toISOString(),
+          }));
         }
       }
     } catch (error) {
-      if (error instanceof Error && error.name === 'AbortError') {
-        console.error(`[telemetry-api] HoneyHive timeout for session ${sessionId} after ${HONEYHIVE_TIMEOUT_MS}ms`);
-      } else {
-        console.error(
-          `[telemetry-api] HoneyHive forwarding error for session ${sessionId}:`,
-          error instanceof Error ? error.message : error
-        );
-      }
+      const classified = classifyError(error);
+      console.error(JSON.stringify({
+        level: 'error',
+        requestId,
+        sessionId,
+        event: 'session_forward_error',
+        category: classified.category,
+        errorName: classified.name,
+        errorMessage: classified.message,
+        eventCount: sessionEvents.length,
+        timestamp: new Date().toISOString(),
+      }));
     }
   }
 }
@@ -733,15 +828,32 @@ async function forwardToHoneyHive(events: TelemetryEvent[]): Promise<void> {
 // =============================================================================
 
 export async function POST(request: Request): Promise<Response> {
+  const requestId = generateRequestId();
+
   // Get client IP for rate limiting
   const ip =
     request.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ??
     request.headers.get('x-real-ip') ??
     'anonymous';
 
+  console.log(JSON.stringify({
+    level: 'info',
+    requestId,
+    event: 'request_start',
+    ip,
+    timestamp: new Date().toISOString(),
+  }));
+
   // Check rate limit
   if (!checkRateLimit(ip)) {
-    return NextResponse.json({ error: 'Rate limited' }, { status: 429 });
+    console.log(JSON.stringify({
+      level: 'warn',
+      requestId,
+      event: 'rate_limited',
+      ip,
+      timestamp: new Date().toISOString(),
+    }));
+    return NextResponse.json({ error: 'Rate limited', requestId }, { status: 429 });
   }
 
   // Parse and validate payload
@@ -749,17 +861,37 @@ export async function POST(request: Request): Promise<Response> {
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 });
+    console.log(JSON.stringify({
+      level: 'warn',
+      requestId,
+      event: 'invalid_json',
+      timestamp: new Date().toISOString(),
+    }));
+    return NextResponse.json({ error: 'Invalid JSON', requestId }, { status: 400 });
   }
 
   if (!isValidPayload(body)) {
-    return NextResponse.json({ error: 'Invalid payload schema' }, { status: 400 });
+    console.log(JSON.stringify({
+      level: 'warn',
+      requestId,
+      event: 'invalid_schema',
+      timestamp: new Date().toISOString(),
+    }));
+    return NextResponse.json({ error: 'Invalid payload schema', requestId }, { status: 400 });
   }
 
   // Forward to HoneyHive and wait for completion to prevent event loss
-  await forwardToHoneyHive(body.events);
+  await forwardToHoneyHive(body.events, requestId);
 
-  return NextResponse.json({ success: true, eventsReceived: body.events.length });
+  console.log(JSON.stringify({
+    level: 'info',
+    requestId,
+    event: 'request_complete',
+    eventsReceived: body.events.length,
+    timestamp: new Date().toISOString(),
+  }));
+
+  return NextResponse.json({ success: true, eventsReceived: body.events.length, requestId });
 }
 
 // Route segment config (App Router)

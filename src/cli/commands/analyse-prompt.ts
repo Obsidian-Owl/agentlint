@@ -16,6 +16,7 @@ import {
   getRecommendationsDir,
 } from '../../recommendations/storage';
 import type { RecommendationSummary } from '../../recommendations/types';
+import { getPromptConfig } from './prompts/analysis-prompt';
 
 // Debug logging for recommendation loading - write to stderr to avoid polluting output
 const DEBUG_RECS = process.env['DEBUG']?.includes('agentlint:recs') ?? false;
@@ -217,14 +218,17 @@ For new recommendations, ask briefly: "Create new recommendation for [target]? (
  *
  * @param directory - The directory being analyzed
  * @param scanResult - Results from the configuration scan
- * @param options - Analysis options
+ * @param options - Analysis options (supports promptVersion for A/B testing)
  * @returns The formatted prompt string
  */
 export async function buildAnalysisPrompt(
   directory: string,
   scanResult: ScanResult,
-  options: AnalyseOptions
+  options: AnalyseOptions & { promptVersion?: string }
 ): Promise<string> {
+  // Get versioned prompt templates
+  const promptConfig = getPromptConfig(options.promptVersion);
+
   const configList = formatConfigList(directory, scanResult);
   const focusInstructions = buildFocusInstructions(options);
   const toolInstructions = buildToolInstructions();
@@ -237,7 +241,9 @@ export async function buildAnalysisPrompt(
   const interactiveInstructions = buildInteractiveInstructions(!options.nonInteractive);
 
   return `
-You are analyzing an AI-assisted development project at: ${directory}
+${promptConfig.sections.intro}
+
+Directory: ${directory}
 
 ${configList}
 
@@ -253,74 +259,13 @@ ${subagentGuidance}
 
 ${outputGuidance}
 
-## Your Task
-
-Perform a comprehensive analysis following the DETECT → TRACE → UNDERSTAND → RECONCILE → RECOMMEND workflow:
-
-### 1. DETECT: Discover Issues
-- Use \`discover_configs\` to find all AI configuration files
-- Use \`parse_config\` to analyze each configuration in detail
-- Use \`analyze_hierarchy\` to understand config precedence and conflicts
-- Look for anti-patterns, gaps, and quality issues
-
-### 2. TRACE: Find Origins
-- For each issue found, trace it back to its origin
-- Determine if issues stem from configuration, session history, or git changes
-- Identify the root cause, not just the symptom
-
-### 3. UNDERSTAND: Assess Impact
-- Evaluate the severity of each issue (critical, high, medium, low, info)
-- Consider how issues affect developer productivity and AI effectiveness
-- Look for patterns across multiple issues
-
-### 4. RECONCILE: Resolve Contradictions (AGE-678)
-**Before creating ANY recommendations, check for contradictions:**
-
-- Do your findings contradict each other? (e.g., "file too large" AND "file too small")
-- Do they contradict existing recommendations in the table above?
-- Are the claims about file sizes, line counts, or states consistent?
-
-**When contradictions are found:**
-1. State the contradiction explicitly: "Finding A says X, but Finding B says Y"
-2. Investigate to determine which is correct (re-read the file, check actual state)
-3. Discard the incorrect finding - do NOT create recommendations for both
-4. If existing recommendation contradicts your verified finding, complete it with reason 'obsolete'
-
-**Examples of contradictions to catch:**
-- "Expand CLAUDE.md" vs "Reduce CLAUDE.md" → Only one can be correct
-- "File has 11 lines" vs "File has 762 lines" → Verify actual state
-- "Missing error handling" vs "Error handling present but verbose" → Verify actual code
-
-### 5. RECOMMEND: Record Improvements
-**CRITICAL: Follow the Review → Decide → Act protocol above for EVERY finding.**
-
-- Check existing recommendations table FIRST
-- Consolidate similar findings into existing recommendations when appropriate
-- Only create NEW recommendations when truly distinct AND verified in RECONCILE step
-- Prefer preventive over symptomatic fixes
-- Provide clear rationale for each recommendation
+${promptConfig.sections.workflow}
 
 ${toolInstructions}
 
-## Output Requirements
+${promptConfig.sections.outputRequirements}
 
-**Recording Findings**
-
-Use the appropriate recommendation tool based on your Review → Decide → Act decision:
-
-| Decision | Tool to use |
-|----------|-------------|
-| Similar recommendation exists | \`add_recommendation_event\` to add observation |
-| Existing rec needs update | \`refine_recommendation\` to update action/target |
-| **Contradicts existing** | \`complete_recommendation\` with reason 'obsolete' first |
-| Truly new finding | \`create_recommendation\` to create new |
-
-For each finding, explain briefly:
-- **What**: Clear description of the issue
-- **Where**: File and location where detected
-- **Action taken**: Which tool you used and why (existing vs new)
-
-Be thorough but concise. Quality over quantity - consolidate similar findings.
+<!-- Prompt Version: ${promptConfig.version} -->
 `.trim();
 }
 
