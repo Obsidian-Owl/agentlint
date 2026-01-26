@@ -32,9 +32,7 @@ export type TelemetryEventType =
   | 'checkpoint.saved'
   | 'config.loaded'
   | 'command.start'
-  | 'command.end'
-  | 'agent.subagent'
-  | 'agent.turn';
+  | 'command.end';
 
 // =============================================================================
 // Event Data Types (Type-Safe Per Event)
@@ -164,25 +162,6 @@ export interface CommandEndData {
 }
 
 /**
- * Data for agent.subagent event.
- */
-export interface SubagentEventData {
-  agentType: string;
-  description?: string;
-  toolCount?: number;
-  tokenCount?: number;
-}
-
-/**
- * Data for agent.turn event.
- */
-export interface AgentTurnEventData {
-  turnNumber: number;
-  inputTokens: number;
-  outputTokens: number;
-}
-
-/**
  * Union of all event data types.
  */
 export type TelemetryEventData =
@@ -196,9 +175,7 @@ export type TelemetryEventData =
   | CheckpointSavedData
   | ConfigLoadedData
   | CommandStartData
-  | CommandEndData
-  | SubagentEventData
-  | AgentTurnEventData;
+  | CommandEndData;
 
 // =============================================================================
 // Event Metadata
