@@ -1012,6 +1012,9 @@ async function runOrchestratedAnalysis(
     tuiRenderer?.stop();
     // Clean up interrupt handler
     process.removeListener('SIGINT', handleInterrupt);
+
+    // Exit cleanly after TUI stops (prevents hanging after 'q' press)
+    process.exit(0);
   }
 }
 

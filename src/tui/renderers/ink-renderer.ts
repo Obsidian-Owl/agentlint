@@ -13,9 +13,10 @@ import type {
   ITuiRenderer,
   AppProps,
   PermissionDecision,
-  AppState,
   UserQuestion,
   AnalysisPhase,
+  StreamState,
+  DialogType,
 } from '../types';
 import type { StreamChunk, Finding } from '../../orchestration/types';
 
@@ -65,58 +66,64 @@ export class InkRenderer implements ITuiRenderer {
     if (props.onExit) this.onExitCallback = props.onExit;
     if (props.onStart) this.onStartCallback = props.onStart;
 
-    // Build initial state
-    const initialState: Partial<AppState> = {
-      ...props.initialState,
+    this.instance = render(React.createElement(App, this.buildAppProps(props.initialState)));
+  }
+
+  private buildAppProps(initialState?: AppProps['initialState']): AppProps {
+    const streamState: StreamState = {
       streamBuffer: this.chunks,
       isStreaming: this.isStreaming,
       analysisPhase: this.currentPhase,
       findings: this.findings,
     };
 
-    // If there's a pending permission, add it to state
+    let pendingPermission: AppProps['pendingPermission'] = null;
+    let viewStack: DialogType[] = [];
+
     if (this.pendingPermission) {
-      const pendingPerm: { tool: string; description: string; pattern?: string } = {
+      pendingPermission = {
         tool: this.pendingPermission.tool,
         description: this.pendingPermission.description,
+        ...(this.pendingPermission.pattern ? { pattern: this.pendingPermission.pattern } : {}),
       };
-      if (this.pendingPermission.pattern) {
-        pendingPerm.pattern = this.pendingPermission.pattern;
-      }
-      initialState.pendingPermission = pendingPerm;
-      initialState.viewStack = ['permission'];
+      viewStack = ['permission'];
     }
 
-    // If there's pending questions, add to state
+    let pendingQuestions: AppProps['pendingQuestions'] = null;
     if (this.pendingQuestions) {
-      initialState.pendingQuestions = this.pendingQuestions.questions;
-      if (!initialState.viewStack) {
-        initialState.viewStack = ['question'];
+      pendingQuestions = this.pendingQuestions.questions;
+      if (viewStack.length === 0) {
+        viewStack = ['question'];
       }
     }
 
-    // Create wrapped callbacks to handle permission resolution
-    const handleInput = (input: string): void => {
-      this.onInputCallback?.(input);
+    const appProps: AppProps = {
+      streamState,
+      pendingPermission,
+      pendingQuestions,
+      onPermissionDecision: (decision: PermissionDecision) => {
+        if (this.pendingPermission) {
+          this.pendingPermission.resolve(decision);
+          this.pendingPermission = null;
+          this.rerender();
+        }
+      },
+      onQuestionAnswers: (answers: Record<string, string>) => {
+        if (this.pendingQuestions) {
+          this.pendingQuestions.resolve(answers);
+          this.pendingQuestions = null;
+          this.rerender();
+        }
+      },
     };
 
-    const handleExit = (): void => {
-      this.onExitCallback?.();
-    };
+    if (initialState) appProps.initialState = initialState;
+    if (viewStack.length > 0) appProps.viewStack = viewStack;
+    if (this.onInputCallback) appProps.onInput = this.onInputCallback;
+    if (this.onExitCallback) appProps.onExit = this.onExitCallback;
+    if (this.onStartCallback) appProps.onStart = this.onStartCallback;
 
-    const handleStart = (): void => {
-      this.onStartCallback?.();
-    };
-
-    // Render the App
-    this.instance = render(
-      React.createElement(App, {
-        initialState,
-        onInput: handleInput,
-        onExit: handleExit,
-        onStart: handleStart,
-      })
-    );
+    return appProps;
   }
 
   /**
@@ -202,52 +209,10 @@ export class InkRenderer implements ITuiRenderer {
     });
   }
 
-  /**
-   * Rerender the app with current state.
-   */
   private rerender(): void {
     if (!this.instance) {
       return;
     }
-
-    const initialState: Partial<AppState> = {
-      streamBuffer: this.chunks,
-      isStreaming: this.isStreaming,
-      analysisPhase: this.currentPhase,
-      findings: this.findings,
-    };
-
-    if (this.pendingPermission) {
-      const pendingPerm: { tool: string; description: string; pattern?: string } = {
-        tool: this.pendingPermission.tool,
-        description: this.pendingPermission.description,
-      };
-      if (this.pendingPermission.pattern) {
-        pendingPerm.pattern = this.pendingPermission.pattern;
-      }
-      initialState.pendingPermission = pendingPerm;
-      initialState.viewStack = ['permission'];
-    }
-
-    if (this.pendingQuestions) {
-      initialState.pendingQuestions = this.pendingQuestions.questions;
-      // Only set viewStack if not already set by permission
-      if (!initialState.viewStack) {
-        initialState.viewStack = ['question'];
-      }
-    }
-
-    // Note: Ink's rerender() is deprecated - in a real implementation
-    // we would use a state management approach (e.g., external store)
-    // For now, we restart the render which works for the test cases
-    this.instance.unmount();
-
-    // Build props for App, only including defined callbacks
-    const appProps: AppProps = { initialState };
-    if (this.onInputCallback) appProps.onInput = this.onInputCallback;
-    if (this.onExitCallback) appProps.onExit = this.onExitCallback;
-    if (this.onStartCallback) appProps.onStart = this.onStartCallback;
-
-    this.instance = render(React.createElement(App, appProps));
+    this.instance.rerender(React.createElement(App, this.buildAppProps()));
   }
 }

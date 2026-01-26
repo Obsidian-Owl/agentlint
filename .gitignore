@@ -40,3 +40,6 @@ __pycache__/
 
 # Agent state files (epic auto-mode recovery)
 .agent/
+
+# Backup archives
+.agentlint-backup-*.tar.gz

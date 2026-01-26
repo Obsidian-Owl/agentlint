@@ -11,6 +11,7 @@ import { Box, Text } from 'ink';
 import Spinner from 'ink-spinner';
 import type { AgentOutputProps } from '../types';
 import type { StreamChunk } from '../../orchestration/types';
+import { renderMarkdown } from '../utils/markdown';
 
 // =============================================================================
 // Chunk Renderer
@@ -50,21 +51,8 @@ function ChunkRenderer({ chunk }: ChunkRendererProps): React.ReactElement {
       if (level === 'verbose') {
         return <Text dimColor>{content}</Text>;
       }
-      // Render markdown-ish text (basic support)
-      return <Text>{renderMarkdownText(content)}</Text>;
+      return <Text wrap="wrap">{renderMarkdown(content)}</Text>;
   }
-}
-
-/**
- * Simple markdown text rendering.
- * For full markdown support, consider ink-markdown.
- */
-function renderMarkdownText(content: string): string {
-  // Strip markdown formatting for basic rendering
-  // **bold** -> bold
-  // `code` -> code
-  // Note: ink doesn't support inline formatting well, so we just strip markers
-  return content.replace(/\*\*(.*?)\*\*/g, '$1').replace(/`(.*?)`/g, '$1');
 }
 
 // =============================================================================
@@ -88,7 +76,7 @@ export function AgentOutput({ chunks, isStreaming }: AgentOutputProps): React.Re
   return (
     <Box flexDirection="column">
       {chunks.map((chunk, index) => (
-        <ChunkRenderer key={`chunk-${index}`} chunk={chunk} />
+        <ChunkRenderer key={`${chunk.timestamp}-${chunk.type}-${index}`} chunk={chunk} />
       ))}
       {isStreaming && (
         <Box>

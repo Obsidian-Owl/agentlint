@@ -8,7 +8,7 @@
  */
 
 import React, { useCallback, useState, useMemo, useEffect } from 'react';
-import { Box, useInput, useApp as useInkApp } from 'ink';
+import { Box, Text, useInput, useApp as useInkApp } from 'ink';
 
 import { AppProvider, useAppState, useAppDispatch } from '../state/app-context';
 import { AgentOutput } from './AgentOutput';
@@ -21,7 +21,17 @@ import { QuestionDialog } from './QuestionDialog';
 import { Progress } from './Progress';
 import { FindingsList } from './FindingsList';
 import { Summary } from './Summary';
-import type { AppProps, AppState, PermissionDecision, ExplorationStep } from '../types';
+import { StatusBar } from './StatusBar';
+import { LoadingProgress } from './LoadingProgress';
+import type {
+  AppProps,
+  AppState,
+  PermissionDecision,
+  ExplorationStep,
+  StreamState,
+  DialogType,
+  UserQuestion,
+} from '../types';
 import { createInitialState } from '../types';
 
 // =============================================================================
@@ -32,30 +42,42 @@ interface InnerAppProps {
   onInput?: ((input: string) => void) | undefined;
   onStart?: (() => void) | undefined;
   onExit?: (() => void) | undefined;
+  streamState?: StreamState;
+  propsPendingPermission?: { tool: string; description: string; pattern?: string } | null;
+  propsPendingQuestions?: UserQuestion[] | null;
+  propsViewStack?: DialogType[];
+  onPermissionDecision?: (decision: PermissionDecision) => void;
+  onQuestionAnswers?: (answers: Record<string, string>) => void;
 }
 
-function InnerApp({ onInput, onExit }: InnerAppProps): React.ReactElement {
+function InnerApp({
+  onInput,
+  onExit,
+  streamState,
+  propsPendingPermission,
+  propsPendingQuestions,
+  propsViewStack,
+  onPermissionDecision,
+  onQuestionAnswers,
+}: InnerAppProps): React.ReactElement {
   const state = useAppState();
   const dispatch = useAppDispatch();
   const { exit } = useInkApp();
 
   const [inputValue, setInputValue] = useState('');
 
-  // Track elapsed time for Progress component
   const [startTime] = useState(() => Date.now());
   const [elapsedMs, setElapsedMs] = useState(0);
 
-  const {
-    streamBuffer,
-    isStreaming,
-    explorationPath,
-    viewStack,
-    pendingPermission,
-    pendingQuestions,
-    recommendations,
-    analysisPhase,
-    findings,
-  } = state;
+  const { explorationPath, recommendations } = state;
+
+  const streamBuffer = streamState?.streamBuffer ?? state.streamBuffer;
+  const isStreaming = streamState?.isStreaming ?? state.isStreaming;
+  const analysisPhase = streamState?.analysisPhase ?? state.analysisPhase;
+  const findings = streamState?.findings ?? state.findings;
+  const pendingPermission = propsPendingPermission ?? state.pendingPermission;
+  const pendingQuestions = propsPendingQuestions ?? state.pendingQuestions;
+  const viewStack = propsViewStack ?? state.viewStack;
 
   // Update elapsed time during streaming
   useEffect(() => {
@@ -105,20 +127,15 @@ function InnerApp({ onInput, onExit }: InnerAppProps): React.ReactElement {
     [dispatch]
   );
 
-  /**
-   * Handle permission decision.
-   */
   const handlePermissionDecision = useCallback(
     (decision: PermissionDecision) => {
-      // Cache the decision
       const key = decision.pattern ? `${decision.tool}:${decision.pattern}` : decision.tool;
       dispatch({ type: 'CACHE_PERMISSION', payload: { key, decision } });
-      // Clear pending permission
       dispatch({ type: 'SET_PENDING_PERMISSION', payload: { permission: null } });
-      // Pop the dialog
       dispatch({ type: 'POP_DIALOG' });
+      onPermissionDecision?.(decision);
     },
-    [dispatch]
+    [dispatch, onPermissionDecision]
   );
 
   /**
@@ -132,17 +149,13 @@ function InnerApp({ onInput, onExit }: InnerAppProps): React.ReactElement {
     [dispatch]
   );
 
-  /**
-   * Handle question answers.
-   */
   const handleQuestionSubmit = useCallback(
-    (_answers: Record<string, string>) => {
-      // Clear pending questions
+    (answers: Record<string, string>) => {
       dispatch({ type: 'SET_PENDING_QUESTIONS', payload: { questions: null } });
-      // Pop the dialog
       dispatch({ type: 'POP_DIALOG' });
+      onQuestionAnswers?.(answers);
     },
-    [dispatch]
+    [dispatch, onQuestionAnswers]
   );
 
   /**
@@ -205,87 +218,111 @@ function InnerApp({ onInput, onExit }: InnerAppProps): React.ReactElement {
     [dispatch]
   );
 
+  const { statusBar } = state;
+
   return (
-    <Box flexDirection="column" padding={1}>
-      {/* Breadcrumbs */}
-      {explorationPath.length > 0 && (
-        <Box marginBottom={1}>
-          <Breadcrumbs steps={explorationPath} onNavigate={handleBreadcrumbNavigate} />
-        </Box>
-      )}
-
-      {/* Progress (during scanning) */}
-      {analysisPhase === 'scanning' && isStreaming && (
-        <Box marginBottom={1}>
-          <Progress phase={analysisPhase} isActive={true} elapsedMs={elapsedMs} />
-        </Box>
-      )}
-
-      {/* Agent Output */}
-      <Box flexGrow={1} marginBottom={1}>
-        <AgentOutput chunks={streamBuffer} isStreaming={isStreaming} />
+    <Box flexDirection="column" height="100%">
+      {/* Header */}
+      <Box borderStyle="single" borderColor="gray" paddingX={1} justifyContent="space-between">
+        <Text bold color="cyan">
+          ⌬ agentlint
+        </Text>
+        {statusBar.model && <Text dimColor>{statusBar.model}</Text>}
       </Box>
 
-      {/* Findings List (when presenting or exploring) */}
-      {(analysisPhase === 'presenting' || analysisPhase === 'exploring') && findings.length > 0 && (
-        <Box marginBottom={1}>
-          <FindingsList
-            findings={findings}
-            compact={analysisPhase !== 'exploring'}
-            interactive={analysisPhase === 'exploring'}
-            onSelect={handleFindingSelect}
-          />
+      {/* Main content area */}
+      <Box flexDirection="column" flexGrow={1} padding={1}>
+        {/* Loading Progress (during initial context loading) */}
+        {state.tuiState === 'loading' && state.loadingSteps.length > 0 && (
+          <Box marginBottom={1}>
+            <LoadingProgress steps={state.loadingSteps} title="Gathering context..." />
+          </Box>
+        )}
+
+        {/* Breadcrumbs */}
+        {explorationPath.length > 0 && (
+          <Box marginBottom={1}>
+            <Breadcrumbs steps={explorationPath} onNavigate={handleBreadcrumbNavigate} />
+          </Box>
+        )}
+
+        {/* Progress (during scanning) */}
+        {analysisPhase === 'scanning' && isStreaming && (
+          <Box marginBottom={1}>
+            <Progress phase={analysisPhase} isActive={true} elapsedMs={elapsedMs} />
+          </Box>
+        )}
+
+        {/* Agent Output */}
+        <Box flexGrow={1} marginBottom={1}>
+          <AgentOutput chunks={streamBuffer} isStreaming={isStreaming} />
         </Box>
-      )}
 
-      {/* Summary (after analysis complete) */}
-      {analysisPhase === 'presenting' && !isStreaming && findings.length > 0 && (
-        <Box marginBottom={1}>
-          <Summary findings={findings} elapsedMs={elapsedMs} success={true} />
-        </Box>
-      )}
+        {/* Findings List (when presenting or exploring) */}
+        {(analysisPhase === 'presenting' || analysisPhase === 'exploring') &&
+          findings.length > 0 && (
+            <Box marginBottom={1}>
+              <FindingsList
+                findings={findings}
+                compact={analysisPhase !== 'exploring'}
+                interactive={analysisPhase === 'exploring'}
+                onSelect={handleFindingSelect}
+              />
+            </Box>
+          )}
 
-      {/* Input Field */}
-      <InputField
-        value={inputValue}
-        onChange={handleInputChange}
-        onSubmit={handleInputSubmit}
-        disabled={isStreaming}
-        placeholder="Type your question or press q to quit..."
-      />
+        {/* Summary (after analysis complete) */}
+        {analysisPhase === 'presenting' && !isStreaming && findings.length > 0 && (
+          <Box marginBottom={1}>
+            <Summary findings={findings} elapsedMs={elapsedMs} success={true} />
+          </Box>
+        )}
 
-      {/* Permission Dialog */}
-      {currentDialog === 'permission' && pendingPermission && (
-        <DialogOverlay title="Permission Required">
-          <PermissionDialog
-            tool={pendingPermission.tool}
-            description={pendingPermission.description}
-            {...(pendingPermission.pattern ? { pattern: pendingPermission.pattern } : {})}
-            onDecision={handlePermissionDecision}
-          />
-        </DialogOverlay>
-      )}
+        {/* Input Field */}
+        <InputField
+          value={inputValue}
+          onChange={handleInputChange}
+          onSubmit={handleInputSubmit}
+          disabled={isStreaming}
+          placeholder="Type your question or press q to quit..."
+        />
 
-      {/* Recommendation Dialog */}
-      {currentDialog === 'recommendation' && currentRecommendation && (
-        <DialogOverlay title="Recommendation">
-          <RecommendationDialog
-            recommendation={currentRecommendation}
-            onAction={handleRecommendationAction}
-          />
-        </DialogOverlay>
-      )}
+        {/* Permission Dialog */}
+        {currentDialog === 'permission' && pendingPermission && (
+          <DialogOverlay title="Permission Required">
+            <PermissionDialog
+              tool={pendingPermission.tool}
+              description={pendingPermission.description}
+              {...(pendingPermission.pattern ? { pattern: pendingPermission.pattern } : {})}
+              onDecision={handlePermissionDecision}
+            />
+          </DialogOverlay>
+        )}
 
-      {/* Question Dialog */}
-      {currentDialog === 'question' && pendingQuestions && pendingQuestions.length > 0 && (
-        <DialogOverlay title="Questions">
-          <QuestionDialog
-            questions={pendingQuestions}
-            onSubmit={handleQuestionSubmit}
-            onCancel={handleQuestionCancel}
-          />
-        </DialogOverlay>
-      )}
+        {/* Recommendation Dialog */}
+        {currentDialog === 'recommendation' && currentRecommendation && (
+          <DialogOverlay title="Recommendation">
+            <RecommendationDialog
+              recommendation={currentRecommendation}
+              onAction={handleRecommendationAction}
+            />
+          </DialogOverlay>
+        )}
+
+        {/* Question Dialog */}
+        {currentDialog === 'question' && pendingQuestions && pendingQuestions.length > 0 && (
+          <DialogOverlay title="Questions">
+            <QuestionDialog
+              questions={pendingQuestions}
+              onSubmit={handleQuestionSubmit}
+              onCancel={handleQuestionCancel}
+            />
+          </DialogOverlay>
+        )}
+      </Box>
+
+      {/* Status Bar */}
+      <StatusBar context={statusBar} />
     </Box>
   );
 }
@@ -294,21 +331,18 @@ function InnerApp({ onInput, onExit }: InnerAppProps): React.ReactElement {
 // App Component (provides context)
 // =============================================================================
 
-/**
- * Root TUI application component.
- *
- * Provides AppContext and renders the component tree.
- *
- * @param props - Application properties
- * @returns React element
- */
 export function App({
   initialState,
+  streamState,
+  pendingPermission,
+  pendingQuestions,
+  viewStack,
   onInput,
   onStart: _onStart,
   onExit,
+  onPermissionDecision,
+  onQuestionAnswers,
 }: AppProps): React.ReactElement {
-  // Merge initial state with defaults
   const mergedInitialState = useMemo(() => {
     const defaultState = createInitialState();
     return {
@@ -317,10 +351,15 @@ export function App({
     } as AppState;
   }, [initialState]);
 
-  // Build InnerApp props, only including defined callbacks
   const innerProps: InnerAppProps = {};
   if (onInput) innerProps.onInput = onInput;
   if (onExit) innerProps.onExit = onExit;
+  if (streamState) innerProps.streamState = streamState;
+  if (pendingPermission !== undefined) innerProps.propsPendingPermission = pendingPermission;
+  if (pendingQuestions !== undefined) innerProps.propsPendingQuestions = pendingQuestions;
+  if (viewStack) innerProps.propsViewStack = viewStack;
+  if (onPermissionDecision) innerProps.onPermissionDecision = onPermissionDecision;
+  if (onQuestionAnswers) innerProps.onQuestionAnswers = onQuestionAnswers;
 
   return (
     <AppProvider initialState={mergedInitialState}>

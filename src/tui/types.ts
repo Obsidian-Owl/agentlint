@@ -11,6 +11,43 @@ import type { StreamChunk, Finding, Recommendation } from '../orchestration/type
 import type { SessionCheckpoint } from '../orchestration/checkpoint-types';
 
 // =============================================================================
+// TUI State Machine
+// =============================================================================
+
+/**
+ * Top-level TUI state for the welcome flow and conversation mode.
+ * Controls which major view is displayed.
+ */
+export type TuiState =
+  | 'loading' // Initial render, gathering context
+  | 'welcome' // Showing LLM-generated welcome
+  | 'analysing' // Agent running analysis
+  | 'presenting' // Showing findings, enable exploration
+  | 'idle' // Waiting for user input
+  | 'conversing'; // Follow-up conversation active
+
+/**
+ * Loading step for progressive context loading display.
+ */
+export interface LoadingStep {
+  id: string;
+  label: string;
+  status: 'pending' | 'loading' | 'complete' | 'error' | 'skipped';
+  detail?: string;
+}
+
+/**
+ * Context for the status bar display.
+ */
+export interface StatusBarContext {
+  helpHint: string;
+  status: string;
+  model: string;
+  openRecommendations: number;
+  projectPath: string;
+}
+
+// =============================================================================
 // Analysis Phase
 // =============================================================================
 
@@ -172,6 +209,11 @@ export interface PermissionStore {
  * Single source of truth managed by appReducer.
  */
 export interface AppState {
+  // TUI state machine
+  tuiState: TuiState;
+  loadingSteps: LoadingStep[];
+  statusBar: StatusBarContext;
+
   // Analysis state
   analysisPhase: AnalysisPhase;
   isStreaming: boolean;
@@ -214,6 +256,13 @@ export interface AppState {
  * All possible message types for appReducer.
  */
 export type AppMessage =
+  | { type: 'SET_TUI_STATE'; payload: { state: TuiState } }
+  | { type: 'SET_LOADING_STEPS'; payload: { steps: LoadingStep[] } }
+  | {
+      type: 'UPDATE_LOADING_STEP';
+      payload: { id: string; status: LoadingStep['status']; detail?: string };
+    }
+  | { type: 'SET_STATUS_BAR'; payload: Partial<StatusBarContext> }
   | { type: 'SET_PHASE'; payload: { phase: AnalysisPhase } }
   | { type: 'PUSH_DIALOG'; payload: { dialog: DialogType; context?: unknown } }
   | { type: 'POP_DIALOG' }
@@ -258,6 +307,15 @@ export type AppReducer = (state: AppState, message: AppMessage) => AppState;
  */
 export function createInitialState(): AppState {
   return {
+    tuiState: 'loading',
+    loadingSteps: [],
+    statusBar: {
+      helpHint: 'ctrl+? help',
+      status: 'Loading...',
+      model: '',
+      openRecommendations: 0,
+      projectPath: process.cwd(),
+    },
     analysisPhase: 'idle',
     isStreaming: false,
     isPaused: false,
@@ -288,17 +346,44 @@ export function createInitialState(): AppState {
 // =============================================================================
 
 /**
+ * Streaming state passed from InkRenderer (external source of truth).
+ * When provided, these values override the internal reducer state.
+ */
+export interface StreamState {
+  /** Accumulated stream chunks */
+  streamBuffer: StreamChunk[];
+  /** Whether currently streaming */
+  isStreaming: boolean;
+  /** Current analysis phase */
+  analysisPhase: AnalysisPhase;
+  /** Discovered findings */
+  findings: Finding[];
+}
+
+/**
  * Props for the root App component.
  */
 export interface AppProps {
   /** Initial state (for testing or recovery) */
   initialState?: Partial<AppState>;
+  /** Streaming state from InkRenderer (source of truth for streaming data) */
+  streamState?: StreamState;
+  /** Pending permission from InkRenderer */
+  pendingPermission?: { tool: string; description: string; pattern?: string } | null;
+  /** Pending questions from InkRenderer */
+  pendingQuestions?: UserQuestion[] | null;
+  /** Current dialog stack from InkRenderer */
+  viewStack?: DialogType[];
   /** Callback when user submits input */
   onInput?: (input: string) => void;
   /** Callback when analysis should start */
   onStart?: () => void;
   /** Callback when user exits */
   onExit?: () => void;
+  /** Callback when permission decision is made */
+  onPermissionDecision?: (decision: PermissionDecision) => void;
+  /** Callback when question answers are submitted */
+  onQuestionAnswers?: (answers: Record<string, string>) => void;
 }
 
 /**
