@@ -88,8 +88,14 @@ export interface SessionMetrics {
   /** Number of LLM calls made */
   llmCalls: number;
 
-  /** Total tokens used */
+  /** Total tokens used (input + output) */
   tokensUsed: number;
+
+  /** Input tokens used (for telemetry) */
+  inputTokens: number;
+
+  /** Output tokens used (for telemetry) */
+  outputTokens: number;
 
   /** Elapsed time in milliseconds */
   elapsedMs: number;

@@ -124,17 +124,22 @@ export class AlphaTelemetryClient implements ITelemetryClient {
     // Track session start time for later duration calculation
     this.sessionStartTimes.set(sessionId, startTime);
 
-    const event = createTelemetryEvent(
-      'session.start',
-      sessionId,
-      this.sequence++,
-      {
-        command: data?.command ?? 'analyse',
-        hasConfig: data?.hasConfig ?? false,
-        projectType: data?.projectType,
-      },
-      { startTime, endTime: startTime }
-    );
+    // Build event data, only including defined fields
+    const eventData: Record<string, unknown> = {
+      command: data?.command ?? 'analyse',
+      hasConfig: data?.hasConfig ?? false,
+    };
+    if (data?.projectType !== undefined) {
+      eventData.projectType = data.projectType;
+    }
+    if (data?.directory !== undefined) {
+      eventData.directory = data.directory;
+    }
+
+    const event = createTelemetryEvent('session.start', sessionId, this.sequence++, eventData, {
+      startTime,
+      endTime: startTime,
+    });
 
     // Track the session event ID for hierarchy (child events use this as parent)
     this.sessionEventIds.set(sessionId, event.eventId);
@@ -212,18 +217,30 @@ export class AlphaTelemetryClient implements ITelemetryClient {
       eventOptions.parentEventId = parentEventId;
     }
 
+    // Build event data with optional fields
+    const eventData: Record<string, unknown> = {
+      tool: options.tool,
+      durationMs: options.durationMs,
+      success: options.success,
+    };
+
+    // Include full tool inputs if available (sanitized by createTelemetryEvent)
+    if (options.toolInput !== undefined) {
+      eventData.toolInput = options.toolInput;
+    }
+
+    // Include tool output if available (sanitized by createTelemetryEvent)
+    if (options.toolOutput !== undefined) {
+      eventData.toolOutput = options.toolOutput;
+    }
+
+    // Include error message if tool failed
+    if (options.errorMessage !== undefined) {
+      eventData.errorMessage = options.errorMessage;
+    }
+
     this.record(
-      createTelemetryEvent(
-        'tool.call',
-        sessionId,
-        this.sequence++,
-        {
-          tool: options.tool,
-          durationMs: options.durationMs,
-          success: options.success,
-        },
-        eventOptions
-      )
+      createTelemetryEvent('tool.call', sessionId, this.sequence++, eventData, eventOptions)
     );
   }
 
@@ -307,6 +324,26 @@ export class AlphaTelemetryClient implements ITelemetryClient {
     }
     if (options.cost !== undefined) {
       eventData.cost = options.cost;
+    }
+    // Model parameters for HoneyHive config
+    if (options.temperature !== undefined) {
+      eventData.temperature = options.temperature;
+    }
+    if (options.maxTokens !== undefined) {
+      eventData.maxTokens = options.maxTokens;
+    }
+    if (options.topP !== undefined) {
+      eventData.topP = options.topP;
+    }
+    if (options.stopReason !== undefined) {
+      eventData.stopReason = options.stopReason;
+    }
+    // Cache token tracking (prompt caching)
+    if (options.cacheReadTokens !== undefined) {
+      eventData.cacheReadTokens = options.cacheReadTokens;
+    }
+    if (options.cacheCreationTokens !== undefined) {
+      eventData.cacheCreationTokens = options.cacheCreationTokens;
     }
 
     // Build options object, only including parentEventId if defined

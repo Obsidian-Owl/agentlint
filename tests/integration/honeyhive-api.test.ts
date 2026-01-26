@@ -2,18 +2,15 @@
  * HoneyHive API Integration Tests
  *
  * These tests validate the HoneyHive API request/response format.
- * Run with: HONEYHIVE_API_KEY=<key> bun test tests/integration/honeyhive-api.test.ts
+ * Requires: HONEYHIVE_API_KEY environment variable
  *
- * Skip in CI unless RUN_HONEYHIVE_TESTS=1 is set.
+ * Run with: HONEYHIVE_API_KEY=<key> bun test tests/integration/honeyhive-api.test.ts
  */
 
-import { describe, test, expect } from 'bun:test';
+import { describe, test, expect, beforeAll } from 'bun:test';
 
 const HONEYHIVE_API_URL = 'https://api.honeyhive.ai';
 const API_KEY = process.env['HONEYHIVE_API_KEY'];
-
-// Skip tests if no API key or not explicitly enabled
-const shouldRun = API_KEY && process.env['RUN_HONEYHIVE_TESTS'] === '1';
 
 // Helper to generate valid UUIDs (HoneyHive requires UUID format for IDs)
 function generateUUID(): string {
@@ -26,8 +23,29 @@ interface VercelSuccessResponse {
   eventsReceived: number;
 }
 
-describe.skipIf(!shouldRun)('HoneyHive API Integration', () => {
+/**
+ * HoneyHive API Integration Tests
+ *
+ * These tests verify the HoneyHive API request/response format.
+ * All tests use project: 'agentlint' with source: 'integration-test' for filtering.
+ *
+ * Per HoneyHive best practices, we use the `source` field to distinguish
+ * test data from production data, not separate projects.
+ */
+describe('HoneyHive API Integration', () => {
+  beforeAll(() => {
+    if (!API_KEY) {
+      throw new Error(
+        'HONEYHIVE_API_KEY environment variable is required.\n' +
+          'Set it to run these tests: HONEYHIVE_API_KEY=xxx bun test tests/integration/honeyhive-api.test.ts'
+      );
+    }
+  });
   const testSessionId = generateUUID();
+
+  // All tests use same project with 'integration-test' source for filtering
+  const PROJECT = 'agentlint';
+  const SOURCE = 'integration-test';
 
   describe('POST /session/start', () => {
     test('creates session with correct format', async () => {
@@ -39,12 +57,12 @@ describe.skipIf(!shouldRun)('HoneyHive API Integration', () => {
         },
         body: JSON.stringify({
           session: {
-            project: 'agentlint-test',
-            session_name: testSessionId,
-            source: 'integration-test',
+            project: PROJECT,
+            session_name: `integration-test-${testSessionId.slice(0, 8)}`,
+            source: SOURCE,
             session_id: testSessionId,
             user_properties: {
-              version: '0.1.0',
+              version: '0.1.0-test',
               platform: 'test',
             },
           },
@@ -70,9 +88,9 @@ describe.skipIf(!shouldRun)('HoneyHive API Integration', () => {
         },
         body: JSON.stringify({
           // No 'session' wrapper - HoneyHive accepts this
-          project: 'agentlint-test',
-          session_name: 'test-no-wrapper',
-          source: 'integration-test',
+          project: PROJECT,
+          session_name: 'integration-test-no-wrapper',
+          source: SOURCE,
         }),
       });
 
@@ -97,15 +115,15 @@ describe.skipIf(!shouldRun)('HoneyHive API Integration', () => {
         },
         body: JSON.stringify({
           event: {
-            project: 'agentlint-test',
-            source: 'integration-test',
+            project: PROJECT,
+            source: SOURCE,
             session_id: testSessionId,
             event_id: eventId,
             event_type: 'tool',
-            event_name: 'test.tool_call',
-            config: {},
+            event_name: 'Tool: test_tool',
+            config: { tool: 'test_tool' },
             inputs: { test: true },
-            outputs: {},
+            outputs: { success: true },
             duration: 100,
             metadata: {
               test: true,
@@ -132,8 +150,8 @@ describe.skipIf(!shouldRun)('HoneyHive API Integration', () => {
         },
         body: JSON.stringify({
           // Missing 'event' wrapper - this should fail
-          project: 'agentlint-test',
-          source: 'integration-test',
+          project: PROJECT,
+          source: SOURCE,
           event_type: 'tool',
           event_name: 'test.no_wrapper',
           config: {},
@@ -161,15 +179,15 @@ describe.skipIf(!shouldRun)('HoneyHive API Integration', () => {
         },
         body: JSON.stringify({
           event: {
-            project: 'agentlint-test',
-            source: 'integration-test',
+            project: PROJECT,
+            source: SOURCE,
             session_id: testSessionId,
             event_id: eventId,
             event_type: 'model',
-            event_name: 'llm.usage',
-            config: { model: 'claude-sonnet-4' },
-            inputs: {},
-            outputs: {},
+            event_name: 'Claude: claude-sonnet-4',
+            config: { model: 'claude-sonnet-4', provider: 'anthropic' },
+            inputs: { prompt_tokens: 100 },
+            outputs: { completion_tokens: 50 },
             duration: 500,
             metadata: {
               inputTokens: 100,
@@ -197,14 +215,14 @@ describe.skipIf(!shouldRun)('HoneyHive API Integration', () => {
         },
         body: JSON.stringify({
           event: {
-            project: 'agentlint-test',
-            source: 'integration-test',
+            project: PROJECT,
+            source: SOURCE,
             session_id: testSessionId,
             event_id: eventId,
             event_type: 'chain',
-            event_name: 'session.start',
-            config: {},
-            inputs: { command: 'analyse' },
+            event_name: 'Session: Start',
+            config: { command: 'analyse' },
+            inputs: { command: 'analyse', directory: 'test-project' },
             outputs: {},
             duration: 0,
             metadata: {
@@ -232,9 +250,9 @@ describe.skipIf(!shouldRun)('HoneyHive API Integration', () => {
         },
         body: JSON.stringify({
           session: {
-            project: 'test',
+            project: PROJECT,
             session_name: 'test',
-            source: 'test',
+            source: SOURCE,
           },
         }),
       });
@@ -255,7 +273,7 @@ describe.skipIf(!shouldRun)('HoneyHive API Integration', () => {
           session: {
             project: 'nonexistent-project-12345',
             session_name: 'test',
-            source: 'test',
+            source: SOURCE,
           },
         }),
       });
@@ -270,12 +288,25 @@ describe.skipIf(!shouldRun)('HoneyHive API Integration', () => {
   });
 });
 
-// Also test the Vercel proxy endpoint
-describe.skipIf(!shouldRun)('Vercel Proxy Integration', () => {
+/**
+ * Vercel Proxy Integration Tests
+ *
+ * These tests verify the Vercel proxy endpoint at agentlint.vercel.app works correctly.
+ *
+ * The proxy:
+ * - Uses human-readable session names like "agentlint-analyse-2026-01-26"
+ * - Passes through source from client for filtering (e.g., 'agentlint-cli-test')
+ * - Generates descriptive event names like "Tool: discover_configs"
+ *
+ * Filter test data in HoneyHive by: source != 'agentlint-cli'
+ */
+describe('Vercel Proxy Integration', () => {
   const VERCEL_ENDPOINT = 'https://agentlint.vercel.app/api/events';
 
   test('accepts events and returns success', async () => {
     const now = Date.now();
+    const testSessionId = generateUUID();
+
     const response = await fetch(VERCEL_ENDPOINT, {
       method: 'POST',
       headers: {
@@ -288,14 +319,20 @@ describe.skipIf(!shouldRun)('Vercel Proxy Integration', () => {
             timestamp: new Date().toISOString(),
             startTime: now,
             endTime: now,
-            sessionId: generateUUID(),
+            sessionId: testSessionId,
             eventId: generateUUID(),
             sequence: 0,
-            data: { command: 'analyse', hasConfig: true },
+            // Mark as integration test for easy filtering in HoneyHive
+            data: {
+              command: 'integration-test',
+              hasConfig: false,
+              directory: 'test-project',
+            },
             meta: {
-              version: '0.1.0',
+              version: '0.1.0-test',
               platform: 'test',
               nodeVersion: 'v22.0.0',
+              // Source will be overridden to 'agentlint-cli' by proxy
               source: 'agentlint-cli-test',
             },
           },
@@ -306,9 +343,73 @@ describe.skipIf(!shouldRun)('Vercel Proxy Integration', () => {
     console.log('Vercel proxy response status:', response.status);
     const body = (await response.json()) as VercelSuccessResponse;
     console.log('Vercel proxy response body:', JSON.stringify(body, null, 2));
+    console.log('Test session ID:', testSessionId);
 
     expect(response.ok).toBe(true);
     expect(body.success).toBe(true);
     expect(body.eventsReceived).toBe(1);
+  });
+
+  test('forwards tool events with inputs/outputs', async () => {
+    const now = Date.now();
+    const testSessionId = generateUUID();
+
+    const response = await fetch(VERCEL_ENDPOINT, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        events: [
+          {
+            type: 'session.start',
+            timestamp: new Date().toISOString(),
+            startTime: now,
+            endTime: now,
+            sessionId: testSessionId,
+            eventId: generateUUID(),
+            sequence: 0,
+            data: { command: 'integration-test', hasConfig: true },
+            meta: {
+              version: '0.1.0-test',
+              platform: 'test',
+              nodeVersion: 'v22.0.0',
+              source: 'agentlint-cli-test',
+            },
+          },
+          {
+            type: 'tool.call',
+            timestamp: new Date().toISOString(),
+            startTime: now,
+            endTime: now + 150,
+            sessionId: testSessionId,
+            eventId: generateUUID(),
+            sequence: 1,
+            data: {
+              tool: 'discover_configs',
+              durationMs: 150,
+              success: true,
+              // New: Include tool inputs and outputs
+              toolInput: { directory: '/test/project', types: ['claude-code'] },
+              toolOutput: { configs_found: 2, files: ['CLAUDE.md', '.mcp.json'] },
+            },
+            meta: {
+              version: '0.1.0-test',
+              platform: 'test',
+              nodeVersion: 'v22.0.0',
+              source: 'agentlint-cli-test',
+            },
+          },
+        ],
+      }),
+    });
+
+    console.log('Tool event proxy response status:', response.status);
+    const body = (await response.json()) as VercelSuccessResponse;
+    console.log('Tool event proxy response body:', JSON.stringify(body, null, 2));
+
+    expect(response.ok).toBe(true);
+    expect(body.success).toBe(true);
+    expect(body.eventsReceived).toBe(2);
   });
 });

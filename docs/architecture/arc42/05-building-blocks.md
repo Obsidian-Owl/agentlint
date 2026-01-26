@@ -1441,65 +1441,165 @@ Gitleaks patterns use Go regex syntax, which differs from JavaScript:
 
 ## Level 3: Telemetry Infrastructure (EP11)
 
-The telemetry module provides opt-in observability infrastructure for agentlint. **Disabled by default** per Constitution Principle I (Local-First).
+The telemetry module provides opt-in observability infrastructure for agentlint with HoneyHive integration for trace visualization. **Disabled by default** per Constitution Principle I (Local-First).
 
 **Enable via:**
-- Environment variable: `AGENTLINT_TELEMETRY=1`
-- Config file: `~/.agentlint/config.json` → `telemetry.enabled: true`
+- Environment variable: `AGENTLINT_TELEMETRY=alpha`
+- Debug mode: `AGENTLINT_TELEMETRY_DEBUG=1` (logs to stderr)
+
+### Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    CLI (src/telemetry/)                          │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │  AlphaTelemetryClient                                     │   │
+│  │  • Buffers events (10s flush interval, 100 event max)    │   │
+│  │  • NO secrets - only POSTs JSON to proxy                 │   │
+│  │  • Secret redaction via redact() before transmission     │   │
+│  └─────────────────────────────┬────────────────────────────┘   │
+└────────────────────────────────┼────────────────────────────────┘
+                                 │ HTTPS POST
+                                 ▼
+┌─────────────────────────────────────────────────────────────────┐
+│           Vercel Edge Function (apps/telemetry-api/)             │
+│  ┌──────────────────────────────────────────────────────────┐   │
+│  │  /api/events route.ts                                     │   │
+│  │  • Rate limiting (100 req/min/IP)                        │   │
+│  │  • Payload validation                                     │   │
+│  │  • Event → HoneyHive schema transformation               │   │
+│  │  • HONEYHIVE_API_KEY stored server-side only             │   │
+│  └─────────────────────────────┬────────────────────────────┘   │
+└────────────────────────────────┼────────────────────────────────┘
+                                 │ HoneyHive API
+                                 ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    HoneyHive Dashboard                           │
+│  • Session traces with parent-child hierarchy                    │
+│  • Tool inputs/outputs for debugging                             │
+│  • LLM metrics (tokens, latency, cache hits)                    │
+│  • Error tracking and filtering                                  │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+### Module Structure
 
 ```
 src/telemetry/
-├── index.ts                    Public exports, client factory, configuration
+├── index.ts                    Public exports, interfaces, client factory
+├── events.ts                   Event types, schemas, sanitization
+└── alpha-client.ts             Alpha phase client with HoneyHive forwarding
+
+apps/telemetry-api/
+└── app/api/events/
+    └── route.ts                Vercel Edge Function for HoneyHive forwarding
 ```
 
 | Module | Responsibility |
 |--------|----------------|
-| `index.ts` | Telemetry client interface, NoOp/Console implementations, event types |
+| `index.ts` | ITelemetryClient interface, TrackToolOptions/TrackLLMOptions types |
+| `events.ts` | TelemetryEvent schema, sanitizeEventData(), secret redaction |
+| `alpha-client.ts` | AlphaTelemetryClient with buffering, flush, session tracking |
+| `route.ts` | Edge function: validation, HoneyHive schema mapping, API forwarding |
 
-### Telemetry Events
+### Event Types
 
-When enabled, captures aggregate metrics (never user content):
+| Event Type | HoneyHive Type | Data Captured |
+|------------|----------------|---------------|
+| `session.start` | `chain` | Command, directory, project type, config presence |
+| `session.end` | `chain` | Duration, tool/finding counts, total tokens, success |
+| `tool.call` | `tool` | Tool name, arguments (full), result (truncated), error message |
+| `llm.usage` | `model` | Model, tokens (in/out/cache), latency, stop reason |
+| `finding.detected` | `chain` | Finding type, severity |
+| `session.error` | `chain` | Error type, error code |
 
-| Event Type | Data Captured |
-|------------|---------------|
-| `session_start` | Session ID, timestamp |
-| `session_end` | Duration, tool call count, finding count, tokens used |
-| `tool_call` | Tool name (no arguments) |
-| `finding` | Finding type (no content) |
-| `error` | Error type (no stack traces) |
+### HoneyHive Schema Mapping
+
+The edge function transforms agentlint events to HoneyHive's full schema:
+
+| HoneyHive Field | Source | Purpose |
+|-----------------|--------|---------|
+| `session_name` | `agentlint-{command}-{YYYY-MM-DD}` | Human-readable session identification |
+| `event_name` | `Tool: {name}`, `Claude: {model}` | Descriptive event names in traces |
+| `config` | Model params, tool provider | Event-specific configuration |
+| `inputs` | Tool arguments, LLM params | Full debugging context |
+| `outputs` | Tool results, completion tokens | Operation outcomes |
+| `metrics` | Tokens, latency, cache hits | KPI tracking and dashboards |
+| `user_properties` | Version, platform, node | Filtering and segmentation |
+| `error` | Error message | Failed operation tracking |
+| `parent_id` | Session event ID | Trace hierarchy |
+
+### Cache Token Tracking
+
+Prompt caching metrics are captured for cost optimization insights:
+
+```typescript
+interface TrackLLMOptions {
+  // ... standard fields ...
+  cacheReadTokens?: number;      // Tokens read from Anthropic cache
+  cacheCreationTokens?: number;  // Tokens added to cache
+}
+```
+
+Displayed in HoneyHive metrics as `cache_read_tokens` and `cache_creation_tokens`.
 
 ### Key Entity Types
 
 ```typescript
 interface ITelemetryClient {
+  readonly mode: 'disabled' | 'alpha';
   isEnabled(): boolean;
+  init(config: TelemetryConfig): Promise<void>;
   record(event: TelemetryEvent): void;
-  sessionStart(sessionId: string): void;
-  sessionEnd(metrics: SessionTelemetry): void;
+  sessionStart(sessionId: string, data?: SessionStartData): void;
+  sessionEnd(sessionId: string, metrics: SessionMetrics): void;
+  trackTool(sessionId: string, tool: string, durationMs: number, success: boolean): void;
+  trackToolEx?(sessionId: string, options: TrackToolOptions): void;
+  trackLLM(sessionId: string, model: string, inputTokens: number, outputTokens: number): void;
+  trackLLMEx?(sessionId: string, options: TrackLLMOptions): void;
+  trackFinding(sessionId: string, findingType: string, severity: string): void;
+  trackError(sessionId: string, errorType: string, errorCode?: string): void;
   flush(): Promise<void>;
   shutdown(): Promise<void>;
 }
 
-interface TelemetryConfig {
-  enabled: boolean;              // Default: false
-  endpoint?: string;             // OTLP endpoint (via OTEL_EXPORTER_OTLP_ENDPOINT)
-  redactContent: boolean;        // Default: true (always redact user content)
+interface TelemetryEvent {
+  type: TelemetryEventType;
+  timestamp: string;              // ISO-8601
+  startTime: number;              // UTC ms (HoneyHive requirement)
+  endTime: number;                // UTC ms (HoneyHive requirement)
+  sessionId: string;
+  eventId: string;                // UUID for hierarchy
+  parentEventId?: string;         // Parent for trace tree
+  sequence: number;
+  data: Record<string, unknown>;
+  meta: TelemetryEventMeta;
 }
 ```
 
 ### Client Implementations
 
-| Client | Used When | Behavior |
-|--------|-----------|----------|
-| `NoOpTelemetryClient` | Telemetry disabled | All methods are no-ops |
-| `ConsoleTelemetryClient` | Telemetry enabled | Buffers events, logs to stderr if `AGENTLINT_TELEMETRY_DEBUG=1` |
+| Client | Mode | Behavior |
+|--------|------|----------|
+| `NoOpTelemetryClient` | `disabled` | All methods are no-ops (default) |
+| `AlphaTelemetryClient` | `alpha` | Buffers events, POSTs to Vercel proxy |
 
 ### Constitution Compliance
 
 | Principle | Implementation |
 |-----------|----------------|
-| I. Local-First | Disabled by default, explicit opt-in required |
-| Privacy | User content never transmitted (`redactContent: true` always) |
+| I. Local-First | Disabled by default, explicit `AGENTLINT_TELEMETRY=alpha` required |
+| Privacy | Secrets redacted via `redact()` patterns; API key server-side only |
+| Agent-Aware | Full tool I/O captured for debugging agent behavior |
+
+### Performance Characteristics (NFR)
+
+| Metric | Target | Implementation |
+|--------|--------|----------------|
+| Event buffering | 10s interval | setInterval with unref() |
+| Flush timeout | 5s max | AbortController |
+| Max buffer size | 100 events | Force flush at limit |
+| Redaction overhead | <1ms/event | Regex pattern matching |
 
 ---
 

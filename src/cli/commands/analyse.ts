@@ -164,6 +164,32 @@ export interface AnalyseFinding {
 }
 
 /**
+ * Detect the primary project type from scan results.
+ * Used for telemetry to categorize analysis sessions.
+ */
+function detectProjectType(scanResult: ScanResult): string {
+  const types = scanResult.configs.map((c) => c.type);
+
+  // Check for Claude Code configs
+  if (types.includes('claude-code')) {
+    return 'claude-code';
+  }
+  // Check for Cursor configs
+  if (types.includes('cursor')) {
+    return 'cursor';
+  }
+  // Check for GitHub Copilot configs
+  if (types.includes('github-copilot')) {
+    return 'github-copilot';
+  }
+  if (types.length > 0) {
+    return types[0] ?? 'unknown';
+  }
+
+  return 'no-config';
+}
+
+/**
  * Perform static analysis on discovered configs.
  * Uses quality assessment and gap analysis to produce findings.
  */
@@ -591,6 +617,8 @@ async function runOrchestratedAnalysis(
         toolCalls: 0,
         llmCalls: 0,
         tokensUsed: 0,
+        inputTokens: 0,
+        outputTokens: 0,
         elapsedMs: 0,
       },
       phase: 'init',
@@ -604,9 +632,16 @@ async function runOrchestratedAnalysis(
   const telemetry = getTelemetryClient();
   const telemetrySessionId = recordingState?.sessionId ?? generateSessionId();
   if (telemetry.isEnabled()) {
+    // Detect project type from scan results for context
+    const hasConfig = scanResult.configs.length > 0;
+    const projectType = detectProjectType(scanResult);
+
     telemetry.sessionStart(telemetrySessionId, {
       command: 'analyse',
-      hasConfig: false, // Will be updated after scan
+      hasConfig,
+      projectType,
+      // Include directory basename for human-readable session naming in HoneyHive
+      directory: directory.split('/').pop() ?? directory,
     });
   }
 
@@ -672,6 +707,17 @@ async function runOrchestratedAnalysis(
     // ADR-0021: Pass nonInteractive for CI/automation mode
     nonInteractive: options.nonInteractive ?? false,
   };
+
+  // Pass telemetry client for direct instrumentation (more reliable than chunk observation)
+  // Only add these fields when telemetry is enabled (exactOptionalPropertyTypes compliance)
+  if (telemetry.isEnabled()) {
+    orchestratorConfig.telemetryClient = telemetry;
+    orchestratorConfig.telemetrySessionId = telemetrySessionId;
+    const parentEventId = telemetry.getSessionEventId?.(telemetrySessionId);
+    if (parentEventId) {
+      orchestratorConfig.telemetryParentEventId = parentEventId;
+    }
+  }
 
   // EP17: Use TuiPermissionHandler when TUI mode is active
   if (canUseTool) {
@@ -766,9 +812,19 @@ async function runOrchestratedAnalysis(
         }
 
         // Track tool calls for session recording
-        if (chunk.type === 'tool_result' && recordingState) {
+        // Note: Telemetry tracking is now handled directly by the Orchestrator
+        // for more reliable timing and hierarchy (see orchestrator.ts processMessage)
+        if (chunk.type === 'tool_result') {
           const toolName = chunk.metadata?.toolName;
-          if (typeof toolName === 'string') {
+          // DEBUG: Log tool_result chunks to diagnose telemetry
+          if (process.env['AGENTLINT_TELEMETRY_DEBUG'] === '1') {
+            console.error(
+              `[DEBUG] tool_result: toolName=${String(toolName)}, metadata keys=${Object.keys(chunk.metadata ?? {}).join(',')}`
+            );
+          }
+
+          // Track for session recording (if enabled)
+          if (recordingState && typeof toolName === 'string') {
             recordingState.toolHistory.push({
               tool: toolName,
               arguments: (chunk.metadata?.arguments as Record<string, unknown>) ?? {},
@@ -781,16 +837,7 @@ async function runOrchestratedAnalysis(
             // Record checkpoint on tool completion
             await recordCheckpointIfActive(recordingState, 'tool_complete');
           }
-
-          // Track tool call for telemetry (privacy-safe: tool name and duration only)
-          if (telemetry.isEnabled() && typeof toolName === 'string') {
-            telemetry.trackTool(
-              telemetrySessionId,
-              toolName,
-              (chunk.metadata?.durationMs as number) ?? 0,
-              !chunk.metadata?.error
-            );
-          }
+          // Note: telemetry.trackTool removed - orchestrator handles this directly
         }
 
         // Track LLM calls for session recording
@@ -844,24 +891,20 @@ async function runOrchestratedAnalysis(
         }
 
         // Track token usage from status chunks (session completion has totals)
+        // Note: Telemetry LLM tracking is now handled directly by the Orchestrator
+        // for accurate per-turn tracking with timing (see orchestrator.ts processMessage)
         if (chunk.type === 'status' && chunk.metadata?.inputTokens !== undefined) {
           const inputTokens = chunk.metadata.inputTokens as number;
           const outputTokens = (chunk.metadata.outputTokens as number) ?? 0;
 
-          // Update session recording metrics
+          // Update session recording metrics (track input/output separately for telemetry)
           if (recordingState) {
-            recordingState.metrics.tokensUsed = inputTokens + outputTokens;
+            recordingState.metrics.tokensUsed += inputTokens + outputTokens;
+            recordingState.metrics.inputTokens += inputTokens;
+            recordingState.metrics.outputTokens += outputTokens;
+            recordingState.metrics.llmCalls++;
           }
-
-          // Track for telemetry
-          if (telemetry.isEnabled()) {
-            telemetry.trackLLM(
-              telemetrySessionId,
-              'claude', // Model name not exposed in status, use generic
-              inputTokens,
-              outputTokens
-            );
-          }
+          // Note: telemetry.trackLLM removed - orchestrator handles this directly
         }
       }
 
@@ -891,8 +934,8 @@ async function runOrchestratedAnalysis(
           toolCallCount: recordingState?.metrics.toolCalls ?? 0,
           findingCount: findings.length,
           recommendationCount: recCounts.sessionFindings ?? 0,
-          totalInputTokens: recordingState?.metrics.tokensUsed ?? 0,
-          totalOutputTokens: 0, // Not tracked separately
+          totalInputTokens: recordingState?.metrics.inputTokens ?? 0,
+          totalOutputTokens: recordingState?.metrics.outputTokens ?? 0,
           success: true,
           interrupted,
         });
@@ -918,6 +961,9 @@ async function runOrchestratedAnalysis(
         durationMs: Date.now() - startTime,
         toolCallCount: recordingState?.metrics.toolCalls ?? 0,
         findingCount: findings.length,
+        recommendationCount: 0,
+        totalInputTokens: recordingState?.metrics.inputTokens ?? 0,
+        totalOutputTokens: recordingState?.metrics.outputTokens ?? 0,
         success: false,
         interrupted,
       });

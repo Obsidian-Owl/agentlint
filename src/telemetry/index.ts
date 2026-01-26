@@ -40,6 +40,8 @@ export interface SessionStartData {
   command: 'analyse' | 'scan' | 'compare' | 'validate' | 'trace';
   hasConfig: boolean;
   projectType?: string;
+  /** Project/directory name for human-readable session naming */
+  directory?: string;
 }
 
 /**
@@ -125,6 +127,12 @@ export interface TrackToolOptions {
   startTime?: number;
   endTime?: number;
   parentEventId?: string;
+  /** Full tool input arguments (will be sanitized) */
+  toolInput?: Record<string, unknown>;
+  /** Tool output/result (truncated if large, will be sanitized) */
+  toolOutput?: unknown;
+  /** Error message if tool failed */
+  errorMessage?: string;
 }
 
 /**
@@ -140,6 +148,18 @@ export interface TrackLLMOptions {
   parentEventId?: string;
   provider?: string;
   cost?: number;
+  /** Model temperature setting (if known) */
+  temperature?: number;
+  /** Max tokens setting (if known) */
+  maxTokens?: number;
+  /** Top-p sampling parameter (if known) */
+  topP?: number;
+  /** Stop reason from model response */
+  stopReason?: string;
+  /** Cache read tokens (prompt caching) */
+  cacheReadTokens?: number;
+  /** Cache creation tokens (prompt caching) */
+  cacheCreationTokens?: number;
 }
 
 /**

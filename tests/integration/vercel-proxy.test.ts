@@ -29,6 +29,7 @@ interface ErrorResponse {
 describe('Vercel Telemetry Proxy', () => {
   test('accepts valid events payload', async () => {
     const sessionId = generateUUID();
+    const now = Date.now();
 
     const response = await fetch(VERCEL_ENDPOINT, {
       method: 'POST',
@@ -40,29 +41,50 @@ describe('Vercel Telemetry Proxy', () => {
           {
             type: 'session.start',
             timestamp: new Date().toISOString(),
+            startTime: now,
+            endTime: now,
             sessionId,
             eventId: generateUUID(),
             sequence: 0,
             data: { command: 'analyse', hasConfig: true },
-            meta: { version: '0.1.0', platform: 'test', nodeVersion: 'v22.0.0' },
+            meta: {
+              version: '0.1.0',
+              platform: 'test',
+              nodeVersion: 'v22.0.0',
+              source: 'agentlint-cli-test',
+            },
           },
           {
             type: 'tool.call',
             timestamp: new Date().toISOString(),
+            startTime: now + 100,
+            endTime: now + 250,
             sessionId,
             eventId: generateUUID(),
             sequence: 1,
             data: { tool: 'discover_configs', durationMs: 150, success: true },
-            meta: { version: '0.1.0', platform: 'test', nodeVersion: 'v22.0.0' },
+            meta: {
+              version: '0.1.0',
+              platform: 'test',
+              nodeVersion: 'v22.0.0',
+              source: 'agentlint-cli-test',
+            },
           },
           {
             type: 'session.end',
             timestamp: new Date().toISOString(),
+            startTime: now,
+            endTime: now + 5000,
             sessionId,
             eventId: generateUUID(),
             sequence: 2,
             data: { durationMs: 5000, toolCallCount: 1, success: true },
-            meta: { version: '0.1.0', platform: 'test', nodeVersion: 'v22.0.0' },
+            meta: {
+              version: '0.1.0',
+              platform: 'test',
+              nodeVersion: 'v22.0.0',
+              source: 'agentlint-cli-test',
+            },
           },
         ],
       }),

@@ -100,10 +100,26 @@ const DEFAULT_ALLOWED_TOOLS: string[] = [
  * These defaults are used when no config file exists or values are missing.
  */
 /**
- * Config type with all required fields except canUseTool which remains optional.
+ * Config type with all required fields except canUseTool and telemetry fields which remain optional.
+ * Note: We use Pick<Required<OrchestratorConfig>, K> to get the non-undefined types for optional fields.
+ * This is necessary for exactOptionalPropertyTypes compliance.
  */
-export type ResolvedOrchestratorConfig = Required<Omit<OrchestratorConfig, 'canUseTool'>> & {
-  canUseTool?: OrchestratorConfig['canUseTool'];
+export type ResolvedOrchestratorConfig = Required<
+  Omit<
+    OrchestratorConfig,
+    'canUseTool' | 'telemetryClient' | 'telemetrySessionId' | 'telemetryParentEventId'
+  >
+> & {
+  canUseTool?: Pick<Required<OrchestratorConfig>, 'canUseTool'>['canUseTool'];
+  telemetryClient?: Pick<Required<OrchestratorConfig>, 'telemetryClient'>['telemetryClient'];
+  telemetrySessionId?: Pick<
+    Required<OrchestratorConfig>,
+    'telemetrySessionId'
+  >['telemetrySessionId'];
+  telemetryParentEventId?: Pick<
+    Required<OrchestratorConfig>,
+    'telemetryParentEventId'
+  >['telemetryParentEventId'];
 };
 
 export function getDefaultConfig(): ResolvedOrchestratorConfig {

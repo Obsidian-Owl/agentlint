@@ -2,17 +2,17 @@
  * Telemetry Event Types and Schemas
  *
  * Comprehensive event types for alpha phase telemetry.
- * These events capture usage patterns without any user content.
  *
- * Privacy rules (hardcoded, cannot be disabled):
- * - NO file paths or contents
- * - NO prompts or AI responses
- * - NO user code or configuration values
- * - NO stack traces or error messages
- * - NO IP addresses (used for rate limiting only, not stored)
+ * Privacy model (alpha phase - opt-in debugging):
+ * - Users explicitly enable telemetry knowing data goes to HoneyHive
+ * - Full debugging info (paths, tool I/O, errors) is sent for observability
+ * - Only actual secrets (API keys, passwords, tokens) are redacted
+ * - Uses the comprehensive redaction patterns from src/debug/redaction.ts
  *
  * @module telemetry/events
  */
+
+import { redact } from '../debug/redaction';
 
 // =============================================================================
 // Event Types
@@ -32,7 +32,9 @@ export type TelemetryEventType =
   | 'checkpoint.saved'
   | 'config.loaded'
   | 'command.start'
-  | 'command.end';
+  | 'command.end'
+  | 'agent.subagent'
+  | 'agent.turn';
 
 // =============================================================================
 // Event Data Types (Type-Safe Per Event)
@@ -45,6 +47,8 @@ export interface SessionStartData {
   command: 'analyse' | 'scan' | 'compare' | 'validate' | 'trace';
   hasConfig: boolean;
   projectType?: string;
+  /** Project/directory name for human-readable session naming */
+  directory?: string;
 }
 
 /**
@@ -76,6 +80,12 @@ export interface ToolCallData {
   tool: string;
   durationMs: number;
   success: boolean;
+  /** Full tool input arguments */
+  toolInput?: Record<string, unknown>;
+  /** Tool output/result (truncated if large) */
+  toolOutput?: unknown;
+  /** Error message if tool failed */
+  errorMessage?: string;
 }
 
 /**
@@ -103,6 +113,22 @@ export interface LLMUsageData {
   outputTokens: number;
   latencyMs?: number;
   cached?: boolean;
+  /** Model provider (e.g., 'anthropic') */
+  provider?: string;
+  /** Estimated cost in USD */
+  cost?: number;
+  /** Model temperature setting */
+  temperature?: number;
+  /** Max tokens setting */
+  maxTokens?: number;
+  /** Top-p sampling parameter */
+  topP?: number;
+  /** Stop reason from model response */
+  stopReason?: string;
+  /** Cache read tokens (prompt caching) */
+  cacheReadTokens?: number;
+  /** Cache creation tokens (prompt caching) */
+  cacheCreationTokens?: number;
 }
 
 /**
@@ -138,6 +164,25 @@ export interface CommandEndData {
 }
 
 /**
+ * Data for agent.subagent event.
+ */
+export interface SubagentEventData {
+  agentType: string;
+  description?: string;
+  toolCount?: number;
+  tokenCount?: number;
+}
+
+/**
+ * Data for agent.turn event.
+ */
+export interface AgentTurnEventData {
+  turnNumber: number;
+  inputTokens: number;
+  outputTokens: number;
+}
+
+/**
  * Union of all event data types.
  */
 export type TelemetryEventData =
@@ -151,7 +196,9 @@ export type TelemetryEventData =
   | CheckpointSavedData
   | ConfigLoadedData
   | CommandStartData
-  | CommandEndData;
+  | CommandEndData
+  | SubagentEventData
+  | AgentTurnEventData;
 
 // =============================================================================
 // Event Metadata
@@ -250,40 +297,45 @@ export function generateEventId(): string {
 }
 
 /**
- * Fields that are NEVER allowed in telemetry data.
- * These are stripped before sending.
+ * Fields that are NEVER allowed in telemetry data (by key name).
+ * These field NAMES indicate the value is a secret.
+ *
+ * IMPORTANT: This is now secrets-only. For alpha phase telemetry, we WANT
+ * debugging information like paths, messages, inputs, outputs to be visible
+ * in HoneyHive traces. Users explicitly opt-in knowing data goes to HoneyHive.
+ *
+ * What IS sent (for debugging):
+ * - File paths - needed to understand what was analyzed
+ * - Tool inputs/outputs - needed to debug tool behavior
+ * - Error messages/stacks - needed to debug failures
+ * - Code snippets - needed to understand context
+ * - Config values - needed to understand settings
+ *
+ * What is REDACTED (secrets only):
+ * - Fields with secret-like names (password, apikey, token, etc.)
+ * - Values matching secret patterns (sk-xxx, Bearer tokens, etc.) via redact()
  */
 export const FORBIDDEN_FIELDS = [
-  'content',
-  'prompt',
-  'response',
-  'path',
-  'file',
-  'code',
-  'message',
-  'stack',
-  'arguments',
-  'result',
-  'input',
-  'output',
-  'config',
-  'env',
   'secret',
-  'key',
-  'token',
+  'apikey',
+  'api_key',
   'password',
   'credential',
+  'bearer',
+  'authorization',
+  'private_key',
+  'privatekey',
 ] as const;
 
 /**
- * Deep clone an object and strip forbidden fields.
- * This is a safety net - events should not contain these fields in the first place.
+ * Deep clone an object, strip forbidden fields, and redact secret patterns.
+ * Uses the comprehensive redaction patterns from src/debug/redaction.ts.
  */
 export function sanitizeEventData(data: Record<string, unknown>): Record<string, unknown> {
   const sanitized: Record<string, unknown> = {};
 
   for (const [key, value] of Object.entries(data)) {
-    // Skip forbidden fields
+    // Skip forbidden fields (secret-related field names)
     if (FORBIDDEN_FIELDS.some((f) => key.toLowerCase().includes(f))) {
       continue;
     }
@@ -293,11 +345,18 @@ export function sanitizeEventData(data: Record<string, unknown>): Record<string,
       sanitized[key] = sanitizeEventData(value as Record<string, unknown>);
     } else if (Array.isArray(value)) {
       // Sanitize arrays of objects
-      sanitized[key] = value.map((item: unknown) =>
-        typeof item === 'object' && item !== null
-          ? sanitizeEventData(item as Record<string, unknown>)
-          : item
-      );
+      sanitized[key] = value.map((item: unknown) => {
+        if (typeof item === 'object' && item !== null) {
+          return sanitizeEventData(item as Record<string, unknown>);
+        } else if (typeof item === 'string') {
+          // Use comprehensive redaction from debug module
+          return redact(item);
+        }
+        return item;
+      });
+    } else if (typeof value === 'string') {
+      // Use comprehensive redaction from debug module
+      sanitized[key] = redact(value);
     } else {
       sanitized[key] = value;
     }

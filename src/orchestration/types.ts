@@ -66,6 +66,63 @@ export interface StreamChunk {
 // =============================================================================
 
 /**
+ * Telemetry client interface for orchestrator.
+ * Imported from telemetry module to avoid circular dependencies.
+ *
+ * IMPORTANT: Keep in sync with ITelemetryClient in src/telemetry/index.ts
+ */
+export interface IOrchestratorTelemetryClient {
+  isEnabled(): boolean;
+  trackToolEx?(
+    sessionId: string,
+    options: {
+      tool: string;
+      durationMs: number;
+      success: boolean;
+      startTime?: number;
+      endTime?: number;
+      parentEventId?: string;
+      /** Full tool input arguments (will be sanitized) */
+      toolInput?: Record<string, unknown>;
+      /** Tool output/result (truncated if large, will be sanitized) */
+      toolOutput?: unknown;
+      /** Error message if tool failed */
+      errorMessage?: string;
+    }
+  ): void;
+  trackLLMEx?(
+    sessionId: string,
+    options: {
+      model: string;
+      inputTokens: number;
+      outputTokens: number;
+      latencyMs?: number;
+      startTime?: number;
+      endTime?: number;
+      parentEventId?: string;
+      /** Model provider (e.g., 'anthropic') */
+      provider?: string;
+      /** Estimated cost in USD */
+      cost?: number;
+      /** Model temperature setting */
+      temperature?: number;
+      /** Max tokens setting */
+      maxTokens?: number;
+      /** Top-p sampling parameter */
+      topP?: number;
+      /** Stop reason from model response */
+      stopReason?: string;
+      /** Cache read tokens (prompt caching) */
+      cacheReadTokens?: number;
+      /** Cache creation tokens (prompt caching) */
+      cacheCreationTokens?: number;
+    }
+  ): void;
+  record?(event: unknown): void;
+  getSessionEventId?(sessionId: string): string | undefined;
+}
+
+/**
  * Configuration for the Orchestrator instance.
  * All fields are optional with sensible defaults.
  */
@@ -127,6 +184,27 @@ export interface OrchestratorConfig {
         updatedInput?: Record<string, unknown>;
       }>)
     | undefined;
+
+  /**
+   * Telemetry client for direct instrumentation.
+   * When provided, the orchestrator tracks tool calls, LLM usage, and subagents directly.
+   * This is more reliable than chunk-based observation in the CLI.
+   */
+  telemetryClient?: IOrchestratorTelemetryClient;
+
+  /**
+   * Telemetry session ID for event correlation.
+   * Required when telemetryClient is provided.
+   */
+  telemetrySessionId?: string;
+
+  /**
+   * Parent event ID for trace hierarchy.
+   * Tool/LLM events use this as their parent to form proper trace trees.
+   * For the main orchestrator, this is typically the session.start event ID.
+   * For subagents, this would be the parent's subagent event ID.
+   */
+  telemetryParentEventId?: string;
 }
 
 /**

@@ -175,6 +175,8 @@ function createTestCheckpoint(
       toolCalls: 5,
       llmCalls: 2,
       tokensUsed: 1500,
+      inputTokens: 1000,
+      outputTokens: 500,
       elapsedMs: 5000,
     },
   };
@@ -466,7 +468,14 @@ describe('Checkpoint Data Integrity', () => {
       trigger: 'phase_transition',
       toolHistory: [],
       findings: [],
-      metrics: { toolCalls: 0, llmCalls: 0, tokensUsed: 0, elapsedMs: 0 },
+      metrics: {
+        toolCalls: 0,
+        llmCalls: 0,
+        tokensUsed: 0,
+        inputTokens: 0,
+        outputTokens: 0,
+        elapsedMs: 0,
+      },
     };
 
     await recorder.recordCheckpoint(checkpoint);

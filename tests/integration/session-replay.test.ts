@@ -224,6 +224,8 @@ function createTestCheckpoint(
       toolCalls: sequence * 2,
       llmCalls: sequence,
       tokensUsed: sequence * 500,
+      inputTokens: sequence * 300,
+      outputTokens: sequence * 200,
       elapsedMs: sequence * 1000,
     },
     workspaceState: {

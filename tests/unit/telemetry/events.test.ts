@@ -56,38 +56,46 @@ describe('Telemetry Events', () => {
       expect(sanitized).toEqual(data);
     });
 
-    test('strips forbidden fields', () => {
+    test('strips secret-related fields only', () => {
+      // New behavior: only secret-related fields are stripped
+      // Debugging info (content, path, etc.) is preserved for alpha telemetry
       const data = {
         tool: 'discover_configs',
-        content: 'secret content',
-        prompt: 'hidden prompt',
-        response: 'AI response',
-        path: '/private/path',
-        file: 'secret.txt',
-        code: 'const x = 1;',
+        content: 'debugging content preserved',
+        prompt: 'prompt preserved for debugging',
+        path: '/path/preserved',
+        password: 'should be stripped',
+        secret: 'should be stripped',
+        apikey: 'should be stripped',
         success: true,
       };
       const sanitized = sanitizeEventData(data);
       expect(sanitized).toEqual({
         tool: 'discover_configs',
+        content: 'debugging content preserved',
+        prompt: 'prompt preserved for debugging',
+        path: '/path/preserved',
         success: true,
       });
     });
 
-    test('strips fields containing forbidden substrings', () => {
+    test('strips fields containing secret-related substrings', () => {
+      // Only secret-related field names are stripped
       const data = {
         tool: 'test',
-        fileContent: 'should be stripped',
-        pathName: 'should be stripped',
-        promptText: 'should be stripped',
-        responseData: 'should be stripped',
+        filePath: 'preserved for debugging',
+        pathName: 'preserved for debugging',
         apiKey: 'should be stripped',
+        myPassword: 'should be stripped',
         secretValue: 'should be stripped',
+        privateKey: 'should be stripped',
         success: true,
       };
       const sanitized = sanitizeEventData(data);
       expect(sanitized).toEqual({
         tool: 'test',
+        filePath: 'preserved for debugging',
+        pathName: 'preserved for debugging',
         success: true,
       });
     });
@@ -96,7 +104,8 @@ describe('Telemetry Events', () => {
       const data = {
         outer: {
           inner: {
-            content: 'secret',
+            content: 'preserved for debugging',
+            password: 'should be stripped',
             safe: 'visible',
           },
         },
@@ -105,6 +114,7 @@ describe('Telemetry Events', () => {
       expect(sanitized).toEqual({
         outer: {
           inner: {
+            content: 'preserved for debugging',
             safe: 'visible',
           },
         },
@@ -114,17 +124,29 @@ describe('Telemetry Events', () => {
     test('sanitizes arrays of objects', () => {
       const data = {
         items: [
-          { id: 1, content: 'secret', name: 'visible' },
-          { id: 2, path: '/hidden', name: 'also visible' },
+          { id: 1, content: 'preserved', name: 'visible' },
+          { id: 2, path: '/preserved', name: 'also visible', secret: 'stripped' },
         ],
       };
       const sanitized = sanitizeEventData(data);
       expect(sanitized).toEqual({
         items: [
-          { id: 1, name: 'visible' },
-          { id: 2, name: 'also visible' },
+          { id: 1, content: 'preserved', name: 'visible' },
+          { id: 2, path: '/preserved', name: 'also visible' },
         ],
       });
+    });
+
+    test('redacts secret patterns in string values', () => {
+      const data = {
+        tool: 'test',
+        message: 'API key is sk-ant-abc123xyz456 and token is ghp_a1b2c3d4',
+        path: '/safe/path',
+      };
+      const sanitized = sanitizeEventData(data);
+      // Secrets in values are redacted by pattern matching
+      expect(sanitized.message).toContain('[REDACTED');
+      expect(sanitized.path).toBe('/safe/path');
     });
 
     test('preserves primitive arrays', () => {
@@ -171,14 +193,17 @@ describe('Telemetry Events', () => {
     });
 
     test('sanitizes data automatically', () => {
+      // Only secret-related fields are stripped, debugging content is preserved
       const event = createTelemetryEvent('tool.call', 'session-123', 1, {
         tool: 'parse_config',
-        content: 'should be stripped',
+        content: 'preserved for debugging',
+        password: 'should be stripped',
         durationMs: 50,
       });
 
       expect(event.data).toEqual({
         tool: 'parse_config',
+        content: 'preserved for debugging',
         durationMs: 50,
       });
     });
@@ -235,20 +260,35 @@ describe('Telemetry Events', () => {
   });
 
   describe('FORBIDDEN_FIELDS', () => {
-    test('includes critical privacy fields', () => {
-      expect(FORBIDDEN_FIELDS).toContain('content');
-      expect(FORBIDDEN_FIELDS).toContain('prompt');
-      expect(FORBIDDEN_FIELDS).toContain('response');
-      expect(FORBIDDEN_FIELDS).toContain('path');
-      expect(FORBIDDEN_FIELDS).toContain('file');
-      expect(FORBIDDEN_FIELDS).toContain('code');
-      expect(FORBIDDEN_FIELDS).toContain('message');
-      expect(FORBIDDEN_FIELDS).toContain('stack');
+    test('includes secret-related fields only (not debugging info)', () => {
+      // These MUST be in FORBIDDEN_FIELDS (actual secrets)
       expect(FORBIDDEN_FIELDS).toContain('secret');
-      expect(FORBIDDEN_FIELDS).toContain('key');
-      expect(FORBIDDEN_FIELDS).toContain('token');
+      expect(FORBIDDEN_FIELDS).toContain('apikey');
+      expect(FORBIDDEN_FIELDS).toContain('api_key');
       expect(FORBIDDEN_FIELDS).toContain('password');
       expect(FORBIDDEN_FIELDS).toContain('credential');
+      expect(FORBIDDEN_FIELDS).toContain('bearer');
+      expect(FORBIDDEN_FIELDS).toContain('authorization');
+      expect(FORBIDDEN_FIELDS).toContain('private_key');
+      expect(FORBIDDEN_FIELDS).toContain('privatekey');
+    });
+
+    test('does NOT include debugging info fields (alpha telemetry sends these)', () => {
+      // These should NOT be in FORBIDDEN_FIELDS anymore
+      // Alpha telemetry needs this info for debugging
+      const debuggingFields = [
+        'content',
+        'prompt',
+        'response',
+        'path',
+        'file',
+        'code',
+        'message',
+        'stack',
+      ];
+      for (const field of debuggingFields) {
+        expect(FORBIDDEN_FIELDS).not.toContain(field);
+      }
     });
   });
 });
