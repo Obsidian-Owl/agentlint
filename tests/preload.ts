@@ -14,6 +14,7 @@
 const currentFile = process.argv[1] ?? '';
 
 // Patterns that indicate a test makes live API calls
+// Note: -live.test.ts pattern covers honeyhive-api-live.test.ts, vercel-proxy-live.test.ts, etc.
 const LIVE_TEST_PATTERNS = ['/e2e/', '/evals/', '-live.test.ts', 'live.test.ts'];
 
 const isLiveTest = LIVE_TEST_PATTERNS.some((pattern) => currentFile.includes(pattern));
