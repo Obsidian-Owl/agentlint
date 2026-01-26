@@ -340,7 +340,12 @@ let globalClient: ITelemetryClient | null = null;
 export function getTelemetryClient(): ITelemetryClient {
   if (!globalClient) {
     globalClient = createTelemetryClient();
-    void globalClient.init(getTelemetryConfig());
+    globalClient.init(getTelemetryConfig()).catch((error) => {
+      // Log but don't crash - telemetry is non-critical
+      if (process.env['AGENTLINT_TELEMETRY_DEBUG'] === '1') {
+        console.warn('[telemetry] Init failed:', error instanceof Error ? error.message : error);
+      }
+    });
   }
   return globalClient;
 }

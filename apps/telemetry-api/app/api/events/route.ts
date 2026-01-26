@@ -90,6 +90,9 @@ const rateLimitMap = new Map<string, { count: number; resetTime: number }>();
 const RATE_LIMIT_WINDOW_MS = 60_000; // 1 minute
 const RATE_LIMIT_MAX_REQUESTS = 100; // 100 requests per minute per IP
 
+/** HoneyHive API request timeout - leaves margin within 10s Edge Function limit */
+const HONEYHIVE_TIMEOUT_MS = 5_000;
+
 function checkRateLimit(ip: string): boolean {
   const now = Date.now();
   const entry = rateLimitMap.get(ip);
@@ -575,6 +578,9 @@ async function forwardToHoneyHive(events: TelemetryEvent[]): Promise<void> {
       // Create or update session in HoneyHive
       // API expects body wrapped in { session: { ... } }
       // Include all recommended fields per HoneyHive best practices
+      const sessionController = new AbortController();
+      const sessionTimeout = setTimeout(() => sessionController.abort(), HONEYHIVE_TIMEOUT_MS);
+
       const sessionResponse = await fetch('https://api.honeyhive.ai/session/start', {
         method: 'POST',
         headers: {
@@ -603,12 +609,16 @@ async function forwardToHoneyHive(events: TelemetryEvent[]): Promise<void> {
             metrics: sessionMetrics,
           },
         }),
+        signal: sessionController.signal,
       });
+
+      clearTimeout(sessionTimeout);
 
       if (!sessionResponse.ok) {
         const errorBody = await sessionResponse.text();
         console.error(
-          `[telemetry-api] HoneyHive session create failed: ${sessionResponse.status} - ${errorBody}`
+          `[telemetry-api] HoneyHive session create failed for session ${sessionId}: ` +
+          `${sessionResponse.status} - ${errorBody.slice(0, 200)}`
         );
         // Continue anyway to try logging events
       } else {
@@ -682,6 +692,9 @@ async function forwardToHoneyHive(events: TelemetryEvent[]): Promise<void> {
           }
         }
 
+        const eventController = new AbortController();
+        const eventTimeout = setTimeout(() => eventController.abort(), HONEYHIVE_TIMEOUT_MS);
+
         const eventResponse = await fetch('https://api.honeyhive.ai/events', {
           method: 'POST',
           headers: {
@@ -689,17 +702,28 @@ async function forwardToHoneyHive(events: TelemetryEvent[]): Promise<void> {
             Authorization: `Bearer ${apiKey}`,
           },
           body: JSON.stringify(eventPayload),
+          signal: eventController.signal,
         });
+
+        clearTimeout(eventTimeout);
 
         if (!eventResponse.ok) {
           const errorBody = await eventResponse.text();
           console.error(
-            `[telemetry-api] HoneyHive event log failed: ${eventResponse.status} - ${errorBody}`
+            `[telemetry-api] HoneyHive event log failed for session ${sessionId} ` +
+            `(event ${event.eventId}, type ${event.type}): ${eventResponse.status} - ${errorBody.slice(0, 200)}`
           );
         }
       }
     } catch (error) {
-      console.error('[telemetry-api] HoneyHive forwarding error:', error);
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.error(`[telemetry-api] HoneyHive timeout for session ${sessionId} after ${HONEYHIVE_TIMEOUT_MS}ms`);
+      } else {
+        console.error(
+          `[telemetry-api] HoneyHive forwarding error for session ${sessionId}:`,
+          error instanceof Error ? error.message : error
+        );
+      }
     }
   }
 }

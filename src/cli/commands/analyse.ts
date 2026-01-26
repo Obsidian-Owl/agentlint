@@ -659,9 +659,10 @@ async function runOrchestratedAnalysis(
         { force: false }
       );
     }
-  } catch {
-    // Don't block analysis if session indexing fails - it's supplementary
-    // The agent can still analyze configs without session data
+  } catch (error) {
+    // Session indexing is supplementary - log but don't block analysis
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    console.warn(`[analyse] Session indexing skipped: ${errorMessage}`);
   }
 
   // Create tool registry and register all tools
@@ -731,14 +732,23 @@ async function runOrchestratedAnalysis(
   const handleInterrupt = (): void => {
     if (!interrupted) {
       interrupted = true;
-      void orchestrator.interrupt().then(() => {
-        renderer.renderChunk({
-          type: 'status',
-          level: 'normal',
-          content: 'Analysis interrupted by user',
-          timestamp: new Date().toISOString(),
+      orchestrator
+        .interrupt()
+        .then(() => {
+          renderer.renderChunk({
+            type: 'status',
+            level: 'normal',
+            content: 'Analysis interrupted by user',
+            timestamp: new Date().toISOString(),
+          });
+        })
+        .catch((error) => {
+          // Interrupt failed - log but continue shutdown
+          console.error(
+            'Failed to interrupt orchestrator:',
+            error instanceof Error ? error.message : error
+          );
         });
-      });
     }
   };
 
@@ -1281,14 +1291,23 @@ async function runSessionAnalysis(
   const handleInterrupt = (): void => {
     if (!interrupted) {
       interrupted = true;
-      void orchestrator.interrupt().then(() => {
-        renderer.renderChunk({
-          type: 'status',
-          level: 'normal',
-          content: 'Session analysis interrupted by user',
-          timestamp: new Date().toISOString(),
+      orchestrator
+        .interrupt()
+        .then(() => {
+          renderer.renderChunk({
+            type: 'status',
+            level: 'normal',
+            content: 'Session analysis interrupted by user',
+            timestamp: new Date().toISOString(),
+          });
+        })
+        .catch((error) => {
+          // Interrupt failed - log but continue shutdown
+          console.error(
+            'Failed to interrupt orchestrator:',
+            error instanceof Error ? error.message : error
+          );
         });
-      });
     }
   };
   process.on('SIGINT', handleInterrupt);

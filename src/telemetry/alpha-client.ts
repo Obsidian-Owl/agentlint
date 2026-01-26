@@ -76,7 +76,11 @@ export class AlphaTelemetryClient implements ITelemetryClient {
 
     // Start periodic flush
     this.flushInterval = setInterval(() => {
-      void this.flush();
+      this.flush().catch((error) => {
+        this.logWarning(
+          `Interval flush failed: ${error instanceof Error ? error.message : 'Unknown error'}`
+        );
+      });
     }, FLUSH_INTERVAL_MS);
 
     // Ensure interval doesn't prevent process exit
@@ -431,13 +435,20 @@ export class AlphaTelemetryClient implements ITelemetryClient {
         // Don't re-add events to buffer to avoid memory growth
       }
     } catch (error) {
-      // Network error - graceful degradation
+      // Network error - graceful degradation with event count context
+      const eventCount = events.length;
       if (error instanceof Error) {
         if (error.name === 'AbortError') {
-          this.logWarning('Telemetry request timed out');
+          this.logWarning(
+            `Telemetry timeout after ${REQUEST_TIMEOUT_MS}ms (${eventCount} events dropped)`
+          );
         } else {
-          this.logWarning(`Telemetry send failed: ${error.name}`);
+          this.logWarning(
+            `Telemetry send failed: ${error.name} - ${error.message} (${eventCount} events dropped)`
+          );
         }
+      } else {
+        this.logWarning(`Telemetry send failed: Unknown error (${eventCount} events dropped)`);
       }
       // Don't crash, just continue
     }
