@@ -14,7 +14,13 @@
  */
 
 import type { TelemetryConfig } from '../persistence/types';
-import type { ITelemetryClient, SessionStartData, SessionMetrics } from './index';
+import type {
+  ITelemetryClient,
+  SessionStartData,
+  SessionMetrics,
+  TrackToolOptions,
+  TrackLLMOptions,
+} from './index';
 import { type TelemetryEvent, createTelemetryEvent, getTelemetryMeta } from './events';
 
 // =============================================================================
@@ -51,6 +57,12 @@ export class AlphaTelemetryClient implements ITelemetryClient {
   private buffer: TelemetryEvent[] = [];
   private flushInterval: ReturnType<typeof setInterval> | null = null;
   private sequence = 0;
+
+  /** Maps sessionId to the session.start event ID for hierarchy */
+  private sessionEventIds = new Map<string, string>();
+
+  /** Maps sessionId to start time for duration calculation */
+  private sessionStartTimes = new Map<string, number>();
 
   /**
    * Initialize the telemetry client.
@@ -107,14 +119,34 @@ export class AlphaTelemetryClient implements ITelemetryClient {
     }
 
     this.sequence = 0;
+    const startTime = Date.now();
 
-    this.record(
-      createTelemetryEvent('session.start', sessionId, this.sequence++, {
+    // Track session start time for later duration calculation
+    this.sessionStartTimes.set(sessionId, startTime);
+
+    const event = createTelemetryEvent(
+      'session.start',
+      sessionId,
+      this.sequence++,
+      {
         command: data?.command ?? 'analyse',
         hasConfig: data?.hasConfig ?? false,
         projectType: data?.projectType,
-      })
+      },
+      { startTime, endTime: startTime }
     );
+
+    // Track the session event ID for hierarchy (child events use this as parent)
+    this.sessionEventIds.set(sessionId, event.eventId);
+
+    this.record(event);
+  }
+
+  /**
+   * Get session event ID for hierarchy.
+   */
+  getSessionEventId(sessionId: string): string | undefined {
+    return this.sessionEventIds.get(sessionId);
   }
 
   /**
@@ -125,34 +157,73 @@ export class AlphaTelemetryClient implements ITelemetryClient {
       return;
     }
 
+    const endTime = Date.now();
+    const startTime = this.sessionStartTimes.get(sessionId) ?? endTime - metrics.durationMs;
+
     this.record(
-      createTelemetryEvent('session.end', sessionId, this.sequence++, {
-        durationMs: metrics.durationMs,
-        toolCallCount: metrics.toolCallCount,
-        findingCount: metrics.findingCount,
-        recommendationCount: metrics.recommendationCount ?? 0,
-        totalInputTokens: metrics.totalInputTokens ?? 0,
-        totalOutputTokens: metrics.totalOutputTokens ?? 0,
-        success: metrics.success,
-        interrupted: metrics.interrupted ?? false,
-      })
+      createTelemetryEvent(
+        'session.end',
+        sessionId,
+        this.sequence++,
+        {
+          durationMs: metrics.durationMs,
+          toolCallCount: metrics.toolCallCount,
+          findingCount: metrics.findingCount,
+          recommendationCount: metrics.recommendationCount ?? 0,
+          totalInputTokens: metrics.totalInputTokens ?? 0,
+          totalOutputTokens: metrics.totalOutputTokens ?? 0,
+          success: metrics.success,
+          interrupted: metrics.interrupted ?? false,
+        },
+        { startTime, endTime }
+      )
     );
+
+    // Cleanup session tracking
+    this.sessionEventIds.delete(sessionId);
+    this.sessionStartTimes.delete(sessionId);
   }
 
   /**
-   * Track a tool call.
+   * Track a tool call (simple signature for backward compat).
    */
   trackTool(sessionId: string, tool: string, durationMs: number, success: boolean): void {
+    this.trackToolEx(sessionId, { tool, durationMs, success });
+  }
+
+  /**
+   * Track a tool call with extended options (timing, hierarchy).
+   */
+  trackToolEx(sessionId: string, options: TrackToolOptions): void {
     if (!this.enabled) {
       return;
     }
 
+    const endTime = options.endTime ?? Date.now();
+    const startTime = options.startTime ?? endTime - options.durationMs;
+    const parentEventId = options.parentEventId ?? this.sessionEventIds.get(sessionId);
+
+    // Build options object, only including parentEventId if defined
+    const eventOptions: { startTime: number; endTime: number; parentEventId?: string } = {
+      startTime,
+      endTime,
+    };
+    if (parentEventId !== undefined) {
+      eventOptions.parentEventId = parentEventId;
+    }
+
     this.record(
-      createTelemetryEvent('tool.call', sessionId, this.sequence++, {
-        tool,
-        durationMs,
-        success,
-      })
+      createTelemetryEvent(
+        'tool.call',
+        sessionId,
+        this.sequence++,
+        {
+          tool: options.tool,
+          durationMs: options.durationMs,
+          success: options.success,
+        },
+        eventOptions
+      )
     );
   }
 
@@ -168,16 +239,34 @@ export class AlphaTelemetryClient implements ITelemetryClient {
       return;
     }
 
+    const now = Date.now();
+    const parentEventId = this.sessionEventIds.get(sessionId);
+
+    // Build options object, only including parentEventId if defined
+    const eventOptions: { startTime: number; endTime: number; parentEventId?: string } = {
+      startTime: now,
+      endTime: now,
+    };
+    if (parentEventId !== undefined) {
+      eventOptions.parentEventId = parentEventId;
+    }
+
     this.record(
-      createTelemetryEvent('finding.detected', sessionId, this.sequence++, {
-        findingType,
-        severity,
-      })
+      createTelemetryEvent(
+        'finding.detected',
+        sessionId,
+        this.sequence++,
+        {
+          findingType,
+          severity,
+        },
+        eventOptions
+      )
     );
   }
 
   /**
-   * Track LLM token usage.
+   * Track LLM token usage (simple signature for backward compat).
    */
   trackLLM(
     sessionId: string,
@@ -186,17 +275,51 @@ export class AlphaTelemetryClient implements ITelemetryClient {
     outputTokens: number,
     latencyMs?: number
   ): void {
+    // Build options without undefined values
+    const llmOptions: TrackLLMOptions = { model, inputTokens, outputTokens };
+    if (latencyMs !== undefined) {
+      llmOptions.latencyMs = latencyMs;
+    }
+    this.trackLLMEx(sessionId, llmOptions);
+  }
+
+  /**
+   * Track LLM token usage with extended options (timing, hierarchy, cost).
+   */
+  trackLLMEx(sessionId: string, options: TrackLLMOptions): void {
     if (!this.enabled) {
       return;
     }
 
+    const endTime = options.endTime ?? Date.now();
+    const startTime = options.startTime ?? endTime - (options.latencyMs ?? 0);
+    const parentEventId = options.parentEventId ?? this.sessionEventIds.get(sessionId);
+
+    // Build event data without undefined values
+    const eventData: Record<string, unknown> = {
+      model: options.model,
+      provider: options.provider ?? 'anthropic',
+      inputTokens: options.inputTokens,
+      outputTokens: options.outputTokens,
+    };
+    if (options.latencyMs !== undefined) {
+      eventData.latencyMs = options.latencyMs;
+    }
+    if (options.cost !== undefined) {
+      eventData.cost = options.cost;
+    }
+
+    // Build options object, only including parentEventId if defined
+    const eventOptions: { startTime: number; endTime: number; parentEventId?: string } = {
+      startTime,
+      endTime,
+    };
+    if (parentEventId !== undefined) {
+      eventOptions.parentEventId = parentEventId;
+    }
+
     this.record(
-      createTelemetryEvent('llm.usage', sessionId, this.sequence++, {
-        model,
-        inputTokens,
-        outputTokens,
-        latencyMs,
-      })
+      createTelemetryEvent('llm.usage', sessionId, this.sequence++, eventData, eventOptions)
     );
   }
 
@@ -208,11 +331,26 @@ export class AlphaTelemetryClient implements ITelemetryClient {
       return;
     }
 
+    const now = Date.now();
+    const parentEventId = this.sessionEventIds.get(sessionId);
+
+    // Build event data without undefined values
+    const eventData: Record<string, unknown> = { errorType };
+    if (errorCode !== undefined) {
+      eventData.errorCode = errorCode;
+    }
+
+    // Build options object, only including parentEventId if defined
+    const eventOptions: { startTime: number; endTime: number; parentEventId?: string } = {
+      startTime: now,
+      endTime: now,
+    };
+    if (parentEventId !== undefined) {
+      eventOptions.parentEventId = parentEventId;
+    }
+
     this.record(
-      createTelemetryEvent('session.error', sessionId, this.sequence++, {
-        errorType,
-        errorCode,
-      })
+      createTelemetryEvent('session.error', sessionId, this.sequence++, eventData, eventOptions)
     );
   }
 

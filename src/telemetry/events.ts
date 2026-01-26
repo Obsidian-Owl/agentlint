@@ -167,6 +167,8 @@ export interface TelemetryEventMeta {
   platform: string;
   /** Node.js version */
   nodeVersion: string;
+  /** Source identifier (agentlint-cli for production, agentlint-cli-test for tests) */
+  source: string;
 }
 
 // =============================================================================
@@ -181,6 +183,10 @@ export interface TelemetryEvent {
   type: TelemetryEventType;
   /** ISO-8601 timestamp */
   timestamp: string;
+  /** Start time in UTC milliseconds (for HoneyHive compatibility) */
+  startTime: number;
+  /** End time in UTC milliseconds (for HoneyHive compatibility) */
+  endTime: number;
   /** Session ID for correlation */
   sessionId: string;
   /** Event ID (UUID) */
@@ -200,6 +206,31 @@ export interface TelemetryEvent {
 // =============================================================================
 
 /**
+ * Get the telemetry source name.
+ * Can be overridden via AGENTLINT_TELEMETRY_SOURCE env var.
+ * Defaults to 'agentlint-cli' for production, 'agentlint-cli-test' if NODE_ENV=test.
+ */
+export function getTelemetrySource(): string {
+  // Explicit override via env var
+  const envSource = process.env['AGENTLINT_TELEMETRY_SOURCE'];
+  if (envSource) {
+    return envSource;
+  }
+
+  // Auto-detect test environment
+  if (
+    process.env['NODE_ENV'] === 'test' ||
+    process.env['BUN_ENV'] === 'test' ||
+    process.env['VITEST'] ||
+    process.env['JEST_WORKER_ID']
+  ) {
+    return 'agentlint-cli-test';
+  }
+
+  return 'agentlint-cli';
+}
+
+/**
  * Get telemetry metadata for events.
  */
 export function getTelemetryMeta(): TelemetryEventMeta {
@@ -207,6 +238,7 @@ export function getTelemetryMeta(): TelemetryEventMeta {
     version: process.env['npm_package_version'] ?? 'unknown',
     platform: process.platform,
     nodeVersion: process.version,
+    source: getTelemetrySource(),
   };
 }
 
@@ -275,6 +307,18 @@ export function sanitizeEventData(data: Record<string, unknown>): Record<string,
 }
 
 /**
+ * Options for creating a telemetry event with timing info.
+ */
+export interface CreateEventOptions {
+  /** Parent event ID for trace hierarchy */
+  parentEventId?: string;
+  /** Start time in UTC milliseconds (defaults to now) */
+  startTime?: number;
+  /** End time in UTC milliseconds (defaults to now) */
+  endTime?: number;
+}
+
+/**
  * Create a telemetry event with validation and sanitization.
  */
 export function createTelemetryEvent(
@@ -282,11 +326,19 @@ export function createTelemetryEvent(
   sessionId: string,
   sequence: number,
   data: Record<string, unknown>,
-  parentEventId?: string
+  options?: CreateEventOptions | string // string for backward compat with parentEventId
 ): TelemetryEvent {
+  const now = Date.now();
+
+  // Handle backward compatibility: options can be a parentEventId string
+  const opts: CreateEventOptions =
+    typeof options === 'string' ? { parentEventId: options } : (options ?? {});
+
   const event: TelemetryEvent = {
     type,
     timestamp: new Date().toISOString(),
+    startTime: opts.startTime ?? now,
+    endTime: opts.endTime ?? now,
     sessionId,
     eventId: generateEventId(),
     sequence,
@@ -295,8 +347,8 @@ export function createTelemetryEvent(
   };
 
   // Only include parentEventId if defined (exactOptionalPropertyTypes compliance)
-  if (parentEventId !== undefined) {
-    event.parentEventId = parentEventId;
+  if (opts.parentEventId !== undefined) {
+    event.parentEventId = opts.parentEventId;
   }
 
   return event;

@@ -27,11 +27,17 @@ interface TelemetryEventMeta {
   version: string;
   platform: string;
   nodeVersion: string;
+  /** Source identifier (agentlint-cli for production, agentlint-cli-test for tests) */
+  source?: string;
 }
 
 interface TelemetryEvent {
   type: string;
   timestamp: string;
+  /** Start time in UTC milliseconds */
+  startTime: number;
+  /** End time in UTC milliseconds */
+  endTime: number;
   sessionId: string;
   eventId: string;
   sequence: number;
@@ -55,6 +61,8 @@ function isValidEvent(event: unknown): event is TelemetryEvent {
   return (
     typeof e.type === 'string' &&
     typeof e.timestamp === 'string' &&
+    typeof e.startTime === 'number' &&
+    typeof e.endTime === 'number' &&
     typeof e.sessionId === 'string' &&
     typeof e.eventId === 'string' &&
     typeof e.sequence === 'number' &&
@@ -113,6 +121,139 @@ setInterval(() => {
 // HoneyHive Forwarding
 // =============================================================================
 
+/**
+ * Build HoneyHive config object based on event type.
+ */
+function buildHoneyHiveConfig(event: TelemetryEvent): Record<string, unknown> {
+  const eventType = event.type;
+
+  if (eventType === 'llm.usage') {
+    return {
+      model: event.data.model ?? 'claude',
+      provider: event.data.provider ?? 'anthropic',
+    };
+  }
+
+  if (eventType === 'tool.call') {
+    return {
+      tool_name: event.data.tool,
+    };
+  }
+
+  if (eventType === 'session.start') {
+    return {
+      command: event.data.command,
+    };
+  }
+
+  return {};
+}
+
+/**
+ * Build HoneyHive inputs object based on event type.
+ */
+function buildHoneyHiveInputs(event: TelemetryEvent): Record<string, unknown> {
+  const eventType = event.type;
+
+  if (eventType === 'llm.usage') {
+    return {
+      token_count: event.data.inputTokens ?? 0,
+    };
+  }
+
+  if (eventType === 'tool.call') {
+    return {
+      tool: event.data.tool,
+    };
+  }
+
+  if (eventType === 'session.start') {
+    return {
+      command: event.data.command,
+      hasConfig: event.data.hasConfig,
+    };
+  }
+
+  return {};
+}
+
+/**
+ * Build HoneyHive outputs object based on event type.
+ */
+function buildHoneyHiveOutputs(event: TelemetryEvent): Record<string, unknown> {
+  const eventType = event.type;
+
+  if (eventType === 'llm.usage') {
+    return {
+      token_count: event.data.outputTokens ?? 0,
+    };
+  }
+
+  if (eventType === 'tool.call') {
+    return {
+      success: event.data.success ?? false,
+    };
+  }
+
+  if (eventType === 'session.end') {
+    return {
+      success: event.data.success ?? false,
+      findingCount: event.data.findingCount ?? 0,
+      toolCallCount: event.data.toolCallCount ?? 0,
+    };
+  }
+
+  if (eventType === 'finding.detected') {
+    return {
+      findingType: event.data.findingType,
+      severity: event.data.severity,
+    };
+  }
+
+  return {};
+}
+
+/**
+ * Build HoneyHive metadata object based on event type.
+ */
+function buildHoneyHiveMetadata(event: TelemetryEvent): Record<string, unknown> {
+  const base: Record<string, unknown> = {
+    agentlint_version: event.meta.version,
+    platform: event.meta.platform,
+    sequence: event.sequence,
+  };
+
+  if (event.type === 'llm.usage') {
+    return {
+      ...base,
+      total_tokens: ((event.data.inputTokens as number) ?? 0) + ((event.data.outputTokens as number) ?? 0),
+      prompt_tokens: event.data.inputTokens ?? 0,
+      completion_tokens: event.data.outputTokens ?? 0,
+      cost: event.data.cost,
+      latency_ms: event.data.latencyMs,
+    };
+  }
+
+  if (event.type === 'tool.call') {
+    return {
+      ...base,
+      success: event.data.success,
+      duration_ms: event.data.durationMs,
+    };
+  }
+
+  if (event.type === 'session.end') {
+    return {
+      ...base,
+      total_input_tokens: event.data.totalInputTokens,
+      total_output_tokens: event.data.totalOutputTokens,
+      recommendation_count: event.data.recommendationCount,
+    };
+  }
+
+  return base;
+}
+
 async function forwardToHoneyHive(events: TelemetryEvent[]): Promise<void> {
   const apiKey = process.env['HONEYHIVE_API_KEY'];
 
@@ -134,6 +275,12 @@ async function forwardToHoneyHive(events: TelemetryEvent[]): Promise<void> {
     try {
       // First event usually contains session.start with metadata
       const firstEvent = sessionEvents[0];
+      // Find session.start event for the session event ID
+      const sessionStartEvent = sessionEvents.find((e) => e.type === 'session.start');
+      const sessionEventId = sessionStartEvent?.eventId ?? firstEvent?.eventId;
+
+      // Get source from event metadata (defaults to 'agentlint-cli' for backward compat)
+      const source = firstEvent?.meta.source ?? 'agentlint-cli';
 
       // Create or update session in HoneyHive
       // API expects body wrapped in { session: { ... } }
@@ -147,7 +294,7 @@ async function forwardToHoneyHive(events: TelemetryEvent[]): Promise<void> {
           session: {
             project: 'agentlint',
             session_name: sessionId,
-            source: 'agentlint-cli',
+            source: source,
             session_id: sessionId,
             user_properties: {
               version: firstEvent?.meta.version ?? 'unknown',
@@ -177,28 +324,37 @@ async function forwardToHoneyHive(events: TelemetryEvent[]): Promise<void> {
           eventType = 'tool';
         }
 
+        // Calculate duration from start/end times or fallback to data.durationMs
+        const startTime = event.startTime ?? new Date(event.timestamp).getTime();
+        const endTime = event.endTime ?? startTime + (typeof event.data.durationMs === 'number' ? event.data.durationMs : 0);
+        const duration = endTime - startTime;
+
+        // Parent ID: use event's parentEventId, or session event ID as fallback for child events
+        // Session events (session.start, session.end) should have null parent
+        const isSessionEvent = event.type === 'session.start' || event.type === 'session.end';
+        const parentId = isSessionEvent ? null : (event.parentEventId ?? sessionEventId);
+
         // API expects body wrapped in { event: { ... } }
         // Required fields: project, event_type, event_name, source, config, inputs, duration
         const eventPayload = {
           event: {
             project: 'agentlint',
-            source: 'agentlint-cli',
+            source: event.meta.source ?? source,
             session_id: sessionId,
             event_id: event.eventId,
             event_type: eventType,
             event_name: event.type,
-            config: {},
-            inputs: {},
-            outputs: {},
-            duration:
-              typeof event.data.durationMs === 'number' ? event.data.durationMs : 0,
-            metadata: {
-              ...event.data,
-              agentlint_version: event.meta.version,
-              platform: event.meta.platform,
-              sequence: event.sequence,
-            },
-            parent_id: event.parentEventId,
+            // Timestamps in UTC milliseconds (HoneyHive requirement)
+            start_time: startTime,
+            end_time: endTime,
+            duration: duration,
+            // Populated based on event type
+            config: buildHoneyHiveConfig(event),
+            inputs: buildHoneyHiveInputs(event),
+            outputs: buildHoneyHiveOutputs(event),
+            metadata: buildHoneyHiveMetadata(event),
+            // Parent ID for trace hierarchy
+            parent_id: parentId,
           },
         };
 
