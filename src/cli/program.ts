@@ -110,9 +110,10 @@ Documentation:
   // Add session management command (EP11)
   addSessionCommand(program);
 
-  // Add backup and restore commands
+  // Add backup, restore, and clean commands
   addBackupCommand(program);
   addRestoreCommand(program);
+  addCleanCommand(program);
 
   // Add skills command (EP14)
   addSkillsCommand(program);
@@ -713,6 +714,58 @@ Examples:
         const { runRestore } = await import('./commands/backup');
         const globalOpts = extractGlobalOptions(program.opts());
         const exitCode = await runRestore(backupFile, { ...globalOpts, ...options });
+        if (exitCode !== 0) {
+          process.exit(exitCode);
+        }
+      }
+    );
+}
+
+function addCleanCommand(program: Command): void {
+  program
+    .command('clean')
+    .description('Remove .agentlint state directory (preview by default)')
+    .option('-d, --directory <path>', 'Project directory', '.')
+    .option('-f, --force', 'Actually perform the clean (default is preview only)')
+    .option('--no-backup', 'Skip creating backup before cleaning')
+    .option('--global', 'Also clean global ~/.agentlint directory')
+    .addHelpText(
+      'after',
+      `
+Examples:
+  $ agentlint clean                     Preview what would be removed
+  $ agentlint clean --force             Actually clean (with backup)
+  $ agentlint clean --force --no-backup Clean without backup
+  $ agentlint clean --global --force    Also clean ~/.agentlint
+  $ agentlint clean --json              Output as JSON
+
+By default, shows a preview of what would be removed.
+Use --force to actually remove the .agentlint directory.
+A backup is created automatically before cleaning unless --no-backup is used.`
+    )
+    .action(
+      async (options: {
+        directory?: string;
+        force?: boolean;
+        backup?: boolean;
+        global?: boolean;
+      }) => {
+        const { runClean } = await import('./commands/clean');
+        const globalOpts = extractGlobalOptions(program.opts());
+        const cleanOpts: Parameters<typeof runClean>[0] = {
+          ...globalOpts,
+          noBackup: options.backup === false,
+        };
+        if (options.directory !== undefined) {
+          cleanOpts.directory = options.directory;
+        }
+        if (options.force !== undefined) {
+          cleanOpts.force = options.force;
+        }
+        if (options.global !== undefined) {
+          cleanOpts.global = options.global;
+        }
+        const exitCode = await runClean(cleanOpts);
         if (exitCode !== 0) {
           process.exit(exitCode);
         }
