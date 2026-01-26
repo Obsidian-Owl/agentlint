@@ -147,6 +147,9 @@ export class Orchestrator implements IOrchestrator {
   /** Maximum pending tool entries to prevent unbounded memory growth */
   private static readonly MAX_PENDING_TOOLS = 100;
 
+  /** Maximum time to keep orphaned tool tracking entries (5 minutes) */
+  private static readonly TOOL_TRACKING_TTL_MS = 5 * 60 * 1000;
+
   /** Telemetry client (if provided) */
   private readonly telemetry: IOrchestratorTelemetryClient | null;
 
@@ -508,6 +511,25 @@ export class Orchestrator implements IOrchestrator {
   }
 
   /**
+   * Clean up orphaned tool tracking entries older than TTL.
+   * Called before adding new tool entries to prevent memory leaks
+   * when tool execution fails without a tool_result message.
+   */
+  private cleanupOrphanedToolEntries(): void {
+    const now = Date.now();
+    const ttl = Orchestrator.TOOL_TRACKING_TTL_MS;
+
+    for (const [toolId, startTime] of this.toolStartTimes) {
+      if (now - startTime > ttl) {
+        this.toolIdToName.delete(toolId);
+        this.toolStartTimes.delete(toolId);
+        this.toolInputs.delete(toolId);
+        this.logger.debug('Cleaned up orphaned tool entry', { toolId, ageMs: now - startTime });
+      }
+    }
+  }
+
+  /**
    * Extract error message from tool output.
    * Handles various error formats from SDK.
    *
@@ -671,6 +693,8 @@ export class Orchestrator implements IOrchestrator {
       if (event?.type === 'content_block_start' && event.content_block?.type === 'tool_use') {
         const toolBlock = event.content_block;
         this.logger.info('Tool invocation starting (stream)', { tool: toolBlock.name });
+        // Clean up orphaned entries before adding new ones (P2 memory leak fix)
+        this.cleanupOrphanedToolEntries();
         // Track toolId -> toolName for later correlation with tool_result
         this.toolIdToName.set(toolBlock.id, toolBlock.name);
         // Track start time for duration calculation

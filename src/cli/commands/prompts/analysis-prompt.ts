@@ -24,6 +24,8 @@ export interface AnalysisPromptSections {
 
 export interface AnalysisPromptConfig {
   version: string;
+  /** ISO timestamp when this version was created */
+  createdAt: string;
   sections: AnalysisPromptSections;
 }
 
@@ -41,6 +43,7 @@ export const ANALYSIS_PROMPT_VERSION = '1.0.0';
 export const ANALYSIS_PROMPTS: Record<string, AnalysisPromptConfig> = {
   '1.0.0': {
     version: '1.0.0',
+    createdAt: '2026-01-26T00:00:00Z',
     sections: {
       intro: `You are analyzing an AI-assisted development project.`,
 

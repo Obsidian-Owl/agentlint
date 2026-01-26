@@ -17,6 +17,7 @@
 import { resolve, relative } from 'node:path';
 import { stat } from 'node:fs/promises';
 import { getOutputMode } from '../utils/output';
+import { printException, printIOError } from '../utils/error';
 import type { GlobalOptions, OutputMode } from '../types';
 import { scanForConfigs, type ScanResult, type ConfigFile as ScanConfigFile } from './scan';
 import { discoverConfigs, type DiscoverConfigsResult } from '../../tools/config';
@@ -34,7 +35,8 @@ import {
 } from '../../orchestration';
 import type { VerbosityLevel, StreamChunk } from '../../orchestration/types';
 import { registerAllTools } from '../../tools';
-import { createLoggerFromCLIOptions, setDefaultLogger } from '../../debug/logger';
+import { createLoggerFromCLIOptions, setDefaultLogger, getDefaultLogger } from '../../debug/logger';
+import { DEBUG_NAMESPACES } from '../../debug/namespaces';
 import { createRenderer } from '../renderers';
 import { TuiStreamRenderer, createTuiCanUseTool, type ITuiRenderer } from '../../tui';
 import { buildAnalysisPrompt } from './analyse-prompt';
@@ -243,8 +245,9 @@ function performStaticAnalysis(
           ],
         });
       }
-    } catch {
-      // Skip files that can't be parsed
+    } catch (error) {
+      // Log parsing error but continue with other configs
+      printException(error, `Parsing config ${config.path}`);
     }
   }
 
@@ -651,18 +654,29 @@ async function runOrchestratedAnalysis(
 
   // Issue 2 fix: Auto-index sessions before analysis so session tools have data
   // This populates the sessions database with any discovered session files
+  const sessionLogger = getDefaultLogger().child(DEBUG_NAMESPACES.TOOLS);
   try {
+    sessionLogger.debug('Starting session discovery', { directory });
     const discovered = await discoverSessions({ projectPath: directory });
+    sessionLogger.debug('Sessions discovered', {
+      count: discovered.files.length,
+      totalSize: discovered.totalSize,
+      projects: discovered.projects,
+    });
     if (discovered.files.length > 0) {
+      sessionLogger.debug('Indexing discovered sessions', { count: discovered.files.length });
       await indexSessions(
         discovered.files.map((f) => ({ path: f.path, projectPath: f.projectPath })),
         { force: false }
       );
+      sessionLogger.debug('Session indexing complete');
     }
   } catch (error) {
     // Session indexing is supplementary - log but don't block analysis
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.warn(`[analyse] Session indexing skipped: ${errorMessage}`);
+    sessionLogger.debug('Session indexing failed', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    printException(error, 'Session indexing');
   }
 
   // Create tool registry and register all tools
@@ -1384,12 +1398,13 @@ export async function runAnalyse(options: AnalyseOptions): Promise<number> {
       }
       return 1;
     }
-  } catch {
-    const error = `Directory not found: ${directory}`;
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    const error = `Cannot access directory: ${message}`;
     if (outputMode === 'json') {
-      console.log(JSON.stringify({ status: 'error', error }, null, 2));
+      console.log(JSON.stringify({ status: 'error', error, directory }, null, 2));
     } else {
-      console.error(`Error: ${error}`);
+      printIOError(error, directory);
     }
     return 1;
   }

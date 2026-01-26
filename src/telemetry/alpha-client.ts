@@ -111,6 +111,12 @@ export class AlphaTelemetryClient implements ITelemetryClient {
   private flushInterval: ReturnType<typeof setInterval> | null = null;
   private sequence = 0;
 
+  /** Maximum tracked sessions to prevent unbounded memory growth */
+  private static readonly MAX_TRACKED_SESSIONS = 100;
+
+  /** Maximum time to keep session tracking entries (1 hour) */
+  private static readonly SESSION_TTL_MS = 60 * 60 * 1000;
+
   /** Maps sessionId to the session.start event ID for hierarchy */
   private sessionEventIds = new Map<string, string>();
 
@@ -196,6 +202,48 @@ export class AlphaTelemetryClient implements ITelemetryClient {
   }
 
   /**
+   * Clean up stale session tracking entries older than TTL.
+   * Prevents memory leaks when sessionEnd() is never called.
+   */
+  private cleanupStaleSessions(): void {
+    const now = Date.now();
+    const ttl = AlphaTelemetryClient.SESSION_TTL_MS;
+
+    for (const [sessionId, startTime] of this.sessionStartTimes) {
+      if (now - startTime > ttl) {
+        this.sessionEventIds.delete(sessionId);
+        this.sessionStartTimes.delete(sessionId);
+        this.logWarning(`Cleaned up stale session: ${sessionId}`);
+      }
+    }
+  }
+
+  /**
+   * Enforce maximum tracked sessions by removing oldest entries.
+   */
+  private enforceMaxSessions(): void {
+    const maxSessions = AlphaTelemetryClient.MAX_TRACKED_SESSIONS;
+
+    if (this.sessionStartTimes.size >= maxSessions) {
+      // Find and remove the oldest session
+      let oldestId: string | null = null;
+      let oldestTime = Infinity;
+
+      for (const [sessionId, startTime] of this.sessionStartTimes) {
+        if (startTime < oldestTime) {
+          oldestTime = startTime;
+          oldestId = sessionId;
+        }
+      }
+
+      if (oldestId) {
+        this.sessionEventIds.delete(oldestId);
+        this.sessionStartTimes.delete(oldestId);
+      }
+    }
+  }
+
+  /**
    * Initialize the telemetry client.
    */
   init(config: TelemetryConfig): Promise<void> {
@@ -252,6 +300,10 @@ export class AlphaTelemetryClient implements ITelemetryClient {
     if (!this.enabled) {
       return;
     }
+
+    // Clean up stale sessions and enforce max limit before adding new session
+    this.cleanupStaleSessions();
+    this.enforceMaxSessions();
 
     this.sequence = 0;
     const startTime = Date.now();

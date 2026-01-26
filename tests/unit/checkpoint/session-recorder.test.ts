@@ -283,18 +283,25 @@ describe('SessionRecorder', () => {
   });
 
   describe('cleanupOldCheckpoints', () => {
+    // Calculate timestamps relative to actual current time for deterministic testing
+    // (cleanupOldCheckpoints uses Date.now() internally)
+    const getTimestamp = (daysAgo: number): string => {
+      return new Date(Date.now() - daysAgo * 24 * 60 * 60 * 1000).toISOString();
+    };
+
     test('deletes sessions older than retention period', async () => {
-      // Create an old session by manipulating the timestamp
+      // Create an old session (10 days ago - older than 7-day retention)
       recorder.startRecording('old-session');
       const oldCheckpoint = createTestCheckpoint('old-session', 1);
-      // Set timestamp to 10 days ago
-      oldCheckpoint.timestamp = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString();
+      oldCheckpoint.timestamp = getTimestamp(10);
       await recorder.recordCheckpoint(oldCheckpoint);
       recorder.stopRecording();
 
-      // Create a recent session
+      // Create a recent session (1 day ago - within 7-day retention)
       recorder.startRecording('new-session');
-      await recorder.recordCheckpoint(createTestCheckpoint('new-session', 1));
+      const newCheckpoint = createTestCheckpoint('new-session', 1);
+      newCheckpoint.timestamp = getTimestamp(1);
+      await recorder.recordCheckpoint(newCheckpoint);
       recorder.stopRecording();
 
       // Cleanup with 7-day retention
@@ -310,7 +317,7 @@ describe('SessionRecorder', () => {
     test('retentionDays=0 disables cleanup', async () => {
       recorder.startRecording('session-1');
       const oldCheckpoint = createTestCheckpoint('session-1', 1);
-      oldCheckpoint.timestamp = new Date(Date.now() - 100 * 24 * 60 * 60 * 1000).toISOString();
+      oldCheckpoint.timestamp = getTimestamp(100);
       await recorder.recordCheckpoint(oldCheckpoint);
       recorder.stopRecording();
 
