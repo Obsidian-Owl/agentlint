@@ -157,6 +157,30 @@ export interface ConversationalContext {
 }
 
 // =============================================================================
+// Conversation History
+// =============================================================================
+
+/**
+ * Role in a conversation turn.
+ */
+export type ConversationRole = 'user' | 'assistant';
+
+/**
+ * Single message in conversation history.
+ */
+export interface ConversationMessage {
+  /** Message role */
+  role: ConversationRole;
+  /** Message content */
+  content: string;
+  /** ISO-8601 timestamp */
+  timestamp: string;
+}
+
+/** Maximum conversation history turns to retain */
+export const MAX_CONVERSATION_HISTORY = 10;
+
+// =============================================================================
 // Permissions
 // =============================================================================
 
@@ -227,6 +251,9 @@ export interface AppState {
   explorationPath: ExplorationStep[];
   currentContext: ConversationalContext;
 
+  // Conversation history (last N turns for follow-ups)
+  conversationHistory: ConversationMessage[];
+
   // Buffers
   inputBuffer: string;
   streamBuffer: StreamChunk[];
@@ -287,7 +314,9 @@ export type AppMessage =
       payload: { questions: UserQuestion[] | null };
     }
   | { type: 'SET_FOCUS'; payload: { target: FocusTarget } }
-  | { type: 'SET_CHECKPOINT'; payload: { checkpoint: SessionCheckpoint } };
+  | { type: 'SET_CHECKPOINT'; payload: { checkpoint: SessionCheckpoint } }
+  | { type: 'ADD_CONVERSATION_MESSAGE'; payload: { message: ConversationMessage } }
+  | { type: 'CLEAR_CONVERSATION_HISTORY' };
 
 // =============================================================================
 // Reducer
@@ -330,6 +359,7 @@ export function createInitialState(): AppState {
       lastUserResponse: null,
       pendingOptions: [],
     },
+    conversationHistory: [],
     inputBuffer: '',
     streamBuffer: [],
     findings: [],

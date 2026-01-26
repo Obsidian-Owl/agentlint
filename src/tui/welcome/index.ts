@@ -13,6 +13,14 @@ export {
   getWelcomeUserPrompt,
   formatContextSummary,
 } from './welcome-prompt';
+export {
+  buildFollowUpPrompt,
+  createUserMessage,
+  createAssistantMessage,
+  formatHistoryForPrompt,
+  isFollowUpQuestion,
+  interpretNumericChoice,
+} from './conversation';
 
 export type {
   WelcomeContext,
@@ -23,3 +31,17 @@ export type {
   LoadingProgressCallback,
   ContextLoaderOptions,
 } from './types';
+
+export type { ConversationTurn, FollowUpPromptOptions } from './conversation';
+
+export {
+  saveConversationSession,
+  loadConversationSession,
+  clearConversationSession,
+  createConversationSession,
+  addMessageToSession,
+  isSessionForProject,
+  isSessionStale,
+} from './session-persistence';
+
+export type { ConversationSession } from './session-persistence';

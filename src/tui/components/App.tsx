@@ -23,6 +23,7 @@ import { FindingsList } from './FindingsList';
 import { Summary } from './Summary';
 import { StatusBar } from './StatusBar';
 import { LoadingProgress } from './LoadingProgress';
+import { ConversationHistory } from './ConversationHistory';
 import type {
   AppProps,
   AppState,
@@ -251,6 +252,11 @@ function InnerApp({
           <Box marginBottom={1}>
             <Progress phase={analysisPhase} isActive={true} elapsedMs={elapsedMs} />
           </Box>
+        )}
+
+        {/* Conversation History (when conversing or has history) */}
+        {state.conversationHistory.length > 0 && (
+          <ConversationHistory messages={state.conversationHistory} />
         )}
 
         {/* Agent Output */}

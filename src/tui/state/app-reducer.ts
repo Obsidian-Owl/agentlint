@@ -8,6 +8,7 @@
  */
 
 import type { AppState, AppMessage, AppReducer, TuiState } from '../types';
+import { MAX_CONVERSATION_HISTORY } from '../types';
 
 function getTuiStateLabel(state: TuiState): string {
   switch (state) {
@@ -197,6 +198,24 @@ export const appReducer: AppReducer = (state: AppState, message: AppMessage): Ap
       return {
         ...state,
         lastCheckpoint: message.payload.checkpoint,
+      };
+
+    case 'ADD_CONVERSATION_MESSAGE': {
+      const history = [...state.conversationHistory, message.payload.message];
+      const trimmed =
+        history.length > MAX_CONVERSATION_HISTORY
+          ? history.slice(-MAX_CONVERSATION_HISTORY)
+          : history;
+      return {
+        ...state,
+        conversationHistory: trimmed,
+      };
+    }
+
+    case 'CLEAR_CONVERSATION_HISTORY':
+      return {
+        ...state,
+        conversationHistory: [],
       };
 
     default:
