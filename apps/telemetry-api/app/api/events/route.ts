@@ -61,6 +61,8 @@ function isValidEvent(event: unknown): event is TelemetryEvent {
   return (
     typeof e.type === 'string' &&
     typeof e.timestamp === 'string' &&
+    typeof e.startTime === 'number' &&
+    typeof e.endTime === 'number' &&
     typeof e.sessionId === 'string' &&
     typeof e.eventId === 'string' &&
     typeof e.sequence === 'number' &&
@@ -224,7 +226,7 @@ function buildHoneyHiveMetadata(event: TelemetryEvent): Record<string, unknown> 
   if (event.type === 'llm.usage') {
     return {
       ...base,
-      total_tokens: (event.data.inputTokens as number ?? 0) + (event.data.outputTokens as number ?? 0),
+      total_tokens: ((event.data.inputTokens as number) ?? 0) + ((event.data.outputTokens as number) ?? 0),
       prompt_tokens: event.data.inputTokens ?? 0,
       completion_tokens: event.data.outputTokens ?? 0,
       cost: event.data.cost,
