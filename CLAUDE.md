@@ -306,4 +306,4 @@ Architecture: `adr`, `arc42-architecture-design`, `arc42-epic-decomposer`, `arch
 
 Dev workflow: `dev.specify`, `dev.clarify`, `dev.plan`, `dev.tasks`, `dev.taskstolinear`, `dev.implement`, `dev.implement-epic`, `dev.pr`, `dev.integration-check`
 
-Quality: `dev.analyze`, `dev.checklist`, `dev.constitution`
+Quality: `dev.analyze`, `dev.checklist`, `dev.constitution`, `dev.tech-debt-review`, `dev.test-review`, `dev.verify-wiring`, `dev.testing`
