@@ -47,6 +47,12 @@ export interface StatusBarContext {
   model: string;
   openRecommendations: number;
   projectPath: string;
+  elapsedMs?: number;
+  tokenUsage?: {
+    used: number;
+    limit: number;
+  };
+  warnings?: string[];
 }
 
 // =============================================================================
