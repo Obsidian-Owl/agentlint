@@ -69,12 +69,15 @@ export class InkRenderer implements ITuiRenderer {
   private conversationHistory: ConversationMessage[] = [];
   private welcomeMenuOptions: WelcomeMenuOption[] = [];
   private agentState: AgentWorkState = { phase: 'idle' };
+  private cumulativeTokens: { input: number; output: number } = { input: 0, output: 0 };
+  private sessionStartTime: number = Date.now();
   private statusBar: StatusBarContext = {
     helpHint: 'ctrl+? help',
     status: 'Loading...',
     model: '',
     openRecommendations: 0,
     projectPath: process.cwd(),
+    elapsedMs: 0,
   };
 
   /**
@@ -186,6 +189,29 @@ export class InkRenderer implements ITuiRenderer {
     if (chunk.type === 'finding' && chunk.metadata?.finding) {
       this.findings.push(chunk.metadata.finding as Finding);
     }
+
+    if (chunk.type === 'status' && chunk.metadata) {
+      const inputTokens = chunk.metadata.inputTokens as number | undefined;
+      const outputTokens = chunk.metadata.outputTokens as number | undefined;
+      if (inputTokens !== undefined) {
+        this.cumulativeTokens.input += inputTokens;
+      }
+      if (outputTokens !== undefined) {
+        this.cumulativeTokens.output += outputTokens;
+      }
+      const totalUsed = this.cumulativeTokens.input + this.cumulativeTokens.output;
+      if (totalUsed > 0) {
+        this.statusBar = {
+          ...this.statusBar,
+          tokenUsage: { used: totalUsed, limit: 200000 },
+        };
+      }
+    }
+
+    this.statusBar = {
+      ...this.statusBar,
+      elapsedMs: Date.now() - this.sessionStartTime,
+    };
 
     // Derive agent work state from chunk type
     switch (chunk.type) {
