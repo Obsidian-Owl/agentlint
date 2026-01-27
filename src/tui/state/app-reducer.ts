@@ -236,8 +236,31 @@ export const appReducer: AppReducer = (state: AppState, message: AppMessage): Ap
         agentWorkState: message.payload.state,
       };
 
+    case 'SET_LAST_SESSION':
+      return {
+        ...state,
+        lastSession: message.payload.session,
+      };
+
+    case 'SET_TOP_RECOMMENDATION':
+      return {
+        ...state,
+        topRecommendation: message.payload.recommendation,
+      };
+
+    case 'SET_PROGRESS_STATS':
+      return {
+        ...state,
+        progressStats: message.payload.stats,
+      };
+
+    case 'SET_PENDING_FEEDBACK':
+      return {
+        ...state,
+        pendingFeedback: message.payload.feedback,
+      };
+
     default:
-      // TypeScript exhaustiveness check
       return state;
   }
 };

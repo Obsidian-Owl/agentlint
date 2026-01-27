@@ -1,6 +1,11 @@
 import type { StreamChunk } from '../../orchestration/types';
 import type { AgentWorkState } from '../state/agent-state';
-import type { StatusBarContext } from '../types';
+import type {
+  StatusBarContext,
+  LastSessionInfo,
+  TopRecommendationData,
+  ProgressStatsData,
+} from '../types';
 import type { MenuOption } from '../components/ActionMenu';
 
 export const sampleAgentStates: AgentWorkState[] = [
@@ -84,3 +89,32 @@ export const sampleLoadingSteps = [
   { id: 'recommendations' as const, label: 'Loading recommendations', status: 'loading' as const },
   { id: 'git' as const, label: 'Git status', status: 'pending' as const },
 ];
+
+export const sampleLastSession: LastSessionInfo = {
+  sessionDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000),
+  durationMs: 45 * 60 * 1000,
+  findingsCount: 5,
+  recommendationsCreated: 3,
+};
+
+export const sampleTopRecommendation: TopRecommendationData = {
+  id: 'rec-001',
+  title: 'Add functional patterns to CLAUDE.md',
+  becauseClause:
+    'You frequently encounter map/filter/reduce suggestions but have no documented preference',
+  recurrenceCount: 4,
+  priority: 'high',
+};
+
+export const sampleProgressStats: ProgressStatsData = {
+  period: 'last 30 days',
+  recommendationsApplied: 8,
+  helpfulCount: 6,
+  totalFeedback: 8,
+  improvementPercent: 15,
+  improvementMetric: 'session efficiency',
+  mostEffective: {
+    title: 'Add error handling patterns',
+    preventedIssues: 12,
+  },
+};

@@ -28,6 +28,10 @@ import { ConversationHistory } from './ConversationHistory';
 import { ActionMenu } from './ActionMenu';
 import { AgentStateIndicator } from './AgentStateIndicator';
 import { ResumePrompt } from './ResumePrompt';
+import { SessionSummary } from './SessionSummary';
+import { TopRecommendation } from './TopRecommendation';
+import { FeedbackPrompt } from './FeedbackPrompt';
+import { ProgressStats } from './ProgressStats';
 import { formatMenuSubtitle } from '../welcome/welcome-prompt';
 import type {
   AppProps,
@@ -266,6 +270,37 @@ function InnerApp({
           <ConversationHistory messages={state.conversationHistory} />
         )}
 
+        {/* Session Summary (when in welcome state with last session data) */}
+        {state.tuiState === 'welcome' && state.lastSession && (
+          <Box marginBottom={1}>
+            <SessionSummary
+              lastSession={state.lastSession}
+              gitSummary={null}
+              openRecommendations={statusBar.openRecommendations}
+            />
+          </Box>
+        )}
+
+        {/* Top Recommendation (when in welcome state with recommendation) */}
+        {state.tuiState === 'welcome' && state.topRecommendation && (
+          <Box marginBottom={1}>
+            <TopRecommendation
+              recommendation={state.topRecommendation}
+              onApply={(id) => onMenuSelect?.(`apply-recommendation:${id}`)}
+              onDismiss={(id) => onMenuSelect?.(`dismiss-recommendation:${id}`)}
+              onDetails={(id) => onMenuSelect?.(`recommendation-details:${id}`)}
+              disabled={isStreaming}
+            />
+          </Box>
+        )}
+
+        {/* Progress Stats (when in welcome state with sufficient data) */}
+        {state.tuiState === 'welcome' && state.progressStats && (
+          <Box marginBottom={1}>
+            <ProgressStats stats={state.progressStats} />
+          </Box>
+        )}
+
         {/* Welcome Menu (when in welcome state with options) */}
         {state.tuiState === 'welcome' && state.welcomeMenuOptions.length > 0 && (
           <Box marginBottom={1}>
@@ -321,6 +356,29 @@ function InnerApp({
         {analysisPhase === 'presenting' && !isStreaming && findings.length > 0 && (
           <Box marginBottom={1}>
             <Summary findings={findings} elapsedMs={elapsedMs} success={true} />
+          </Box>
+        )}
+
+        {/* Feedback Prompt (after analysis, when pending) */}
+        {state.pendingFeedback && !isStreaming && (
+          <Box marginBottom={1}>
+            <FeedbackPrompt
+              recommendationTitle={state.pendingFeedback.recommendationTitle}
+              recommendationId={state.pendingFeedback.recommendationId}
+              onHelpful={(id) => {
+                dispatch({ type: 'SET_PENDING_FEEDBACK', payload: { feedback: null } });
+                onMenuSelect?.(`feedback-helpful:${id}`);
+              }}
+              onNotHelpful={(id) => {
+                dispatch({ type: 'SET_PENDING_FEEDBACK', payload: { feedback: null } });
+                onMenuSelect?.(`feedback-not-helpful:${id}`);
+              }}
+              onSkip={(id) => {
+                dispatch({ type: 'SET_PENDING_FEEDBACK', payload: { feedback: null } });
+                onMenuSelect?.(`feedback-skip:${id}`);
+              }}
+              disabled={isStreaming}
+            />
           </Box>
         )}
 

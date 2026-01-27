@@ -11,6 +11,13 @@ import type { StreamChunk, Finding, Recommendation } from '../orchestration/type
 import type { SessionCheckpoint } from '../orchestration/checkpoint-types';
 import type { WelcomeMenuOption } from './welcome/welcome-prompt';
 import type { AgentWorkState } from './state/agent-state';
+import type { LastSessionInfo, SessionSummaryProps } from './components/SessionSummary';
+import type { TopRecommendationData } from './components/TopRecommendation';
+import type { ProgressStatsData } from './components/ProgressStats';
+
+export type { LastSessionInfo, SessionSummaryProps };
+export type { TopRecommendationData };
+export type { ProgressStatsData };
 
 // =============================================================================
 // TUI State Machine
@@ -280,6 +287,11 @@ export interface AppState {
     featureDir: string;
   } | null;
 
+  lastSession: LastSessionInfo | null;
+  topRecommendation: TopRecommendationData | null;
+  progressStats: ProgressStatsData | null;
+  pendingFeedback: { recommendationId: string; recommendationTitle: string } | null;
+
   // Buffers
   inputBuffer: string;
   streamBuffer: StreamChunk[];
@@ -358,7 +370,14 @@ export type AppMessage =
         } | null;
       };
     }
-  | { type: 'SET_AGENT_WORK_STATE'; payload: { state: AgentWorkState } };
+  | { type: 'SET_AGENT_WORK_STATE'; payload: { state: AgentWorkState } }
+  | { type: 'SET_LAST_SESSION'; payload: { session: LastSessionInfo | null } }
+  | { type: 'SET_TOP_RECOMMENDATION'; payload: { recommendation: TopRecommendationData | null } }
+  | { type: 'SET_PROGRESS_STATS'; payload: { stats: ProgressStatsData | null } }
+  | {
+      type: 'SET_PENDING_FEEDBACK';
+      payload: { feedback: { recommendationId: string; recommendationTitle: string } | null };
+    };
 
 // =============================================================================
 // Reducer
@@ -413,6 +432,10 @@ export function createInitialState(): AppState {
     pendingPermission: null,
     pendingQuestions: null,
     lastCheckpoint: null,
+    lastSession: null,
+    topRecommendation: null,
+    progressStats: null,
+    pendingFeedback: null,
   };
 }
 

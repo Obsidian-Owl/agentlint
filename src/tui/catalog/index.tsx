@@ -9,6 +9,11 @@ import { QuitDialog } from '../components/QuitDialog';
 import { LoadingProgress } from '../components/LoadingProgress';
 import { ToolPhaseRenderer } from '../components/ToolPhaseRenderer';
 import { Progress } from '../components/Progress';
+import { SessionSummary } from '../components/SessionSummary';
+import { TopRecommendation } from '../components/TopRecommendation';
+import { FeedbackPrompt } from '../components/FeedbackPrompt';
+import { ProgressStats } from '../components/ProgressStats';
+import { ResumePrompt } from '../components/ResumePrompt';
 
 import {
   sampleAgentStates,
@@ -16,6 +21,9 @@ import {
   sampleStatusBar,
   sampleMenuOptions,
   sampleLoadingSteps,
+  sampleLastSession,
+  sampleTopRecommendation,
+  sampleProgressStats,
 } from './samples';
 
 interface CatalogItem {
@@ -95,6 +103,64 @@ const catalogItems: CatalogItem[] = [
   {
     name: 'Progress - complete',
     render: () => <Progress phase="complete" percent={100} elapsedMs={45000} isActive={false} />,
+  },
+  {
+    name: 'SessionSummary',
+    render: () => (
+      <SessionSummary
+        lastSession={sampleLastSession}
+        gitSummary={null}
+        openRecommendations={3}
+        commitsSinceLastSession={12}
+        filesChangedSinceLastSession={8}
+      />
+    ),
+  },
+  {
+    name: 'TopRecommendation',
+    render: () => (
+      <TopRecommendation
+        recommendation={sampleTopRecommendation}
+        onApply={() => {}}
+        onDismiss={() => {}}
+        onDetails={() => {}}
+        disabled
+      />
+    ),
+  },
+  {
+    name: 'FeedbackPrompt',
+    render: () => (
+      <FeedbackPrompt
+        recommendationTitle="Add error handling patterns"
+        recommendationId="rec-001"
+        onHelpful={() => {}}
+        onNotHelpful={() => {}}
+        onSkip={() => {}}
+        disabled
+      />
+    ),
+  },
+  {
+    name: 'ProgressStats',
+    render: () => <ProgressStats stats={sampleProgressStats} />,
+  },
+  {
+    name: 'ResumePrompt',
+    render: () => (
+      <ResumePrompt
+        state={{
+          epicId: 'ep15',
+          epicTitle: 'Session Intelligence',
+          lastTask: 'T005',
+          lastTaskTitle: 'Implement session search',
+          completedTasks: 3,
+          totalTasks: 8,
+          featureDir: 'specs/ep15-session-intelligence',
+        }}
+        onSelect={() => {}}
+      />
+    ),
   },
 ];
 
