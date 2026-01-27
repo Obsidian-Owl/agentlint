@@ -380,7 +380,7 @@ Parallel Speedup: ~50% faster than sequential
 
 ### Wave 2: Core Infrastructure
 
-- [ ] **T04. Create MCP Server Skeleton**
+- [x] **T04. Create MCP Server Skeleton**
 
   **What to do**:
   - Create `src/opencode/mcp-server.ts` with `AgentlintMcpServer` class
@@ -429,7 +429,7 @@ Parallel Speedup: ~50% faster than sequential
 
 ---
 
-- [ ] **T05. Create Tool Definition Adapter**
+- [x] **T05. Create Tool Definition Adapter**
 
   **What to do**:
   - Create `src/opencode/tool-adapter.ts` with adapter functions

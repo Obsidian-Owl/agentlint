@@ -206,3 +206,75 @@ for await (const event of events.stream) {
 ### Commit Hash
 - `9333f21` - feat(opencode): implement server lifecycle manager and client wrapper
 
+
+## T04: MCP Server Skeleton
+
+### Completed
+- ✓ Created `src/opencode/mcp-server.ts` with `AgentlintMcpServer` class
+- ✓ Implemented `registerTool()` for dynamic tool registration
+- ✓ Implemented `handleToolsList()` for MCP `tools/list` requests
+- ✓ Implemented `handleToolsCall()` for MCP `tools/call` requests
+- ✓ Created `opencode.json` with MCP server configuration
+- ✓ Created `tests/unit/opencode/mcp-server.test.ts` with 10 tests (100% coverage)
+- ✓ All tests passing (4156 pass), typecheck clean
+- ✓ Atomic commit: `feat(opencode): implement MCP server skeleton`
+
+### Key Findings
+
+#### Sync vs Async Start Method
+- **Problem**: ESLint error `@typescript-eslint/require-await` on `async start()` with no await
+- **Solution**: Changed to synchronous `start(): void`
+- **Rationale**: In Opencode architecture, MCP server is started by Opencode itself via config
+- **Pattern**: Only use `async` when actually awaiting something
+
+#### MCP Protocol Design
+- Tools stored in `Map<string, ToolDefinition>` for O(1) lookup
+- `handleToolsList()` returns tool metadata (name, description, schema)
+- `handleToolsCall()` invokes tool handler with arguments
+- Error handling: throw on duplicate registration, tool not found
+
+#### Opencode.json Configuration
+- Existing file had Linear MCP server configured
+- Added agentlint MCP server alongside existing config
+- Format: `{ "mcp": { "agentlint": { "command": "node", "args": [...] } } }`
+
+### Commit Hash
+- `0d22a2e` - feat(opencode): implement MCP server skeleton
+
+
+## T05: Tool Definition Adapter
+
+### Completed
+- ✓ Created `src/opencode/tool-adapter.ts` with `adaptTool()` and `adaptTools()`
+- ✓ Zod schema → JSON Schema conversion using `zod-to-json-schema`
+- ✓ Content wrapper unwrapping for SDK response format
+- ✓ Created `tests/unit/opencode/tool-adapter.test.ts` with 7 tests
+- ✓ All tests passing, typecheck clean (LSP warning in node_modules only)
+- ✓ Atomic commit: `feat(opencode): implement tool definition adapter`
+
+### Key Findings
+
+#### Zod Schema Construction
+- **Problem**: Can't pass plain object `{ type: 'object', properties: {...} }` to `zodToJsonSchema`
+- **Solution**: Use `z.object(sdkTool.schema)` to create proper Zod schema first
+- **Pattern**: `const zodSchema = z.object(schema); zodToJsonSchema(zodSchema)`
+
+#### Schema Type Definition
+- Changed from `schema: Record<string, unknown>` to `schema: Record<string, z.ZodTypeAny>`
+- This ensures schema properties are actual Zod types (z.string(), z.number(), etc.)
+- Matches actual SDK tool pattern from codebase
+
+#### Content Unwrapping
+- SDK tools return `{ content: [...] }` wrapper
+- MCP tools return data directly
+- Adapter checks for `content` property and unwraps if present
+- Passes through non-wrapped responses unchanged
+
+#### Test Pattern
+- Use actual Zod schemas in tests: `z.string()`, `z.number()`
+- NOT plain objects: `{ type: 'string' }`
+- This matches real tool definitions in codebase
+
+### Commit Hash
+- (pending) - feat(opencode): implement tool definition adapter
+
