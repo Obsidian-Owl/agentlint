@@ -7,12 +7,12 @@
  * @module act
  */
 
-import type { AgentDefinition } from './types.js';
+import type { AgentDefinition, OpencodeAgentConfig } from './types.js';
 import { ACTSubagentRegistry } from './registry.js';
 import { getBundledInstructions } from './instructions/index.js';
 
 // Re-export public types
-export type { AgentDefinition, ACTInstructions, ACTType } from './types.js';
+export type { AgentDefinition, ACTInstructions, ACTType, OpencodeAgentConfig } from './types.js';
 export type {
   ACTAnalysisFindings,
   ACTConfigIssue,
@@ -39,4 +39,22 @@ export function buildACTSubagents(): Record<string, AgentDefinition> {
   }
 
   return registry.toAgentsOption();
+}
+
+/**
+ * Builds the Opencode agent configuration.
+ *
+ * Creates a registry, registers all bundled instructions, and returns
+ * the agents configuration in Opencode format.
+ *
+ * @returns Record of subagent names to OpencodeAgentConfig objects
+ */
+export function buildOpencodeAgents(): Record<string, OpencodeAgentConfig> {
+  const registry = new ACTSubagentRegistry();
+
+  for (const instructions of getBundledInstructions()) {
+    registry.register(instructions);
+  }
+
+  return registry.toOpencodeConfig();
 }
