@@ -720,7 +720,7 @@ Parallel Speedup: ~50% faster than sequential
 
 ---
 
-- [ ] **T11. Migrate Recommendation Tools (10 tools)**
+- [x] **T11. Migrate Recommendation Tools (10 tools)**
 
   **What to do**:
   - Migrate tools in `src/recommendations/tools/`:

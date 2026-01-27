@@ -7,8 +7,8 @@
  * @module src/skills/tools/get-session-summaries-tool
  */
 
-import { tool } from '@anthropic-ai/claude-agent-sdk';
 import { z } from 'zod';
+import { adaptTool } from '../../opencode/tool-adapter';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { openDatabaseSync, tableExists } from '../../persistence/common/database';
@@ -115,9 +115,9 @@ function formatToolOutput(result: GetSessionSummariesResult): string {
  * registry.register(getSessionSummariesTool);
  * ```
  */
-export const getSessionSummariesTool = tool(
-  'get_session_summaries',
-  `Retrieve session summaries with skills context for effectiveness analysis.
+export const getSessionSummariesTool = adaptTool({
+  name: 'get_session_summaries',
+  description: `Retrieve session summaries with skills context for effectiveness analysis.
 
 Returns session data that enables reasoning about skill usage patterns:
 - **firstUserPrompt**: What the user asked for (truncated to 500 chars)
@@ -137,12 +137,22 @@ Parameters:
 - **limit**: Max sessions to return (default: 50)
 
 The tool returns facts; the agent reasons about what they mean.`,
-  getSessionSummariesInputSchema,
-  async (args) => {
+  schema: getSessionSummariesInputSchema,
+  handler: async (args: unknown) => {
     try {
-      // Await to satisfy SDK's async handler requirement
       await Promise.resolve();
-      const result = getSessionSummariesImpl(args.since, args.until, args.projectPath, args.limit);
+      const typedArgs = args as {
+        since?: string;
+        until?: string;
+        projectPath?: string;
+        limit?: number;
+      };
+      const result = getSessionSummariesImpl(
+        typedArgs.since,
+        typedArgs.until,
+        typedArgs.projectPath,
+        typedArgs.limit
+      );
       const output = formatToolOutput(result);
 
       return {
@@ -174,8 +184,8 @@ The tool returns facts; the agent reasons about what they mean.`,
         _rawData: result,
       };
     }
-  }
-);
+  },
+});
 
 /**
  * Get session summaries from the database.

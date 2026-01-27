@@ -7,8 +7,8 @@
  * @module src/skills/tools/get-skill-inventory-tool
  */
 
-import { tool } from '@anthropic-ai/claude-agent-sdk';
 import { z } from 'zod';
+import { adaptTool } from '../../opencode/tool-adapter';
 import { getSkillInventory } from '../discovery';
 import type { GetSkillInventoryResult, SkillInventoryItem } from '../types';
 
@@ -103,9 +103,9 @@ function formatSkill(skill: SkillInventoryItem): string {
  * registry.register(getSkillInventoryTool);
  * ```
  */
-export const getSkillInventoryTool = tool(
-  'get_skill_inventory',
-  `Enumerate skills defined in a project's .claude/skills/ directory.
+export const getSkillInventoryTool = adaptTool({
+  name: 'get_skill_inventory',
+  description: `Enumerate skills defined in a project's .claude/skills/ directory.
 
 Returns for each skill:
 - **name**: Skill identifier from SKILL.md frontmatter
@@ -117,10 +117,11 @@ Returns for each skill:
 
 Use this to understand what skills exist in a project before analyzing invocations.
 The filePatterns are HINTS for agent reasoning - the agent decides if they're relevant.`,
-  getSkillInventoryInputSchema,
-  async (args) => {
+  schema: getSkillInventoryInputSchema,
+  handler: async (args: unknown) => {
     try {
-      const result = await getSkillInventory(args.projectPath);
+      const typedArgs = args as { projectPath?: string };
+      const result = await getSkillInventory(typedArgs.projectPath);
       const output = formatToolOutput(result);
 
       return {
@@ -145,5 +146,5 @@ The filePatterns are HINTS for agent reasoning - the agent decides if they're re
         isError: true,
       };
     }
-  }
-);
+  },
+});
