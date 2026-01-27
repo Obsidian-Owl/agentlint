@@ -23,8 +23,30 @@ import type {
   StatusBarContext,
 } from '../types';
 import type { WelcomeMenuOption } from '../welcome/welcome-prompt';
-import type { AgentWorkState } from '../state/agent-state';
+import type { AgentWorkState, AgentPhase } from '../state/agent-state';
 import type { StreamChunk, Finding } from '../../orchestration/types';
+
+// =============================================================================
+// Helper Functions
+// =============================================================================
+
+function getContextualHelpText(phase: AgentPhase): string {
+  switch (phase) {
+    case 'idle':
+    case 'complete':
+      return 'Enter to send • / commands • q quit';
+    case 'thinking':
+    case 'streaming':
+      return 'Agent working... • q to request stop';
+    case 'calling_tool':
+    case 'waiting_response':
+      return 'Running tool... • q to request stop';
+    case 'error':
+      return 'Error occurred • Enter to retry • q quit';
+    default:
+      return 'ctrl+? help';
+  }
+}
 
 // =============================================================================
 // Types
@@ -234,6 +256,11 @@ export class InkRenderer implements ITuiRenderer {
         this.agentState = { phase: 'error', message: chunk.content };
         break;
     }
+
+    this.statusBar = {
+      ...this.statusBar,
+      helpHint: getContextualHelpText(this.agentState.phase),
+    };
 
     this.rerender();
   }
