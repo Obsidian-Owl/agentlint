@@ -1,80 +1,73 @@
-/**
- * Opencode Server Lifecycle Manager
- *
- * Manages the lifecycle of the Opencode server process, including startup,
- * shutdown, health checks, and crash recovery.
- *
- * @module opencode/server
- */
+import { createOpencodeServer } from '@opencode-ai/sdk';
 
-/**
- * Configuration for OpencodeServerManager
- */
 export interface OpencodeServerConfig {
   port?: number;
-  healthCheckUrl?: string;
-  healthCheckIntervalMs?: number;
-  maxRetries?: number;
+  hostname?: string;
+  timeout?: number;
 }
 
-/**
- * Interface for managing Opencode server lifecycle
- */
 export interface IServerManager {
-  /**
-   * Start the Opencode server
-   */
   start(): Promise<void>;
-
-  /**
-   * Stop the Opencode server
-   */
-  stop(): Promise<void>;
-
-  /**
-   * Check if the server is currently running
-   */
+  stop(): void;
   isRunning(): boolean;
-
-  /**
-   * Get the port the server is running on
-   */
   getPort(): number;
+  getUrl(): string;
 }
 
-/**
- * Manages the lifecycle of the Opencode server process
- *
- * Handles startup, shutdown, health checks, and crash recovery.
- */
 export class OpencodeServerManager implements IServerManager {
-  private readonly config: OpencodeServerConfig;
+  private readonly config: Required<OpencodeServerConfig>;
+  private server: { url: string; close(): void } | null = null;
+  private running = false;
 
   constructor(config: OpencodeServerConfig = {}) {
     this.config = {
-      port: 4096,
-      healthCheckUrl: 'http://localhost:4096/health',
-      healthCheckIntervalMs: 5000,
-      maxRetries: 3,
-      ...config,
+      port: config.port ?? 4096,
+      hostname: config.hostname ?? '127.0.0.1',
+      timeout: config.timeout ?? 5000,
     };
-    // Config will be used in T02b-c implementation
-    void this.config;
   }
 
   async start(): Promise<void> {
-    return Promise.reject(new Error('Not implemented - will be added in T02b-c'));
+    if (this.running) {
+      throw new Error('Server is already running');
+    }
+
+    this.server = await createOpencodeServer({
+      port: this.config.port,
+      hostname: this.config.hostname,
+      timeout: this.config.timeout,
+    });
+
+    this.running = true;
   }
 
-  async stop(): Promise<void> {
-    return Promise.reject(new Error('Not implemented - will be added in T02b-c'));
+  stop(): void {
+    if (!this.server || !this.running) {
+      return;
+    }
+
+    const serverToClose = this.server;
+    this.server = null;
+    this.running = false;
+    serverToClose.close();
   }
 
   isRunning(): boolean {
-    throw new Error('Not implemented - will be added in T02b-c');
+    return this.running;
   }
 
   getPort(): number {
-    throw new Error('Not implemented - will be added in T02b-c');
+    if (!this.server) {
+      return this.config.port;
+    }
+    const url = new URL(this.server.url);
+    return parseInt(url.port, 10);
+  }
+
+  getUrl(): string {
+    if (!this.server) {
+      throw new Error('Server is not running');
+    }
+    return this.server.url;
   }
 }
