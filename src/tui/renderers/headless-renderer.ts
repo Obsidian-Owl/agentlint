@@ -20,6 +20,7 @@ import type {
 } from '../types';
 import type { StreamChunk } from '../../orchestration/types';
 import type { WelcomeMenuOption } from '../welcome/welcome-prompt';
+import type { AgentWorkState } from '../state/agent-state';
 
 // =============================================================================
 // Types
@@ -321,4 +322,6 @@ export class HeadlessRenderer implements ITuiRenderer {
   updateStatusBar(_updates: Partial<StatusBarContext>): void {}
 
   setWelcomeMenu(_options: WelcomeMenuOption[]): void {}
+
+  setAgentState(_state: AgentWorkState): void {}
 }

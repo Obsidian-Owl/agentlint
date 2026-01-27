@@ -23,6 +23,7 @@ import type {
   StatusBarContext,
 } from '../types';
 import type { WelcomeMenuOption } from '../welcome/welcome-prompt';
+import type { AgentWorkState } from '../state/agent-state';
 import type { StreamChunk, Finding } from '../../orchestration/types';
 
 // =============================================================================
@@ -67,6 +68,7 @@ export class InkRenderer implements ITuiRenderer {
   private loadingSteps: LoadingStep[] = [];
   private conversationHistory: ConversationMessage[] = [];
   private welcomeMenuOptions: WelcomeMenuOption[] = [];
+  private agentState: AgentWorkState = { phase: 'idle' };
   private statusBar: StatusBarContext = {
     helpHint: 'ctrl+? help',
     status: 'Loading...',
@@ -141,6 +143,7 @@ export class InkRenderer implements ITuiRenderer {
       conversationHistory: this.conversationHistory,
       statusBar: this.statusBar,
       welcomeMenuOptions: this.welcomeMenuOptions,
+      agentWorkState: this.agentState,
     };
     appProps.initialState = mergedInitialState;
     if (viewStack.length > 0) appProps.viewStack = viewStack;
@@ -182,6 +185,28 @@ export class InkRenderer implements ITuiRenderer {
     // Extract findings
     if (chunk.type === 'finding' && chunk.metadata?.finding) {
       this.findings.push(chunk.metadata.finding as Finding);
+    }
+
+    // Derive agent work state from chunk type
+    switch (chunk.type) {
+      case 'tool_start':
+        this.agentState = {
+          phase: 'calling_tool',
+          tool: (chunk.metadata?.toolName as string) ?? 'unknown',
+          startedAt: Date.now(),
+        };
+        break;
+      case 'tool_result':
+        this.agentState = { phase: 'thinking', startedAt: Date.now() };
+        break;
+      case 'text':
+        if (this.agentState.phase !== 'streaming') {
+          this.agentState = { phase: 'streaming', startedAt: Date.now() };
+        }
+        break;
+      case 'error':
+        this.agentState = { phase: 'error', message: chunk.content };
+        break;
     }
 
     this.rerender();
@@ -275,6 +300,11 @@ export class InkRenderer implements ITuiRenderer {
 
   setWelcomeMenu(options: WelcomeMenuOption[]): void {
     this.welcomeMenuOptions = [...options];
+    this.rerender();
+  }
+
+  setAgentState(state: AgentWorkState): void {
+    this.agentState = state;
     this.rerender();
   }
 }

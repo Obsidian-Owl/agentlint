@@ -10,6 +10,7 @@
 import type { StreamChunk, Finding, Recommendation } from '../orchestration/types';
 import type { SessionCheckpoint } from '../orchestration/checkpoint-types';
 import type { WelcomeMenuOption } from './welcome/welcome-prompt';
+import type { AgentWorkState } from './state/agent-state';
 
 // =============================================================================
 // TUI State Machine
@@ -244,6 +245,9 @@ export interface AppState {
   isStreaming: boolean;
   isPaused: boolean;
 
+  // Agent work state (for UI feedback)
+  agentWorkState: AgentWorkState;
+
   // View management
   viewStack: DialogType[];
   focusTarget: FocusTarget;
@@ -321,7 +325,8 @@ export type AppMessage =
   | { type: 'SET_CHECKPOINT'; payload: { checkpoint: SessionCheckpoint } }
   | { type: 'ADD_CONVERSATION_MESSAGE'; payload: { message: ConversationMessage } }
   | { type: 'CLEAR_CONVERSATION_HISTORY' }
-  | { type: 'SET_WELCOME_MENU'; payload: { options: WelcomeMenuOption[] } };
+  | { type: 'SET_WELCOME_MENU'; payload: { options: WelcomeMenuOption[] } }
+  | { type: 'SET_AGENT_WORK_STATE'; payload: { state: AgentWorkState } };
 
 // =============================================================================
 // Reducer
@@ -353,6 +358,7 @@ export function createInitialState(): AppState {
     analysisPhase: 'idle',
     isStreaming: false,
     isPaused: false,
+    agentWorkState: { phase: 'idle' },
     viewStack: [],
     focusTarget: 'main',
     explorationPath: [],
@@ -550,4 +556,6 @@ export interface ITuiRenderer {
   updateStatusBar(updates: Partial<StatusBarContext>): void;
   /** Set the welcome menu options */
   setWelcomeMenu(options: WelcomeMenuOption[]): void;
+  /** Set the agent work state */
+  setAgentState(state: AgentWorkState): void;
 }

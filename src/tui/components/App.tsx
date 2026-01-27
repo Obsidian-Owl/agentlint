@@ -25,6 +25,7 @@ import { StatusBar } from './StatusBar';
 import { LoadingProgress } from './LoadingProgress';
 import { ConversationHistory } from './ConversationHistory';
 import { ActionMenu } from './ActionMenu';
+import { AgentStateIndicator } from './AgentStateIndicator';
 import { formatMenuSubtitle } from '../welcome/welcome-prompt';
 import type {
   AppProps,
@@ -283,6 +284,13 @@ function InnerApp({
               }}
               disabled={isStreaming}
             />
+          </Box>
+        )}
+
+        {/* Agent State Indicator (during analysis) */}
+        {state.agentWorkState.phase !== 'idle' && (
+          <Box marginBottom={1}>
+            <AgentStateIndicator state={state.agentWorkState} />
           </Box>
         )}
 

@@ -224,6 +224,12 @@ export const appReducer: AppReducer = (state: AppState, message: AppMessage): Ap
         welcomeMenuOptions: message.payload.options,
       };
 
+    case 'SET_AGENT_WORK_STATE':
+      return {
+        ...state,
+        agentWorkState: message.payload.state,
+      };
+
     default:
       // TypeScript exhaustiveness check
       return state;
