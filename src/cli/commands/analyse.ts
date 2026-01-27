@@ -77,6 +77,10 @@ import { buildSessionAnalystAgent } from '../../sessions/subagent';
 import { buildQueryPrompt } from '../../sessions/tools/spawn-session-analyst';
 import type { SessionAnalysisContext } from '../../sessions/subagent/types';
 
+// Welcome flow and conversation mode imports
+import { runWelcomeFlow } from './welcome-flow';
+import { ConversationManager } from './conversation-manager';
+
 /**
  * Options for the analyse command.
  */
@@ -769,16 +773,35 @@ async function runOrchestratedAnalysis(
   // Bind interrupt handler
   process.on('SIGINT', handleInterrupt);
 
-  // Start TUI renderer if present (for Ink mode)
+  // Start TUI renderer and welcome flow if present (for Ink mode)
+  let conversationManager: ConversationManager | undefined;
   if (tuiRenderer) {
     tuiRenderer.start({
-      onInput: (_input) => {
-        // Future: feed back into orchestrator for follow-up prompts
+      onInput: async (input) => {
+        if (conversationManager) {
+          await conversationManager.handleInput(input);
+        }
       },
-      onExit: () => {
+      onExit: async () => {
         interrupted = true;
+        handleInterrupt();
+        if (conversationManager) {
+          await conversationManager.saveSession();
+        }
       },
     });
+
+    const welcomeResult = await runWelcomeFlow(tuiRenderer, { projectPath: directory });
+
+    conversationManager = new ConversationManager({
+      tuiRenderer,
+      orchestrator,
+      welcomeContext: welcomeResult.context,
+      projectPath: directory,
+    });
+    await conversationManager.initialize();
+
+    tuiRenderer.setTuiState('analysing');
   }
 
   try {
@@ -967,6 +990,10 @@ async function runOrchestratedAnalysis(
 
       renderer.renderComplete(result);
       renderer.flush();
+
+      if (tuiRenderer) {
+        tuiRenderer.setTuiState('presenting');
+      }
 
       return result;
     });

@@ -39,6 +39,11 @@ function createMockRenderer(): ITuiRenderer & { mockDecision: PermissionDecision
     renderComplete: mock((_result: unknown) => {}),
     requestPermission: mock(async (_request) => mockDecision),
     requestUserAnswers: mock(async (_request) => ({})),
+    setTuiState: mock(() => {}),
+    setLoadingSteps: mock(() => {}),
+    updateLoadingStep: mock(() => {}),
+    addConversationMessage: mock(() => {}),
+    updateStatusBar: mock(() => {}),
   };
 }
 

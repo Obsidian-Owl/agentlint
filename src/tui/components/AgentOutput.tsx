@@ -47,9 +47,8 @@ function ChunkRenderer({ chunk }: ChunkRendererProps): React.ReactElement {
 
     case 'text':
     default:
-      // Verbose content can be dimmed
       if (level === 'verbose') {
-        return <Text dimColor>{content}</Text>;
+        return <Text dimColor>{renderMarkdown(content)}</Text>;
       }
       return <Text wrap="wrap">{renderMarkdown(content)}</Text>;
   }
@@ -76,7 +75,9 @@ export function AgentOutput({ chunks, isStreaming }: AgentOutputProps): React.Re
   return (
     <Box flexDirection="column">
       {chunks.map((chunk, index) => (
-        <ChunkRenderer key={`${chunk.timestamp}-${chunk.type}-${index}`} chunk={chunk} />
+        <Box key={`${chunk.timestamp}-${chunk.type}-${index}`} marginBottom={1}>
+          <ChunkRenderer chunk={chunk} />
+        </Box>
       ))}
       {isStreaming && (
         <Box>

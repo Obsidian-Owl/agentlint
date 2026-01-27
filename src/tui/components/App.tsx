@@ -40,9 +40,9 @@ import { createInitialState } from '../types';
 // =============================================================================
 
 interface InnerAppProps {
-  onInput?: ((input: string) => void) | undefined;
+  onInput?: ((input: string) => void | Promise<void>) | undefined;
   onStart?: (() => void) | undefined;
-  onExit?: (() => void) | undefined;
+  onExit?: (() => void | Promise<void>) | undefined;
   streamState?: StreamState;
   propsPendingPermission?: { tool: string; description: string; pattern?: string } | null;
   propsPendingQuestions?: UserQuestion[] | null;
@@ -98,7 +98,7 @@ function InnerApp({
   const handleInputSubmit = useCallback(
     (value: string) => {
       if (value.trim()) {
-        onInput?.(value);
+        void onInput?.(value);
         setInputValue('');
         dispatch({ type: 'CLEAR_INPUT_BUFFER' });
       }
@@ -178,10 +178,8 @@ function InnerApp({
         // Don't handle input when dialog is open
         if (currentDialog) return;
 
-        // Exit on 'q'
         if (input === 'q') {
-          onExit?.();
-          exit();
+          void Promise.resolve(onExit?.()).finally(() => exit());
           return;
         }
 

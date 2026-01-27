@@ -17,6 +17,10 @@ import type {
   AnalysisPhase,
   StreamState,
   DialogType,
+  TuiState,
+  LoadingStep,
+  ConversationMessage,
+  StatusBarContext,
 } from '../types';
 import type { StreamChunk, Finding } from '../../orchestration/types';
 
@@ -54,9 +58,20 @@ export class InkRenderer implements ITuiRenderer {
   private isStreaming = false;
   private pendingPermission: PermissionRequest | null = null;
   private pendingQuestions: QuestionRequest | null = null;
-  private onInputCallback?: (input: string) => void;
-  private onExitCallback?: () => void;
+  private onInputCallback?: (input: string) => void | Promise<void>;
+  private onExitCallback?: () => void | Promise<void>;
   private onStartCallback?: () => void;
+
+  private tuiState: TuiState = 'loading';
+  private loadingSteps: LoadingStep[] = [];
+  private conversationHistory: ConversationMessage[] = [];
+  private statusBar: StatusBarContext = {
+    helpHint: 'ctrl+? help',
+    status: 'Loading...',
+    model: '',
+    openRecommendations: 0,
+    projectPath: process.cwd(),
+  };
 
   /**
    * Start the TUI.
@@ -117,7 +132,14 @@ export class InkRenderer implements ITuiRenderer {
       },
     };
 
-    if (initialState) appProps.initialState = initialState;
+    const mergedInitialState = {
+      ...initialState,
+      tuiState: this.tuiState,
+      loadingSteps: this.loadingSteps,
+      conversationHistory: this.conversationHistory,
+      statusBar: this.statusBar,
+    };
+    appProps.initialState = mergedInitialState;
     if (viewStack.length > 0) appProps.viewStack = viewStack;
     if (this.onInputCallback) appProps.onInput = this.onInputCallback;
     if (this.onExitCallback) appProps.onExit = this.onExitCallback;
@@ -214,5 +236,37 @@ export class InkRenderer implements ITuiRenderer {
       return;
     }
     this.instance.rerender(React.createElement(App, this.buildAppProps()));
+  }
+
+  setTuiState(state: TuiState): void {
+    this.tuiState = state;
+    this.rerender();
+  }
+
+  setLoadingSteps(steps: LoadingStep[]): void {
+    this.loadingSteps = [...steps];
+    this.rerender();
+  }
+
+  updateLoadingStep(id: string, status: LoadingStep['status'], detail?: string): void {
+    const stepIndex = this.loadingSteps.findIndex((s) => s.id === id);
+    if (stepIndex >= 0) {
+      this.loadingSteps[stepIndex] = {
+        ...this.loadingSteps[stepIndex]!,
+        status,
+        ...(detail !== undefined ? { detail } : {}),
+      };
+      this.rerender();
+    }
+  }
+
+  addConversationMessage(message: ConversationMessage): void {
+    this.conversationHistory = [...this.conversationHistory, message];
+    this.rerender();
+  }
+
+  updateStatusBar(updates: Partial<StatusBarContext>): void {
+    this.statusBar = { ...this.statusBar, ...updates };
+    this.rerender();
   }
 }

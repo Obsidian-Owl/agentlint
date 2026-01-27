@@ -404,12 +404,12 @@ export interface AppProps {
   pendingQuestions?: UserQuestion[] | null;
   /** Current dialog stack from InkRenderer */
   viewStack?: DialogType[];
-  /** Callback when user submits input */
-  onInput?: (input: string) => void;
+  /** Callback when user submits input (can be async) */
+  onInput?: (input: string) => void | Promise<void>;
   /** Callback when analysis should start */
   onStart?: () => void;
-  /** Callback when user exits */
-  onExit?: () => void;
+  /** Callback when user exits (can be async for cleanup) */
+  onExit?: () => void | Promise<void>;
   /** Callback when permission decision is made */
   onPermissionDecision?: (decision: PermissionDecision) => void;
   /** Callback when question answers are submitted */
@@ -525,4 +525,19 @@ export interface ITuiRenderer {
   }): Promise<PermissionDecision>;
   /** Request answers to questions from user (AskUserQuestion tool) */
   requestUserAnswers(request: { questions: UserQuestion[] }): Promise<Record<string, string>>;
+
+  // =============================================================================
+  // TUI State Control (Welcome Flow + Conversation Mode)
+  // =============================================================================
+
+  /** Set the current TUI state (loading, welcome, analysing, etc.) */
+  setTuiState(state: TuiState): void;
+  /** Set the loading steps for the progress display */
+  setLoadingSteps(steps: LoadingStep[]): void;
+  /** Update a specific loading step's status */
+  updateLoadingStep(id: string, status: LoadingStep['status'], detail?: string): void;
+  /** Add a message to the conversation history */
+  addConversationMessage(message: ConversationMessage): void;
+  /** Update the status bar */
+  updateStatusBar(updates: Partial<StatusBarContext>): void;
 }

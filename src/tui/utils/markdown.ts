@@ -18,5 +18,6 @@ export function renderMarkdown(content: string): string {
   if (typeof rendered !== 'string') {
     return content;
   }
-  return rendered.trim();
+  // Only trim leading whitespace, preserve trailing newlines for proper spacing
+  return rendered.trimStart();
 }
