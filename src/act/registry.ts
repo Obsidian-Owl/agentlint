@@ -7,7 +7,7 @@
  */
 
 import type { ACTType } from '../tools/types.js';
-import type { AgentDefinition, ACTInstructions } from './types.js';
+import type { AgentDefinition, ACTInstructions, OpencodeAgentConfig } from './types.js';
 import { ACTInstructionsSchema } from './types.js';
 
 /**
@@ -41,6 +41,12 @@ export interface IACTSubagentRegistry {
    * @returns Record<string, AgentDefinition> for SDK query options
    */
   toAgentsOption(): Record<string, AgentDefinition>;
+
+  /**
+   * Convert registry to Opencode agent configuration format.
+   * @returns Record<string, OpencodeAgentConfig> for Opencode server config
+   */
+  toOpencodeConfig(): Record<string, OpencodeAgentConfig>;
 }
 
 /**
@@ -129,5 +135,67 @@ export class ACTSubagentRegistry implements IACTSubagentRegistry {
     }
 
     return agents;
+  }
+
+  /**
+   * Convert registry to Opencode agent configuration format.
+   *
+   * Maps ACTInstructions to OpencodeAgentConfig objects, converting:
+   * - Tool arrays to boolean flags + permission map
+   * - SDK model names to Anthropic API format
+   * - Enforces depth=1 by setting tools.task = false
+   *
+   * @returns Record<string, OpencodeAgentConfig> for Opencode server config
+   */
+  toOpencodeConfig(): Record<string, OpencodeAgentConfig> {
+    const agents: Record<string, OpencodeAgentConfig> = {};
+
+    for (const instructions of this.subagents.values()) {
+      agents[instructions.name] = {
+        description: instructions.description,
+        mode: 'subagent',
+        prompt: instructions.prompt,
+        tools: {
+          read: true,
+          write: false,
+          bash: false,
+          task: false, // Enforce depth=1 (no nested subagents)
+        },
+        permission: this.buildPermissions(instructions.tools),
+        model: this.mapModel(instructions.model),
+      };
+    }
+
+    return agents;
+  }
+
+  /**
+   * Build permission map for MCP tools.
+   * Converts tool name array to permission record.
+   */
+  private buildPermissions(tools: readonly string[]): Record<string, 'allow'> {
+    const permissions: Record<string, 'allow'> = {};
+    for (const tool of tools) {
+      // MCP tools are prefixed with 'mcp__agentlint__'
+      permissions[`mcp__agentlint__${tool}`] = 'allow';
+    }
+    return permissions;
+  }
+
+  /**
+   * Map SDK model names to Anthropic API format.
+   */
+  private mapModel(model?: string): string {
+    if (!model || model === 'inherit') {
+      return 'anthropic/claude-sonnet-4-20250514';
+    }
+
+    const modelMap: Record<string, string> = {
+      sonnet: 'anthropic/claude-sonnet-4-20250514',
+      opus: 'anthropic/claude-opus-4-20250514',
+      haiku: 'anthropic/claude-haiku-4-20250514',
+    };
+
+    return modelMap[model] || 'anthropic/claude-sonnet-4-20250514';
   }
 }
