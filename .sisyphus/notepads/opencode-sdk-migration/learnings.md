@@ -137,3 +137,72 @@ for await (const event of events.stream) {
 - **T03 (Client)**: Use `createOpencodeClient({ baseUrl })` for connection
 - Both are simpler than originally planned
 
+
+## T02 & T03: Server Lifecycle Manager and Client Wrapper
+
+### Completed
+- ✓ Created `src/opencode/server.ts` with `OpencodeServerManager` class
+- ✓ Created `src/opencode/client.ts` with `AgentlintOpencodeClient` class
+- ✓ Both use actual Opencode SDK API (`createOpencodeServer`, `createOpencodeClient`)
+- ✓ Fixed TypeScript errors (renamed class to avoid SDK type conflict)
+- ✓ Fixed ESLint errors (proper error stringification, sync stop method)
+- ✓ All tests passing (4146 pass), typecheck clean
+- ✓ Atomic commit created: `feat(opencode): implement server lifecycle manager and client wrapper`
+
+### Key Findings
+
+#### Class Naming Conflict (T03)
+- **Problem**: Class name `OpencodeClient` conflicted with SDK's `OpencodeClient` type import
+- **Solution**: Renamed to `AgentlintOpencodeClient` to avoid collision
+- **Pattern**: When wrapping SDK types, use project-specific prefix to avoid naming conflicts
+
+#### Error Handling Pattern
+- **Problem**: ESLint error `@typescript-eslint/no-base-to-string` when using `String(result.error)`
+- **Solution**: Check for `message` property first, then stringify: 
+  ```typescript
+  const errorMsg: string = 'message' in result.error 
+    ? String(result.error.message) 
+    : JSON.stringify(result.error);
+  ```
+- **Pattern**: Always type-check error objects before stringification
+
+#### Sync vs Async Methods
+- **Problem**: ESLint error `@typescript-eslint/require-await` on `stop()` method
+- **Solution**: Changed from `async stop(): Promise<void>` to `stop(): void`
+- **Rationale**: `close()` is synchronous, no need for async wrapper
+- **Pattern**: Only use `async` when actually awaiting something
+
+#### Type Assertions
+- **Problem**: `ensureConnected()` assertion type `this & { client: SDKClient }` caused intersection errors
+- **Solution**: Changed to simple `void` return, rely on null checks in methods
+- **Pattern**: Avoid complex type assertions when simple null checks suffice
+
+### Implementation Details
+
+#### Server (T02)
+- Uses `createOpencodeServer({ port, hostname, timeout })` from SDK
+- Returns `{ url: string; close(): void }` - simpler than child_process approach
+- `stop()` is synchronous (just calls `close()`)
+- `getPort()` parses port from server URL
+- `getUrl()` returns full server URL
+
+#### Client (T03)
+- Uses `createOpencodeClient({ baseUrl })` from SDK
+- Health check via `fetch('/health')` before marking connected
+- Session creation: `client.session.create({ body: { title } })`
+- Prompting: `client.session.prompt({ path: { id }, body: { parts } })`
+- Event subscription: `client.event.subscribe()` returns `{ stream: AsyncIterable }`
+- All SDK methods return `{ data, error }` - check error first
+
+### Blockers Resolved
+- None - both tasks completed successfully
+
+### Next Steps (Wave 2)
+- T04: Create MCP server skeleton
+- T05: Create tool definition adapter
+- T06: Create streaming adapter (SSE → StreamChunk) - CRITICAL PATH
+- T07: Create hybrid session manager
+
+### Commit Hash
+- `9333f21` - feat(opencode): implement server lifecycle manager and client wrapper
+

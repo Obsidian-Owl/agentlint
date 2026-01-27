@@ -5,6 +5,11 @@
       "type": "remote",
       "url": "https://mcp.linear.app/mcp",
       "oauth": {}
+    },
+    "agentlint": {
+      "command": "node",
+      "args": ["dist/opencode/mcp-server.js"],
+      "env": {}
     }
   }
 }

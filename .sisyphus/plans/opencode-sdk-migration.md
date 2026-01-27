@@ -265,7 +265,7 @@ Parallel Speedup: ~50% faster than sequential
 
 ---
 
-- [ ] **T02. Create Server Lifecycle Manager**
+- [x] **T02. Create Server Lifecycle Manager**
 
   **What to do**:
   - Create `src/opencode/server.ts` with `OpencodeServerManager` class
@@ -323,7 +323,7 @@ Parallel Speedup: ~50% faster than sequential
 
 ---
 
-- [ ] **T03. Create Opencode Client Wrapper**
+- [x] **T03. Create Opencode Client Wrapper**
 
   **What to do**:
   - Create `src/opencode/client.ts` with `OpencodeClient` class
