@@ -6,7 +6,7 @@
  * @module tui/components/AgentOutput
  */
 
-import React from 'react';
+import React, { memo, useMemo } from 'react';
 import { Box, Text } from 'ink';
 import Spinner from 'ink-spinner';
 import type { AgentOutputProps } from '../types';
@@ -34,17 +34,18 @@ function deriveToolPhase(chunk: StreamChunk, chunks: StreamChunk[], index: numbe
   return 'running';
 }
 
-interface ExtendedChunkRendererProps {
+interface ChunkRendererProps {
   chunk: StreamChunk;
-  chunks: StreamChunk[];
-  index: number;
+  phase: ToolPhase | null;
 }
 
-function ChunkRenderer({ chunk, chunks, index }: ExtendedChunkRendererProps): React.ReactElement {
+const ChunkRenderer = memo(function ChunkRenderer({
+  chunk,
+  phase,
+}: ChunkRendererProps): React.ReactElement {
   const { type, content, level } = chunk;
 
-  if (type === 'tool_start') {
-    const phase = deriveToolPhase(chunk, chunks, index);
+  if (type === 'tool_start' && phase) {
     return <ToolPhaseRenderer chunk={chunk} phase={phase} />;
   }
 
@@ -55,6 +56,8 @@ function ChunkRenderer({ chunk, chunks, index }: ExtendedChunkRendererProps): Re
   if (!content || content.trim() === '') {
     return <Text> </Text>;
   }
+
+  const rendered = useMemo(() => renderMarkdown(content), [content]);
 
   switch (type) {
     case 'error':
@@ -74,11 +77,11 @@ function ChunkRenderer({ chunk, chunks, index }: ExtendedChunkRendererProps): Re
     case 'text':
     default:
       if (level === 'verbose') {
-        return <Text dimColor>{renderMarkdown(content)}</Text>;
+        return <Text dimColor>{rendered}</Text>;
       }
-      return <Text wrap="wrap">{renderMarkdown(content)}</Text>;
+      return <Text wrap="wrap">{rendered}</Text>;
   }
-}
+});
 
 // =============================================================================
 // Component
@@ -98,11 +101,20 @@ function ChunkRenderer({ chunk, chunks, index }: ExtendedChunkRendererProps): Re
  * ```
  */
 export function AgentOutput({ chunks, isStreaming }: AgentOutputProps): React.ReactElement {
+  const chunkPhases = useMemo(() => {
+    return chunks.map((chunk, index) => {
+      if (chunk.type === 'tool_start') {
+        return deriveToolPhase(chunk, chunks, index);
+      }
+      return null;
+    });
+  }, [chunks]);
+
   return (
     <Box flexDirection="column">
       {chunks.map((chunk, index) => (
         <Box key={`${chunk.timestamp}-${chunk.type}-${index}`} marginBottom={1}>
-          <ChunkRenderer chunk={chunk} chunks={chunks} index={index} />
+          <ChunkRenderer chunk={chunk} phase={chunkPhases[index] ?? null} />
         </Box>
       ))}
       {isStreaming && (

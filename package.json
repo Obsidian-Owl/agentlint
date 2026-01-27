@@ -49,6 +49,7 @@
     "record:e2e": "RUN_LIVE_TESTS=1 VCR_MODE=record bun test tests/e2e",
     "record:all": "VCR_MODE=record bun test tests/integration tests/e2e",
     "tui:catalog": "bun run src/tui/catalog/index.tsx",
+    "tui:benchmark": "bun run src/tui/profiling/benchmark.ts",
     "ci": "bun run lint && bun run format:check && bun run typecheck && bun run test && bun run build",
     "prepare": "scripts/install-hooks.sh"
   },

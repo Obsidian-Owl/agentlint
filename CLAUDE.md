@@ -222,6 +222,96 @@ The `src/orchestration/` module wraps the Claude Agent SDK:
 }
 ```
 
+## TUI Module
+
+The `src/tui/` module provides the terminal user interface using Ink (React for CLI):
+
+### Component Hierarchy
+
+```
+App.tsx (root)
+├── StatusBar (tokens, elapsed time, model name)
+├── ActionMenu (welcome flow options)
+├── SessionSummary (last session context)
+├── TopRecommendation (with "because" clause)
+├── ResumePrompt (interrupted epic detection)
+├── AgentStateIndicator (thinking/calling_tool/streaming)
+├── ToolPhaseRenderer (preparing/running/complete)
+├── ConversationHistory
+├── LoadingProgress
+├── FeedbackPrompt (outcome tracking)
+├── ProgressStats (longitudinal display)
+└── QuitDialog (confirmation)
+```
+
+### Key Components
+
+| Component           | File                                 | Purpose                                          |
+| ------------------- | ------------------------------------ | ------------------------------------------------ |
+| App                 | `components/App.tsx`                 | Root component with AppProvider context          |
+| AgentOutput         | `components/AgentOutput.tsx`         | Renders streaming chunks with markdown           |
+| AgentStateIndicator | `components/AgentStateIndicator.tsx` | Shows agent work phase (thinking/tool/streaming) |
+| StatusBar           | `components/StatusBar.tsx`           | Token count, elapsed time, model indicator       |
+| ActionMenu          | `components/ActionMenu.tsx`          | Welcome menu with keyboard navigation            |
+
+### State Management
+
+Redux-style reducer in `state/app-reducer.ts` with React Context via `AppProvider`:
+
+```typescript
+// State shape
+interface AppState {
+  tuiState: 'loading' | 'welcome' | 'conversing' | 'analyzing';
+  agentWorkState: AgentWorkState; // idle | thinking | calling_tool | streaming
+  streamBuffer: StreamChunk[];
+  conversationHistory: ConversationMessage[];
+  statusBar: StatusBarContext;
+  // ... dialogs, permissions, etc.
+}
+
+// Dispatch actions
+dispatch({ type: 'SET_TUI_STATE', payload: { state: 'conversing' } });
+dispatch({ type: 'ADD_STREAM_CHUNK', payload: { chunk } });
+```
+
+### Keyboard Shortcuts
+
+| Key      | Context        | Action                        |
+| -------- | -------------- | ----------------------------- |
+| `q`      | Any            | Open quit confirmation dialog |
+| `Escape` | During explore | Pop exploration breadcrumb    |
+| `↑/↓`    | Menu           | Navigate options              |
+| `Enter`  | Menu           | Select option                 |
+| `y/n`    | Dialog         | Yes/No response               |
+| `Tab`    | Input          | Autocomplete (if available)   |
+
+### Accessibility
+
+See `docs/architecture/accessibility-audit.md` for full audit. Key features:
+
+- `--plain` flag for non-interactive output
+- `NO_COLOR=1` environment variable support
+- All critical information available as text (not just visual indicators)
+- Keyboard-only navigation for all actions
+
+### Performance
+
+See `src/tui/profiling/PERFORMANCE.md` for benchmarks. Summary:
+
+- 100 chunks: ~15ms render (excellent)
+- 500 chunks: ~55ms re-render (good)
+- 1000 chunks: ~106ms re-render (acceptable)
+
+Run `bun run tui:benchmark` to profile.
+
+### Component Catalog
+
+Preview components in isolation:
+
+```bash
+bun run tui:catalog
+```
+
 ## Quality & Security Module (EP11)
 
 The `src/debug/` and `src/eval/` modules provide quality infrastructure:

@@ -103,12 +103,12 @@ User asks: "Why did my session add a secret to CLAUDE.md?"
 
 Sessions may run 30+ minutes for thorough analysis:
 
-| Feature | Implementation |
-|---------|---------------|
-| Streaming | Findings visible as discovered |
-| Checkpointing | State saved after major phases |
-| Resumability | `agentlint resume` continues from checkpoint |
-| Pause/Resume | User can pause, review, continue |
+| Feature       | Implementation                               |
+| ------------- | -------------------------------------------- |
+| Streaming     | Findings visible as discovered               |
+| Checkpointing | State saved after major phases               |
+| Resumability  | `agentlint resume` continues from checkpoint |
+| Pause/Resume  | User can pause, review, continue             |
 
 ### Session Recording (EP11)
 
@@ -131,26 +131,99 @@ Session checkpoints are recorded to disk for crash recovery and debugging:
 
 ```typescript
 interface SessionCheckpoint {
-  version: string;           // Schema version
-  sessionId: string;         // UUID
-  timestamp: string;         // ISO 8601
-  sequence: number;          // Monotonic counter
-  phase: AnalysisPhase;      // init | scan | analyze | recommend | complete
+  version: string; // Schema version
+  sessionId: string; // UUID
+  timestamp: string; // ISO 8601
+  sequence: number; // Monotonic counter
+  phase: AnalysisPhase; // init | scan | analyze | recommend | complete
   trigger: CheckpointTrigger; // tool_complete | finding | phase_change | interval | etc.
-  toolHistory: ToolCall[];   // Recent tool invocations
-  findings: Finding[];       // Accumulated findings
-  metrics: SessionMetrics;   // Token usage, elapsed time
-  workspaceState?: unknown;  // Cognitive workspace state
+  toolHistory: ToolCall[]; // Recent tool invocations
+  findings: Finding[]; // Accumulated findings
+  metrics: SessionMetrics; // Token usage, elapsed time
+  workspaceState?: unknown; // Cognitive workspace state
 }
 ```
 
 **CLI Commands**:
 
-| Command | Description |
-|---------|-------------|
-| `agentlint session list` | List recorded sessions with metadata |
-| `agentlint session replay <id>` | Restore session state from checkpoint |
-| `agentlint session delete <id>` | Remove a session's checkpoints |
-| `agentlint session cleanup --days <n>` | Delete sessions older than n days |
+| Command                                | Description                           |
+| -------------------------------------- | ------------------------------------- |
+| `agentlint session list`               | List recorded sessions with metadata  |
+| `agentlint session replay <id>`        | Restore session state from checkpoint |
+| `agentlint session delete <id>`        | Remove a session's checkpoints        |
+| `agentlint session cleanup --days <n>` | Delete sessions older than n days     |
 
 **Retention Policy**: Sessions are retained for 30 days by default. Use `agentlint session cleanup` to manage storage.
+
+---
+
+## 6.5 TUI State Machine
+
+The TUI uses a finite state machine for user interface flow:
+
+```
+                    ┌──────────────┐
+                    │   loading    │
+                    │ (gathering   │
+                    │  context)    │
+                    └──────┬───────┘
+                           │
+                           ▼
+                    ┌──────────────┐
+        ┌──────────│   welcome    │◄─────────────┐
+        │          │ (action menu)│              │
+        │          └──────┬───────┘              │
+        │                 │                      │
+        │    ┌────────────┼────────────┐        │
+        │    ▼            ▼            ▼        │
+        │ ┌──────┐  ┌──────────┐  ┌──────────┐ │
+        │ │resume│  │full      │  │quick     │ │
+        │ │epic  │  │analysis  │  │question  │ │
+        │ └──┬───┘  └────┬─────┘  └────┬─────┘ │
+        │    │           │             │        │
+        │    └───────────┴─────────────┘        │
+        │                │                      │
+        │                ▼                      │
+        │         ┌──────────────┐              │
+        │         │  conversing  │              │
+        │         │ (agent work) │──────────────┘
+        │         └──────┬───────┘    (q to quit)
+        │                │
+        │                ▼
+        │         ┌──────────────┐
+        └────────►│  analyzing   │
+                  │ (streaming   │
+                  │  output)     │
+                  └──────────────┘
+```
+
+### Agent Work States
+
+During `conversing` and `analyzing`, the agent work state tracks what the agent is doing:
+
+| State          | Visual Indicator       | Meaning                        |
+| -------------- | ---------------------- | ------------------------------ |
+| `idle`         | None                   | Waiting for input              |
+| `thinking`     | Spinner: "Thinking..." | Agent reasoning                |
+| `calling_tool` | Tool name + spinner    | Tool invocation in progress    |
+| `streaming`    | Streaming text         | Agent response being generated |
+
+### Key TUI Events
+
+| Event           | From State   | To State     | Trigger                      |
+| --------------- | ------------ | ------------ | ---------------------------- |
+| Context loaded  | `loading`    | `welcome`    | All welcome context gathered |
+| Menu selection  | `welcome`    | `conversing` | User selects action          |
+| Agent starts    | `conversing` | `analyzing`  | Agent begins work            |
+| Agent completes | `analyzing`  | `conversing` | Turn complete                |
+| Quit confirmed  | Any          | Exit         | User confirms quit           |
+
+### Dialog Stack
+
+Dialogs are managed as a stack, supporting nested interactions:
+
+- `permission` - Tool permission request
+- `question` - Agent asking user questions
+- `recommendation` - Recommendation display
+- `resume-epic` - Interrupted epic prompt
+- `quit` - Quit confirmation
