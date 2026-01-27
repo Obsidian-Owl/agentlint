@@ -7,8 +7,9 @@
  * @module recommendations/tools/complete-recommendation
  */
 
-import { tool } from '@anthropic-ai/claude-agent-sdk';
 import { z } from 'zod';
+
+import { adaptTool } from '../../opencode/tool-adapter';
 
 import { loadRecommendation, saveRecommendation, resolveRecommendationId } from '../storage';
 import type {
@@ -199,9 +200,9 @@ function formatToolOutput(result: CompleteRecommendationResult): string {
  * registry.register(completeRecommendationTool);
  * ```
  */
-export const completeRecommendationTool = tool(
-  'complete_recommendation',
-  `
+export const completeRecommendationTool = adaptTool({
+  name: 'complete_recommendation',
+  description: `
 Complete (soft-close) a recommendation case.
 
 Completion reasons:
@@ -229,15 +230,21 @@ recommendations), you can consolidate them:
 If recommendations conflict (e.g., "expand CLAUDE.md" vs "reduce CLAUDE.md"),
 the older or less relevant one can be completed with reason 'obsolete'.
   `.trim(),
-  completeRecommendationInputSchema,
-  async (args) => {
-    const input: CompleteRecommendationInput = {
-      recommendationId: args.recommendationId,
-      reason: args.reason,
+  schema: completeRecommendationInputSchema,
+  handler: async (args: unknown) => {
+    const typedArgs = args as {
+      recommendationId: string;
+      reason: string;
+      supersededBy?: string;
     };
 
-    if (args.supersededBy !== undefined) {
-      input.supersededBy = args.supersededBy;
+    const input: CompleteRecommendationInput = {
+      recommendationId: typedArgs.recommendationId,
+      reason: typedArgs.reason as CompletionReason,
+    };
+
+    if (typedArgs.supersededBy !== undefined) {
+      input.supersededBy = typedArgs.supersededBy;
     }
 
     const result = await completeRecommendation(input);
@@ -252,5 +259,5 @@ the older or less relevant one can be completed with reason 'obsolete'.
       isError: !result.success,
       _rawData: result,
     };
-  }
-);
+  },
+});

@@ -10,8 +10,9 @@
  * @module recommendations/tools/spawn-advisor
  */
 
-import { tool } from '@anthropic-ai/claude-agent-sdk';
 import { z } from 'zod';
+
+import { adaptTool } from '../../opencode/tool-adapter';
 
 import { buildRecommendationAdvisorAgent } from '../subagent/recommendation-advisor';
 import type { RecommendationAdvisorContext } from '../subagent/types';
@@ -272,9 +273,9 @@ function formatToolOutput(result: SpawnRecommendationAdvisorResult): string {
  * registry.register(spawnRecommendationAdvisorTool);
  * ```
  */
-export const spawnRecommendationAdvisorTool = tool(
-  'spawn_recommendation_advisor',
-  `
+export const spawnRecommendationAdvisorTool = adaptTool({
+  name: 'spawn_recommendation_advisor',
+  description: `
 Spawn a recommendation advisor subagent to synthesize actionable recommendations from findings.
 
 Use this tool when you need to:
@@ -297,28 +298,43 @@ Interaction modes:
 Returns the subagent definition and context for orchestrator delegation.
 The orchestrator should invoke the subagent using the SDK agents option.
   `.trim(),
-  spawnRecommendationAdvisorInputSchema,
-  async (args) => {
+  schema: spawnRecommendationAdvisorInputSchema,
+  handler: async (args: unknown) => {
+    const typedArgs = args as {
+      findings: unknown[];
+      causalTraces?: unknown[];
+      includeHistoricRecs?: boolean;
+      interactionMode?: string;
+      focus?: string;
+      projectPath?: string;
+    };
+
     try {
       // Build the agent
       const agent = buildRecommendationAdvisorAgent();
 
       // Build advisor context
       const contextArgs: Parameters<typeof buildAdvisorContext>[0] = {
-        findings: args.findings,
-        interactionMode: args.interactionMode,
+        findings: typedArgs.findings,
       };
-      if (args.causalTraces !== undefined) {
-        contextArgs.causalTraces = args.causalTraces;
+      if (typedArgs.interactionMode !== undefined) {
+        contextArgs.interactionMode = typedArgs.interactionMode as InteractionMode;
       }
-      if (args.includeHistoricRecs !== undefined) {
-        contextArgs.includeHistoricRecs = args.includeHistoricRecs;
+      if (typedArgs.causalTraces !== undefined) {
+        contextArgs.causalTraces = typedArgs.causalTraces;
       }
-      if (args.focus !== undefined) {
-        contextArgs.focus = args.focus;
+      if (typedArgs.includeHistoricRecs !== undefined) {
+        contextArgs.includeHistoricRecs = typedArgs.includeHistoricRecs;
       }
-      if (args.projectPath !== undefined) {
-        contextArgs.projectPath = args.projectPath;
+      if (typedArgs.focus !== undefined && typedArgs.focus !== null) {
+        contextArgs.focus = typedArgs.focus as
+          | 'config'
+          | 'workflow'
+          | 'prevention'
+          | 'comprehensive';
+      }
+      if (typedArgs.projectPath !== undefined) {
+        contextArgs.projectPath = typedArgs.projectPath;
       }
       const context = buildAdvisorContext(contextArgs);
 
@@ -330,7 +346,7 @@ The orchestrator should invoke the subagent using the SDK agents option.
 
       const result: SpawnRecommendationAdvisorResult = {
         success: true,
-        interactionMode: args.interactionMode,
+        interactionMode: (typedArgs.interactionMode as InteractionMode) ?? 'propose',
         context,
         agentDefinition: {
           description: agent.description,
@@ -366,5 +382,5 @@ The orchestrator should invoke the subagent using the SDK agents option.
         isError: true,
       };
     }
-  }
-);
+  },
+});

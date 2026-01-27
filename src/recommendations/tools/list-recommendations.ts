@@ -7,8 +7,9 @@
  * @module recommendations/tools/list-recommendations
  */
 
-import { tool } from '@anthropic-ai/claude-agent-sdk';
 import { z } from 'zod';
+
+import { adaptTool } from '../../opencode/tool-adapter';
 
 import { listRecommendationIds, loadRecommendation } from '../storage';
 import type { Recommendation, ListRecommendationsInput } from '../types';
@@ -211,9 +212,9 @@ function formatToolOutput(result: ListRecommendationsResult): string {
  * registry.register(listRecommendationsTool);
  * ```
  */
-export const listRecommendationsTool = tool(
-  'list_recommendations',
-  `
+export const listRecommendationsTool = adaptTool({
+  name: 'list_recommendations',
+  description: `
 List recommendations with optional filters.
 
 Use this tool to:
@@ -242,28 +243,41 @@ This reveals if similar recommendations already exist. If so, consider:
 Use get_recommendation for full details of a specific recommendation.
 Use get_recommendation_summary for a compressed view.
   `.trim(),
-  listRecommendationsInputSchema,
-  async (args) => {
+  schema: listRecommendationsInputSchema,
+  handler: async (args: unknown) => {
+    const typedArgs = args as {
+      status?: string;
+      type?: string;
+      priority?: string;
+      target?: string;
+      limit?: number;
+      includeCompleted?: boolean;
+    };
+
     const input: ListRecommendationsInput = {};
 
     // Add optional fields only if defined
-    if (args.status !== undefined) {
-      input.status = args.status;
+    if (typedArgs.status !== undefined && typedArgs.status !== null) {
+      input.status = typedArgs.status as
+        | 'open'
+        | 'pending_confirmation'
+        | 'implemented'
+        | 'monitoring';
     }
-    if (args.type !== undefined) {
-      input.type = args.type;
+    if (typedArgs.type !== undefined && typedArgs.type !== null) {
+      input.type = typedArgs.type as 'symptomatic' | 'preventive' | 'systemic';
     }
-    if (args.priority !== undefined) {
-      input.priority = args.priority;
+    if (typedArgs.priority !== undefined && typedArgs.priority !== null) {
+      input.priority = typedArgs.priority as 'high' | 'medium' | 'low';
     }
-    if (args.target !== undefined) {
-      input.target = args.target;
+    if (typedArgs.target !== undefined) {
+      input.target = typedArgs.target;
     }
-    if (args.limit !== undefined) {
-      input.limit = args.limit;
+    if (typedArgs.limit !== undefined) {
+      input.limit = typedArgs.limit;
     }
-    if (args.includeCompleted !== undefined) {
-      input.includeCompleted = args.includeCompleted;
+    if (typedArgs.includeCompleted !== undefined) {
+      input.includeCompleted = typedArgs.includeCompleted;
     }
 
     const result = await listRecommendations(input);
@@ -278,5 +292,5 @@ Use get_recommendation_summary for a compressed view.
       isError: !result.success,
       _rawData: result,
     };
-  }
-);
+  },
+});

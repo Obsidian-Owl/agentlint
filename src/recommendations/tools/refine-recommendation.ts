@@ -7,8 +7,9 @@
  * @module recommendations/tools/refine-recommendation
  */
 
-import { tool } from '@anthropic-ai/claude-agent-sdk';
 import { z } from 'zod';
+
+import { adaptTool } from '../../opencode/tool-adapter';
 
 import { loadRecommendation, saveRecommendation } from '../storage';
 import type { Recommendation, RecommendationEvent, RefineRecommendationInput } from '../types';
@@ -194,9 +195,9 @@ function formatToolOutput(result: RefineRecommendationResult): string {
  * registry.register(refineRecommendationTool);
  * ```
  */
-export const refineRecommendationTool = tool(
-  'refine_recommendation',
-  `
+export const refineRecommendationTool = adaptTool({
+  name: 'refine_recommendation',
+  description: `
 Refine a recommendation by updating its fields.
 
 Updates any of these fields:
@@ -214,20 +215,27 @@ Use this tool to:
 Cannot refine completed recommendations. Use complete_recommendation to
 close a recommendation, or create a new one if the original was wrong.
   `.trim(),
-  refineRecommendationInputSchema,
-  async (args) => {
-    const input: RefineRecommendationInput = {
-      recommendationId: args.recommendationId,
+  schema: refineRecommendationInputSchema,
+  handler: async (args: unknown) => {
+    const typedArgs = args as {
+      recommendationId: string;
+      action?: string;
+      target?: string;
+      priority?: string;
     };
 
-    if (args.action !== undefined) {
-      input.action = args.action;
+    const input: RefineRecommendationInput = {
+      recommendationId: typedArgs.recommendationId,
+    };
+
+    if (typedArgs.action !== undefined) {
+      input.action = typedArgs.action;
     }
-    if (args.target !== undefined) {
-      input.target = args.target;
+    if (typedArgs.target !== undefined) {
+      input.target = typedArgs.target;
     }
-    if (args.priority !== undefined) {
-      input.priority = args.priority;
+    if (typedArgs.priority !== undefined) {
+      input.priority = typedArgs.priority as 'high' | 'medium' | 'low';
     }
 
     const result = await refineRecommendation(input);
@@ -242,5 +250,5 @@ close a recommendation, or create a new one if the original was wrong.
       isError: !result.success,
       _rawData: result,
     };
-  }
-);
+  },
+});

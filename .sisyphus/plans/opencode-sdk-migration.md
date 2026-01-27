@@ -677,7 +677,7 @@ Parallel Speedup: ~50% faster than sequential
 
 ---
 
-- [ ] **T10. Migrate Temporal Tools (8 tools)**
+- [x] **T10. Migrate Temporal Tools (8 tools)**
 
   **What to do**:
   - Migrate tools in `src/temporal/tools/`:
