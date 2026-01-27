@@ -7,7 +7,7 @@
  */
 
 import { z } from 'zod';
-import { tool } from '@anthropic-ai/claude-agent-sdk';
+import { adaptTool } from '../../opencode/tool-adapter';
 import type { AnalyzeHierarchyResult } from './types';
 import { analyzeHierarchy } from './hierarchy';
 
@@ -134,9 +134,9 @@ function formatHierarchyOutput(result: AnalyzeHierarchyResult): string {
  * Analyzes the configuration hierarchy of a project, detecting conflicts
  * and merging configurations from global, project, and local levels.
  */
-export const analyzeHierarchyTool = tool(
-  'analyze_hierarchy',
-  `Analyze the configuration hierarchy for a project, detecting conflicts between different configuration levels.
+export const analyzeHierarchyTool = adaptTool({
+  name: 'analyze_hierarchy',
+  description: `Analyze the configuration hierarchy for a project, detecting conflicts between different configuration levels.
 
 Returns:
 - Configuration hierarchy (global → project → local)
@@ -146,12 +146,13 @@ Returns:
 - Overall quality grade
 
 Use this tool to understand how configurations at different levels interact and to identify potential conflicts or redundancies.`,
-  analyzeHierarchyInputSchema,
-  async (args) => {
+  schema: analyzeHierarchyInputSchema,
+  handler: async (args: unknown) => {
     try {
+      const typedArgs = args as { cwd: string; includeGlobal?: boolean };
       const result = await analyzeHierarchy({
-        cwd: args.cwd,
-        includeGlobal: args.includeGlobal ?? false,
+        cwd: typedArgs.cwd,
+        includeGlobal: typedArgs.includeGlobal ?? false,
       });
 
       return {
@@ -175,8 +176,8 @@ Use this tool to understand how configurations at different levels interact and 
         isError: true,
       };
     }
-  }
-);
+  },
+});
 
 /**
  * Export raw function for programmatic use.

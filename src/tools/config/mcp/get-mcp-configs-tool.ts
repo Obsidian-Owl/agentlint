@@ -7,8 +7,8 @@
  * @module tools/config/mcp/get-mcp-configs-tool
  */
 
-import { tool } from '@anthropic-ai/claude-agent-sdk';
 import { z } from 'zod';
+import { adaptTool } from '../../../opencode/tool-adapter';
 import { discoverMcpConfigs } from './discovery';
 import type { McpAct, GetMcpConfigsResult } from './types';
 
@@ -113,9 +113,9 @@ function formatToolOutput(result: GetMcpConfigsResult): string {
  * registry.register(getMcpConfigsTool);
  * ```
  */
-export const getMcpConfigsTool = tool(
-  'get_mcp_configs',
-  `Discover MCP configuration files in a project.
+export const getMcpConfigsTool = adaptTool({
+  name: 'get_mcp_configs',
+  description: `Discover MCP configuration files in a project.
 
 Searches for MCP server configurations across multiple AI Coding Tools:
 - Claude Code: .mcp.json (project), ~/.claude.json (user)
@@ -132,17 +132,18 @@ Returns structured information including:
 - Cross-ACT compatibility information
 
 Use this tool to understand what MCP configurations exist before validating them.`,
-  getMcpConfigsInputSchema,
-  async (args) => {
+  schema: getMcpConfigsInputSchema,
+  handler: async (args: unknown) => {
     try {
+      const typedArgs = args as { cwd: string; includeUser?: boolean; acts?: string[] };
       const input: Parameters<typeof discoverMcpConfigs>[0] = {
-        cwd: args.cwd,
+        cwd: typedArgs.cwd,
       };
-      if (args.includeUser !== undefined) {
-        input.includeUser = args.includeUser;
+      if (typedArgs.includeUser !== undefined) {
+        input.includeUser = typedArgs.includeUser;
       }
-      if (args.acts !== undefined) {
-        input.acts = args.acts as McpAct[];
+      if (typedArgs.acts !== undefined) {
+        input.acts = typedArgs.acts as McpAct[];
       }
       const result = await discoverMcpConfigs(input);
 
@@ -168,5 +169,5 @@ Use this tool to understand what MCP configurations exist before validating them
         isError: true,
       };
     }
-  }
-);
+  },
+});

@@ -8,7 +8,7 @@
  */
 
 import { z } from 'zod';
-import { tool } from '@anthropic-ai/claude-agent-sdk';
+import { adaptTool } from '../../../opencode/tool-adapter';
 import { readFile } from 'fs/promises';
 import { parseMcpConfig } from './parser';
 import { validateSchema, validateServerSchema } from './validators/schema';
@@ -479,11 +479,11 @@ const ValidateMcpConfigInputSchema = {
 };
 
 /**
- * SDK tool definition for validate_mcp_config.
+ * Opencode tool definition for validate_mcp_config.
  */
-export const validateMcpConfigTool = tool(
-  'validate_mcp_config',
-  `Validate an MCP server configuration file.
+export const validateMcpConfigTool = adaptTool({
+  name: 'validate_mcp_config',
+  description: `Validate an MCP server configuration file.
 
 Runs comprehensive validation including:
 - Schema validation (required fields, types)
@@ -493,9 +493,10 @@ Runs comprehensive validation including:
 - Anti-pattern detection (deprecated packages, high timeouts)
 
 Returns structured issues with file:line:column positions for precise reporting.`,
-  ValidateMcpConfigInputSchema,
-  async (input) => {
-    const result = await validateMcpConfig(input.file, input.format);
+  schema: ValidateMcpConfigInputSchema,
+  handler: async (input: unknown) => {
+    const typedInput = input as { file: string; format?: 'standard' | 'opencode' };
+    const result = await validateMcpConfig(typedInput.file, typedInput.format);
 
     // Format output for agent consumption
     const lines: string[] = [
@@ -528,5 +529,5 @@ Returns structured issues with file:line:column positions for precise reporting.
       ],
       _rawData: result,
     };
-  }
-);
+  },
+});
