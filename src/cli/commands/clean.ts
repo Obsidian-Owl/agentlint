@@ -7,11 +7,11 @@
  * @module cli/commands/clean
  */
 
-import { existsSync, readdirSync, statSync, rmSync } from 'node:fs';
+import { existsSync, readdirSync, statSync, rmSync, mkdirSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 
 import type { CleanOptions } from '../types';
-import { getProjectDir, getGlobalDir } from '../../persistence/common/directories';
+import { getProjectDir, getGlobalDir, getBackupsDir } from '../../persistence/common/directories';
 import { runBackup } from './backup';
 
 // =============================================================================
@@ -150,7 +150,7 @@ export function previewClean(options: CleanOptions): CleanPreview {
   };
 
   if (wouldBackup) {
-    result.backupPath = `.agentlint-backup-${timestamp}.tar.gz`;
+    result.backupPath = join(getBackupsDir(), `backup-${timestamp}.tar.gz`);
   }
 
   return result;
@@ -170,7 +170,13 @@ export async function executeClean(options: CleanOptions): Promise<CleanResult> 
     const projectTarget = existingTargets.find((t) => t.type === 'project');
     if (projectTarget) {
       const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-      backupPath = `.agentlint-backup-${timestamp}.tar.gz`;
+      const backupsDir = getBackupsDir();
+      try {
+        mkdirSync(backupsDir, { recursive: true });
+      } catch {
+        // Directory may already exist or be created by backup command
+      }
+      backupPath = join(backupsDir, `backup-${timestamp}.tar.gz`);
 
       const backupOpts: Parameters<typeof runBackup>[0] = {
         directory: options.directory ?? '.',

@@ -177,6 +177,16 @@ export function getRecommendationsDir(projectPath: string = process.cwd()): stri
 }
 
 /**
+ * Get the global backups directory path.
+ * Backups are stored globally to avoid polluting user project directories.
+ *
+ * @returns Path to ~/.agentlint/backups directory
+ */
+export function getBackupsDir(): string {
+  return join(getGlobalDir(), 'backups');
+}
+
+/**
  * Expand tilde (~) in a path to the home directory.
  *
  * @param path - Path that may contain ~

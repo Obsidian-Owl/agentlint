@@ -67,7 +67,7 @@ describe('clean command integration', () => {
       const result = await $`bun run src/cli.ts clean -d ${testDir} --plain`.text();
 
       expect(result).toContain('Backup will be created');
-      expect(result).toContain('.agentlint-backup-');
+      expect(result).toContain('.agentlint/backups/backup-');
     });
   });
 
