@@ -19,6 +19,7 @@ import type {
   LoadingStepId,
 } from './types';
 import { getGitSummary } from './git-summary';
+import { detectInterruptedEpic } from './epic-auto-mode';
 
 // Persistence imports
 import { getLatestBaseline } from '../../persistence/baselines/storage';
@@ -76,6 +77,9 @@ export async function loadWelcomeContext(
     loadSessionContext(onProgress),
   ]);
 
+  // Load interrupted epic (synchronous, very fast)
+  const interruptedEpic = detectInterruptedEpic(projectPath);
+
   return {
     isFirstRun: configResult.isFirstRun,
     daysSinceLastBaseline: baselineResult.daysSince,
@@ -84,6 +88,7 @@ export async function loadWelcomeContext(
     incompleteSession: sessionResult.session,
     projectPath,
     modelName: configResult.modelName,
+    interruptedEpic,
   };
 }
 

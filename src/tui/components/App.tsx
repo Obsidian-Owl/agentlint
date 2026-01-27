@@ -27,6 +27,7 @@ import { LoadingProgress } from './LoadingProgress';
 import { ConversationHistory } from './ConversationHistory';
 import { ActionMenu } from './ActionMenu';
 import { AgentStateIndicator } from './AgentStateIndicator';
+import { ResumePrompt } from './ResumePrompt';
 import { formatMenuSubtitle } from '../welcome/welcome-prompt';
 import type {
   AppProps,
@@ -278,6 +279,7 @@ function InnerApp({
                 incompleteSession: null,
                 projectPath: statusBar.projectPath,
                 modelName: statusBar.model,
+                interruptedEpic: null,
               })}
               options={state.welcomeMenuOptions}
               onSelect={(action) => {
@@ -360,6 +362,25 @@ function InnerApp({
               questions={pendingQuestions}
               onSubmit={handleQuestionSubmit}
               onCancel={handleQuestionCancel}
+            />
+          </DialogOverlay>
+        )}
+
+        {/* Resume Epic Dialog */}
+        {currentDialog === 'resume-epic' && state.interruptedEpic && (
+          <DialogOverlay title="Resume Epic">
+            <ResumePrompt
+              state={state.interruptedEpic}
+              onSelect={(action) => {
+                dispatch({ type: 'POP_DIALOG' });
+                onMenuSelect?.(
+                  action === 'resume'
+                    ? 'resume-epic'
+                    : action === 'fresh'
+                      ? 'full-analysis'
+                      : 'discard-epic'
+                );
+              }}
             />
           </DialogOverlay>
         )}
