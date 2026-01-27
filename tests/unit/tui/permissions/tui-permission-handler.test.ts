@@ -44,6 +44,7 @@ function createMockRenderer(): ITuiRenderer & { mockDecision: PermissionDecision
     updateLoadingStep: mock(() => {}),
     addConversationMessage: mock(() => {}),
     updateStatusBar: mock(() => {}),
+    setWelcomeMenu: mock(() => {}),
   };
 }
 

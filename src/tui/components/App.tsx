@@ -24,6 +24,8 @@ import { Summary } from './Summary';
 import { StatusBar } from './StatusBar';
 import { LoadingProgress } from './LoadingProgress';
 import { ConversationHistory } from './ConversationHistory';
+import { ActionMenu } from './ActionMenu';
+import { formatMenuSubtitle } from '../welcome/welcome-prompt';
 import type {
   AppProps,
   AppState,
@@ -43,6 +45,7 @@ interface InnerAppProps {
   onInput?: ((input: string) => void | Promise<void>) | undefined;
   onStart?: (() => void) | undefined;
   onExit?: (() => void | Promise<void>) | undefined;
+  onMenuSelect?: ((action: string) => void) | undefined;
   streamState?: StreamState;
   propsPendingPermission?: { tool: string; description: string; pattern?: string } | null;
   propsPendingQuestions?: UserQuestion[] | null;
@@ -54,6 +57,7 @@ interface InnerAppProps {
 function InnerApp({
   onInput,
   onExit,
+  onMenuSelect,
   streamState,
   propsPendingPermission,
   propsPendingQuestions,
@@ -255,6 +259,31 @@ function InnerApp({
         {/* Conversation History (when conversing or has history) */}
         {state.conversationHistory.length > 0 && (
           <ConversationHistory messages={state.conversationHistory} />
+        )}
+
+        {/* Welcome Menu (when in welcome state with options) */}
+        {state.tuiState === 'welcome' && state.welcomeMenuOptions.length > 0 && (
+          <Box marginBottom={1}>
+            <ActionMenu
+              title="agentlint"
+              subtitle={formatMenuSubtitle({
+                isFirstRun: false,
+                daysSinceLastBaseline: null,
+                openRecommendationCount: statusBar.openRecommendations,
+                gitSummary: null,
+                incompleteSession: null,
+                projectPath: statusBar.projectPath,
+                modelName: statusBar.model,
+              })}
+              options={state.welcomeMenuOptions}
+              onSelect={(action) => {
+                if (onMenuSelect) {
+                  onMenuSelect(action);
+                }
+              }}
+              disabled={isStreaming}
+            />
+          </Box>
         )}
 
         {/* Agent Output */}

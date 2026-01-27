@@ -54,6 +54,7 @@ export {
   type ComparisonData,
   type BaselineSummary as CompareBaselineSummary,
 } from './components/CompareView';
+export { ActionMenu, type MenuOption, type ActionMenuProps } from './components/ActionMenu';
 
 // =============================================================================
 // Renderers

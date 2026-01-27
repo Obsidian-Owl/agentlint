@@ -218,6 +218,12 @@ export const appReducer: AppReducer = (state: AppState, message: AppMessage): Ap
         conversationHistory: [],
       };
 
+    case 'SET_WELCOME_MENU':
+      return {
+        ...state,
+        welcomeMenuOptions: message.payload.options,
+      };
+
     default:
       // TypeScript exhaustiveness check
       return state;

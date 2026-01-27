@@ -22,6 +22,7 @@ import type {
   ConversationMessage,
   StatusBarContext,
 } from '../types';
+import type { WelcomeMenuOption } from '../welcome/welcome-prompt';
 import type { StreamChunk, Finding } from '../../orchestration/types';
 
 // =============================================================================
@@ -65,6 +66,7 @@ export class InkRenderer implements ITuiRenderer {
   private tuiState: TuiState = 'loading';
   private loadingSteps: LoadingStep[] = [];
   private conversationHistory: ConversationMessage[] = [];
+  private welcomeMenuOptions: WelcomeMenuOption[] = [];
   private statusBar: StatusBarContext = {
     helpHint: 'ctrl+? help',
     status: 'Loading...',
@@ -138,6 +140,7 @@ export class InkRenderer implements ITuiRenderer {
       loadingSteps: this.loadingSteps,
       conversationHistory: this.conversationHistory,
       statusBar: this.statusBar,
+      welcomeMenuOptions: this.welcomeMenuOptions,
     };
     appProps.initialState = mergedInitialState;
     if (viewStack.length > 0) appProps.viewStack = viewStack;
@@ -267,6 +270,11 @@ export class InkRenderer implements ITuiRenderer {
 
   updateStatusBar(updates: Partial<StatusBarContext>): void {
     this.statusBar = { ...this.statusBar, ...updates };
+    this.rerender();
+  }
+
+  setWelcomeMenu(options: WelcomeMenuOption[]): void {
+    this.welcomeMenuOptions = [...options];
     this.rerender();
   }
 }

@@ -19,6 +19,7 @@ import type {
   StatusBarContext,
 } from '../types';
 import type { StreamChunk } from '../../orchestration/types';
+import type { WelcomeMenuOption } from '../welcome/welcome-prompt';
 
 // =============================================================================
 // Types
@@ -318,4 +319,6 @@ export class HeadlessRenderer implements ITuiRenderer {
   addConversationMessage(_message: ConversationMessage): void {}
 
   updateStatusBar(_updates: Partial<StatusBarContext>): void {}
+
+  setWelcomeMenu(_options: WelcomeMenuOption[]): void {}
 }

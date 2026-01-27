@@ -12,7 +12,7 @@
 import type { ITuiRenderer, LoadingStep } from '../../tui/types';
 import type { LoadingStepId, WelcomeContext } from '../../tui/welcome/types';
 import { loadWelcomeContext } from '../../tui/welcome/context-loader';
-import { formatContextSummary } from '../../tui/welcome/welcome-prompt';
+import { formatContextSummary, generateMenuOptions } from '../../tui/welcome/welcome-prompt';
 
 export interface WelcomeFlowOptions {
   projectPath?: string;
@@ -66,7 +66,9 @@ export async function runWelcomeFlow(
   });
 
   const welcomeMessage = formatContextSummary(context);
+  const menuOptions = generateMenuOptions(context);
 
+  tuiRenderer.setWelcomeMenu(menuOptions);
   tuiRenderer.setTuiState('welcome');
   tuiRenderer.addConversationMessage({
     role: 'assistant',

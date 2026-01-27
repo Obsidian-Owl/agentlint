@@ -9,6 +9,7 @@
 
 import type { StreamChunk, Finding, Recommendation } from '../orchestration/types';
 import type { SessionCheckpoint } from '../orchestration/checkpoint-types';
+import type { WelcomeMenuOption } from './welcome/welcome-prompt';
 
 // =============================================================================
 // TUI State Machine
@@ -254,6 +255,9 @@ export interface AppState {
   // Conversation history (last N turns for follow-ups)
   conversationHistory: ConversationMessage[];
 
+  // Welcome menu options (generated from context)
+  welcomeMenuOptions: WelcomeMenuOption[];
+
   // Buffers
   inputBuffer: string;
   streamBuffer: StreamChunk[];
@@ -316,7 +320,8 @@ export type AppMessage =
   | { type: 'SET_FOCUS'; payload: { target: FocusTarget } }
   | { type: 'SET_CHECKPOINT'; payload: { checkpoint: SessionCheckpoint } }
   | { type: 'ADD_CONVERSATION_MESSAGE'; payload: { message: ConversationMessage } }
-  | { type: 'CLEAR_CONVERSATION_HISTORY' };
+  | { type: 'CLEAR_CONVERSATION_HISTORY' }
+  | { type: 'SET_WELCOME_MENU'; payload: { options: WelcomeMenuOption[] } };
 
 // =============================================================================
 // Reducer
@@ -360,6 +365,7 @@ export function createInitialState(): AppState {
       pendingOptions: [],
     },
     conversationHistory: [],
+    welcomeMenuOptions: [],
     inputBuffer: '',
     streamBuffer: [],
     findings: [],
@@ -414,6 +420,8 @@ export interface AppProps {
   onPermissionDecision?: (decision: PermissionDecision) => void;
   /** Callback when question answers are submitted */
   onQuestionAnswers?: (answers: Record<string, string>) => void;
+  /** Callback when welcome menu option is selected */
+  onMenuSelect?: (action: string) => void;
 }
 
 /**
@@ -540,4 +548,6 @@ export interface ITuiRenderer {
   addConversationMessage(message: ConversationMessage): void;
   /** Update the status bar */
   updateStatusBar(updates: Partial<StatusBarContext>): void;
+  /** Set the welcome menu options */
+  setWelcomeMenu(options: WelcomeMenuOption[]): void;
 }
