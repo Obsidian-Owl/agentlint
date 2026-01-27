@@ -10,6 +10,7 @@
 import React from 'react';
 import { Box, Text } from 'ink';
 import type { GitSummary } from '../welcome/types';
+import { sanitizeForTerminal } from '../utils/sanitize';
 
 // =============================================================================
 // Types
@@ -93,7 +94,7 @@ export function SessionSummary({
         {gitSummary && (
           <Box marginTop={1} flexDirection="column">
             <Text dimColor>
-              On branch <Text color="green">{gitSummary.branch}</Text>
+              On branch <Text color="green">{sanitizeForTerminal(gitSummary.branch)}</Text>
               {gitSummary.uncommittedChanges > 0 && (
                 <Text> with {gitSummary.uncommittedChanges} uncommitted changes</Text>
               )}
@@ -143,7 +144,7 @@ export function SessionSummary({
               <Text dimColor>{'\u2022'} </Text>
               <Text color="blue">{commitsSinceLastSession}</Text>
               <Text dimColor> new commit{commitsSinceLastSession !== 1 ? 's' : ''}</Text>
-              {gitSummary && <Text dimColor> on {gitSummary.branch}</Text>}
+              {gitSummary && <Text dimColor> on {sanitizeForTerminal(gitSummary.branch)}</Text>}
             </Box>
           )}
           {filesChangedSinceLastSession && filesChangedSinceLastSession > 0 && (
@@ -167,7 +168,7 @@ export function SessionSummary({
       {!hasChanges && gitSummary && (
         <Box marginTop={1}>
           <Text dimColor>
-            On branch <Text color="green">{gitSummary.branch}</Text>
+            On branch <Text color="green">{sanitizeForTerminal(gitSummary.branch)}</Text>
             {gitSummary.uncommittedChanges > 0 && (
               <Text dimColor> with {gitSummary.uncommittedChanges} uncommitted changes</Text>
             )}
