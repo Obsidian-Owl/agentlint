@@ -7,8 +7,8 @@
  * @module tools/causal/trace-issue-tool
  */
 
-import { tool } from '@anthropic-ai/claude-agent-sdk';
 import { z } from 'zod';
+import { adaptTool } from '../../opencode/tool-adapter';
 import { v4 as uuidv4 } from 'uuid';
 
 import type { EvidenceItem, TracedIssue, TraceIssueOutput, ConfidenceScore, Gap } from './types';
@@ -218,9 +218,9 @@ function formatTracedIssue(result: TracedIssue): string {
  * registry.register(traceIssueOriginTool);
  * ```
  */
-export const traceIssueOriginTool = tool(
-  'trace_issue_origin',
-  `Trace a detected issue back to its origin in session logs.
+export const traceIssueOriginTool = adaptTool({
+  name: 'trace_issue_origin',
+  description: `Trace a detected issue back to its origin in session logs.
 
 Searches through session history to find when and how an issue was introduced.
 Builds a causal chain from trigger (origin) to effect (detected issue).
@@ -238,12 +238,22 @@ Use this tool when you detect an issue and need to understand:
 - What configuration gap may have enabled it
 
 Returns a TracedIssue with causal chain, evidence, and confidence score.`,
-  traceIssueInputSchema,
+  schema: traceIssueInputSchema,
   // eslint-disable-next-line @typescript-eslint/require-await
-  async (args) => {
+  handler: async (args: unknown) => {
+    const typedArgs = args as {
+      issueDescription: string;
+      filePath?: string;
+      lineNumber?: number;
+      keywords?: string[];
+      since?: string;
+      until?: string;
+      projectPath?: string;
+      maxDepth?: number;
+    };
     const issueId = `issue-${Date.now()}-${uuidv4().substring(0, 8)}`;
-    const projectPath = args.projectPath ?? process.cwd();
-    const maxDepth = args.maxDepth ?? 5;
+    const projectPath = typedArgs.projectPath ?? process.cwd();
+    const maxDepth = typedArgs.maxDepth ?? 5;
     const dbPath = DEFAULT_SESSIONS_DB_PATH;
 
     try {
@@ -252,15 +262,15 @@ Returns a TracedIssue with causal chain, evidence, and confidence score.`,
       const limitations: string[] = [];
 
       // Collect evidence by keywords
-      const keywords = args.keywords ?? extractKeywords(args.issueDescription);
+      const keywords = typedArgs.keywords ?? extractKeywords(typedArgs.issueDescription);
       if (keywords.length > 0) {
         const keywordOptions: Parameters<typeof collector.collectSessionEvidence>[0] = {
           keywords,
           limit: 20,
         };
-        if (args.projectPath) keywordOptions.projectPath = args.projectPath;
-        if (args.since) keywordOptions.since = args.since;
-        if (args.until) keywordOptions.until = args.until;
+        if (typedArgs.projectPath) keywordOptions.projectPath = typedArgs.projectPath;
+        if (typedArgs.since) keywordOptions.since = typedArgs.since;
+        if (typedArgs.until) keywordOptions.until = typedArgs.until;
 
         const keywordResult = collector.collectSessionEvidence(keywordOptions);
 
@@ -271,12 +281,12 @@ Returns a TracedIssue with causal chain, evidence, and confidence score.`,
       }
 
       // Collect evidence by file location
-      if (args.filePath) {
+      if (typedArgs.filePath) {
         const locationOptions: Parameters<typeof collector.collectLocationEvidence>[0] = {
-          filePath: args.filePath,
+          filePath: typedArgs.filePath,
         };
-        if (args.lineNumber) locationOptions.lineNumber = args.lineNumber;
-        if (args.projectPath) locationOptions.projectPath = args.projectPath;
+        if (typedArgs.lineNumber) locationOptions.lineNumber = typedArgs.lineNumber;
+        if (typedArgs.projectPath) locationOptions.projectPath = typedArgs.projectPath;
 
         const locationResult = collector.collectLocationEvidence(locationOptions);
 
@@ -321,7 +331,7 @@ Returns a TracedIssue with causal chain, evidence, and confidence score.`,
         const gapAnalyzer = new GapAnalyzer();
         const gapResult = gapAnalyzer.analyzeGaps({
           projectPath,
-          issueDescription: args.issueDescription,
+          issueDescription: typedArgs.issueDescription,
           evidence: uniqueEvidence,
         });
         gap = gapResult.gap;
@@ -337,7 +347,7 @@ Returns a TracedIssue with causal chain, evidence, and confidence score.`,
       const chainBuilder = new ChainBuilder();
       const chainBuildOptions: Parameters<typeof chainBuilder.build>[0] = {
         issueId,
-        issueDescription: args.issueDescription,
+        issueDescription: typedArgs.issueDescription,
         evidence: uniqueEvidence,
         projectPath,
         maxDepth,
@@ -427,8 +437,8 @@ Returns a TracedIssue with causal chain, evidence, and confidence score.`,
         _rawData: output,
       };
     }
-  }
-);
+  },
+});
 
 // =============================================================================
 // Helper Functions
