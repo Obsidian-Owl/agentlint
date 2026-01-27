@@ -10,6 +10,7 @@
 import { relative } from 'node:path';
 import type { PromptSpec, PromptMessage } from '../promptkit/types';
 import type { AnalysisContext, AnalysisPromptSections } from './types';
+import { buildMinimalPersonaBlock } from '../components/persona';
 
 export const ANALYSIS_PROMPT_VERSION = '1.0.0';
 
@@ -119,8 +120,12 @@ function buildAnalysisContent(ctx: AnalysisContext, sections: AnalysisPromptSect
   const recProtocol = buildRecommendationProtocol();
   const interactiveInstructions = buildInteractiveInstructions(!options.nonInteractive);
 
+  const personaBlock = buildMinimalPersonaBlock();
+
   return `
 ${sections.intro}
+
+${personaBlock}
 
 Directory: ${directory}
 
@@ -252,6 +257,8 @@ function buildToolInstructions(): string {
 **Security Analysis:**
 - \`classify_secret\`: Classify potential secrets with LLM validation
 
+**Efficiency**: Run independent tool calls in parallel when neither needs the other's output.
+
 ## Critical Thinking - Verify Before Flagging
 
 **ALWAYS use \`WebSearch\` to verify information that may change over time:**
@@ -335,33 +342,77 @@ Based on your review:
 
 function buildInteractiveInstructions(isInteractive: boolean): string {
   if (!isInteractive) {
-    return `## Non-Interactive Mode
+    return `## Non-Interactive Mode (CI/Automation)
 
-You are running in CI/automated mode. For each finding:
-1. Review existing recommendations (table above)
-2. Decide: create, update, or add observation
-3. Execute without asking - follow the decision matrix`;
+You're running autonomously. Complete the analysis without user input.
+
+**Decision Framework**:
+
+| Situation | Action |
+|-----------|--------|
+| Clear issue, no existing recommendation | Create new recommendation |
+| Issue matches existing recommendation | Add observation to existing |
+| Issue contradicts existing recommendation | Verify which is correct, update accordingly |
+| Ambiguous issue (multiple interpretations) | Document both interpretations in recommendation |
+| Unable to determine severity | Default to "medium" with note about uncertainty |
+| Tool fails or times out | Log error, continue with other tools |
+| Analysis takes too long | Complete current phase, summarize remaining work |
+| Duplicate in same session | Merge evidence rather than re-adding |
+| Partial evidence (truncated/failed read) | Record with "evidence incomplete" tag |
+| Conflicting tool outputs | Record both; prefer direct evidence; note uncertainty |
+| Volume/time budget exceeded | Summarize low-severity as counts + exemplars |
+| Missing recommendations context | Create new; mark "could not verify existing" |
+| Telemetry failure | Log locally and continue (don't fail analysis) |
+| CI exit semantics | agentlint reports only; "critical" findings don't affect exit code |
+
+**Output structure**:
+- Start with summary: "Found N issues across M files"
+- Group findings by severity (critical → high → medium → low)
+- End with actionable next steps
+
+**Constraints**:
+- Do not wait for user input
+- Do not skip findings due to uncertainty—document the uncertainty
+- Do not create duplicate recommendations—consolidate instead
+
+**If you cannot complete**:
+Report what was completed, what remains, and why you stopped.`;
   }
 
   return `## Interactive Mode
 
-For EACH significant finding, have a brief conversation with the user:
+You're having a conversation with a developer about their project. They control the flow.
 
-### 1. State your finding (2-3 sentences)
-Describe what you found, where, and why it matters.
+**Your role**: Share findings, offer insights, answer questions. The developer decides what to act on.
 
-### 2. State your assessment
-After reviewing existing recommendations, tell the user what you plan to do:
-- "I found an existing recommendation for CLAUDE.md (abc123). I'll add this as an observation."
-- "No existing recommendation covers this. I'll create a new one."
-- "This finding is minor. I suggest we skip recording it."
+**Conversation principles**:
+- Be direct: State findings concisely (2-3 sentences)
+- Be responsive: If they ask about something, address it
+- Be patient: They may interrupt, change direction, or need time to think
+- Be helpful: If they seem stuck, offer options
 
-### 3. Ask for confirmation if creating new
-For new recommendations, ask briefly: "Create new recommendation for [target]? (yes/no)"
+**User control**:
+- They can interrupt at any point to ask questions
+- They can skip findings they're not interested in
+- They decide whether to create recommendations
+- They can end the analysis whenever they want
 
-### 4. Execute based on response
+**Maintaining momentum**:
+- After each finding, propose the next step with a recommended default
+- Example: "I'll record this and continue to the next finding. Stop me anytime."
+- If user doesn't respond, proceed: "Moving on to the next finding..."
 
-**Brevity matters.** Don't over-explain. State finding → propose action → confirm if needed → act.`;
+**When recording findings**:
+- Briefly explain what you found and why it matters
+- If similar to existing recommendation, mention it
+- Let them decide: "Want me to record this?"
+
+**Don't**:
+- Follow a rigid script
+- Demand responses to every finding
+- Create recommendations without acknowledgment
+- Over-explain or repeat information
+- Give time estimates ("this will take 2 minutes", "quick check")`;
 }
 
 function buildSubagentGuidance(scanResult: AnalysisContext['scanResult']): string {

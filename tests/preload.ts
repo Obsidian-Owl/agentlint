@@ -11,6 +11,10 @@
  * @module tests/preload
  */
 
+import { registerAllPrompts } from '../src/prompts/register-prompts';
+
+registerAllPrompts();
+
 const currentFile = process.argv[1] ?? '';
 
 // Patterns that indicate a test makes live API calls

@@ -21,7 +21,10 @@ export {
 export {
   type RegisterablePrompt,
   type PromptRegistryEntry,
+  type ResolvePromptOptions,
   PromptRegistry,
   getPromptRegistry,
   resetPromptRegistry,
+  resolvePrompt,
+  resolvePromptContent,
 } from './registry';

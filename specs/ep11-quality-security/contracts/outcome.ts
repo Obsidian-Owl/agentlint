@@ -41,6 +41,12 @@ export interface RecommendationOutcome {
   /** Brief description of the recommendation */
   recommendationSummary: string;
 
+  /** Prompt ID that generated this recommendation */
+  promptId: string | null;
+
+  /** Prompt version that generated this recommendation */
+  promptVersion: string | null;
+
   // User-reported feedback
 
   /** Did the user implement this? */
@@ -210,7 +216,9 @@ export interface IOutcomeStorage {
   /**
    * Create a new outcome record.
    */
-  createOutcome(outcome: Omit<RecommendationOutcome, 'id' | 'createdAt' | 'updatedAt'>): RecommendationOutcome;
+  createOutcome(
+    outcome: Omit<RecommendationOutcome, 'id' | 'createdAt' | 'updatedAt'>
+  ): RecommendationOutcome;
 
   /**
    * Update an existing outcome.
@@ -303,6 +311,8 @@ CREATE TABLE IF NOT EXISTS recommendation_outcomes (
   recommendation_id TEXT NOT NULL,
   recommendation_type TEXT NOT NULL CHECK (recommendation_type IN ('symptomatic', 'preventive', 'systemic')),
   recommendation_summary TEXT NOT NULL,
+  prompt_id TEXT,
+  prompt_version TEXT,
   implemented INTEGER,
   implementation_date TEXT,
   helped INTEGER,
@@ -317,6 +327,7 @@ CREATE INDEX IF NOT EXISTS idx_outcomes_session ON recommendation_outcomes(sessi
 CREATE INDEX IF NOT EXISTS idx_outcomes_recommendation ON recommendation_outcomes(recommendation_id);
 CREATE INDEX IF NOT EXISTS idx_outcomes_type ON recommendation_outcomes(recommendation_type);
 CREATE INDEX IF NOT EXISTS idx_outcomes_implemented ON recommendation_outcomes(implemented);
+CREATE INDEX IF NOT EXISTS idx_outcomes_prompt_version ON recommendation_outcomes(prompt_id, prompt_version);
 `;
 
 /**

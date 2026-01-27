@@ -8,17 +8,19 @@
 
 import type { AgentDefinition } from '../../act/types';
 import { SESSION_ANALYST_TOOLS, type SessionAnalystInstructions, toAgentDefinition } from './types';
-import { sessionAnalystPromptV1 } from '../../prompts/subagents/session/session-analyst-prompt';
+import { resolvePromptContent } from '../../prompts';
 
-export const sessionAnalystInstructions: SessionAnalystInstructions = {
-  name: 'session-analyst',
-  displayName: 'Session Analyst',
-  description:
-    'Analyzes Claude Code sessions to understand developer workflow patterns, identify issues, and generate narrative summaries. Use when analyzing session effectiveness, comparing sessions, or understanding what happened during a session.',
-  prompt: sessionAnalystPromptV1.messages[0]?.content ?? '',
-  tools: [...SESSION_ANALYST_TOOLS],
-  priority: 80,
-};
+export function getSessionAnalystInstructions(): SessionAnalystInstructions {
+  return {
+    name: 'session-analyst',
+    displayName: 'Session Analyst',
+    description:
+      'Analyzes Claude Code sessions to understand developer workflow patterns, identify issues, and generate narrative summaries. Use when analyzing session effectiveness, comparing sessions, or understanding what happened during a session.',
+    prompt: resolvePromptContent('subagent/session-analyst', {}) ?? '',
+    tools: [...SESSION_ANALYST_TOOLS],
+    priority: 80,
+  };
+}
 
 // =============================================================================
 // Builder Functions
@@ -30,7 +32,7 @@ export const sessionAnalystInstructions: SessionAnalystInstructions = {
  * @returns AgentDefinition for SDK registration
  */
 export function buildSessionAnalystAgent(): AgentDefinition {
-  return toAgentDefinition(sessionAnalystInstructions);
+  return toAgentDefinition(getSessionAnalystInstructions());
 }
 
 /**
@@ -39,7 +41,8 @@ export function buildSessionAnalystAgent(): AgentDefinition {
  * @returns Record of subagent names to AgentDefinition objects
  */
 export function buildSessionSubagents(): Record<string, AgentDefinition> {
+  const instructions = getSessionAnalystInstructions();
   return {
-    [sessionAnalystInstructions.name]: buildSessionAnalystAgent(),
+    [instructions.name]: buildSessionAnalystAgent(),
   };
 }

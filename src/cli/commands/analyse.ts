@@ -688,7 +688,10 @@ async function runOrchestratedAnalysis(
   registerAllTools(registry);
 
   // Build the analysis prompt (async to load existing recommendations context)
-  const prompt = await buildAnalysisPrompt(directory, scanResult, options);
+  const prompt = await buildAnalysisPrompt(directory, scanResult, {
+    ...options,
+    sessionId: telemetrySessionId,
+  });
 
   // Create renderer for output
   const renderer = createRenderer(outputMode, options);

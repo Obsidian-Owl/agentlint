@@ -9,10 +9,13 @@ import {
   type PromptSpec,
   type StaticPromptSpec,
   type PromptMetadata,
+  type PromptMessage,
   getPromptKey,
   PromptIdSchema,
   SemverSchema,
+  isStaticPromptSpec,
 } from './types';
+import { getTelemetryClient } from '../../telemetry';
 
 export type RegisterablePrompt = PromptSpec<unknown> | StaticPromptSpec;
 
@@ -151,4 +154,54 @@ export function getPromptRegistry(): PromptRegistry {
 
 export function resetPromptRegistry(): void {
   globalRegistry = undefined;
+}
+
+export interface ResolvePromptOptions {
+  version?: string;
+  sessionId?: string;
+  usageContext?: string;
+}
+
+export function resolvePrompt<TCtx = void>(
+  id: string,
+  ctx: TCtx,
+  versionOrOptions?: string | ResolvePromptOptions
+): PromptMessage[] | undefined {
+  const options: ResolvePromptOptions =
+    typeof versionOrOptions === 'string' ? { version: versionOrOptions } : (versionOrOptions ?? {});
+
+  const registry = getPromptRegistry();
+  const spec = registry.get<TCtx>(id, options.version);
+
+  if (!spec) {
+    return undefined;
+  }
+
+  const messages = isStaticPromptSpec(spec) ? spec.messages : spec.render(ctx);
+
+  if (options.sessionId && messages) {
+    const client = getTelemetryClient();
+    if (client.trackPrompt) {
+      const contentLength = messages.reduce((sum, m) => sum + m.content.length, 0);
+      client.trackPrompt(options.sessionId, {
+        promptId: spec.id,
+        promptVersion: spec.version,
+        promptKey: getPromptKey(spec.id, spec.version),
+        usageContext: options.usageContext ?? 'unknown',
+        messageCount: messages.length,
+        contentLength,
+      });
+    }
+  }
+
+  return messages;
+}
+
+export function resolvePromptContent<TCtx = void>(
+  id: string,
+  ctx: TCtx,
+  versionOrOptions?: string | ResolvePromptOptions
+): string | undefined {
+  const messages = resolvePrompt(id, ctx, versionOrOptions);
+  return messages?.[0]?.content;
 }

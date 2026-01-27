@@ -14,6 +14,7 @@ import { getTerminalWidth } from './utils/terminal';
 import type { GlobalOptions } from './types';
 import { createLoggerFromCLIOptions, setDefaultLogger } from '../debug/logger';
 import type { IDebugLogger } from '../debug/types';
+import { registerAllPrompts } from '../prompts';
 
 /**
  * Package description for CLI.
@@ -40,6 +41,8 @@ class TerminalAwareHelp extends Help {
  * @returns Configured Commander program instance
  */
 export function createProgram(): Command {
+  registerAllPrompts();
+
   const program = new Command();
   const version = getVersion();
 

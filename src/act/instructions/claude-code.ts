@@ -8,15 +8,17 @@
 
 import type { ACTInstructions } from '../types.js';
 import { DEFAULT_ACT_TOOLS } from '../types.js';
-import { claudeCodeAnalyzerPromptV1 } from '../../prompts/subagents/act/claude-code-prompt.js';
+import { resolvePromptContent } from '../../prompts/index.js';
 
-export const claudeCodeInstructions: ACTInstructions = {
-  name: 'claude-code-analyzer',
-  displayName: 'Claude Code Analyzer',
-  description:
-    'Analyzes Claude Code configurations, settings hierarchies, memory files, and session logs. Use when the project uses CLAUDE.md or .claude/ directory.',
-  prompt: claudeCodeAnalyzerPromptV1.messages[0]?.content ?? '',
-  tools: [...DEFAULT_ACT_TOOLS],
-  actTypes: ['claude-code'],
-  priority: 100,
-};
+export function getClaudeCodeInstructions(): ACTInstructions {
+  return {
+    name: 'claude-code-analyzer',
+    displayName: 'Claude Code Analyzer',
+    description:
+      'Analyzes Claude Code configurations, settings hierarchies, memory files, and session logs. Use when the project uses CLAUDE.md or .claude/ directory.',
+    prompt: resolvePromptContent('subagent/claude-code-analyzer', {}) ?? '',
+    tools: [...DEFAULT_ACT_TOOLS],
+    actTypes: ['claude-code'],
+    priority: 100,
+  };
+}

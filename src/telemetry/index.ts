@@ -163,6 +163,18 @@ export interface TrackLLMOptions {
 }
 
 /**
+ * Options for prompt usage tracking.
+ */
+export interface TrackPromptOptions {
+  promptId: string;
+  promptVersion: string;
+  promptKey: string;
+  usageContext: string;
+  messageCount: number;
+  contentLength: number;
+}
+
+/**
  * Telemetry client interface.
  */
 export interface ITelemetryClient {
@@ -208,6 +220,9 @@ export interface ITelemetryClient {
 
   /** Track LLM usage with extended options */
   trackLLMEx?(sessionId: string, options: TrackLLMOptions): void;
+
+  /** Track prompt usage for A/B testing and version correlation */
+  trackPrompt?(sessionId: string, options: TrackPromptOptions): void;
 
   /** Track an error (type only) */
   trackError(sessionId: string, errorType: string, errorCode?: string): void;
@@ -275,6 +290,10 @@ class NoOpTelemetryClient implements ITelemetryClient {
   }
 
   trackError(_sessionId: string, _errorType: string, _errorCode?: string): void {
+    // No-op
+  }
+
+  trackPrompt(_sessionId: string, _options: TrackPromptOptions): void {
     // No-op
   }
 

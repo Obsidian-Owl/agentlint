@@ -1,11 +1,12 @@
-import { describe, it, expect, beforeEach } from 'bun:test';
+import { describe, it, expect, beforeEach, mock, spyOn } from 'bun:test';
 import {
   PromptRegistry,
-  resetPromptRegistry,
   getPromptRegistry,
+  resolvePrompt,
   type PromptSpec,
   type StaticPromptSpec,
 } from '../../../../src/prompts/promptkit';
+import * as telemetryModule from '../../../../src/telemetry';
 
 const createTestPromptSpec = (overrides: Partial<PromptSpec<void>> = {}): PromptSpec<void> => ({
   id: 'test/prompt',
@@ -177,10 +178,6 @@ describe('PromptRegistry', () => {
 });
 
 describe('getPromptRegistry()', () => {
-  beforeEach(() => {
-    resetPromptRegistry();
-  });
-
   it('should return singleton instance', () => {
     const r1 = getPromptRegistry();
     const r2 = getPromptRegistry();
@@ -188,13 +185,113 @@ describe('getPromptRegistry()', () => {
   });
 
   it('should reset correctly', () => {
-    const r1 = getPromptRegistry();
-    r1.register(createTestPromptSpec());
-    expect(r1.size).toBe(1);
+    const freshRegistry = new PromptRegistry();
+    freshRegistry.register(createTestPromptSpec());
+    expect(freshRegistry.size).toBe(1);
+    freshRegistry.clear();
+    expect(freshRegistry.size).toBe(0);
+  });
+});
 
-    resetPromptRegistry();
-    const r2 = getPromptRegistry();
-    expect(r2.size).toBe(0);
-    expect(r1).not.toBe(r2);
+describe('resolvePrompt()', () => {
+  let mockTrackPrompt: ReturnType<typeof mock>;
+  let mockTelemetryClient: telemetryModule.ITelemetryClient;
+  const testPromptId = 'test/telemetry-test';
+
+  beforeEach(() => {
+    mockTrackPrompt = mock(() => {});
+    mockTelemetryClient = {
+      mode: 'alpha',
+      init: mock(() => Promise.resolve()),
+      isEnabled: () => true,
+      record: mock(() => {}),
+      sessionStart: mock(() => {}),
+      sessionEnd: mock(() => {}),
+      trackTool: mock(() => {}),
+      trackFinding: mock(() => {}),
+      trackLLM: mock(() => {}),
+      trackError: mock(() => {}),
+      trackPrompt: mockTrackPrompt,
+      flush: mock(() => Promise.resolve()),
+      shutdown: mock(() => Promise.resolve()),
+    };
+
+    spyOn(telemetryModule, 'getTelemetryClient').mockReturnValue(mockTelemetryClient);
+  });
+
+  it('should return messages for registered prompt', () => {
+    const registry = getPromptRegistry();
+    if (!registry.has(testPromptId)) {
+      registry.register(createTestPromptSpec({ id: testPromptId }));
+    }
+    const messages = resolvePrompt(testPromptId, undefined);
+    expect(messages).toEqual([{ role: 'system', content: 'Test content' }]);
+  });
+
+  it('should return undefined for non-existent prompt', () => {
+    const messages = resolvePrompt('non/existent-unique-id', undefined);
+    expect(messages).toBeUndefined();
+  });
+
+  it('should emit telemetry when sessionId is provided', () => {
+    const registry = getPromptRegistry();
+    const telemetryTestId = 'test/telemetry-emit';
+    if (!registry.has(telemetryTestId)) {
+      registry.register(createTestPromptSpec({ id: telemetryTestId }));
+    }
+    resolvePrompt(telemetryTestId, undefined, {
+      sessionId: 'test-session-123',
+      usageContext: 'test',
+    });
+
+    expect(mockTrackPrompt).toHaveBeenCalledTimes(1);
+    expect(mockTrackPrompt).toHaveBeenCalledWith('test-session-123', {
+      promptId: telemetryTestId,
+      promptVersion: '1.0.0',
+      promptKey: `${telemetryTestId}@1.0.0`,
+      usageContext: 'test',
+      messageCount: 1,
+      contentLength: 12,
+    });
+  });
+
+  it('should NOT emit telemetry when sessionId is not provided', () => {
+    const registry = getPromptRegistry();
+    const noTelemetryId = 'test/no-telemetry';
+    if (!registry.has(noTelemetryId)) {
+      registry.register(createTestPromptSpec({ id: noTelemetryId }));
+    }
+    resolvePrompt(noTelemetryId, undefined);
+
+    expect(mockTrackPrompt).not.toHaveBeenCalled();
+  });
+
+  it('should use "unknown" as default usageContext', () => {
+    const registry = getPromptRegistry();
+    const defaultContextId = 'test/default-context';
+    if (!registry.has(defaultContextId)) {
+      registry.register(createTestPromptSpec({ id: defaultContextId }));
+    }
+    resolvePrompt(defaultContextId, undefined, { sessionId: 'test-session' });
+
+    expect(mockTrackPrompt).toHaveBeenCalledWith(
+      'test-session',
+      expect.objectContaining({
+        usageContext: 'unknown',
+      })
+    );
+  });
+
+  it('should resolve specific version when provided', () => {
+    const registry = getPromptRegistry();
+    const versionTestId = 'test/version-test';
+    if (!registry.has(versionTestId, '1.0.0')) {
+      registry.register(createTestPromptSpec({ id: versionTestId, version: '1.0.0' }));
+    }
+    if (!registry.has(versionTestId, '2.0.0')) {
+      registry.register(createTestPromptSpec({ id: versionTestId, version: '2.0.0' }));
+    }
+    const messages = resolvePrompt(versionTestId, undefined, { version: '1.0.0' });
+    expect(messages).toBeDefined();
   });
 });

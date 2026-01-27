@@ -71,10 +71,18 @@ function classifyError(error: unknown): ClassifiedError {
     if (error.name === 'AbortError') {
       return { category: 'timeout', name: 'AbortError', message: error.message };
     }
-    if (error.message.includes('fetch') || error.message.includes('network') || error.message.includes('ECONNREFUSED')) {
+    if (
+      error.message.includes('fetch') ||
+      error.message.includes('network') ||
+      error.message.includes('ECONNREFUSED')
+    ) {
       return { category: 'network', name: error.name, message: error.message };
     }
-    if (error.message.includes('API') || error.message.includes('401') || error.message.includes('403')) {
+    if (
+      error.message.includes('API') ||
+      error.message.includes('401') ||
+      error.message.includes('403')
+    ) {
       return { category: 'api_error', name: error.name, message: error.message };
     }
     return { category: 'unknown', name: error.name, message: error.message };
@@ -243,6 +251,11 @@ function buildEventName(event: TelemetryEvent): string {
     return 'Recommendation: Generated';
   }
 
+  if (type === 'prompt.used') {
+    const promptId = (event.data.promptId as string) ?? 'unknown';
+    return `Prompt: ${promptId}`;
+  }
+
   // Fallback to formatted raw type
   return type
     .split('.')
@@ -296,6 +309,13 @@ function buildHoneyHiveConfig(event: TelemetryEvent): Record<string, unknown> {
     return {
       finding_type: event.data.findingType,
       severity: event.data.severity,
+    };
+  }
+
+  if (eventType === 'prompt.used') {
+    return {
+      prompt_id: event.data.promptId,
+      prompt_version: event.data.promptVersion,
     };
   }
 
@@ -409,6 +429,15 @@ function buildHoneyHiveMetrics(event: TelemetryEvent): Record<string, unknown> {
     }
   }
 
+  if (event.type === 'prompt.used') {
+    if (typeof event.data.messageCount === 'number') {
+      metrics.message_count = event.data.messageCount;
+    }
+    if (typeof event.data.contentLength === 'number') {
+      metrics.content_length = event.data.contentLength;
+    }
+  }
+
   return metrics;
 }
 
@@ -452,6 +481,15 @@ function buildHoneyHiveInputs(event: TelemetryEvent): Record<string, unknown> {
     return {
       findingType: event.data.findingType,
       severity: event.data.severity,
+    };
+  }
+
+  if (eventType === 'prompt.used') {
+    return {
+      prompt_id: event.data.promptId,
+      prompt_version: event.data.promptVersion,
+      prompt_key: event.data.promptKey,
+      usage_context: event.data.usageContext,
     };
   }
 
@@ -514,6 +552,13 @@ function buildHoneyHiveOutputs(event: TelemetryEvent): Record<string, unknown> {
     };
   }
 
+  if (eventType === 'prompt.used') {
+    return {
+      message_count: event.data.messageCount,
+      content_length: event.data.contentLength,
+    };
+  }
+
   return {};
 }
 
@@ -530,7 +575,8 @@ function buildHoneyHiveMetadata(event: TelemetryEvent): Record<string, unknown> 
   if (event.type === 'llm.usage') {
     return {
       ...base,
-      total_tokens: ((event.data.inputTokens as number) ?? 0) + ((event.data.outputTokens as number) ?? 0),
+      total_tokens:
+        ((event.data.inputTokens as number) ?? 0) + ((event.data.outputTokens as number) ?? 0),
       prompt_tokens: event.data.inputTokens ?? 0,
       completion_tokens: event.data.outputTokens ?? 0,
       cost: event.data.cost,
@@ -555,6 +601,15 @@ function buildHoneyHiveMetadata(event: TelemetryEvent): Record<string, unknown> 
     };
   }
 
+  if (event.type === 'prompt.used') {
+    return {
+      ...base,
+      prompt_id: event.data.promptId,
+      prompt_version: event.data.promptVersion,
+      usage_context: event.data.usageContext,
+    };
+  }
+
   return base;
 }
 
@@ -562,13 +617,15 @@ async function forwardToHoneyHive(events: TelemetryEvent[], requestId: string): 
   const apiKey = process.env['HONEYHIVE_API_KEY'];
 
   if (!apiKey) {
-    console.error(JSON.stringify({
-      level: 'error',
-      requestId,
-      event: 'config_error',
-      message: 'HONEYHIVE_API_KEY not configured',
-      timestamp: new Date().toISOString(),
-    }));
+    console.error(
+      JSON.stringify({
+        level: 'error',
+        requestId,
+        event: 'config_error',
+        message: 'HONEYHIVE_API_KEY not configured',
+        timestamp: new Date().toISOString(),
+      })
+    );
     return;
   }
 
@@ -604,18 +661,25 @@ async function forwardToHoneyHive(events: TelemetryEvent[], requestId: string): 
       const sessionInputs: Record<string, unknown> = {};
       if (sessionStartEvent?.data) {
         if (sessionStartEvent.data.command) sessionInputs.command = sessionStartEvent.data.command;
-        if (sessionStartEvent.data.directory) sessionInputs.directory = sessionStartEvent.data.directory;
-        if (sessionStartEvent.data.projectType) sessionInputs.project_type = sessionStartEvent.data.projectType;
-        if (sessionStartEvent.data.hasConfig !== undefined) sessionInputs.has_config = sessionStartEvent.data.hasConfig;
+        if (sessionStartEvent.data.directory)
+          sessionInputs.directory = sessionStartEvent.data.directory;
+        if (sessionStartEvent.data.projectType)
+          sessionInputs.project_type = sessionStartEvent.data.projectType;
+        if (sessionStartEvent.data.hasConfig !== undefined)
+          sessionInputs.has_config = sessionStartEvent.data.hasConfig;
       }
 
       // Build session-level outputs (from session.end if available)
       const sessionOutputs: Record<string, unknown> = {};
       if (sessionEndEvent?.data) {
-        if (sessionEndEvent.data.success !== undefined) sessionOutputs.success = sessionEndEvent.data.success;
-        if (sessionEndEvent.data.findingCount !== undefined) sessionOutputs.finding_count = sessionEndEvent.data.findingCount;
-        if (sessionEndEvent.data.recommendationCount !== undefined) sessionOutputs.recommendation_count = sessionEndEvent.data.recommendationCount;
-        if (sessionEndEvent.data.toolCallCount !== undefined) sessionOutputs.tool_count = sessionEndEvent.data.toolCallCount;
+        if (sessionEndEvent.data.success !== undefined)
+          sessionOutputs.success = sessionEndEvent.data.success;
+        if (sessionEndEvent.data.findingCount !== undefined)
+          sessionOutputs.finding_count = sessionEndEvent.data.findingCount;
+        if (sessionEndEvent.data.recommendationCount !== undefined)
+          sessionOutputs.recommendation_count = sessionEndEvent.data.recommendationCount;
+        if (sessionEndEvent.data.toolCallCount !== undefined)
+          sessionOutputs.tool_count = sessionEndEvent.data.toolCallCount;
       }
 
       // Build session-level metrics (aggregated from events)
@@ -627,7 +691,8 @@ async function forwardToHoneyHive(events: TelemetryEvent[], requestId: string): 
       for (const evt of sessionEvents) {
         if (evt.type === 'llm.usage') {
           modelEventCount++;
-          totalTokens += ((evt.data.inputTokens as number) ?? 0) + ((evt.data.outputTokens as number) ?? 0);
+          totalTokens +=
+            ((evt.data.inputTokens as number) ?? 0) + ((evt.data.outputTokens as number) ?? 0);
           if (typeof evt.data.cost === 'number') totalCost += evt.data.cost;
         }
         if (evt.type === 'tool.call') toolEventCount++;
@@ -636,7 +701,8 @@ async function forwardToHoneyHive(events: TelemetryEvent[], requestId: string): 
       if (totalCost > 0) sessionMetrics.total_cost = totalCost;
       if (modelEventCount > 0) sessionMetrics.model_calls = modelEventCount;
       if (toolEventCount > 0) sessionMetrics.tool_calls = toolEventCount;
-      if (sessionEndEvent?.data?.durationMs) sessionMetrics.duration_ms = sessionEndEvent.data.durationMs;
+      if (sessionEndEvent?.data?.durationMs)
+        sessionMetrics.duration_ms = sessionEndEvent.data.durationMs;
 
       // Build session-level config (app settings)
       const sessionConfig: Record<string, unknown> = {
@@ -688,25 +754,29 @@ async function forwardToHoneyHive(events: TelemetryEvent[], requestId: string): 
 
       if (!sessionResponse.ok) {
         const errorBody = await sessionResponse.text();
-        console.error(JSON.stringify({
-          level: 'error',
-          requestId,
-          sessionId,
-          event: 'session_create_error',
-          status: sessionResponse.status,
-          errorBody: errorBody.slice(0, 200),
-          timestamp: new Date().toISOString(),
-        }));
+        console.error(
+          JSON.stringify({
+            level: 'error',
+            requestId,
+            sessionId,
+            event: 'session_create_error',
+            status: sessionResponse.status,
+            errorBody: errorBody.slice(0, 200),
+            timestamp: new Date().toISOString(),
+          })
+        );
         // Continue anyway to try logging events
       } else {
-        console.log(JSON.stringify({
-          level: 'info',
-          requestId,
-          sessionId,
-          event: 'session_created',
-          sessionName,
-          timestamp: new Date().toISOString(),
-        }));
+        console.log(
+          JSON.stringify({
+            level: 'info',
+            requestId,
+            sessionId,
+            event: 'session_created',
+            sessionName,
+            timestamp: new Date().toISOString(),
+          })
+        );
       }
 
       // Log individual events
@@ -721,7 +791,9 @@ async function forwardToHoneyHive(events: TelemetryEvent[], requestId: string): 
 
         // Calculate duration from start/end times or fallback to data.durationMs
         const startTime = event.startTime ?? new Date(event.timestamp).getTime();
-        const endTime = event.endTime ?? startTime + (typeof event.data.durationMs === 'number' ? event.data.durationMs : 0);
+        const endTime =
+          event.endTime ??
+          startTime + (typeof event.data.durationMs === 'number' ? event.data.durationMs : 0);
         const duration = endTime - startTime;
 
         // Parent ID: use event's parentEventId, or session event ID as fallback for child events
@@ -793,32 +865,36 @@ async function forwardToHoneyHive(events: TelemetryEvent[], requestId: string): 
 
         if (!eventResponse.ok) {
           const errorBody = await eventResponse.text();
-          console.error(JSON.stringify({
-            level: 'error',
-            requestId,
-            sessionId,
-            event: 'event_log_error',
-            eventId: event.eventId,
-            eventType: event.type,
-            status: eventResponse.status,
-            errorBody: errorBody.slice(0, 200),
-            timestamp: new Date().toISOString(),
-          }));
+          console.error(
+            JSON.stringify({
+              level: 'error',
+              requestId,
+              sessionId,
+              event: 'event_log_error',
+              eventId: event.eventId,
+              eventType: event.type,
+              status: eventResponse.status,
+              errorBody: errorBody.slice(0, 200),
+              timestamp: new Date().toISOString(),
+            })
+          );
         }
       }
     } catch (error) {
       const classified = classifyError(error);
-      console.error(JSON.stringify({
-        level: 'error',
-        requestId,
-        sessionId,
-        event: 'session_forward_error',
-        category: classified.category,
-        errorName: classified.name,
-        errorMessage: classified.message,
-        eventCount: sessionEvents.length,
-        timestamp: new Date().toISOString(),
-      }));
+      console.error(
+        JSON.stringify({
+          level: 'error',
+          requestId,
+          sessionId,
+          event: 'session_forward_error',
+          category: classified.category,
+          errorName: classified.name,
+          errorMessage: classified.message,
+          eventCount: sessionEvents.length,
+          timestamp: new Date().toISOString(),
+        })
+      );
     }
   }
 }
@@ -836,23 +912,27 @@ export async function POST(request: Request): Promise<Response> {
     request.headers.get('x-real-ip') ??
     'anonymous';
 
-  console.log(JSON.stringify({
-    level: 'info',
-    requestId,
-    event: 'request_start',
-    ip,
-    timestamp: new Date().toISOString(),
-  }));
+  console.log(
+    JSON.stringify({
+      level: 'info',
+      requestId,
+      event: 'request_start',
+      ip,
+      timestamp: new Date().toISOString(),
+    })
+  );
 
   // Check rate limit
   if (!checkRateLimit(ip)) {
-    console.log(JSON.stringify({
-      level: 'warn',
-      requestId,
-      event: 'rate_limited',
-      ip,
-      timestamp: new Date().toISOString(),
-    }));
+    console.log(
+      JSON.stringify({
+        level: 'warn',
+        requestId,
+        event: 'rate_limited',
+        ip,
+        timestamp: new Date().toISOString(),
+      })
+    );
     return NextResponse.json({ error: 'Rate limited', requestId }, { status: 429 });
   }
 
@@ -861,35 +941,41 @@ export async function POST(request: Request): Promise<Response> {
   try {
     body = await request.json();
   } catch {
-    console.log(JSON.stringify({
-      level: 'warn',
-      requestId,
-      event: 'invalid_json',
-      timestamp: new Date().toISOString(),
-    }));
+    console.log(
+      JSON.stringify({
+        level: 'warn',
+        requestId,
+        event: 'invalid_json',
+        timestamp: new Date().toISOString(),
+      })
+    );
     return NextResponse.json({ error: 'Invalid JSON', requestId }, { status: 400 });
   }
 
   if (!isValidPayload(body)) {
-    console.log(JSON.stringify({
-      level: 'warn',
-      requestId,
-      event: 'invalid_schema',
-      timestamp: new Date().toISOString(),
-    }));
+    console.log(
+      JSON.stringify({
+        level: 'warn',
+        requestId,
+        event: 'invalid_schema',
+        timestamp: new Date().toISOString(),
+      })
+    );
     return NextResponse.json({ error: 'Invalid payload schema', requestId }, { status: 400 });
   }
 
   // Forward to HoneyHive and wait for completion to prevent event loss
   await forwardToHoneyHive(body.events, requestId);
 
-  console.log(JSON.stringify({
-    level: 'info',
-    requestId,
-    event: 'request_complete',
-    eventsReceived: body.events.length,
-    timestamp: new Date().toISOString(),
-  }));
+  console.log(
+    JSON.stringify({
+      level: 'info',
+      requestId,
+      event: 'request_complete',
+      eventsReceived: body.events.length,
+      timestamp: new Date().toISOString(),
+    })
+  );
 
   return NextResponse.json({ success: true, eventsReceived: body.events.length, requestId });
 }

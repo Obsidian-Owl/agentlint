@@ -9,7 +9,7 @@
 
 import type { AgentDefinition } from './types.js';
 import { ACTSubagentRegistry } from './registry.js';
-import { bundledInstructions } from './instructions/index.js';
+import { getBundledInstructions } from './instructions/index.js';
 
 // Re-export public types
 export type { AgentDefinition, ACTInstructions, ACTType } from './types.js';
@@ -34,8 +34,7 @@ export type { IACTSubagentRegistry } from './registry.js';
 export function buildACTSubagents(): Record<string, AgentDefinition> {
   const registry = new ACTSubagentRegistry();
 
-  // Register all bundled instructions
-  for (const instructions of bundledInstructions) {
+  for (const instructions of getBundledInstructions()) {
     registry.register(instructions);
   }
 

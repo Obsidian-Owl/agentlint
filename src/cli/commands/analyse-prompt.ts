@@ -15,7 +15,7 @@ import {
   getRecommendationsDir,
 } from '../../recommendations/storage';
 import type { RecommendationSummary } from '../../recommendations/types';
-import { analysisPromptV1 } from '../../prompts/analysis';
+import { resolvePrompt, type ResolvePromptOptions } from '../../prompts';
 import type { AnalysisContext } from '../../prompts/analysis';
 
 export { buildContinuationPrompt } from '../../prompts/analysis';
@@ -94,10 +94,15 @@ No open recommendations found. Create new ones as needed, but avoid duplicating 
   return lines.join('\n');
 }
 
+export interface BuildAnalysisPromptOptions {
+  sessionId?: string;
+  promptVersion?: string;
+}
+
 export async function buildAnalysisPrompt(
   directory: string,
   scanResult: ScanResult,
-  options: AnalyseOptions & { promptVersion?: string }
+  options: AnalyseOptions & BuildAnalysisPromptOptions
 ): Promise<string> {
   const existingRecsContext = await buildExistingRecommendationsContext(directory);
 
@@ -108,8 +113,17 @@ export async function buildAnalysisPrompt(
     existingRecsContext,
   };
 
-  const messages = analysisPromptV1.render(ctx);
-  return messages[0]?.content ?? '';
+  const resolveOptions: ResolvePromptOptions = {};
+  if (options.promptVersion) {
+    resolveOptions.version = options.promptVersion;
+  }
+  if (options.sessionId) {
+    resolveOptions.sessionId = options.sessionId;
+    resolveOptions.usageContext = 'analysis';
+  }
+
+  const messages = resolvePrompt<AnalysisContext>('analysis/main', ctx, resolveOptions);
+  return messages?.[0]?.content ?? '';
 }
 
 export function buildFocusInstructions(options: AnalyseOptions): string {
