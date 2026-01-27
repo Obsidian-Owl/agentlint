@@ -336,3 +336,91 @@ All core infrastructure implemented (T04-T07):
 
 **Ready for Wave 3**: Tool migration (T08-T14) - 7 parallel tasks migrating 40+ tools
 
+
+## T08: Migrate Config Tools (Wave 3 - Batch 1)
+
+### Completed
+- ✓ Migrated 5 config tools from SDK `tool()` to Opencode `adaptTool()`
+  - `src/tools/config/parse-config-tool.ts` (378 lines)
+  - `src/tools/config/discover-configs-tool.ts` (189 lines)
+  - `src/tools/config/analyze-hierarchy-tool.ts` (185 lines)
+  - `src/tools/config/mcp/get-mcp-configs-tool.ts` (173 lines)
+  - `src/tools/config/mcp/validate-mcp-config-tool.ts` (533 lines)
+- ✓ All SDK imports removed (verified with grep)
+- ✓ Tool names unchanged (API stability)
+- ✓ Handler logic unchanged (only format conversion)
+- ✓ All 4178 tests passing
+- ✓ Typecheck clean (zero errors)
+- ✓ Atomic commit: `refactor(tools): migrate config tools to Opencode format`
+
+### Key Findings
+
+#### Migration Pattern (Reusable)
+1. **Import swap**:
+   ```typescript
+   // OLD
+   import { tool } from '@anthropic-ai/claude-agent-sdk';
+   
+   // NEW
+   import { adaptTool } from '../../opencode/tool-adapter';
+   ```
+
+2. **Tool definition conversion**:
+   ```typescript
+   // OLD
+   export const myTool = tool(
+     'tool_name',
+     `description...`,
+     inputSchema,
+     async (args) => { ... }
+   );
+   
+   // NEW
+   export const myTool = adaptTool({
+     name: 'tool_name',
+     description: `description...`,
+     schema: inputSchema,
+     handler: async (args: unknown) => { ... }
+   });
+   ```
+
+3. **Type safety for handler args**:
+   - Handler receives `unknown` type from adapter
+   - Cast to specific type: `const typedArgs = args as { field: type };`
+   - This satisfies TypeScript strict mode
+
+#### Path Depth Matters
+- Tools in `src/tools/config/` use `../../opencode/tool-adapter`
+- Tools in `src/tools/config/mcp/` use `../../../opencode/tool-adapter`
+- Always count directory levels carefully
+
+#### Handler Signature
+- SDK: `async (args) => { ... }` (implicit any type)
+- Opencode: `async (args: unknown) => { ... }` (explicit unknown)
+- Must cast args to specific type inside handler
+- Pattern: `const typedArgs = args as { field: type };`
+
+#### No Breaking Changes
+- Tool names identical (API compatibility)
+- Return format identical (content + _rawData)
+- Handler logic identical (only wrapper changed)
+- All existing tests pass without modification
+
+### Test Results
+- Before: 4178 tests passing
+- After: 4178 tests passing (no regression)
+- Coverage: All 5 tools tested via existing test suite
+
+### Commit Hash
+- `3efd400` - refactor(tools): migrate config tools to Opencode format
+
+### Next Steps (T09-T14)
+- T09: Migrate 8 analysis tools
+- T10: Migrate 6 session tools
+- T11: Migrate 5 quality tools
+- T12: Migrate 4 integration tools
+- T13: Migrate 3 utility tools
+- T14: Migrate 9 specialized tools
+
+**Total remaining**: 35 tools across 7 tasks
+

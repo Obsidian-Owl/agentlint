@@ -10,7 +10,7 @@
  * @module sessions/tools/get-tool-sequences-tool
  */
 
-import { tool } from '@anthropic-ai/claude-agent-sdk';
+import { adaptTool } from '../../opencode/tool-adapter';
 import { z } from 'zod';
 import { readFile, access } from 'node:fs/promises';
 import { constants } from 'node:fs';
@@ -285,9 +285,9 @@ function formatToolOutput(data: GetToolSequencesOutput): string {
  * registry.register(getToolSequencesTool);
  * ```
  */
-export const getToolSequencesTool = tool(
-  'get_tool_sequences',
-  `Extract tool call sequences and detect repeat patterns from a Claude Code session.
+export const getToolSequencesTool = adaptTool({
+  name: 'get_tool_sequences',
+  description: `Extract tool call sequences and detect repeat patterns from a Claude Code session.
 
 Returns:
 - **Sequences**: Tool calls in order with name, input hash, error status
@@ -303,12 +303,20 @@ Repeat patterns are DATA for your interpretation:
 Filter options:
 - \`toolName\`: Focus on specific tool (e.g., "Bash" for command patterns)
 - \`errorsOnly\`: See only failed tool calls`,
-  getToolSequencesInputSchema,
-  async (args) => {
+  schema: getToolSequencesInputSchema,
+  handler: async (args: unknown) => {
+    const typedArgs = args as {
+      filePath?: string;
+      sessionId?: string;
+      limit?: number;
+      offset?: number;
+      toolName?: string;
+      errorsOnly?: boolean;
+    };
     try {
       // For now, require direct file path
       // TODO: Add session ID lookup via database
-      if (!args.filePath) {
+      if (!typedArgs.filePath) {
         return {
           content: [
             {
@@ -322,19 +330,19 @@ Filter options:
 
       // Build input conditionally to satisfy exactOptionalPropertyTypes
       const input: GetToolSequencesInput = {
-        filePath: args.filePath,
+        filePath: typedArgs.filePath,
       };
-      if (args.limit !== undefined) {
-        input.limit = args.limit;
+      if (typedArgs.limit !== undefined) {
+        input.limit = typedArgs.limit;
       }
-      if (args.offset !== undefined) {
-        input.offset = args.offset;
+      if (typedArgs.offset !== undefined) {
+        input.offset = typedArgs.offset;
       }
-      if (args.toolName !== undefined) {
-        input.toolName = args.toolName;
+      if (typedArgs.toolName !== undefined) {
+        input.toolName = typedArgs.toolName;
       }
-      if (args.errorsOnly !== undefined) {
-        input.errorsOnly = args.errorsOnly;
+      if (typedArgs.errorsOnly !== undefined) {
+        input.errorsOnly = typedArgs.errorsOnly;
       }
 
       const result = await getToolSequences(input);
@@ -376,5 +384,5 @@ Filter options:
         isError: true,
       };
     }
-  }
-);
+  },
+});

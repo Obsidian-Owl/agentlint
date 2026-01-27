@@ -9,7 +9,7 @@
  * @module sessions/tools/get-quality-signals-tool
  */
 
-import { tool } from '@anthropic-ai/claude-agent-sdk';
+import { adaptTool } from '../../opencode/tool-adapter';
 import { z } from 'zod';
 import { readFile, access } from 'node:fs/promises';
 import { constants } from 'node:fs';
@@ -264,9 +264,9 @@ function formatToolOutput(data: GetQualitySignalsOutput): string {
  * registry.register(getQualitySignalsTool);
  * ```
  */
-export const getQualitySignalsTool = tool(
-  'get_quality_signals',
-  `Extract quality signals (test/build/lint outputs) from a Claude Code session.
+export const getQualitySignalsTool = adaptTool({
+  name: 'get_quality_signals',
+  description: `Extract quality signals (test/build/lint outputs) from a Claude Code session.
 
 Returns:
 - **Signals**: Each Bash command that ran tests, builds, or linting
@@ -283,12 +283,13 @@ Quality patterns are DATA for your interpretation:
 
 Filter options:
 - \`signalType\`: Focus on "test", "build", or "lint"`,
-  getQualitySignalsInputSchema,
-  async (args) => {
+  schema: getQualitySignalsInputSchema,
+  handler: async (args: unknown) => {
+    const typedArgs = args as { filePath?: string; sessionId?: string; signalType?: string };
     try {
       // For now, require direct file path
       // TODO: Add session ID lookup via database
-      if (!args.filePath) {
+      if (!typedArgs.filePath) {
         return {
           content: [
             {
@@ -302,10 +303,10 @@ Filter options:
 
       // Build input conditionally to satisfy exactOptionalPropertyTypes
       const input: GetQualitySignalsInput = {
-        filePath: args.filePath,
+        filePath: typedArgs.filePath,
       };
-      if (args.signalType !== undefined) {
-        input.signalType = args.signalType;
+      if (typedArgs.signalType !== undefined) {
+        input.signalType = typedArgs.signalType as QualitySignalType;
       }
 
       const result = await getQualitySignals(input);
@@ -347,5 +348,5 @@ Filter options:
         isError: true,
       };
     }
-  }
-);
+  },
+});

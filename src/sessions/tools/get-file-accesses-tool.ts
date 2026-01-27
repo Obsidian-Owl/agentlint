@@ -9,7 +9,7 @@
  * @module sessions/tools/get-file-accesses-tool
  */
 
-import { tool } from '@anthropic-ai/claude-agent-sdk';
+import { adaptTool } from '../../opencode/tool-adapter';
 import { z } from 'zod';
 import { readFile, access } from 'node:fs/promises';
 import { constants } from 'node:fs';
@@ -260,9 +260,9 @@ function truncatePath(path: string, maxLen: number): string {
  * registry.register(getFileAccessesTool);
  * ```
  */
-export const getFileAccessesTool = tool(
-  'get_file_accesses',
-  `Extract file access patterns from a Claude Code session.
+export const getFileAccessesTool = adaptTool({
+  name: 'get_file_accesses',
+  description: `Extract file access patterns from a Claude Code session.
 
 Returns:
 - **Summaries**: Per-file operation counts (read/write/edit)
@@ -279,12 +279,18 @@ Access patterns are DATA for your interpretation:
 Filter options:
 - \`filePattern\`: Focus on specific paths (e.g., "*.test.ts", "src/components/*")
 - \`operation\`: Focus on specific operation type`,
-  getFileAccessesInputSchema,
-  async (args) => {
+  schema: getFileAccessesInputSchema,
+  handler: async (args: unknown) => {
+    const typedArgs = args as {
+      filePath?: string;
+      sessionId?: string;
+      filePattern?: string;
+      operation?: FileOperation;
+    };
     try {
       // For now, require direct file path
       // TODO: Add session ID lookup via database
-      if (!args.filePath) {
+      if (!typedArgs.filePath) {
         return {
           content: [
             {
@@ -298,13 +304,13 @@ Filter options:
 
       // Build input conditionally to satisfy exactOptionalPropertyTypes
       const input: GetFileAccessesInput = {
-        filePath: args.filePath,
+        filePath: typedArgs.filePath,
       };
-      if (args.filePattern !== undefined) {
-        input.filePattern = args.filePattern;
+      if (typedArgs.filePattern !== undefined) {
+        input.filePattern = typedArgs.filePattern;
       }
-      if (args.operation !== undefined) {
-        input.operation = args.operation;
+      if (typedArgs.operation !== undefined) {
+        input.operation = typedArgs.operation;
       }
 
       const result = await getFileAccesses(input);
@@ -346,5 +352,5 @@ Filter options:
         isError: true,
       };
     }
-  }
-);
+  },
+});
