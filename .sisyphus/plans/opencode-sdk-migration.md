@@ -629,7 +629,7 @@ Parallel Speedup: ~50% faster than sequential
 
 ---
 
-- [ ] **T09. Migrate Session Tools (11 tools)**
+- [x] **T09. Migrate Session Tools (11 tools)**
 
   **What to do**:
   - Migrate tools in `src/sessions/tools/`:

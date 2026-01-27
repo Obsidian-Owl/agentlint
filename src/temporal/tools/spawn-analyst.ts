@@ -10,8 +10,9 @@
  * @module temporal/tools/spawn-analyst
  */
 
-import { tool } from '@anthropic-ai/claude-agent-sdk';
 import { z } from 'zod';
+
+import { adaptTool } from '../../opencode/tool-adapter';
 
 import {
   buildTemporalAnalyzerAgent,
@@ -294,9 +295,9 @@ function formatToolOutput(result: SpawnTemporalAnalystResult): string {
  * registry.register(spawnTemporalAnalystTool);
  * ```
  */
-export const spawnTemporalAnalystTool = tool(
-  'spawn_temporal_analyst',
-  `
+export const spawnTemporalAnalystTool = adaptTool({
+  name: 'spawn_temporal_analyst',
+  description: `
 Spawn a temporal analysis subagent with configurable focus.
 
 Use this tool when you need to:
@@ -320,44 +321,57 @@ Focus options:
 Returns the subagent definition and context for orchestrator delegation.
 The orchestrator should invoke the subagent using the SDK agents option.
   `.trim(),
-  spawnTemporalAnalystInputSchema,
-  async (args) => {
+  schema: spawnTemporalAnalystInputSchema,
+  handler: async (args: unknown) => {
+    const typedArgs = args as {
+      focus: 'trends' | 'reviews' | 'comparison' | 'comprehensive';
+      query?: string;
+      baselineId?: string;
+      compareToId?: string;
+      timeRange?: {
+        startDate?: string;
+        endDate?: string;
+        daysBack?: number;
+      };
+      includeRecommendations?: boolean;
+      readonly?: boolean;
+    };
     try {
       // Select agent type based on readonly flag
-      const agent = args.readonly
+      const agent = typedArgs.readonly
         ? buildTemporalAnalyzerReadonlyAgent()
         : buildTemporalAnalyzerAgent();
 
-      const agentType = args.readonly ? 'temporal-analyzer-readonly' : 'temporal-analyzer';
+      const agentType = typedArgs.readonly ? 'temporal-analyzer-readonly' : 'temporal-analyzer';
 
       // Build time range object with proper handling of undefined values
       let timeRange: { startDate?: string; endDate?: string; daysBack?: number } | undefined;
-      if (args.timeRange) {
+      if (typedArgs.timeRange) {
         timeRange = {};
-        if (args.timeRange.startDate !== undefined) {
-          timeRange.startDate = args.timeRange.startDate;
+        if (typedArgs.timeRange.startDate !== undefined) {
+          timeRange.startDate = typedArgs.timeRange.startDate;
         }
-        if (args.timeRange.endDate !== undefined) {
-          timeRange.endDate = args.timeRange.endDate;
+        if (typedArgs.timeRange.endDate !== undefined) {
+          timeRange.endDate = typedArgs.timeRange.endDate;
         }
-        if (args.timeRange.daysBack !== undefined) {
-          timeRange.daysBack = args.timeRange.daysBack;
+        if (typedArgs.timeRange.daysBack !== undefined) {
+          timeRange.daysBack = typedArgs.timeRange.daysBack;
         }
       }
 
       // Build analysis context - only pass defined optional properties
       const contextArgs: Parameters<typeof buildAnalysisContext>[0] = {
-        focus: args.focus,
-        includeRecommendations: args.includeRecommendations,
+        focus: typedArgs.focus,
+        includeRecommendations: typedArgs.includeRecommendations ?? true,
       };
-      if (args.query !== undefined) {
-        contextArgs.query = args.query;
+      if (typedArgs.query !== undefined) {
+        contextArgs.query = typedArgs.query;
       }
-      if (args.baselineId !== undefined) {
-        contextArgs.baselineId = args.baselineId;
+      if (typedArgs.baselineId !== undefined) {
+        contextArgs.baselineId = typedArgs.baselineId;
       }
-      if (args.compareToId !== undefined) {
-        contextArgs.compareToId = args.compareToId;
+      if (typedArgs.compareToId !== undefined) {
+        contextArgs.compareToId = typedArgs.compareToId;
       }
       if (timeRange !== undefined) {
         contextArgs.timeRange = timeRange;
@@ -365,14 +379,14 @@ The orchestrator should invoke the subagent using the SDK agents option.
       const context = buildAnalysisContext(contextArgs);
 
       // Build query prompt for the subagent
-      const queryPrompt = buildQueryPrompt(args.focus, context);
+      const queryPrompt = buildQueryPrompt(typedArgs.focus, context);
 
       // Get tools from agent (always defined, but handle edge case)
       const agentTools = agent.tools ?? [];
 
       const result: SpawnTemporalAnalystResult = {
         success: true,
-        focus: args.focus,
+        focus: typedArgs.focus,
         agentType,
         context,
         agentDefinition: {
@@ -386,6 +400,7 @@ The orchestrator should invoke the subagent using the SDK agents option.
       };
 
       // Simulate async operation for SDK compatibility
+      // eslint-disable-next-line @typescript-eslint/require-await -- Handler must return Promise for MCP compatibility
       await Promise.resolve();
 
       return {
@@ -409,5 +424,5 @@ The orchestrator should invoke the subagent using the SDK agents option.
         isError: true,
       };
     }
-  }
-);
+  },
+});

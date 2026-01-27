@@ -7,8 +7,9 @@
  * @module temporal/tools/query-baseline
  */
 
-import { tool } from '@anthropic-ai/claude-agent-sdk';
 import { z } from 'zod';
+
+import { adaptTool } from '../../opencode/tool-adapter';
 
 import { loadBaseline, getLatestBaseline } from '../../persistence/baselines/storage';
 import type { Baseline } from '../../persistence/types';
@@ -206,22 +207,26 @@ function formatMetricLabel(name: string): string {
  * registry.register(queryBaselineTool);
  * ```
  */
-export const queryBaselineTool = tool(
-  'query_baseline',
-  TOOL_DESCRIPTIONS.query_baseline,
-  queryBaselineInputSchema,
-  async (args) => {
+export const queryBaselineTool = adaptTool({
+  name: 'query_baseline',
+  description: TOOL_DESCRIPTIONS.query_baseline,
+  schema: queryBaselineInputSchema,
+  handler: async (args: unknown) => {
+    const typedArgs = args as {
+      id?: string;
+      includeFindings?: boolean;
+    };
     try {
       let baseline: Baseline | null = null;
 
-      if (args.id) {
+      if (typedArgs.id) {
         // Load specific baseline by ID
-        baseline = await loadBaseline(args.id);
+        baseline = await loadBaseline(typedArgs.id);
 
         if (!baseline) {
           const result: QueryBaselineResult = {
             found: false,
-            message: `No baseline found with ID: ${args.id}`,
+            message: `No baseline found with ID: ${typedArgs.id}`,
           };
 
           return {
@@ -257,7 +262,7 @@ export const queryBaselineTool = tool(
         }
       }
 
-      const includeFindings = args.includeFindings ?? false;
+      const includeFindings = typedArgs.includeFindings ?? false;
       const result = buildResult(baseline, includeFindings);
 
       return {
@@ -281,5 +286,5 @@ export const queryBaselineTool = tool(
         isError: true,
       };
     }
-  }
-);
+  },
+});

@@ -11,9 +11,10 @@
  * @module temporal/tools/conduct-review
  */
 
-import { tool } from '@anthropic-ai/claude-agent-sdk';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
+
+import { adaptTool } from '../../opencode/tool-adapter';
 
 import { saveReview } from '../../persistence/reviews/storage';
 import { getReviewIndexDb, indexReview } from '../../persistence/reviews/indexer';
@@ -221,14 +222,28 @@ function formatSentiment(value: number): string {
  *
  * Facilitates structured qualitative review sessions covering 6 dimensions.
  */
-export const conductReviewTool = tool(
-  'conduct_review',
-  TOOL_DESCRIPTIONS.conduct_review,
-  conductReviewInputSchema,
-  async (args) => {
+export const conductReviewTool = adaptTool({
+  name: 'conduct_review',
+  description: TOOL_DESCRIPTIONS.conduct_review,
+  schema: conductReviewInputSchema,
+  handler: async (args: unknown) => {
+    const typedArgs = args as {
+      baselineId?: string;
+      dimensions?: string[];
+      triggerReason?: 'scheduled' | 'triggered' | 'manual';
+      mode?: 'initiate' | 'complete';
+      responses?: Array<{
+        name: string;
+        response: string;
+        sentiment: number;
+        confidence?: 'high' | 'medium' | 'low';
+      }>;
+      freeformNotes?: string;
+      themes?: string[];
+    };
     try {
       // Resolve baseline
-      let baselineId = args.baselineId;
+      let baselineId = typedArgs.baselineId;
       if (!baselineId) {
         const latestBaseline = await getLatestBaseline();
         if (!latestBaseline) {
@@ -261,14 +276,15 @@ export const conductReviewTool = tool(
 
       // Get dimensions to review
       const dimensionsToReview: ReviewDimensionName[] =
-        args.dimensions ?? (getDimensionNames() as ReviewDimensionName[]);
+        (typedArgs.dimensions as ReviewDimensionName[] | undefined) ??
+        (getDimensionNames() as ReviewDimensionName[]);
 
       let result: ConductReviewResult;
 
-      if (args.mode === 'complete') {
+      if (typedArgs.mode === 'complete') {
         // Complete mode: store the review
         // Map responses to handle optional confidence properly
-        const mappedResponses = (args.responses ?? []).map((r) => {
+        const mappedResponses = (typedArgs.responses ?? []).map((r) => {
           const mapped: {
             name: ReviewDimensionName;
             response: string;
@@ -289,9 +305,9 @@ export const conductReviewTool = tool(
           baselineId,
           dimensionsToReview,
           mappedResponses,
-          args.triggerReason ?? 'manual',
-          args.freeformNotes,
-          args.themes ?? []
+          typedArgs.triggerReason ?? 'manual',
+          typedArgs.freeformNotes,
+          typedArgs.themes ?? []
         );
       } else {
         // Initiate mode: return prompts
@@ -313,8 +329,8 @@ export const conductReviewTool = tool(
         _rawData: result,
       };
     }
-  }
-);
+  },
+});
 
 /**
  * Initiate a review session by returning prompts.

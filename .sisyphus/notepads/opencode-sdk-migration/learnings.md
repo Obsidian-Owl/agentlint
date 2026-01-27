@@ -424,3 +424,72 @@ All core infrastructure implemented (T04-T07):
 
 **Total remaining**: 35 tools across 7 tasks
 
+
+## T09: Migrate Session Tools (Wave 3 - Batch 2)
+
+### Completed
+- ✓ Migrated 11 session tools from SDK `tool()` to Opencode `adaptTool()`
+  - `src/sessions/tools/get-session-timeline-tool.ts` (352 lines)
+  - `src/sessions/tools/get-tool-sequences-tool.ts` (381 lines)
+  - `src/sessions/tools/get-quality-signals-tool.ts` (352 lines)
+  - `src/sessions/tools/get-mcp-usage-tool.ts` (334 lines)
+  - `src/sessions/tools/get-permission-events-tool.ts` (471 lines)
+  - `src/sessions/tools/get-file-accesses-tool.ts` (351 lines)
+  - `src/sessions/tools/get-delegation-events-tool.ts` (329 lines)
+  - `src/sessions/tools/spawn-session-analyst.ts` (355 lines)
+  - `src/tools/sessions/search-sessions-tool.ts` (236 lines)
+  - `src/tools/sessions/get-session-stats-tool.ts` (230 lines)
+  - `src/tools/sessions/index-sessions-tool.ts` (195 lines)
+- ✓ All SDK imports removed (verified with grep)
+- ✓ Tool names unchanged (API stability)
+- ✓ Handler logic unchanged (only format conversion)
+- ✓ Subagent invocation preserved in spawn-session-analyst
+- ✓ All 4178 tests passing
+- ✓ Typecheck clean (zero errors)
+- ✓ Atomic commit: `refactor(tools): migrate session tools to Opencode format`
+
+### Key Findings
+
+#### Migration Pattern Consistency
+- Pattern from T08 applies perfectly to all 11 tools
+- No variations needed - same import swap, same tool definition conversion
+- Type casting for handler args: `const typedArgs = args as { ... }`
+- All tools follow identical structure
+
+#### Async Handler Requirement
+- **Problem**: ESLint error `@typescript-eslint/require-await` on sync handlers
+- **Solution**: Keep `async` keyword, add ESLint disable comment
+- **Rationale**: MCP adapter requires Promise return type for compatibility
+- **Pattern**: `// eslint-disable-next-line @typescript-eslint/require-await -- Handler must return Promise for MCP compatibility`
+
+#### Type Casting for Optional Fields
+- Session tools heavily use optional parameters
+- Pattern: Build input object conditionally, only adding defined properties
+- Example: `if (typedArgs.signalType !== undefined) { input.signalType = typedArgs.signalType as QualitySignalType; }`
+- Satisfies `exactOptionalPropertyTypes` TypeScript setting
+
+#### Subagent Preservation
+- `spawn-session-analyst` tool invokes `buildSessionAnalystAgent()`
+- Subagent definition returned in tool output (not executed directly)
+- Per Constitution Principle C8: Single subagent depth maintained
+- Migration preserves this pattern - no changes to subagent logic
+
+### Test Results
+- Before: 4178 tests passing
+- After: 4178 tests passing (no regression)
+- Coverage: All 11 tools tested via existing test suite
+- No test modifications needed
+
+### Commit Hash
+- `d5b8ea6` - refactor(tools): migrate session tools to Opencode format
+
+### Next Steps (T10-T14)
+- T10: Migrate 6 analysis tools
+- T11: Migrate 5 quality tools
+- T12: Migrate 4 integration tools
+- T13: Migrate 3 utility tools
+- T14: Migrate 9 specialized tools
+
+**Total remaining**: 27 tools across 5 tasks
+**Progress**: 16/24 tasks complete (66.7%)
+
