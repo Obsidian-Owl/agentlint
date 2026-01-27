@@ -1,0 +1,45 @@
+{
+  "id": "subagent-05-session-quality",
+  "version": "1.0",
+  "source": "synthetic",
+  "description": "Session quality check requiring spawn_session_analyst with quality focus",
+  "difficulty": "easy",
+  "tags": ["clear-routing", "session", "quality"],
+
+  "input_data": {
+    "query": "Were my tests passing in that last session? How was the code quality?",
+    "context": {
+      "lastSessionId": "session-2026-01-26-001",
+      "hasSessionFiles": true,
+      "sessionHasTestRuns": true,
+      "sessionHasLintResults": true,
+      "projectPath": "/test/project"
+    },
+    "availableTools": [
+      "spawn_temporal_analyst",
+      "spawn_recommendation_advisor",
+      "spawn_session_analyst",
+      "analyze_claude_md",
+      "list_sessions",
+      "get_session"
+    ]
+  },
+
+  "expected_output": {
+    "selectedSubagent": "spawn_session_analyst",
+    "focusOption": "quality",
+    "reasoning": "User is asking about test results and code quality within a specific session. The session analyst with quality focus extracts and summarizes quality signals from session data."
+  },
+
+  "expected_properties": {
+    "should_spawn_subagent": true,
+    "subagent_tool": "spawn_session_analyst",
+    "focus_options": ["quality"],
+    "alternative_valid": false
+  },
+
+  "rubric_weights": {
+    "subagent_selection_accuracy": 0.6,
+    "focus_appropriateness": 0.4
+  }
+}

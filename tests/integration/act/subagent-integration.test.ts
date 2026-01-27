@@ -14,9 +14,9 @@ import { z } from 'zod';
 
 // ACT module imports
 import { buildACTSubagents, ACTSubagentRegistry } from '../../../src/act/index.js';
-import { claudeCodeInstructions } from '../../../src/act/instructions/claude-code.js';
-import { generalizedInstructions } from '../../../src/act/instructions/generalized.js';
-import { bundledInstructions } from '../../../src/act/instructions/index.js';
+import { getClaudeCodeInstructions } from '../../../src/act/instructions/claude-code.js';
+import { getGeneralizedInstructions } from '../../../src/act/instructions/generalized.js';
+import { getBundledInstructions } from '../../../src/act/instructions/index.js';
 import type { ACTInstructions } from '../../../src/act/types.js';
 
 // Orchestration imports
@@ -37,15 +37,16 @@ describe('ACT Registry Integration', () => {
   });
 
   test('registers all bundled instructions without errors', () => {
-    for (const instructions of bundledInstructions) {
+    const bundled = getBundledInstructions();
+    for (const instructions of bundled) {
       expect(() => registry.register(instructions)).not.toThrow();
     }
 
-    expect(registry.list()).toHaveLength(bundledInstructions.length);
+    expect(registry.list()).toHaveLength(bundled.length);
   });
 
   test('correctly routes claude-code ACT type to specialist', () => {
-    for (const instructions of bundledInstructions) {
+    for (const instructions of getBundledInstructions()) {
       registry.register(instructions);
     }
 
@@ -56,7 +57,7 @@ describe('ACT Registry Integration', () => {
   });
 
   test('correctly routes unknown ACT type to generalized fallback', () => {
-    for (const instructions of bundledInstructions) {
+    for (const instructions of getBundledInstructions()) {
       registry.register(instructions);
     }
 
@@ -67,7 +68,7 @@ describe('ACT Registry Integration', () => {
   });
 
   test('correctly routes agents-md to generalized', () => {
-    for (const instructions of bundledInstructions) {
+    for (const instructions of getBundledInstructions()) {
       registry.register(instructions);
     }
 
@@ -77,20 +78,19 @@ describe('ACT Registry Integration', () => {
   });
 
   test('priority ordering works - higher priority wins', () => {
-    // Create two analyzers for the same type with different priorities
+    const claudeCode = getClaudeCodeInstructions();
     const lowPriority: ACTInstructions = {
-      ...claudeCodeInstructions,
+      ...claudeCode,
       name: 'low-priority-analyzer',
       priority: 5,
     };
 
     const highPriority: ACTInstructions = {
-      ...claudeCodeInstructions,
+      ...claudeCode,
       name: 'high-priority-analyzer',
       priority: 95,
     };
 
-    // Register low first, high second
     registry.register(lowPriority);
     registry.register(highPriority);
 
@@ -106,16 +106,14 @@ describe('ACT Registry Integration', () => {
 describe('SDK Integration Format', () => {
   test('buildACTSubagents() returns valid SDK agents format', () => {
     const agents = buildACTSubagents();
+    const bundled = getBundledInstructions();
 
-    // Should have all bundled agents
-    expect(Object.keys(agents)).toHaveLength(bundledInstructions.length);
+    expect(Object.keys(agents)).toHaveLength(bundled.length);
 
-    // Each agent should have required SDK fields
     for (const [name, agent] of Object.entries(agents)) {
       expect(typeof name).toBe('string');
       expect(name).toMatch(/^[a-z0-9-]+$/);
 
-      // Required fields
       expect(agent.description).toBeDefined();
       expect(typeof agent.description).toBe('string');
       expect(agent.description.length).toBeGreaterThan(0);
@@ -124,7 +122,6 @@ describe('SDK Integration Format', () => {
       expect(typeof agent.prompt).toBe('string');
       expect(agent.prompt.length).toBeGreaterThan(0);
 
-      // Tools should be defined and not include Task
       if (agent.tools) {
         expect(Array.isArray(agent.tools)).toBe(true);
         expect(agent.tools).not.toContain('Task');
@@ -146,7 +143,6 @@ describe('SDK Integration Format', () => {
     const agents = buildACTSubagents();
 
     for (const agent of Object.values(agents)) {
-      // All prompts should have the 4-layer structure
       expect(agent.prompt).toContain('## ROLE IDENTITY');
       expect(agent.prompt).toContain('## DOMAIN KNOWLEDGE');
       expect(agent.prompt).toContain('## YOUR TASK');
@@ -213,23 +209,24 @@ describe('Orchestrator ACT Configuration', () => {
 
 describe('Subagent Tool Constraints', () => {
   test('claude-code-analyzer has 5 default tools', () => {
-    expect(claudeCodeInstructions.tools).toHaveLength(5);
-    expect(claudeCodeInstructions.tools).toContain('discover_configs');
-    expect(claudeCodeInstructions.tools).toContain('parse_config');
-    expect(claudeCodeInstructions.tools).toContain('analyze_hierarchy');
-    expect(claudeCodeInstructions.tools).toContain('search_sessions');
-    expect(claudeCodeInstructions.tools).toContain('get_session_stats');
+    const instructions = getClaudeCodeInstructions();
+    expect(instructions.tools).toHaveLength(5);
+    expect(instructions.tools).toContain('discover_configs');
+    expect(instructions.tools).toContain('parse_config');
+    expect(instructions.tools).toContain('analyze_hierarchy');
+    expect(instructions.tools).toContain('search_sessions');
+    expect(instructions.tools).toContain('get_session_stats');
   });
 
   test('generalized-analyzer has 2 limited tools', () => {
-    expect(generalizedInstructions.tools).toHaveLength(2);
-    expect(generalizedInstructions.tools).toContain('discover_configs');
-    expect(generalizedInstructions.tools).toContain('parse_config');
+    const instructions = getGeneralizedInstructions();
+    expect(instructions.tools).toHaveLength(2);
+    expect(instructions.tools).toContain('discover_configs');
+    expect(instructions.tools).toContain('parse_config');
 
-    // Should NOT have session tools
-    expect(generalizedInstructions.tools).not.toContain('search_sessions');
-    expect(generalizedInstructions.tools).not.toContain('get_session_stats');
-    expect(generalizedInstructions.tools).not.toContain('analyze_hierarchy');
+    expect(instructions.tools).not.toContain('search_sessions');
+    expect(instructions.tools).not.toContain('get_session_stats');
+    expect(instructions.tools).not.toContain('analyze_hierarchy');
   });
 
   test('no subagent can invoke Task (single-depth constraint)', () => {
@@ -251,7 +248,7 @@ describe('Prompt Size Limits (NFR-002)', () => {
   const MAX_PROMPT_SIZE = 50 * 1024; // 50KB
 
   test('all bundled prompts are under 50KB', () => {
-    for (const instructions of bundledInstructions) {
+    for (const instructions of getBundledInstructions()) {
       const sizeBytes = new TextEncoder().encode(instructions.prompt).length;
 
       expect(sizeBytes).toBeLessThan(MAX_PROMPT_SIZE);
@@ -259,12 +256,12 @@ describe('Prompt Size Limits (NFR-002)', () => {
   });
 
   test('claude-code prompt is under 10KB (efficient)', () => {
-    const sizeBytes = new TextEncoder().encode(claudeCodeInstructions.prompt).length;
+    const sizeBytes = new TextEncoder().encode(getClaudeCodeInstructions().prompt).length;
     expect(sizeBytes).toBeLessThan(10 * 1024);
   });
 
   test('generalized prompt is under 10KB (efficient)', () => {
-    const sizeBytes = new TextEncoder().encode(generalizedInstructions.prompt).length;
+    const sizeBytes = new TextEncoder().encode(getGeneralizedInstructions().prompt).length;
     expect(sizeBytes).toBeLessThan(10 * 1024);
   });
 });

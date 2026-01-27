@@ -6,29 +6,59 @@
  * @module tui/components/AgentOutput
  */
 
-import React from 'react';
+import React, { memo, useMemo } from 'react';
 import { Box, Text } from 'ink';
 import Spinner from 'ink-spinner';
 import type { AgentOutputProps } from '../types';
 import type { StreamChunk } from '../../orchestration/types';
+import { renderMarkdown } from '../utils/markdown';
+import { ToolPhaseRenderer, type ToolPhase } from './ToolPhaseRenderer';
 
 // =============================================================================
 // Chunk Renderer
 // =============================================================================
 
-interface ChunkRendererProps {
-  chunk: StreamChunk;
+function deriveToolPhase(chunk: StreamChunk, chunks: StreamChunk[], index: number): ToolPhase {
+  if (chunk.type === 'tool_result') {
+    return 'complete';
+  }
+  const toolId = chunk.metadata?.toolId as string | undefined;
+  if (toolId) {
+    const hasResult = chunks
+      .slice(index + 1)
+      .some((c) => c.type === 'tool_result' && c.metadata?.toolId === toolId);
+    if (hasResult) {
+      return 'complete';
+    }
+  }
+  return 'running';
 }
 
-function ChunkRenderer({ chunk }: ChunkRendererProps): React.ReactElement {
+interface ChunkRendererProps {
+  chunk: StreamChunk;
+  phase: ToolPhase | null;
+}
+
+const ChunkRenderer = memo(function ChunkRenderer({
+  chunk,
+  phase,
+}: ChunkRendererProps): React.ReactElement {
   const { type, content, level } = chunk;
 
-  // Handle empty content
+  if (type === 'tool_start' && phase) {
+    return <ToolPhaseRenderer chunk={chunk} phase={phase} />;
+  }
+
+  if (type === 'tool_result') {
+    return <ToolPhaseRenderer chunk={chunk} phase="complete" />;
+  }
+
   if (!content || content.trim() === '') {
     return <Text> </Text>;
   }
 
-  // Determine styling based on chunk type
+  const rendered = useMemo(() => renderMarkdown(content), [content]);
+
   switch (type) {
     case 'error':
       return (
@@ -46,26 +76,12 @@ function ChunkRenderer({ chunk }: ChunkRendererProps): React.ReactElement {
 
     case 'text':
     default:
-      // Verbose content can be dimmed
       if (level === 'verbose') {
-        return <Text dimColor>{content}</Text>;
+        return <Text dimColor>{rendered}</Text>;
       }
-      // Render markdown-ish text (basic support)
-      return <Text>{renderMarkdownText(content)}</Text>;
+      return <Text wrap="wrap">{rendered}</Text>;
   }
-}
-
-/**
- * Simple markdown text rendering.
- * For full markdown support, consider ink-markdown.
- */
-function renderMarkdownText(content: string): string {
-  // Strip markdown formatting for basic rendering
-  // **bold** -> bold
-  // `code` -> code
-  // Note: ink doesn't support inline formatting well, so we just strip markers
-  return content.replace(/\*\*(.*?)\*\*/g, '$1').replace(/`(.*?)`/g, '$1');
-}
+});
 
 // =============================================================================
 // Component
@@ -85,10 +101,21 @@ function renderMarkdownText(content: string): string {
  * ```
  */
 export function AgentOutput({ chunks, isStreaming }: AgentOutputProps): React.ReactElement {
+  const chunkPhases = useMemo(() => {
+    return chunks.map((chunk, index) => {
+      if (chunk.type === 'tool_start') {
+        return deriveToolPhase(chunk, chunks, index);
+      }
+      return null;
+    });
+  }, [chunks]);
+
   return (
     <Box flexDirection="column">
       {chunks.map((chunk, index) => (
-        <ChunkRenderer key={`chunk-${index}`} chunk={chunk} />
+        <Box key={`${chunk.timestamp}-${chunk.type}-${index}`} marginBottom={1}>
+          <ChunkRenderer chunk={chunk} phase={chunkPhases[index] ?? null} />
+        </Box>
       ))}
       {isStreaming && (
         <Box>

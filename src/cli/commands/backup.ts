@@ -6,12 +6,38 @@
  * @module cli/commands/backup
  */
 
-import { existsSync, readdirSync } from 'node:fs';
+import { existsSync, readdirSync, statSync, unlinkSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import * as tar from 'tar';
 
 import type { GlobalOptions } from '../types';
-import { getProjectDir, ensureDir } from '../../persistence/common/directories';
+import { getProjectDir, getBackupsDir, ensureDir } from '../../persistence/common/directories';
+
+const MAX_BACKUPS_TO_KEEP = 5;
+
+function pruneOldBackups(backupsDir: string, maxToKeep: number): number {
+  if (!existsSync(backupsDir)) return 0;
+
+  const backupFiles = readdirSync(backupsDir)
+    .filter((f) => f.startsWith('backup-') && f.endsWith('.tar.gz'))
+    .map((f) => ({
+      name: f,
+      path: join(backupsDir, f),
+      mtime: statSync(join(backupsDir, f)).mtime.getTime(),
+    }))
+    .sort((a, b) => b.mtime - a.mtime);
+
+  let deleted = 0;
+  for (const file of backupFiles.slice(maxToKeep)) {
+    try {
+      unlinkSync(file.path);
+      deleted++;
+    } catch {
+      // Non-critical: old backup cleanup failure doesn't affect new backup
+    }
+  }
+  return deleted;
+}
 
 // =============================================================================
 // Types
@@ -48,7 +74,16 @@ export interface RestoreOptions extends GlobalOptions {
 export async function runBackup(options: BackupOptions): Promise<number> {
   const directory = resolve(options.directory ?? '.');
   const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-  const outputPath = options.output ?? `.agentlint-backup-${timestamp}.tar.gz`;
+  const backupFilename = `backup-${timestamp}.tar.gz`;
+
+  let outputPath: string;
+  if (options.output) {
+    outputPath = options.output;
+  } else {
+    const backupsDir = getBackupsDir();
+    await ensureDir(backupsDir);
+    outputPath = join(backupsDir, backupFilename);
+  }
 
   const agentlintDir = getProjectDir(directory);
 
@@ -91,7 +126,6 @@ export async function runBackup(options: BackupOptions): Promise<number> {
   }
 
   try {
-    // Create tar.gz archive
     await tar.create(
       {
         gzip: true,
@@ -101,6 +135,8 @@ export async function runBackup(options: BackupOptions): Promise<number> {
       filesToBackup
     );
 
+    const pruned = pruneOldBackups(getBackupsDir(), MAX_BACKUPS_TO_KEEP);
+
     if (options.json) {
       console.log(
         JSON.stringify({
@@ -108,6 +144,7 @@ export async function runBackup(options: BackupOptions): Promise<number> {
           output: outputPath,
           files: filesToBackup,
           directory: agentlintDir,
+          prunedBackups: pruned,
         })
       );
     } else if (!options.quiet) {
@@ -115,6 +152,9 @@ export async function runBackup(options: BackupOptions): Promise<number> {
       if (options.verbose) {
         console.log(`  Source: ${agentlintDir}`);
         console.log(`  Contents: ${filesToBackup.join(', ')}`);
+        if (pruned > 0) {
+          console.log(`  Pruned ${pruned} old backup(s)`);
+        }
       }
     }
 

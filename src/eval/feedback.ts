@@ -167,6 +167,8 @@ export class FeedbackCollector implements IFeedbackCollector {
       recommendationId: prompt.recommendationId,
       recommendationType,
       recommendationSummary: prompt.summary,
+      promptId: null, // Not tracked in legacy feedback collection
+      promptVersion: null,
       implemented,
       implementationDate: implemented === true ? new Date().toISOString() : null,
       helped: null, // Will be filled in during follow-up

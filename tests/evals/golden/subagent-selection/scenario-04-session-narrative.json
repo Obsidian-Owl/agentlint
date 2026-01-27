@@ -1,0 +1,44 @@
+{
+  "id": "subagent-04-session-narrative",
+  "version": "1.0",
+  "source": "synthetic",
+  "description": "Session summary request requiring spawn_session_analyst with narrative focus",
+  "difficulty": "easy",
+  "tags": ["clear-routing", "session", "narrative"],
+
+  "input_data": {
+    "query": "What happened in my last coding session?",
+    "context": {
+      "lastSessionId": "session-2026-01-26-001",
+      "hasSessionFiles": true,
+      "sessionCount": 15,
+      "projectPath": "/test/project"
+    },
+    "availableTools": [
+      "spawn_temporal_analyst",
+      "spawn_recommendation_advisor",
+      "spawn_session_analyst",
+      "analyze_claude_md",
+      "list_sessions",
+      "get_session"
+    ]
+  },
+
+  "expected_output": {
+    "selectedSubagent": "spawn_session_analyst",
+    "focusOption": "narrative",
+    "reasoning": "User wants to understand what happened in a specific session. The session analyst with narrative focus provides a structured summary of session events and outcomes."
+  },
+
+  "expected_properties": {
+    "should_spawn_subagent": true,
+    "subagent_tool": "spawn_session_analyst",
+    "focus_options": ["narrative"],
+    "alternative_valid": false
+  },
+
+  "rubric_weights": {
+    "subagent_selection_accuracy": 0.6,
+    "focus_appropriateness": 0.4
+  }
+}

@@ -1,0 +1,40 @@
+{
+  "id": "subagent-06-config-analysis",
+  "version": "1.0",
+  "source": "synthetic",
+  "description": "Config file review that can be handled by direct tool call without subagent",
+  "difficulty": "easy",
+  "tags": ["clear-routing", "config", "direct-tool"],
+
+  "input_data": {
+    "query": "Review my CLAUDE.md file for issues",
+    "context": {
+      "claudeMdExists": true,
+      "claudeMdPath": "/test/project/CLAUDE.md",
+      "projectPath": "/test/project"
+    },
+    "availableTools": [
+      "spawn_temporal_analyst",
+      "spawn_recommendation_advisor",
+      "spawn_session_analyst",
+      "analyze_claude_md",
+      "list_sessions"
+    ]
+  },
+
+  "expected_output": {
+    "selectedSubagent": null,
+    "directTool": "analyze_claude_md",
+    "reasoning": "This is a straightforward config file analysis. The analyze_claude_md tool can directly assess the file without needing subagent orchestration."
+  },
+
+  "expected_properties": {
+    "should_spawn_subagent": false,
+    "direct_tool": "analyze_claude_md",
+    "alternative_valid": false
+  },
+
+  "rubric_weights": {
+    "subagent_selection_accuracy": 1.0
+  }
+}

@@ -32,7 +32,8 @@ export type TelemetryEventType =
   | 'checkpoint.saved'
   | 'config.loaded'
   | 'command.start'
-  | 'command.end';
+  | 'command.end'
+  | 'prompt.used';
 
 // =============================================================================
 // Event Data Types (Type-Safe Per Event)
@@ -162,6 +163,19 @@ export interface CommandEndData {
 }
 
 /**
+ * Data for prompt.used event.
+ * Tracks which prompt version was used in a session.
+ */
+export interface PromptUsedData {
+  promptId: string;
+  promptVersion: string;
+  promptKey: string;
+  usageContext: string;
+  messageCount: number;
+  contentLength: number;
+}
+
+/**
  * Union of all event data types.
  */
 export type TelemetryEventData =
@@ -175,7 +189,8 @@ export type TelemetryEventData =
   | CheckpointSavedData
   | ConfigLoadedData
   | CommandStartData
-  | CommandEndData;
+  | CommandEndData
+  | PromptUsedData;
 
 // =============================================================================
 // Event Metadata

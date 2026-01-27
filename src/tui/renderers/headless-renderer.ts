@@ -8,8 +8,19 @@
  */
 
 import * as readline from 'node:readline';
-import type { ITuiRenderer, AppProps, PermissionDecision, UserQuestion } from '../types';
+import type {
+  ITuiRenderer,
+  AppProps,
+  PermissionDecision,
+  UserQuestion,
+  TuiState,
+  LoadingStep,
+  ConversationMessage,
+  StatusBarContext,
+} from '../types';
 import type { StreamChunk } from '../../orchestration/types';
+import type { WelcomeMenuOption } from '../welcome/welcome-prompt';
+import type { AgentWorkState } from '../state/agent-state';
 
 // =============================================================================
 // Types
@@ -299,4 +310,18 @@ export class HeadlessRenderer implements ITuiRenderer {
   private outputJson(data: unknown): void {
     console.log(JSON.stringify(data));
   }
+
+  setTuiState(_state: TuiState): void {}
+
+  setLoadingSteps(_steps: LoadingStep[]): void {}
+
+  updateLoadingStep(_id: string, _status: LoadingStep['status'], _detail?: string): void {}
+
+  addConversationMessage(_message: ConversationMessage): void {}
+
+  updateStatusBar(_updates: Partial<StatusBarContext>): void {}
+
+  setWelcomeMenu(_options: WelcomeMenuOption[]): void {}
+
+  setAgentState(_state: AgentWorkState): void {}
 }

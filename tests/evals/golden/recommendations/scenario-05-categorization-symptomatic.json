@@ -1,0 +1,57 @@
+{
+  "id": "rec-05-categorization-symptomatic",
+  "version": "1.0",
+  "source": "synthetic",
+  "description": "Test symptomatic categorization: immediate fix for surface-level issue",
+  "difficulty": "medium",
+  "tags": ["categorization", "symptomatic", "immediate-fix"],
+
+  "input_data": {
+    "findings": [
+      {
+        "id": "finding-lint-001",
+        "type": "lint_error",
+        "severity": "medium",
+        "message": "Unused variable 'tempData' in src/utils.ts line 42",
+        "location": "src/utils.ts:42",
+        "suggestion": "Remove or use the variable"
+      }
+    ],
+    "causalTraces": [],
+    "historicRecommendations": [],
+    "interactionMode": "propose"
+  },
+
+  "expected_output": {
+    "recommendations": [
+      {
+        "type": "symptomatic",
+        "action": "Remove unused variable 'tempData' from src/utils.ts:42",
+        "target": "src/utils.ts",
+        "rationale": "Unused variables indicate dead code. Removing addresses the immediate lint error.",
+        "priority": "medium",
+        "tracedOrigin": {
+          "findingId": "finding-lint-001",
+          "issueType": "Unused variable creating lint noise"
+        }
+      }
+    ],
+    "clarifyingQuestions": [],
+    "assumptions": []
+  },
+
+  "expected_properties": {
+    "recommendation_count": 1,
+    "recommendation_types": ["symptomatic"],
+    "category_rationale": "Symptomatic because it fixes a visible symptom without investigating root cause (why was variable created but unused?)",
+    "priorities": ["medium"],
+    "has_traced_origins": true,
+    "question_count": 0
+  },
+
+  "rubric_weights": {
+    "recommendation_type_accuracy": 0.5,
+    "recommendation_specificity": 0.3,
+    "recommendation_causal_trace": 0.2
+  }
+}

@@ -9,6 +9,58 @@
 
 import type { StreamChunk, Finding, Recommendation } from '../orchestration/types';
 import type { SessionCheckpoint } from '../orchestration/checkpoint-types';
+import type { WelcomeMenuOption } from './welcome/welcome-prompt';
+import type { AgentWorkState } from './state/agent-state';
+import type { LastSessionInfo, SessionSummaryProps } from './components/SessionSummary';
+import type { TopRecommendationData } from './components/TopRecommendation';
+import type { ProgressStatsData } from './components/ProgressStats';
+
+export type { LastSessionInfo, SessionSummaryProps };
+export type { TopRecommendationData };
+export type { ProgressStatsData };
+
+// =============================================================================
+// TUI State Machine
+// =============================================================================
+
+/**
+ * Top-level TUI state for the welcome flow and conversation mode.
+ * Controls which major view is displayed.
+ */
+export type TuiState =
+  | 'loading' // Initial render, gathering context
+  | 'welcome' // Showing LLM-generated welcome
+  | 'analysing' // Agent running analysis
+  | 'presenting' // Showing findings, enable exploration
+  | 'idle' // Waiting for user input
+  | 'conversing'; // Follow-up conversation active
+
+/**
+ * Loading step for progressive context loading display.
+ */
+export interface LoadingStep {
+  id: string;
+  label: string;
+  status: 'pending' | 'loading' | 'complete' | 'error' | 'skipped';
+  detail?: string;
+}
+
+/**
+ * Context for the status bar display.
+ */
+export interface StatusBarContext {
+  helpHint: string;
+  status: string;
+  model: string;
+  openRecommendations: number;
+  projectPath: string;
+  elapsedMs?: number;
+  tokenUsage?: {
+    used: number;
+    limit: number;
+  };
+  warnings?: string[];
+}
 
 // =============================================================================
 // Analysis Phase
@@ -120,6 +172,30 @@ export interface ConversationalContext {
 }
 
 // =============================================================================
+// Conversation History
+// =============================================================================
+
+/**
+ * Role in a conversation turn.
+ */
+export type ConversationRole = 'user' | 'assistant';
+
+/**
+ * Single message in conversation history.
+ */
+export interface ConversationMessage {
+  /** Message role */
+  role: ConversationRole;
+  /** Message content */
+  content: string;
+  /** ISO-8601 timestamp */
+  timestamp: string;
+}
+
+/** Maximum conversation history turns to retain */
+export const MAX_CONVERSATION_HISTORY = 10;
+
+// =============================================================================
 // Permissions
 // =============================================================================
 
@@ -172,10 +248,18 @@ export interface PermissionStore {
  * Single source of truth managed by appReducer.
  */
 export interface AppState {
+  // TUI state machine
+  tuiState: TuiState;
+  loadingSteps: LoadingStep[];
+  statusBar: StatusBarContext;
+
   // Analysis state
   analysisPhase: AnalysisPhase;
   isStreaming: boolean;
   isPaused: boolean;
+
+  // Agent work state (for UI feedback)
+  agentWorkState: AgentWorkState;
 
   // View management
   viewStack: DialogType[];
@@ -184,6 +268,17 @@ export interface AppState {
   // Exploration state
   explorationPath: ExplorationStep[];
   currentContext: ConversationalContext;
+
+  // Conversation history (last N turns for follow-ups)
+  conversationHistory: ConversationMessage[];
+
+  // Welcome menu options (generated from context)
+  welcomeMenuOptions: WelcomeMenuOption[];
+
+  lastSession: LastSessionInfo | null;
+  topRecommendation: TopRecommendationData | null;
+  progressStats: ProgressStatsData | null;
+  pendingFeedback: { recommendationId: string; recommendationTitle: string } | null;
 
   // Buffers
   inputBuffer: string;
@@ -214,6 +309,13 @@ export interface AppState {
  * All possible message types for appReducer.
  */
 export type AppMessage =
+  | { type: 'SET_TUI_STATE'; payload: { state: TuiState } }
+  | { type: 'SET_LOADING_STEPS'; payload: { steps: LoadingStep[] } }
+  | {
+      type: 'UPDATE_LOADING_STEP';
+      payload: { id: string; status: LoadingStep['status']; detail?: string };
+    }
+  | { type: 'SET_STATUS_BAR'; payload: Partial<StatusBarContext> }
   | { type: 'SET_PHASE'; payload: { phase: AnalysisPhase } }
   | { type: 'PUSH_DIALOG'; payload: { dialog: DialogType; context?: unknown } }
   | { type: 'POP_DIALOG' }
@@ -238,7 +340,18 @@ export type AppMessage =
       payload: { questions: UserQuestion[] | null };
     }
   | { type: 'SET_FOCUS'; payload: { target: FocusTarget } }
-  | { type: 'SET_CHECKPOINT'; payload: { checkpoint: SessionCheckpoint } };
+  | { type: 'SET_CHECKPOINT'; payload: { checkpoint: SessionCheckpoint } }
+  | { type: 'ADD_CONVERSATION_MESSAGE'; payload: { message: ConversationMessage } }
+  | { type: 'CLEAR_CONVERSATION_HISTORY' }
+  | { type: 'SET_WELCOME_MENU'; payload: { options: WelcomeMenuOption[] } }
+  | { type: 'SET_AGENT_WORK_STATE'; payload: { state: AgentWorkState } }
+  | { type: 'SET_LAST_SESSION'; payload: { session: LastSessionInfo | null } }
+  | { type: 'SET_TOP_RECOMMENDATION'; payload: { recommendation: TopRecommendationData | null } }
+  | { type: 'SET_PROGRESS_STATS'; payload: { stats: ProgressStatsData | null } }
+  | {
+      type: 'SET_PENDING_FEEDBACK';
+      payload: { feedback: { recommendationId: string; recommendationTitle: string } | null };
+    };
 
 // =============================================================================
 // Reducer
@@ -258,9 +371,19 @@ export type AppReducer = (state: AppState, message: AppMessage) => AppState;
  */
 export function createInitialState(): AppState {
   return {
+    tuiState: 'loading',
+    loadingSteps: [],
+    statusBar: {
+      helpHint: 'ctrl+? help',
+      status: 'Loading...',
+      model: '',
+      openRecommendations: 0,
+      projectPath: process.cwd(),
+    },
     analysisPhase: 'idle',
     isStreaming: false,
     isPaused: false,
+    agentWorkState: { phase: 'idle' },
     viewStack: [],
     focusTarget: 'main',
     explorationPath: [],
@@ -272,6 +395,8 @@ export function createInitialState(): AppState {
       lastUserResponse: null,
       pendingOptions: [],
     },
+    conversationHistory: [],
+    welcomeMenuOptions: [],
     inputBuffer: '',
     streamBuffer: [],
     findings: [],
@@ -280,6 +405,10 @@ export function createInitialState(): AppState {
     pendingPermission: null,
     pendingQuestions: null,
     lastCheckpoint: null,
+    lastSession: null,
+    topRecommendation: null,
+    progressStats: null,
+    pendingFeedback: null,
   };
 }
 
@@ -288,17 +417,46 @@ export function createInitialState(): AppState {
 // =============================================================================
 
 /**
+ * Streaming state passed from InkRenderer (external source of truth).
+ * When provided, these values override the internal reducer state.
+ */
+export interface StreamState {
+  /** Accumulated stream chunks */
+  streamBuffer: StreamChunk[];
+  /** Whether currently streaming */
+  isStreaming: boolean;
+  /** Current analysis phase */
+  analysisPhase: AnalysisPhase;
+  /** Discovered findings */
+  findings: Finding[];
+}
+
+/**
  * Props for the root App component.
  */
 export interface AppProps {
   /** Initial state (for testing or recovery) */
   initialState?: Partial<AppState>;
-  /** Callback when user submits input */
-  onInput?: (input: string) => void;
+  /** Streaming state from InkRenderer (source of truth for streaming data) */
+  streamState?: StreamState;
+  /** Pending permission from InkRenderer */
+  pendingPermission?: { tool: string; description: string; pattern?: string } | null;
+  /** Pending questions from InkRenderer */
+  pendingQuestions?: UserQuestion[] | null;
+  /** Current dialog stack from InkRenderer */
+  viewStack?: DialogType[];
+  /** Callback when user submits input (can be async) */
+  onInput?: (input: string) => void | Promise<void>;
   /** Callback when analysis should start */
   onStart?: () => void;
-  /** Callback when user exits */
-  onExit?: () => void;
+  /** Callback when user exits (can be async for cleanup) */
+  onExit?: () => void | Promise<void>;
+  /** Callback when permission decision is made */
+  onPermissionDecision?: (decision: PermissionDecision) => void;
+  /** Callback when question answers are submitted */
+  onQuestionAnswers?: (answers: Record<string, string>) => void;
+  /** Callback when welcome menu option is selected */
+  onMenuSelect?: (action: string) => void;
 }
 
 /**
@@ -410,4 +568,23 @@ export interface ITuiRenderer {
   }): Promise<PermissionDecision>;
   /** Request answers to questions from user (AskUserQuestion tool) */
   requestUserAnswers(request: { questions: UserQuestion[] }): Promise<Record<string, string>>;
+
+  // =============================================================================
+  // TUI State Control (Welcome Flow + Conversation Mode)
+  // =============================================================================
+
+  /** Set the current TUI state (loading, welcome, analysing, etc.) */
+  setTuiState(state: TuiState): void;
+  /** Set the loading steps for the progress display */
+  setLoadingSteps(steps: LoadingStep[]): void;
+  /** Update a specific loading step's status */
+  updateLoadingStep(id: string, status: LoadingStep['status'], detail?: string): void;
+  /** Add a message to the conversation history */
+  addConversationMessage(message: ConversationMessage): void;
+  /** Update the status bar */
+  updateStatusBar(updates: Partial<StatusBarContext>): void;
+  /** Set the welcome menu options */
+  setWelcomeMenu(options: WelcomeMenuOption[]): void;
+  /** Set the agent work state */
+  setAgentState(state: AgentWorkState): void;
 }

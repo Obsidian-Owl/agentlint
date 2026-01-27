@@ -13,11 +13,40 @@ import type {
   ITuiRenderer,
   AppProps,
   PermissionDecision,
-  AppState,
   UserQuestion,
   AnalysisPhase,
+  StreamState,
+  DialogType,
+  TuiState,
+  LoadingStep,
+  ConversationMessage,
+  StatusBarContext,
 } from '../types';
+import type { WelcomeMenuOption } from '../welcome/welcome-prompt';
+import type { AgentWorkState, AgentPhase } from '../state/agent-state';
 import type { StreamChunk, Finding } from '../../orchestration/types';
+
+// =============================================================================
+// Helper Functions
+// =============================================================================
+
+function getContextualHelpText(phase: AgentPhase): string {
+  switch (phase) {
+    case 'idle':
+    case 'complete':
+      return 'Enter to send • / commands • q quit';
+    case 'thinking':
+    case 'streaming':
+      return 'Agent working... • q to request stop';
+    case 'calling_tool':
+    case 'waiting_response':
+      return 'Running tool... • q to request stop';
+    case 'error':
+      return 'Error occurred • Enter to retry • q quit';
+    default:
+      return 'ctrl+? help';
+  }
+}
 
 // =============================================================================
 // Types
@@ -53,9 +82,25 @@ export class InkRenderer implements ITuiRenderer {
   private isStreaming = false;
   private pendingPermission: PermissionRequest | null = null;
   private pendingQuestions: QuestionRequest | null = null;
-  private onInputCallback?: (input: string) => void;
-  private onExitCallback?: () => void;
+  private onInputCallback?: (input: string) => void | Promise<void>;
+  private onExitCallback?: () => void | Promise<void>;
   private onStartCallback?: () => void;
+
+  private tuiState: TuiState = 'loading';
+  private loadingSteps: LoadingStep[] = [];
+  private conversationHistory: ConversationMessage[] = [];
+  private welcomeMenuOptions: WelcomeMenuOption[] = [];
+  private agentState: AgentWorkState = { phase: 'idle' };
+  private cumulativeTokens: { input: number; output: number } = { input: 0, output: 0 };
+  private sessionStartTime: number = Date.now();
+  private statusBar: StatusBarContext = {
+    helpHint: 'ctrl+? help',
+    status: 'Loading...',
+    model: '',
+    openRecommendations: 0,
+    projectPath: process.cwd(),
+    elapsedMs: 0,
+  };
 
   /**
    * Start the TUI.
@@ -65,58 +110,73 @@ export class InkRenderer implements ITuiRenderer {
     if (props.onExit) this.onExitCallback = props.onExit;
     if (props.onStart) this.onStartCallback = props.onStart;
 
-    // Build initial state
-    const initialState: Partial<AppState> = {
-      ...props.initialState,
+    this.instance = render(React.createElement(App, this.buildAppProps(props.initialState)));
+  }
+
+  private buildAppProps(initialState?: AppProps['initialState']): AppProps {
+    const streamState: StreamState = {
       streamBuffer: this.chunks,
       isStreaming: this.isStreaming,
       analysisPhase: this.currentPhase,
       findings: this.findings,
     };
 
-    // If there's a pending permission, add it to state
+    let pendingPermission: AppProps['pendingPermission'] = null;
+    let viewStack: DialogType[] = [];
+
     if (this.pendingPermission) {
-      const pendingPerm: { tool: string; description: string; pattern?: string } = {
+      pendingPermission = {
         tool: this.pendingPermission.tool,
         description: this.pendingPermission.description,
+        ...(this.pendingPermission.pattern ? { pattern: this.pendingPermission.pattern } : {}),
       };
-      if (this.pendingPermission.pattern) {
-        pendingPerm.pattern = this.pendingPermission.pattern;
-      }
-      initialState.pendingPermission = pendingPerm;
-      initialState.viewStack = ['permission'];
+      viewStack = ['permission'];
     }
 
-    // If there's pending questions, add to state
+    let pendingQuestions: AppProps['pendingQuestions'] = null;
     if (this.pendingQuestions) {
-      initialState.pendingQuestions = this.pendingQuestions.questions;
-      if (!initialState.viewStack) {
-        initialState.viewStack = ['question'];
+      pendingQuestions = this.pendingQuestions.questions;
+      if (viewStack.length === 0) {
+        viewStack = ['question'];
       }
     }
 
-    // Create wrapped callbacks to handle permission resolution
-    const handleInput = (input: string): void => {
-      this.onInputCallback?.(input);
+    const appProps: AppProps = {
+      streamState,
+      pendingPermission,
+      pendingQuestions,
+      onPermissionDecision: (decision: PermissionDecision) => {
+        if (this.pendingPermission) {
+          this.pendingPermission.resolve(decision);
+          this.pendingPermission = null;
+          this.rerender();
+        }
+      },
+      onQuestionAnswers: (answers: Record<string, string>) => {
+        if (this.pendingQuestions) {
+          this.pendingQuestions.resolve(answers);
+          this.pendingQuestions = null;
+          this.rerender();
+        }
+      },
     };
 
-    const handleExit = (): void => {
-      this.onExitCallback?.();
+    const mergedInitialState = {
+      ...initialState,
+      tuiState: this.tuiState,
+      loadingSteps: this.loadingSteps,
+      conversationHistory: this.conversationHistory,
+      statusBar: this.statusBar,
+      welcomeMenuOptions: this.welcomeMenuOptions,
+      agentWorkState: this.agentState,
     };
+    appProps.initialState = mergedInitialState;
+    if (viewStack.length > 0) appProps.viewStack = viewStack;
+    if (this.onInputCallback) appProps.onInput = this.onInputCallback;
+    if (this.onExitCallback) appProps.onExit = this.onExitCallback;
+    if (this.onStartCallback) appProps.onStart = this.onStartCallback;
 
-    const handleStart = (): void => {
-      this.onStartCallback?.();
-    };
-
-    // Render the App
-    this.instance = render(
-      React.createElement(App, {
-        initialState,
-        onInput: handleInput,
-        onExit: handleExit,
-        onStart: handleStart,
-      })
-    );
+    return appProps;
   }
 
   /**
@@ -151,6 +211,56 @@ export class InkRenderer implements ITuiRenderer {
     if (chunk.type === 'finding' && chunk.metadata?.finding) {
       this.findings.push(chunk.metadata.finding as Finding);
     }
+
+    if (chunk.type === 'status' && chunk.metadata) {
+      const inputTokens = chunk.metadata.inputTokens as number | undefined;
+      const outputTokens = chunk.metadata.outputTokens as number | undefined;
+      if (inputTokens !== undefined) {
+        this.cumulativeTokens.input += inputTokens;
+      }
+      if (outputTokens !== undefined) {
+        this.cumulativeTokens.output += outputTokens;
+      }
+      const totalUsed = this.cumulativeTokens.input + this.cumulativeTokens.output;
+      if (totalUsed > 0) {
+        this.statusBar = {
+          ...this.statusBar,
+          tokenUsage: { used: totalUsed, limit: 200000 },
+        };
+      }
+    }
+
+    this.statusBar = {
+      ...this.statusBar,
+      elapsedMs: Date.now() - this.sessionStartTime,
+    };
+
+    // Derive agent work state from chunk type
+    switch (chunk.type) {
+      case 'tool_start':
+        this.agentState = {
+          phase: 'calling_tool',
+          tool: (chunk.metadata?.toolName as string) ?? 'unknown',
+          startedAt: Date.now(),
+        };
+        break;
+      case 'tool_result':
+        this.agentState = { phase: 'thinking', startedAt: Date.now() };
+        break;
+      case 'text':
+        if (this.agentState.phase !== 'streaming') {
+          this.agentState = { phase: 'streaming', startedAt: Date.now() };
+        }
+        break;
+      case 'error':
+        this.agentState = { phase: 'error', message: chunk.content };
+        break;
+    }
+
+    this.statusBar = {
+      ...this.statusBar,
+      helpHint: getContextualHelpText(this.agentState.phase),
+    };
 
     this.rerender();
   }
@@ -202,52 +312,52 @@ export class InkRenderer implements ITuiRenderer {
     });
   }
 
-  /**
-   * Rerender the app with current state.
-   */
   private rerender(): void {
     if (!this.instance) {
       return;
     }
+    this.instance.rerender(React.createElement(App, this.buildAppProps()));
+  }
 
-    const initialState: Partial<AppState> = {
-      streamBuffer: this.chunks,
-      isStreaming: this.isStreaming,
-      analysisPhase: this.currentPhase,
-      findings: this.findings,
-    };
+  setTuiState(state: TuiState): void {
+    this.tuiState = state;
+    this.rerender();
+  }
 
-    if (this.pendingPermission) {
-      const pendingPerm: { tool: string; description: string; pattern?: string } = {
-        tool: this.pendingPermission.tool,
-        description: this.pendingPermission.description,
+  setLoadingSteps(steps: LoadingStep[]): void {
+    this.loadingSteps = [...steps];
+    this.rerender();
+  }
+
+  updateLoadingStep(id: string, status: LoadingStep['status'], detail?: string): void {
+    const stepIndex = this.loadingSteps.findIndex((s) => s.id === id);
+    if (stepIndex >= 0) {
+      this.loadingSteps[stepIndex] = {
+        ...this.loadingSteps[stepIndex]!,
+        status,
+        ...(detail !== undefined ? { detail } : {}),
       };
-      if (this.pendingPermission.pattern) {
-        pendingPerm.pattern = this.pendingPermission.pattern;
-      }
-      initialState.pendingPermission = pendingPerm;
-      initialState.viewStack = ['permission'];
+      this.rerender();
     }
+  }
 
-    if (this.pendingQuestions) {
-      initialState.pendingQuestions = this.pendingQuestions.questions;
-      // Only set viewStack if not already set by permission
-      if (!initialState.viewStack) {
-        initialState.viewStack = ['question'];
-      }
-    }
+  addConversationMessage(message: ConversationMessage): void {
+    this.conversationHistory = [...this.conversationHistory, message];
+    this.rerender();
+  }
 
-    // Note: Ink's rerender() is deprecated - in a real implementation
-    // we would use a state management approach (e.g., external store)
-    // For now, we restart the render which works for the test cases
-    this.instance.unmount();
+  updateStatusBar(updates: Partial<StatusBarContext>): void {
+    this.statusBar = { ...this.statusBar, ...updates };
+    this.rerender();
+  }
 
-    // Build props for App, only including defined callbacks
-    const appProps: AppProps = { initialState };
-    if (this.onInputCallback) appProps.onInput = this.onInputCallback;
-    if (this.onExitCallback) appProps.onExit = this.onExitCallback;
-    if (this.onStartCallback) appProps.onStart = this.onStartCallback;
+  setWelcomeMenu(options: WelcomeMenuOption[]): void {
+    this.welcomeMenuOptions = [...options];
+    this.rerender();
+  }
 
-    this.instance = render(React.createElement(App, appProps));
+  setAgentState(state: AgentWorkState): void {
+    this.agentState = state;
+    this.rerender();
   }
 }

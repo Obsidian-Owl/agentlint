@@ -1,0 +1,46 @@
+{
+  "id": "subagent-07-ambiguous-temporal-vs-recommendations",
+  "version": "1.0",
+  "source": "synthetic",
+  "description": "Ambiguous query that could reasonably use temporal analyst OR recommendation advisor",
+  "difficulty": "medium",
+  "tags": ["boundary", "ambiguous", "temporal-recommendations"],
+
+  "input_data": {
+    "query": "My workflow seems to be getting worse over time. What should I do about it?",
+    "context": {
+      "availableBaselines": 8,
+      "findingsCount": 3,
+      "hasSessionFiles": true,
+      "hasReviews": true,
+      "projectPath": "/test/project"
+    },
+    "availableTools": [
+      "spawn_temporal_analyst",
+      "spawn_recommendation_advisor",
+      "spawn_session_analyst",
+      "analyze_claude_md",
+      "list_baselines",
+      "list_findings"
+    ]
+  },
+
+  "expected_output": {
+    "selectedSubagent": "spawn_temporal_analyst",
+    "alternativeValid": "spawn_recommendation_advisor",
+    "focusOption": "trends",
+    "reasoning": "User mentions 'over time' suggesting temporal analysis, but also asks 'what should I do' suggesting recommendations. Either subagent is reasonable. Temporal first to confirm the trend, then recommendations for action."
+  },
+
+  "expected_properties": {
+    "should_spawn_subagent": true,
+    "acceptable_subagents": ["spawn_temporal_analyst", "spawn_recommendation_advisor"],
+    "alternative_valid": true,
+    "requires_explanation": true
+  },
+
+  "rubric_weights": {
+    "subagent_selection_reasonableness": 0.5,
+    "explanation_quality": 0.5
+  }
+}

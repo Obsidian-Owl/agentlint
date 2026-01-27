@@ -1,0 +1,57 @@
+{
+  "id": "subagent-10-multi-subagent-sequence",
+  "version": "1.0",
+  "source": "synthetic",
+  "description": "Complex query requiring sequential subagent calls",
+  "difficulty": "hard",
+  "tags": ["edge-case", "multi-step", "sequence"],
+
+  "input_data": {
+    "query": "Analyze the trends in my workflow over the past month, then give me prioritized recommendations based on what you find.",
+    "context": {
+      "availableBaselines": 6,
+      "findingsCount": 0,
+      "hasSessionFiles": true,
+      "hasReviews": true,
+      "projectPath": "/test/project"
+    },
+    "availableTools": [
+      "spawn_temporal_analyst",
+      "spawn_recommendation_advisor",
+      "spawn_session_analyst",
+      "analyze_claude_md",
+      "list_baselines"
+    ]
+  },
+
+  "expected_output": {
+    "sequence": [
+      {
+        "step": 1,
+        "subagent": "spawn_temporal_analyst",
+        "focusOption": "trends",
+        "purpose": "First analyze temporal trends to identify patterns and issues"
+      },
+      {
+        "step": 2,
+        "subagent": "spawn_recommendation_advisor",
+        "purpose": "Then generate recommendations based on temporal analysis findings"
+      }
+    ],
+    "reasoning": "User explicitly requests a two-phase analysis: first understand trends, then get recommendations. This requires spawn_temporal_analyst first to produce findings, then spawn_recommendation_advisor to prioritize actions based on those findings."
+  },
+
+  "expected_properties": {
+    "should_spawn_subagent": true,
+    "multi_step": true,
+    "step_count": 2,
+    "first_subagent": "spawn_temporal_analyst",
+    "second_subagent": "spawn_recommendation_advisor",
+    "order_matters": true
+  },
+
+  "rubric_weights": {
+    "multi_step_reasoning": 0.5,
+    "sequence_correctness": 0.5
+  }
+}

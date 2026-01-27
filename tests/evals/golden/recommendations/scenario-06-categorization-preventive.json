@@ -1,0 +1,72 @@
+{
+  "id": "rec-06-categorization-preventive",
+  "version": "1.0",
+  "source": "synthetic",
+  "description": "Test preventive categorization: addressing root cause to prevent recurrence",
+  "difficulty": "medium",
+  "tags": ["categorization", "preventive", "root-cause"],
+
+  "input_data": {
+    "findings": [
+      {
+        "id": "finding-pattern-001",
+        "type": "anti_pattern",
+        "severity": "high",
+        "message": "Secret hardcoded in source file",
+        "location": "src/api/client.ts:15",
+        "suggestion": "Use environment variables for secrets"
+      },
+      {
+        "id": "finding-pattern-002",
+        "type": "anti_pattern",
+        "severity": "high",
+        "message": "Secret hardcoded in source file",
+        "location": "src/db/connection.ts:8",
+        "suggestion": "Use environment variables for secrets"
+      }
+    ],
+    "causalTraces": [
+      {
+        "symptom": "Multiple hardcoded secrets",
+        "traced_cause": "Missing documentation on secret management",
+        "evidence": ["No CLAUDE.md section on secrets", "No .env.example file"],
+        "mechanism": "Developers default to hardcoding when no guidance exists"
+      }
+    ],
+    "historicRecommendations": [],
+    "interactionMode": "propose"
+  },
+
+  "expected_output": {
+    "recommendations": [
+      {
+        "type": "preventive",
+        "action": "Add 'Secret Management' section to CLAUDE.md documenting: 1) Use .env files, 2) Never commit secrets, 3) Reference .env.example for required vars",
+        "target": "CLAUDE.md",
+        "rationale": "Without guidance, developers will continue to hardcode secrets. Documentation prevents future occurrences.",
+        "priority": "high",
+        "tracedOrigin": {
+          "findingId": "finding-pattern-001",
+          "configGap": "Missing secret management documentation"
+        }
+      }
+    ],
+    "clarifyingQuestions": [],
+    "assumptions": []
+  },
+
+  "expected_properties": {
+    "recommendation_count": 1,
+    "recommendation_types": ["preventive"],
+    "category_rationale": "Preventive because it addresses the root cause (missing documentation) to prevent future hardcoded secrets",
+    "priorities": ["high"],
+    "has_traced_origins": true,
+    "question_count": 0
+  },
+
+  "rubric_weights": {
+    "recommendation_type_accuracy": 0.5,
+    "recommendation_specificity": 0.3,
+    "recommendation_causal_trace": 0.2
+  }
+}

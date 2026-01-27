@@ -152,6 +152,8 @@ function createTestOutcome(
     recommendationId: `REC-${randomUUID().slice(0, 8)}`,
     recommendationType,
     recommendationSummary: `Test recommendation (${recommendationType})`,
+    promptId: null,
+    promptVersion: null,
     implemented,
     implementationDate: implemented ? new Date().toISOString() : null,
     helped: null,

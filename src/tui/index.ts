@@ -20,6 +20,21 @@ export * from './types';
 
 export { appReducer } from './state/app-reducer';
 export { AppContext, AppProvider, useApp, useAppState, useAppDispatch } from './state/app-context';
+export {
+  type AgentWorkState,
+  type AgentPhase,
+  VALID_TRANSITIONS,
+  isValidTransition,
+  createIdleState,
+  createThinkingState,
+  createCallingToolState,
+  createWaitingResponseState,
+  createStreamingState,
+  createErrorState,
+  createCompleteState,
+  getElapsedMs,
+  getToolName,
+} from './state/agent-state';
 
 // =============================================================================
 // Hooks
@@ -54,6 +69,17 @@ export {
   type ComparisonData,
   type BaselineSummary as CompareBaselineSummary,
 } from './components/CompareView';
+export { ActionMenu, type MenuOption, type ActionMenuProps } from './components/ActionMenu';
+export {
+  AgentStateIndicator,
+  type AgentStateIndicatorProps,
+} from './components/AgentStateIndicator';
+export { QuitDialog, type QuitDialogProps } from './components/QuitDialog';
+export {
+  ToolPhaseRenderer,
+  type ToolPhaseRendererProps,
+  type ToolPhase,
+} from './components/ToolPhaseRenderer';
 
 // =============================================================================
 // Renderers

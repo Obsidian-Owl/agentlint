@@ -7,7 +7,7 @@
 import { describe, test, expect, beforeEach, afterEach } from 'bun:test';
 import { mkdtemp, rm, mkdir, writeFile } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { tmpdir, homedir } from 'node:os';
 import { join } from 'node:path';
 import { previewClean, executeClean } from '../../../../src/cli/commands/clean';
 
@@ -54,10 +54,15 @@ describe('clean command', () => {
       await writeFile(join(agentlintDir, 'test.db'), 'test data');
 
       const preview = previewClean({ directory: testDir });
+      const globalBackupsDir = join(homedir(), '.agentlint', 'backups');
 
       expect(preview.wouldBackup).toBe(true);
       expect(preview.backupPath).toBeDefined();
-      expect(preview.backupPath).toMatch(/^\.agentlint-backup-.*\.tar\.gz$/);
+      expect(preview.backupPath).toMatch(
+        new RegExp(
+          `^${globalBackupsDir.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/backup-.*\\.tar\\.gz$`
+        )
+      );
     });
 
     test('respects noBackup option', async () => {
@@ -122,10 +127,15 @@ describe('clean command', () => {
       await writeFile(join(agentlintDir, 'test.db'), 'test data');
 
       const result = await executeClean({ directory: testDir, force: true });
+      const globalBackupsDir = join(homedir(), '.agentlint', 'backups');
 
       expect(result.status).toBe('success');
       expect(result.backupPath).toBeDefined();
-      expect(result.backupPath).toMatch(/^\.agentlint-backup-.*\.tar\.gz$/);
+      expect(result.backupPath).toMatch(
+        new RegExp(
+          `^${globalBackupsDir.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}/backup-.*\\.tar\\.gz$`
+        )
+      );
       expect(existsSync(agentlintDir)).toBe(false);
 
       if (result.backupPath && existsSync(result.backupPath)) {

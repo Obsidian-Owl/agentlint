@@ -2,7 +2,7 @@
   "$schema": "../../src/eval/types.ts#GoldenManifest",
   "version": "1.0.0",
   "description": "EP11 Golden Dataset for LLM-as-Judge Evaluations",
-  "updatedAt": "2026-01-20T05:30:00.000Z",
+  "updatedAt": "2026-01-27T08:50:00.000Z",
   "adrReferences": ["ADR-0011", "ADR-0012"],
   "scenarios": [
     {
@@ -63,7 +63,12 @@
     "recommendations": {
       "path": "recommendations/manifest.json",
       "description": "EP10 Recommendation Advisor scenarios",
-      "count": 4
+      "count": 8
+    },
+    "subagent-selection": {
+      "path": "subagent-selection/manifest.json",
+      "description": "Subagent routing/selection scenarios",
+      "count": 10
     }
   },
   "rubricDefaults": {

@@ -1,0 +1,47 @@
+{
+  "id": "subagent-08-ambiguous-session-vs-temporal",
+  "version": "1.0",
+  "source": "synthetic",
+  "description": "Query involving both session-specific and temporal aspects",
+  "difficulty": "medium",
+  "tags": ["boundary", "ambiguous", "session-temporal"],
+
+  "input_data": {
+    "query": "Compare my current session to last week's baseline. Am I doing better?",
+    "context": {
+      "currentSessionId": "session-2026-01-27-001",
+      "availableBaselines": 4,
+      "lastWeekBaseline": "baseline-2026-01-20",
+      "hasSessionFiles": true,
+      "projectPath": "/test/project"
+    },
+    "availableTools": [
+      "spawn_temporal_analyst",
+      "spawn_recommendation_advisor",
+      "spawn_session_analyst",
+      "analyze_claude_md",
+      "get_session",
+      "list_baselines",
+      "compare_baselines"
+    ]
+  },
+
+  "expected_output": {
+    "selectedSubagent": "spawn_temporal_analyst",
+    "alternativeValid": "spawn_session_analyst",
+    "focusOption": "trends",
+    "reasoning": "This requires comparing current state to historical baseline. Could use session analyst to extract current metrics then compare, or temporal analyst to do delta comparison. Temporal is more natural for baseline comparisons."
+  },
+
+  "expected_properties": {
+    "should_spawn_subagent": true,
+    "acceptable_subagents": ["spawn_temporal_analyst", "spawn_session_analyst"],
+    "alternative_valid": true,
+    "requires_explanation": true
+  },
+
+  "rubric_weights": {
+    "subagent_selection_reasonableness": 0.5,
+    "explanation_quality": 0.5
+  }
+}

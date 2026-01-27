@@ -301,7 +301,8 @@ describe('SecretClassifier', () => {
 
       const result = await classifier.classify(candidate);
 
-      expect(result.reasoning).toContain('aws');
+      expect(result.classification).toMatch(/confirmed|likely/);
+      expect(result.confidence).toBeGreaterThanOrEqual(0.7);
     });
 
     it('should recognize GitHub token patterns as high confidence', async () => {
@@ -457,8 +458,8 @@ describe('Entropy-based Classification', () => {
 
     const result = await classifier.classify(highEntropyCandidate);
 
-    expect(result.reasoning).toContain('entropy');
     expect(result.confidence).toBeGreaterThan(0.5);
+    expect(result.classification).toMatch(/confirmed|likely/);
   });
 
   it('should classify moderate entropy (3.5-4.5) with moderate confidence', async () => {
@@ -480,8 +481,8 @@ describe('Entropy-based Classification', () => {
 
     const result = await classifier.classify(lowEntropyCandidate);
 
-    expect(result.reasoning).toContain('entropy');
     expect(result.confidence).toBeLessThan(0.6);
+    expect(result.classification).toMatch(/unlikely|false_positive|needs_review/);
   });
 });
 

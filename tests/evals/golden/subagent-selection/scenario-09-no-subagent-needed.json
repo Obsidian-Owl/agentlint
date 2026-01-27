@@ -1,0 +1,39 @@
+{
+  "id": "subagent-09-no-subagent-needed",
+  "version": "1.0",
+  "source": "synthetic",
+  "description": "Simple query that tools can handle directly without subagent orchestration",
+  "difficulty": "medium",
+  "tags": ["edge-case", "no-subagent", "direct-tool"],
+
+  "input_data": {
+    "query": "What's the entropy score for this secret: 'abc123'?",
+    "context": {
+      "hasSecurityTools": true,
+      "projectPath": "/test/project"
+    },
+    "availableTools": [
+      "spawn_temporal_analyst",
+      "spawn_recommendation_advisor",
+      "spawn_session_analyst",
+      "calculate_entropy",
+      "classify_secret"
+    ]
+  },
+
+  "expected_output": {
+    "selectedSubagent": null,
+    "directTool": "calculate_entropy",
+    "reasoning": "This is a simple, deterministic calculation. No subagent needed - the calculate_entropy tool can directly compute the Shannon entropy of the input string."
+  },
+
+  "expected_properties": {
+    "should_spawn_subagent": false,
+    "direct_tool": "calculate_entropy",
+    "avoids_over_delegation": true
+  },
+
+  "rubric_weights": {
+    "correct_no_delegation": 1.0
+  }
+}

@@ -7,7 +7,25 @@
  * @module tui/state/app-reducer
  */
 
-import type { AppState, AppMessage, AppReducer } from '../types';
+import type { AppState, AppMessage, AppReducer, TuiState } from '../types';
+import { MAX_CONVERSATION_HISTORY } from '../types';
+
+function getTuiStateLabel(state: TuiState): string {
+  switch (state) {
+    case 'loading':
+      return 'Loading...';
+    case 'welcome':
+      return 'Ready';
+    case 'analysing':
+      return 'Analysing...';
+    case 'presenting':
+      return 'Complete';
+    case 'idle':
+      return 'Ready';
+    case 'conversing':
+      return 'Thinking...';
+  }
+}
 
 /**
  * Main reducer function for TUI state management.
@@ -21,6 +39,46 @@ import type { AppState, AppMessage, AppReducer } from '../types';
  */
 export const appReducer: AppReducer = (state: AppState, message: AppMessage): AppState => {
   switch (message.type) {
+    case 'SET_TUI_STATE':
+      return {
+        ...state,
+        tuiState: message.payload.state,
+        statusBar: {
+          ...state.statusBar,
+          status: getTuiStateLabel(message.payload.state),
+        },
+      };
+
+    case 'SET_LOADING_STEPS':
+      return {
+        ...state,
+        loadingSteps: message.payload.steps,
+      };
+
+    case 'UPDATE_LOADING_STEP': {
+      const updatedSteps = state.loadingSteps.map((step): typeof step => {
+        if (step.id !== message.payload.id) return step;
+        const updated = { ...step, status: message.payload.status };
+        if (message.payload.detail !== undefined) {
+          updated.detail = message.payload.detail;
+        }
+        return updated;
+      });
+      return {
+        ...state,
+        loadingSteps: updatedSteps,
+      };
+    }
+
+    case 'SET_STATUS_BAR':
+      return {
+        ...state,
+        statusBar: {
+          ...state.statusBar,
+          ...message.payload,
+        },
+      };
+
     case 'SET_PHASE':
       return {
         ...state,
@@ -142,8 +200,61 @@ export const appReducer: AppReducer = (state: AppState, message: AppMessage): Ap
         lastCheckpoint: message.payload.checkpoint,
       };
 
+    case 'ADD_CONVERSATION_MESSAGE': {
+      const history = [...state.conversationHistory, message.payload.message];
+      const trimmed =
+        history.length > MAX_CONVERSATION_HISTORY
+          ? history.slice(-MAX_CONVERSATION_HISTORY)
+          : history;
+      return {
+        ...state,
+        conversationHistory: trimmed,
+      };
+    }
+
+    case 'CLEAR_CONVERSATION_HISTORY':
+      return {
+        ...state,
+        conversationHistory: [],
+      };
+
+    case 'SET_WELCOME_MENU':
+      return {
+        ...state,
+        welcomeMenuOptions: message.payload.options,
+      };
+
+    case 'SET_AGENT_WORK_STATE':
+      return {
+        ...state,
+        agentWorkState: message.payload.state,
+      };
+
+    case 'SET_LAST_SESSION':
+      return {
+        ...state,
+        lastSession: message.payload.session,
+      };
+
+    case 'SET_TOP_RECOMMENDATION':
+      return {
+        ...state,
+        topRecommendation: message.payload.recommendation,
+      };
+
+    case 'SET_PROGRESS_STATS':
+      return {
+        ...state,
+        progressStats: message.payload.stats,
+      };
+
+    case 'SET_PENDING_FEEDBACK':
+      return {
+        ...state,
+        pendingFeedback: message.payload.feedback,
+      };
+
     default:
-      // TypeScript exhaustiveness check
       return state;
   }
 };

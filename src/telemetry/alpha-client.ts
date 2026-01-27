@@ -20,6 +20,7 @@ import type {
   SessionMetrics,
   TrackToolOptions,
   TrackLLMOptions,
+  TrackPromptOptions,
 } from './index';
 import { type TelemetryEvent, createTelemetryEvent, getTelemetryMeta } from './events';
 
@@ -575,6 +576,36 @@ export class AlphaTelemetryClient implements ITelemetryClient {
 
     this.record(
       createTelemetryEvent('session.error', sessionId, this.sequence++, eventData, eventOptions)
+    );
+  }
+
+  trackPrompt(sessionId: string, options: TrackPromptOptions): void {
+    if (!this.enabled) {
+      return;
+    }
+
+    const now = Date.now();
+    const parentEventId = this.sessionEventIds.get(sessionId);
+
+    const eventData: Record<string, unknown> = {
+      promptId: options.promptId,
+      promptVersion: options.promptVersion,
+      promptKey: options.promptKey,
+      usageContext: options.usageContext,
+      messageCount: options.messageCount,
+      contentLength: options.contentLength,
+    };
+
+    const eventOptions: { startTime: number; endTime: number; parentEventId?: string } = {
+      startTime: now,
+      endTime: now,
+    };
+    if (parentEventId !== undefined) {
+      eventOptions.parentEventId = parentEventId;
+    }
+
+    this.record(
+      createTelemetryEvent('prompt.used', sessionId, this.sequence++, eventData, eventOptions)
     );
   }
 

@@ -24,6 +24,8 @@ CREATE TABLE IF NOT EXISTS recommendation_outcomes (
   recommendation_id TEXT NOT NULL,
   recommendation_type TEXT NOT NULL CHECK (recommendation_type IN ('symptomatic', 'preventive', 'systemic')),
   recommendation_summary TEXT NOT NULL,
+  prompt_id TEXT,
+  prompt_version TEXT,
   implemented INTEGER,
   implementation_date TEXT,
   helped INTEGER,
@@ -44,6 +46,7 @@ CREATE INDEX IF NOT EXISTS idx_outcomes_recommendation ON recommendation_outcome
 CREATE INDEX IF NOT EXISTS idx_outcomes_type ON recommendation_outcomes(recommendation_type);
 CREATE INDEX IF NOT EXISTS idx_outcomes_implemented ON recommendation_outcomes(implemented);
 CREATE INDEX IF NOT EXISTS idx_outcomes_created_at ON recommendation_outcomes(created_at);
+CREATE INDEX IF NOT EXISTS idx_outcomes_prompt_version ON recommendation_outcomes(prompt_id, prompt_version);
 `;
 
 /**
@@ -88,6 +91,8 @@ export interface OutcomeRow {
   recommendation_id: string;
   recommendation_type: 'symptomatic' | 'preventive' | 'systemic';
   recommendation_summary: string;
+  prompt_id: string | null;
+  prompt_version: string | null;
   implemented: number | null; // SQLite stores booleans as 0/1
   implementation_date: string | null;
   helped: number | null;
@@ -120,9 +125,10 @@ export interface MetricsRow {
 export const INSERT_OUTCOME_SQL = `
 INSERT INTO recommendation_outcomes (
   id, session_id, recommendation_id, recommendation_type, recommendation_summary,
+  prompt_id, prompt_version,
   implemented, implementation_date, helped, outcome_notes,
   config_changed_after, similar_issue_recurred, created_at, updated_at
-) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
 `;
 
 /**

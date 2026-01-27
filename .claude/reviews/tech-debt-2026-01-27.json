@@ -1,0 +1,149 @@
+{
+  "version": "1.0.0",
+  "timestamp": "2026-01-27T00:00:00Z",
+  "scope": "changed_files",
+  "filesAnalyzed": 22,
+  "score": 72,
+  "grade": "C",
+  "categories": {
+    "boundary": { "findings": 0, "impact": 0 },
+    "prompt": { "findings": 4, "impact": -12 },
+    "context": { "findings": 5, "impact": -15 },
+    "testing": { "findings": 5, "impact": -15 },
+    "error": { "findings": 4, "impact": -12 },
+    "state": { "findings": 3, "impact": -9 },
+    "observability": { "findings": 5, "impact": -15 },
+    "subagent": { "findings": 0, "impact": 0 }
+  },
+  "findings": [
+    {
+      "pattern": "HARDCODED_PROMPT",
+      "category": "prompt",
+      "file": "src/cli/commands/prompts/analysis-prompt.ts",
+      "line": 45,
+      "snippet": "intro: `You are analyzing an AI-assisted development project.`,",
+      "severity": 3,
+      "priority": "P3"
+    },
+    {
+      "pattern": "NO_VERSIONING",
+      "category": "prompt",
+      "file": "src/cli/commands/prompts/analysis-prompt.ts",
+      "line": 35,
+      "snippet": "export const ANALYSIS_PROMPT_VERSION = '1.0.0';",
+      "severity": 3,
+      "priority": "P4",
+      "note": "Has semantic version but lacks timestamp metadata"
+    },
+    {
+      "pattern": "UNBOUNDED_DATA",
+      "category": "context",
+      "file": "src/orchestration/orchestrator.ts",
+      "line": 685,
+      "snippet": "arguments: toolInput, // Include arguments in chunk metadata",
+      "severity": 4,
+      "priority": "P3",
+      "note": "Mitigated by truncateToolInput() but metadata still unbounded"
+    },
+    {
+      "pattern": "RAW_DUMP",
+      "category": "context",
+      "file": "src/orchestration/types.ts",
+      "line": 61,
+      "snippet": "metadata?: Record<string, unknown>;",
+      "severity": 3,
+      "priority": "P4"
+    },
+    {
+      "pattern": "FLAKY_ASSERTION",
+      "category": "testing",
+      "file": "tests/unit/checkpoint/session-recorder.test.ts",
+      "line": 290,
+      "snippet": "oldCheckpoint.timestamp = new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString();",
+      "severity": 4,
+      "priority": "P3"
+    },
+    {
+      "pattern": "NO_MOCK",
+      "category": "testing",
+      "file": "tests/integration/session-replay.test.ts",
+      "line": 31,
+      "snippet": "class MockSessionRecorder implements ISessionRecorder {",
+      "severity": 3,
+      "priority": "P4",
+      "note": "Mock class makes real filesystem calls"
+    },
+    {
+      "pattern": "SILENT_FAILURE",
+      "category": "error",
+      "file": "src/cli/commands/analyse.ts",
+      "line": 246,
+      "snippet": "} catch { // Skip files that can't be parsed }",
+      "severity": 5,
+      "priority": "P2"
+    },
+    {
+      "pattern": "GENERIC_CATCH",
+      "category": "error",
+      "file": "src/cli/commands/analyse.ts",
+      "line": 1387,
+      "snippet": "} catch { const error = `Directory not found: ${directory}`;",
+      "severity": 4,
+      "priority": "P3"
+    },
+    {
+      "pattern": "MEMORY_LEAK",
+      "category": "state",
+      "file": "src/orchestration/orchestrator.ts",
+      "line": 139,
+      "snippet": "private readonly toolIdToName = new Map<string, string>();",
+      "severity": 5,
+      "priority": "P2",
+      "note": "Cleanup only on tool_result; no TTL for orphaned entries"
+    },
+    {
+      "pattern": "STALE_STATE",
+      "category": "state",
+      "file": "src/telemetry/alpha-client.ts",
+      "line": 114,
+      "snippet": "private sessionEventIds = new Map<string, string>();",
+      "severity": 4,
+      "priority": "P3",
+      "note": "Session maps lack invalidation if sessionEnd never called"
+    },
+    {
+      "pattern": "NO_DEBUG_LOG",
+      "category": "observability",
+      "file": "src/cli/commands/analyse.ts",
+      "line": 653,
+      "snippet": "const discovered = await discoverSessions({ projectPath: directory });",
+      "severity": 3,
+      "priority": "P4"
+    },
+    {
+      "pattern": "MISSING_METRICS",
+      "category": "observability",
+      "file": "src/orchestration/orchestrator.ts",
+      "line": 692,
+      "snippet": "this.turnStartTime = Date.now();",
+      "severity": 3,
+      "priority": "P4",
+      "note": "Turn latency tracked but no session-level aggregation"
+    }
+  ],
+  "trend": {
+    "previousScore": 32,
+    "previousDate": "2026-01-26",
+    "change": 40
+  },
+  "fixedSinceLast": [
+    "UNBOUNDED_HISTORY in route.ts (LRU eviction added)",
+    "UNBOUNDED_DATA in orchestrator.ts (input truncation, MAX_PENDING_TOOLS)",
+    "NO_TRACING in route.ts (requestId generation)",
+    "OPAQUE_ERROR in route.ts (classifyError, structured JSON logging)",
+    "SILENT_FAILURE in alpha-client.ts (onError callback, TelemetryError classification)",
+    "UNHANDLED_REJECTION in alpha-client.ts (proper catch handlers)",
+    "HARDCODED_PROMPT in analyse-prompt.ts (versioned template system)",
+    "MISSING_TIMEOUT in route.ts (HONEYHIVE_TIMEOUT_MS with AbortController)"
+  ]
+}
