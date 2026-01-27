@@ -14,3 +14,4 @@ export * from './server';
 export * from './client';
 export * from './mcp-server';
 export * from './tool-adapter';
+export * from './streaming';
