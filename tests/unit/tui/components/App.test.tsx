@@ -75,8 +75,11 @@ describe('App', () => {
       const { stdin } = render(<App onExit={onExit} />);
 
       await tick();
-      // Press q to exit
+      // Press q to show quit dialog
       stdin.write('q');
+      await tick();
+      // Confirm with 'y' in the quit dialog
+      stdin.write('y');
       await tick();
 
       expect(onExit).toHaveBeenCalled();

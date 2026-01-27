@@ -18,6 +18,7 @@ import { DialogOverlay } from './DialogOverlay';
 import { PermissionDialog } from './PermissionDialog';
 import { RecommendationDialog } from './RecommendationDialog';
 import { QuestionDialog } from './QuestionDialog';
+import { QuitDialog } from './QuitDialog';
 import { Progress } from './Progress';
 import { FindingsList } from './FindingsList';
 import { Summary } from './Summary';
@@ -71,6 +72,7 @@ function InnerApp({
   const { exit } = useInkApp();
 
   const [inputValue, setInputValue] = useState('');
+  const [showQuitDialog, setShowQuitDialog] = useState(false);
 
   const [startTime] = useState(() => Date.now());
   const [elapsedMs, setElapsedMs] = useState(0);
@@ -180,11 +182,12 @@ function InnerApp({
   useInput(
     useCallback(
       (input: string, key: { escape?: boolean }) => {
-        // Don't handle input when dialog is open
+        // Don't handle input when dialog is open (except quit dialog which handles its own input)
         if (currentDialog) return;
+        if (showQuitDialog) return;
 
         if (input === 'q') {
-          void Promise.resolve(onExit?.()).finally(() => exit());
+          setShowQuitDialog(true);
           return;
         }
 
@@ -195,7 +198,7 @@ function InnerApp({
           }
         }
       },
-      [currentDialog, explorationPath.length, onExit, exit, dispatch]
+      [currentDialog, showQuitDialog, explorationPath.length, dispatch]
     )
   );
 
@@ -357,6 +360,16 @@ function InnerApp({
               questions={pendingQuestions}
               onSubmit={handleQuestionSubmit}
               onCancel={handleQuestionCancel}
+            />
+          </DialogOverlay>
+        )}
+
+        {/* Quit Confirmation Dialog */}
+        {showQuitDialog && (
+          <DialogOverlay title="Confirm Quit">
+            <QuitDialog
+              onConfirm={() => void Promise.resolve(onExit?.()).finally(() => exit())}
+              onCancel={() => setShowQuitDialog(false)}
             />
           </DialogOverlay>
         )}
