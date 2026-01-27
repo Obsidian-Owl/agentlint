@@ -75,6 +75,11 @@ export {
   type AgentStateIndicatorProps,
 } from './components/AgentStateIndicator';
 export { QuitDialog, type QuitDialogProps } from './components/QuitDialog';
+export {
+  ToolPhaseRenderer,
+  type ToolPhaseRendererProps,
+  type ToolPhase,
+} from './components/ToolPhaseRenderer';
 
 // =============================================================================
 // Renderers
