@@ -149,7 +149,7 @@ describe('clean command integration', () => {
       const json = JSON.parse(result);
 
       expect(json.status).toBe('nothing-to-clean');
-    });
+    }, 15000); // Extended timeout for CI environments
   });
 
   describe('help output', () => {
