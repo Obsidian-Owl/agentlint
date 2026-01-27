@@ -51,29 +51,6 @@ export interface WelcomeContext {
 
   /** Configured model name */
   modelName: string;
-
-  /** Interrupted epic state (null if none) */
-  interruptedEpic: InterruptedEpicSummary | null;
-}
-
-/**
- * Summary of an interrupted epic for resume prompt.
- */
-export interface InterruptedEpicSummary {
-  /** Epic identifier (e.g., "EP15") */
-  epicId: string;
-  /** Epic title */
-  epicTitle: string;
-  /** Last task identifier (e.g., "T003") */
-  lastTask: string;
-  /** Last task title */
-  lastTaskTitle: string;
-  /** Progress: completed tasks */
-  completedTasks: number;
-  /** Progress: total tasks */
-  totalTasks: number;
-  /** Feature directory path */
-  featureDir: string;
 }
 
 /**

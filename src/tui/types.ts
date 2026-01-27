@@ -84,8 +84,7 @@ export type DialogType =
   | 'recommendation'
   | 'question'
   | 'session-list'
-  | 'session-timeline'
-  | 'resume-epic';
+  | 'session-timeline';
 
 // =============================================================================
 // User Questions (AskUserQuestion Tool)
@@ -276,17 +275,6 @@ export interface AppState {
   // Welcome menu options (generated from context)
   welcomeMenuOptions: WelcomeMenuOption[];
 
-  // Interrupted epic (for resume prompt)
-  interruptedEpic: {
-    epicId: string;
-    epicTitle: string;
-    lastTask: string;
-    lastTaskTitle: string;
-    completedTasks: number;
-    totalTasks: number;
-    featureDir: string;
-  } | null;
-
   lastSession: LastSessionInfo | null;
   topRecommendation: TopRecommendationData | null;
   progressStats: ProgressStatsData | null;
@@ -356,20 +344,6 @@ export type AppMessage =
   | { type: 'ADD_CONVERSATION_MESSAGE'; payload: { message: ConversationMessage } }
   | { type: 'CLEAR_CONVERSATION_HISTORY' }
   | { type: 'SET_WELCOME_MENU'; payload: { options: WelcomeMenuOption[] } }
-  | {
-      type: 'SET_INTERRUPTED_EPIC';
-      payload: {
-        epic: {
-          epicId: string;
-          epicTitle: string;
-          lastTask: string;
-          lastTaskTitle: string;
-          completedTasks: number;
-          totalTasks: number;
-          featureDir: string;
-        } | null;
-      };
-    }
   | { type: 'SET_AGENT_WORK_STATE'; payload: { state: AgentWorkState } }
   | { type: 'SET_LAST_SESSION'; payload: { session: LastSessionInfo | null } }
   | { type: 'SET_TOP_RECOMMENDATION'; payload: { recommendation: TopRecommendationData | null } }
@@ -423,7 +397,6 @@ export function createInitialState(): AppState {
     },
     conversationHistory: [],
     welcomeMenuOptions: [],
-    interruptedEpic: null,
     inputBuffer: '',
     streamBuffer: [],
     findings: [],

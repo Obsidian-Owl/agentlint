@@ -29,7 +29,6 @@ export type {
   WelcomeContext,
   GitSummary,
   IncompleteSessionSummary,
-  InterruptedEpicSummary,
   LoadingStepId,
   LoadingResult,
   LoadingProgressCallback,
@@ -49,7 +48,3 @@ export {
 } from './session-persistence';
 
 export type { ConversationSession } from './session-persistence';
-
-export { detectInterruptedEpic, clearEpicAutoMode, getEpicAutoModePath } from './epic-auto-mode';
-
-export type { EpicAutoModeFile } from './epic-auto-mode';

@@ -13,7 +13,6 @@ import { SessionSummary } from '../components/SessionSummary';
 import { TopRecommendation } from '../components/TopRecommendation';
 import { FeedbackPrompt } from '../components/FeedbackPrompt';
 import { ProgressStats } from '../components/ProgressStats';
-import { ResumePrompt } from '../components/ResumePrompt';
 
 import {
   sampleAgentStates,
@@ -144,23 +143,6 @@ const catalogItems: CatalogItem[] = [
   {
     name: 'ProgressStats',
     render: () => <ProgressStats stats={sampleProgressStats} />,
-  },
-  {
-    name: 'ResumePrompt',
-    render: () => (
-      <ResumePrompt
-        state={{
-          epicId: 'ep15',
-          epicTitle: 'Session Intelligence',
-          lastTask: 'T005',
-          lastTaskTitle: 'Implement session search',
-          completedTasks: 3,
-          totalTasks: 8,
-          featureDir: 'specs/ep15-session-intelligence',
-        }}
-        onSelect={() => {}}
-      />
-    ),
   },
 ];
 

@@ -224,12 +224,6 @@ export const appReducer: AppReducer = (state: AppState, message: AppMessage): Ap
         welcomeMenuOptions: message.payload.options,
       };
 
-    case 'SET_INTERRUPTED_EPIC':
-      return {
-        ...state,
-        interruptedEpic: message.payload.epic,
-      };
-
     case 'SET_AGENT_WORK_STATE':
       return {
         ...state,

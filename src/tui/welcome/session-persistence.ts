@@ -11,10 +11,30 @@ import { existsSync } from 'node:fs';
 import { unlink } from 'node:fs/promises';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
+import { z } from 'zod';
 
 import type { ConversationMessage } from '../types';
 import type { WelcomeContext } from './types';
 import { ensureDir, atomicWriteJson } from '../../persistence/common';
+
+// Zod schema for conversation session file validation (security hardening)
+const ConversationSessionFileSchema = z.object({
+  version: z.literal('1.0.0'),
+  session: z.object({
+    id: z.string().uuid(),
+    projectPath: z.string().min(1).max(1000),
+    createdAt: z.string().datetime(),
+    updatedAt: z.string().datetime(),
+    messages: z.array(
+      z.object({
+        role: z.enum(['user', 'assistant']),
+        content: z.string().max(100000),
+        timestamp: z.string().datetime().optional(),
+      })
+    ),
+    welcomeContext: z.object({}).passthrough(),
+  }),
+});
 
 // =============================================================================
 // Types
@@ -78,13 +98,14 @@ export async function loadConversationSession(): Promise<ConversationSession | n
 
   try {
     const content = await Bun.file(filePath).text();
-    const data = JSON.parse(content) as ConversationSessionFile;
+    const parsed: unknown = JSON.parse(content);
 
-    if (data.version !== SESSION_VERSION) {
+    const result = ConversationSessionFileSchema.safeParse(parsed);
+    if (!result.success) {
       return null;
     }
 
-    return data.session;
+    return result.data.session as unknown as ConversationSession;
   } catch {
     return null;
   }

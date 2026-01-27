@@ -6,8 +6,6 @@
  * @module tui/welcome/welcome-prompt
  */
 
-import { existsSync } from 'fs';
-import { join } from 'path';
 import type { WelcomeContext } from './types';
 import { buildPersonaBlock } from '../../prompts/components/persona';
 
@@ -28,15 +26,6 @@ export interface WelcomeMenuOption {
 export function generateMenuOptions(context: WelcomeContext): WelcomeMenuOption[] {
   const options: WelcomeMenuOption[] = [];
   let keyNum = 1;
-
-  const epicAutoModePath = join(context.projectPath, '.agent', 'epic-auto-mode');
-  if (existsSync(epicAutoModePath)) {
-    options.push({
-      key: String(keyNum++),
-      label: 'Resume interrupted epic',
-      action: 'resume-epic',
-    });
-  }
 
   if (context.incompleteSession) {
     options.push({
