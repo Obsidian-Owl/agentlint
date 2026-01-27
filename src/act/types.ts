@@ -34,6 +34,39 @@ export interface AgentDefinition {
 }
 
 /**
+ * Opencode SDK agent configuration format.
+ * Used for converting ACT subagents to Opencode's agent system.
+ */
+export interface OpencodeAgentConfig {
+  /** Natural language description - Opencode uses this to decide when to invoke */
+  description: string;
+
+  /** Agent mode - must be 'subagent' for ACT analyzers */
+  mode: 'subagent';
+
+  /** The agent's system prompt defining its role and behavior */
+  prompt: string;
+
+  /** Boolean flags for built-in tool categories */
+  tools: {
+    /** Allow file reading operations */
+    read?: boolean;
+    /** Allow file writing operations */
+    write?: boolean;
+    /** Allow bash command execution */
+    bash?: boolean;
+    /** Allow Task tool (subagent invocation) - set false to enforce depth=1 */
+    task?: boolean;
+  };
+
+  /** Fine-grained permissions for specific tools (including MCP tools) */
+  permission?: Record<string, 'allow' | 'deny' | 'ask'>;
+
+  /** Model override in Anthropic API format (e.g., 'anthropic/claude-sonnet-4-20250514') */
+  model?: string;
+}
+
+/**
  * T016: Default tools available to ACT subagents.
  * Includes all EP05/EP06 analysis tools.
  */
