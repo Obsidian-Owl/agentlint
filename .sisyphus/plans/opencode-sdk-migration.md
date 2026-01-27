@@ -480,7 +480,7 @@ Parallel Speedup: ~50% faster than sequential
 
 ---
 
-- [ ] **T06. Create Streaming Adapter (SSE → StreamChunk)**
+- [x] **T06. Create Streaming Adapter (SSE → StreamChunk)**
 
   **What to do**:
   - Create `src/opencode/streaming.ts` with `StreamAdapter` class
@@ -528,7 +528,7 @@ Parallel Speedup: ~50% faster than sequential
 
 ---
 
-- [ ] **T07. Create Hybrid Session Manager**
+- [x] **T07. Create Hybrid Session Manager**
 
   **What to do**:
   - Create `src/opencode/sessions.ts` with `HybridSessionManager` class

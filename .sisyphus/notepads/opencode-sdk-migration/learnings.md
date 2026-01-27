@@ -278,3 +278,41 @@ for await (const event of events.stream) {
 ### Commit Hash
 - (pending) - feat(opencode): implement tool definition adapter
 
+
+## T06 & T07: Streaming Adapter and Hybrid Session Manager
+
+### Completed
+- ✓ T06: Created `src/opencode/streaming.ts` with `StreamAdapter` class
+- ✓ T06: SSE event → StreamChunk conversion (6 tests passing)
+- ✓ T07: Created `src/opencode/sessions.ts` with `HybridSessionManager` class
+- ✓ T07: Opencode session + agentlint metadata (9 tests passing)
+- ✓ All tests passing, typecheck clean
+- ✓ Atomic commits for both tasks
+
+### Key Findings
+
+#### T06: Streaming Adapter
+- Event type mapping: `message.part.updated` → text, `tool.call.*` → tool events
+- Maintains existing `StreamChunk` interface for TUI compatibility
+- Filters unknown event types (returns null, skipped in stream)
+- Verbosity levels: text=normal, tools=verbose, status=normal
+
+#### T07: Hybrid Session Manager
+- In-memory Map storage (will be replaced with SQLite in future)
+- Opencode handles base session, agentlint adds metadata
+- Metadata: findings[], phase, toolCache, timestamps
+- Test timing issue: needed 10ms delay for updatedAt assertion
+
+### Wave 2 Complete
+All core infrastructure implemented:
+- T04: MCP server skeleton ✅
+- T05: Tool definition adapter ✅
+- T06: Streaming adapter ✅
+- T07: Hybrid session manager ✅
+
+Ready for Wave 3 (Tool Migration - T08-T14)
+
+### Commit Hashes
+- T06: `6668d4e` - feat(opencode): implement streaming adapter
+- T07: (pending) - feat(opencode): implement hybrid session manager
+
