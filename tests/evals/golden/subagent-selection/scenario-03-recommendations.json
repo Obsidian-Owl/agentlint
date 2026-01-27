@@ -1,0 +1,48 @@
+{
+  "id": "subagent-03-recommendations",
+  "version": "1.0",
+  "source": "synthetic",
+  "description": "Prioritization request with findings requiring spawn_recommendation_advisor",
+  "difficulty": "easy",
+  "tags": ["clear-routing", "recommendations", "prioritization"],
+
+  "input_data": {
+    "query": "I have 5 findings from the last analysis. What should I fix first?",
+    "context": {
+      "findingsCount": 5,
+      "findings": [
+        { "id": "f1", "severity": "high", "type": "config_gap" },
+        { "id": "f2", "severity": "medium", "type": "anti_pattern" },
+        { "id": "f3", "severity": "low", "type": "suggestion" },
+        { "id": "f4", "severity": "high", "type": "security" },
+        { "id": "f5", "severity": "medium", "type": "efficiency" }
+      ],
+      "hasSessionFiles": true,
+      "projectPath": "/test/project"
+    },
+    "availableTools": [
+      "spawn_temporal_analyst",
+      "spawn_recommendation_advisor",
+      "spawn_session_analyst",
+      "analyze_claude_md",
+      "list_findings"
+    ]
+  },
+
+  "expected_output": {
+    "selectedSubagent": "spawn_recommendation_advisor",
+    "focusOption": null,
+    "reasoning": "User has findings and wants prioritized recommendations. The recommendation advisor specializes in analyzing findings, tracing causes, and generating actionable priorities."
+  },
+
+  "expected_properties": {
+    "should_spawn_subagent": true,
+    "subagent_tool": "spawn_recommendation_advisor",
+    "focus_options": [],
+    "alternative_valid": false
+  },
+
+  "rubric_weights": {
+    "subagent_selection_accuracy": 1.0
+  }
+}

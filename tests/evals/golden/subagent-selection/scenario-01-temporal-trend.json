@@ -1,0 +1,44 @@
+{
+  "id": "subagent-01-temporal-trend",
+  "version": "1.0",
+  "source": "synthetic",
+  "description": "Clear temporal trend query requiring spawn_temporal_analyst with trends focus",
+  "difficulty": "easy",
+  "tags": ["clear-routing", "temporal", "trends"],
+
+  "input_data": {
+    "query": "How have my workflow metrics changed over the past month?",
+    "context": {
+      "availableBaselines": 5,
+      "hasSessionFiles": true,
+      "hasFindings": false,
+      "projectPath": "/test/project"
+    },
+    "availableTools": [
+      "spawn_temporal_analyst",
+      "spawn_recommendation_advisor",
+      "spawn_session_analyst",
+      "analyze_claude_md",
+      "capture_baseline",
+      "list_baselines"
+    ]
+  },
+
+  "expected_output": {
+    "selectedSubagent": "spawn_temporal_analyst",
+    "focusOption": "trends",
+    "reasoning": "User is asking about metric changes over time, which requires trend analysis across multiple baselines. The temporal analyst with trends focus can compute deltas and identify patterns."
+  },
+
+  "expected_properties": {
+    "should_spawn_subagent": true,
+    "subagent_tool": "spawn_temporal_analyst",
+    "focus_options": ["trends"],
+    "alternative_valid": false
+  },
+
+  "rubric_weights": {
+    "subagent_selection_accuracy": 0.6,
+    "focus_appropriateness": 0.4
+  }
+}

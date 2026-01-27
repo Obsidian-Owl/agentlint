@@ -1,0 +1,44 @@
+{
+  "id": "subagent-02-temporal-review",
+  "version": "1.0",
+  "source": "synthetic",
+  "description": "Developer feedback query requiring spawn_temporal_analyst with reviews focus",
+  "difficulty": "easy",
+  "tags": ["clear-routing", "temporal", "reviews"],
+
+  "input_data": {
+    "query": "What feedback have developers given about our AI-assisted workflow?",
+    "context": {
+      "availableBaselines": 3,
+      "hasReviews": true,
+      "reviewCount": 8,
+      "hasSessionFiles": true,
+      "projectPath": "/test/project"
+    },
+    "availableTools": [
+      "spawn_temporal_analyst",
+      "spawn_recommendation_advisor",
+      "spawn_session_analyst",
+      "analyze_claude_md",
+      "list_reviews"
+    ]
+  },
+
+  "expected_output": {
+    "selectedSubagent": "spawn_temporal_analyst",
+    "focusOption": "reviews",
+    "reasoning": "User is asking about developer feedback, which maps to the reviews focus of temporal analyst. This aggregates structured review data across sessions."
+  },
+
+  "expected_properties": {
+    "should_spawn_subagent": true,
+    "subagent_tool": "spawn_temporal_analyst",
+    "focus_options": ["reviews"],
+    "alternative_valid": false
+  },
+
+  "rubric_weights": {
+    "subagent_selection_accuracy": 0.6,
+    "focus_appropriateness": 0.4
+  }
+}

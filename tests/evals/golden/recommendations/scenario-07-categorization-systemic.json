@@ -1,0 +1,80 @@
+{
+  "id": "rec-07-categorization-systemic",
+  "version": "1.0",
+  "source": "synthetic",
+  "description": "Test systemic categorization: architectural or process-level change",
+  "difficulty": "hard",
+  "tags": ["categorization", "systemic", "architecture"],
+
+  "input_data": {
+    "findings": [
+      {
+        "id": "finding-arch-001",
+        "type": "architecture",
+        "severity": "critical",
+        "message": "Circular dependency detected: A→B→C→A",
+        "location": "src/modules/",
+        "suggestion": "Refactor module boundaries"
+      },
+      {
+        "id": "finding-arch-002",
+        "type": "architecture",
+        "severity": "high",
+        "message": "God module detected: core.ts has 50+ exports",
+        "location": "src/core.ts",
+        "suggestion": "Split into focused modules"
+      },
+      {
+        "id": "finding-arch-003",
+        "type": "architecture",
+        "severity": "high",
+        "message": "Missing dependency injection pattern",
+        "location": "src/",
+        "suggestion": "Introduce DI container"
+      }
+    ],
+    "causalTraces": [
+      {
+        "symptom": "Architectural issues accumulating",
+        "traced_cause": "No architecture documentation or review process",
+        "evidence": ["No ADRs", "No architecture diagrams", "No PR architecture checks"],
+        "mechanism": "Without architecture governance, technical debt compounds"
+      }
+    ],
+    "historicRecommendations": [],
+    "interactionMode": "propose"
+  },
+
+  "expected_output": {
+    "recommendations": [
+      {
+        "type": "systemic",
+        "action": "Establish architecture governance: 1) Create ADR template and initial ADRs for module structure, 2) Add architecture diagram to docs/, 3) Add architecture review checklist to PR template",
+        "target": "docs/architecture/, .github/PULL_REQUEST_TEMPLATE.md",
+        "rationale": "Individual fixes won't prevent future architectural drift. A governance process ensures ongoing architectural health.",
+        "priority": "critical",
+        "tracedOrigin": {
+          "findingId": "finding-arch-001",
+          "systemicGap": "Missing architecture governance process"
+        }
+      }
+    ],
+    "clarifyingQuestions": [],
+    "assumptions": ["Team has capacity for architecture review process"]
+  },
+
+  "expected_properties": {
+    "recommendation_count": 1,
+    "recommendation_types": ["systemic"],
+    "category_rationale": "Systemic because it requires organizational/process change, not just code changes",
+    "priorities": ["critical"],
+    "has_traced_origins": true,
+    "question_count": 0
+  },
+
+  "rubric_weights": {
+    "recommendation_type_accuracy": 0.5,
+    "recommendation_specificity": 0.25,
+    "recommendation_causal_trace": 0.25
+  }
+}

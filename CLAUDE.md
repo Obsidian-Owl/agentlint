@@ -11,6 +11,7 @@ agentlint is a local-first CLI tool for continuous improvement of AI-assisted de
 **Stack**: TypeScript + Bun, Claude Agent SDK (@anthropic-ai/claude-agent-sdk), Zod validation, SQLite
 
 **Implemented Epics**:
+
 - EP01: Project Setup (CI/CD, TypeScript config, test framework)
 - EP02: Orchestration Core (Claude Agent SDK wrapper, streaming, checkpoints, session management)
 - EP11: Quality & Security (debug infrastructure, session recording, evaluation framework, outcome tracking)
@@ -31,6 +32,7 @@ All work must align with the 9-principle Constitution at `.specify/memory/consti
 **At session start, check for `.agent/epic-auto-mode`**. If this file exists, an epic implementation was interrupted (by compaction or session end) and should be resumed automatically.
 
 **Recovery protocol:**
+
 1. Read `.agent/epic-auto-mode` for state (feature_dir, last_task, etc.)
 2. **IMMEDIATELY re-read ALL spec artifacts** - spec.md, plan.md, tasks.md, constitution.md
 3. Query Linear for current task statuses
@@ -43,10 +45,10 @@ The existence of the state file IS the user's instruction to continue. Remove th
 
 **NEVER run `bun test` directly.** Always use npm scripts:
 
-| Command | What it does |
-|---------|--------------|
-| `bun run test` | Safe - unit/integration only, no API calls |
-| `bun run test:live` | E2E tests (requires API key, costs money) |
+| Command              | What it does                                |
+| -------------------- | ------------------------------------------- |
+| `bun run test`       | Safe - unit/integration only, no API calls  |
+| `bun run test:live`  | E2E tests (requires API key, costs money)   |
 | `bun run test:evals` | Evaluations (requires API key, costs money) |
 
 **Why**: `bun test` runs ALL tests including expensive live API tests. A preload in `bunfig.toml` blocks live tests unless `RUN_LIVE_TESTS=1` is set, but use the npm scripts to be safe.
@@ -55,7 +57,7 @@ The existence of the state file IS the user's instruction to continue. Remove th
 
 ## Development Workflow
 
-Use the dev.* skills in `.claude/skills/` for structured feature development:
+Use the dev.\* skills in `.claude/skills/` for structured feature development:
 
 ```
 /dev.specify → /dev.clarify → /dev.plan → /dev.tasks → /dev.taskstolinear → /dev.implement-epic → /dev.integration-check → /dev.pr
@@ -72,11 +74,13 @@ For single-task implementation with confirmation between tasks, use `/dev.implem
 ### Transient vs Permanent Artifacts
 
 Epic identifiers (EP##) are appropriate for **transient artifacts**:
+
 - Git branches: `ep15-session-intelligence`
 - Spec directories: `specs/ep15-session-intelligence/`
 - Linear issues: `EP15-T001`
 
 Epic identifiers are **NOT appropriate** for permanent code:
+
 - Exported constants: `CONFIG_TOOLS` not `EP05_CONFIG_TOOLS`
 - Exported functions: `registerConfigTools` not `registerEP05Tools`
 - Type names: `SessionMetrics` not `EP06SessionMetrics`
@@ -100,30 +104,34 @@ agentlint is a Claude Agent SDK application. These patterns are **CRITICAL** and
 
 Tools provide **data and capabilities**. The agent provides **judgment and orchestration**.
 
-| Tools MUST | Agent MUST |
-|------------|------------|
-| Return raw data with evidence | Decide what data means |
+| Tools MUST                         | Agent MUST                    |
+| ---------------------------------- | ----------------------------- |
+| Return raw data with evidence      | Decide what data means        |
 | Provide filtering/query parameters | Choose what to query and when |
-| Execute deterministic operations | Reason about results |
-| Return errors with context | Decide recovery strategy |
+| Execute deterministic operations   | Reason about results          |
+| Return errors with context         | Decide recovery strategy      |
 
 **CRITICAL Anti-patterns** (NEVER do these):
+
 - Tools that encode "when to use" logic or thresholds
 - Tools that return judgments ("this is low", "this is bad")
 - Tools that orchestrate workflows or sequences
 - Hardcoded rules that belong in agent reasoning (e.g., "if X > 5 then Y")
 
 **Example - WRONG**:
+
 ```typescript
 // BAD: Tool makes judgment
 function detectMissedOpportunities(sessions, skills) {
-  if (skill.invocationRate < 0.3) {  // Hardcoded threshold = judgment
-    return { missed: true, reason: "Low rate" };  // Tool deciding meaning
+  if (skill.invocationRate < 0.3) {
+    // Hardcoded threshold = judgment
+    return { missed: true, reason: 'Low rate' }; // Tool deciding meaning
   }
 }
 ```
 
 **Example - RIGHT**:
+
 ```typescript
 // GOOD: Tool returns data, agent judges
 function getSkillInvocations(skillName, dateRange) {
@@ -168,41 +176,44 @@ The most successful agent implementations use simple, composable patterns—not 
 
 ## Documentation Structure
 
-| Location | Content |
-|----------|---------|
-| `docs/architecture/arc42/` | 12-section Arc42 architecture docs |
-| `docs/architecture/adr/` | 18 Architecture Decision Records |
-| `docs/planning/epic-catalogue.md` | 12 implementation epics with dependencies |
-| `docs/requirements/` | Functional requirements, use cases, personas |
-| `docs/vision/north-star.md` | Mission, vision, success indicators |
+| Location                          | Content                                      |
+| --------------------------------- | -------------------------------------------- |
+| `docs/architecture/arc42/`        | 12-section Arc42 architecture docs           |
+| `docs/architecture/adr/`          | 18 Architecture Decision Records             |
+| `docs/planning/epic-catalogue.md` | 12 implementation epics with dependencies    |
+| `docs/requirements/`              | Functional requirements, use cases, personas |
+| `docs/vision/north-star.md`       | Mission, vision, success indicators          |
 
 ## Orchestration Module (EP02)
 
 The `src/orchestration/` module wraps the Claude Agent SDK:
 
-| Component | File | Purpose |
-|-----------|------|---------|
-| Orchestrator | `orchestrator.ts` | Main loop wrapping SDK `query()` |
-| ToolRegistry | `tool-registry.ts` | MCP tool registration via `createSdkMcpServer()` |
-| StreamProcessor | `streaming.ts` | SDK message → StreamChunk conversion |
-| CheckpointHandler | `checkpoint.ts` | Crash recovery checkpoints |
-| SessionState | `session-state.ts` | Session persistence to JSON |
-| CognitiveWorkspace | `cognitive-workspace.ts` | Hierarchical context for agent |
-| Context | `context.ts` | Large result summarization |
+| Component          | File                     | Purpose                                          |
+| ------------------ | ------------------------ | ------------------------------------------------ |
+| Orchestrator       | `orchestrator.ts`        | Main loop wrapping SDK `query()`                 |
+| ToolRegistry       | `tool-registry.ts`       | MCP tool registration via `createSdkMcpServer()` |
+| StreamProcessor    | `streaming.ts`           | SDK message → StreamChunk conversion             |
+| CheckpointHandler  | `checkpoint.ts`          | Crash recovery checkpoints                       |
+| SessionState       | `session-state.ts`       | Session persistence to JSON                      |
+| CognitiveWorkspace | `cognitive-workspace.ts` | Hierarchical context for agent                   |
+| Context            | `context.ts`             | Large result summarization                       |
 
 **Key patterns**:
+
 - Tool definitions use SDK's `tool()` with Zod schemas
 - Streaming yields `StreamChunk` objects with verbosity levels
 - Checkpoints emit on tool completion, findings, phase changes, intervals
 - Subagent depth limited to 1 per Constitution Principle C8
 
 **Subagent Design** (when using `agents` option):
+
 - Each subagent MUST have one clear job
 - Subagents MUST NOT spawn further subagents (depth=1 max)
 - Use subagents for: isolated high-volume ops, parallel independent research, self-contained tasks
 - Don't use subagents for: frequent back-and-forth, multi-phase shared context, quick changes
 
 **Configuration** (`~/.agentlint/config.json`):
+
 ```json
 {
   "model": "claude-sonnet-4-20250514",
@@ -217,14 +228,15 @@ The `src/debug/` and `src/eval/` modules provide quality infrastructure:
 
 ### Debug Infrastructure (`src/debug/`)
 
-| Component | File | Purpose |
-|-----------|------|---------|
-| DebugLogger | `logger.ts` | Namespace-based logging with verbosity levels |
-| SecretRedactor | `redaction.ts` | Auto-redacts secrets from logs |
-| TokenTracker | `metrics.ts` | Track LLM call tokens and latency |
-| DEBUG_NAMESPACES | `namespaces.ts` | Standard namespace constants |
+| Component        | File            | Purpose                                       |
+| ---------------- | --------------- | --------------------------------------------- |
+| DebugLogger      | `logger.ts`     | Namespace-based logging with verbosity levels |
+| SecretRedactor   | `redaction.ts`  | Auto-redacts secrets from logs                |
+| TokenTracker     | `metrics.ts`    | Track LLM call tokens and latency             |
+| DEBUG_NAMESPACES | `namespaces.ts` | Standard namespace constants                  |
 
 **Usage**:
+
 ```typescript
 import { createDebugLogger, DEBUG_NAMESPACES, redact } from './debug';
 
@@ -240,12 +252,13 @@ const safe = redact('api_key=sk-secret');
 
 ### Session Recording (`src/orchestration/checkpoint.ts`)
 
-| Component | Purpose |
-|-----------|---------|
+| Component       | Purpose                                       |
+| --------------- | --------------------------------------------- |
 | SessionRecorder | Record checkpoints to disk for crash recovery |
-| SessionReplayer | Replay sessions from recorded checkpoints |
+| SessionReplayer | Replay sessions from recorded checkpoints     |
 
 **CLI Commands**:
+
 ```bash
 agentlint session list           # List recorded sessions
 agentlint session replay <id>    # Replay a session
@@ -255,22 +268,23 @@ agentlint session cleanup        # Clean up old sessions
 
 ### Evaluation Framework (`src/eval/`)
 
-| Component | File | Purpose |
-|-----------|------|---------|
-| Scoring | `scoring.ts` | Numerical quality scoring (0-100) |
-| Graders | `graders/` | Code-based and LLM-judge graders |
-| Runner | `runner.ts` | Execute evaluations |
+| Component | File         | Purpose                           |
+| --------- | ------------ | --------------------------------- |
+| Scoring   | `scoring.ts` | Numerical quality scoring (0-100) |
+| Graders   | `graders/`   | Code-based and LLM-judge graders  |
+| Runner    | `runner.ts`  | Execute evaluations               |
 
 ### Outcome Tracking (`src/persistence/outcome-storage.ts`, `src/eval/feedback.ts`)
 
 Tracks recommendation effectiveness for continuous improvement:
 
-| Component | File | Purpose |
-|-----------|------|---------|
-| OutcomeStorage | `outcome-storage.ts` | SQLite storage for outcomes |
-| FeedbackCollector | `feedback.ts` | Opt-in feedback collection |
+| Component         | File                 | Purpose                     |
+| ----------------- | -------------------- | --------------------------- |
+| OutcomeStorage    | `outcome-storage.ts` | SQLite storage for outcomes |
+| FeedbackCollector | `feedback.ts`        | Opt-in feedback collection  |
 
 **Configuration** (opt-in per Constitution Principle I):
+
 ```json
 {
   "outcomeTracking": {
@@ -281,17 +295,55 @@ Tracks recommendation effectiveness for continuous improvement:
 }
 ```
 
+## PromptKit Module (ADR-0022)
+
+The `src/prompts/` module provides SDK-agnostic prompt management:
+
+| Component         | Location                | Purpose                                           |
+| ----------------- | ----------------------- | ------------------------------------------------- |
+| PromptKit Core    | `promptkit/types.ts`    | `PromptSpec`, `PromptMessage`, `PromptRole` types |
+| PromptRegistry    | `promptkit/registry.ts` | Version-aware prompt storage                      |
+| DETECTIVE_PERSONA | `components/persona/`   | Single source of truth for personality            |
+
+**Key patterns**:
+
+- Prompts are SDK-agnostic (just strings) - adapters convert to provider formats
+- `PromptSpec` has `id@version` for tracking and A/B testing
+- Personality centralized in `DETECTIVE_PERSONA` - import everywhere, define once
+- Future SDK migration: swap adapter, not prompts
+
+**Usage**:
+
+```typescript
+import { buildPersonaBlock, getPromptRegistry } from '../prompts';
+
+// Use centralized persona
+const systemPrompt = `You are agentlint.\n\n${buildPersonaBlock()}`;
+
+// Register versioned prompts
+const registry = getPromptRegistry();
+registry.register(myPromptSpec);
+const prompt = registry.get('welcome/system', '1.0.0');
+```
+
+**Migration path**: Prompts themselves are portable. SDK coupling is in:
+
+- `orchestration/orchestrator.ts` - `query()` call
+- `orchestration/tool-registry.ts` - `createSdkMcpServer()`
+
 ## ADR Implementation Pattern (CRITICAL)
 
 ADRs describe **tool capabilities and data structures**, NOT agent orchestration. This is a CRITICAL distinction.
 
 **MUST include**:
+
 - Tool schemas with Zod definitions
 - Data structures and TypeScript interfaces
 - SQL queries and database schemas
 - API surfaces and return types
 
 **MUST NOT include** (these are anti-patterns):
+
 - Functions that dictate when tools should be called
 - Workflow sequences or pipelines
 - Threshold-based detection logic (agent reasoning)

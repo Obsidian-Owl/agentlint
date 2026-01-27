@@ -2,7 +2,6 @@
  * Welcome Prompt Generator
  *
  * Generates prompts for LLM-powered welcome messages based on context.
- * Personality: observant detective with dry wit - professional with understated humor.
  *
  * @module tui/welcome/welcome-prompt
  */
@@ -10,6 +9,7 @@
 import { existsSync } from 'fs';
 import { join } from 'path';
 import type { WelcomeContext } from './types';
+import { buildPersonaBlock } from '../../prompts/components/persona';
 
 // =============================================================================
 // Menu Option Types
@@ -105,24 +105,7 @@ export function formatMenuSubtitle(context: WelcomeContext): string {
 export function getWelcomeSystemPrompt(): string {
   return `You are the agentlint welcome assistant. Your job is to greet the user with a brief, personalized welcome message based on their current project state.
 
-PERSONALITY:
-- Observant detective with dry wit - you notice things and comment wryly
-- Professional but not stiff - occasional understated humor is welcome
-- Concise - 2-3 sentences max, no fluff
-- Helpful - if there's something actionable (like incomplete session), mention it
-
-TONE EXAMPLES:
-- "Back on main with a clean slate. Ready when you are."
-- "Three recommendations sitting patient. Feature branch looking busy - 12 changes pending."
-- "First time here? Let's see what we're working with."
-- "Looks like we got interrupted mid-analysis. Pick up where we left off?"
-
-DO NOT:
-- Use exclamation marks excessively
-- Be overly enthusiastic or fake
-- Use phrases like "Great to see you!" or "Welcome back!"
-- Write more than 3 sentences
-- Use emojis`;
+${buildPersonaBlock()}`;
 }
 
 /**

@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "description": "Golden dataset for EP10 Recommendation Advisor TruLens evaluations",
-  "created_at": "2026-01-20T10:00:00.000Z",
+  "created_at": "2026-01-27T08:55:00.000Z",
   "adr_references": ["ADR-0011", "ADR-0012"],
 
   "scenarios": [
@@ -36,6 +36,38 @@
       "difficulty": "hard",
       "tests": ["recommendation_specificity", "recommendation_causal_trace"],
       "description": "New findings with existing recommendations → deduplication"
+    },
+    {
+      "file": "scenario-05-categorization-symptomatic.json",
+      "id": "rec-05-categorization-symptomatic",
+      "category": "categorization",
+      "difficulty": "medium",
+      "tests": ["recommendation_type_accuracy", "recommendation_specificity"],
+      "description": "Symptomatic categorization: immediate fix for surface-level issue"
+    },
+    {
+      "file": "scenario-06-categorization-preventive.json",
+      "id": "rec-06-categorization-preventive",
+      "category": "categorization",
+      "difficulty": "medium",
+      "tests": ["recommendation_type_accuracy", "recommendation_causal_trace"],
+      "description": "Preventive categorization: addressing root cause to prevent recurrence"
+    },
+    {
+      "file": "scenario-07-categorization-systemic.json",
+      "id": "rec-07-categorization-systemic",
+      "category": "categorization",
+      "difficulty": "hard",
+      "tests": ["recommendation_type_accuracy", "recommendation_specificity"],
+      "description": "Systemic categorization: architectural or process-level change"
+    },
+    {
+      "file": "scenario-08-categorization-mixed.json",
+      "id": "rec-08-categorization-mixed",
+      "category": "categorization",
+      "difficulty": "hard",
+      "tests": ["recommendation_type_accuracy", "recommendation_prioritization"],
+      "description": "Mixed categorization: findings requiring different recommendation types"
     }
   ],
 
@@ -44,19 +76,21 @@
     "pattern": 1,
     "questions": 1,
     "deduplication": 1,
-    "total": 4
+    "categorization": 4,
+    "total": 8
   },
 
   "difficulty_distribution": {
     "easy": 1,
-    "medium": 2,
-    "hard": 1
+    "medium": 4,
+    "hard": 3
   },
 
   "feedback_function_coverage": {
-    "recommendation_specificity": 3,
-    "recommendation_causal_trace": 2,
-    "recommendation_prioritization": 1,
-    "advisor_question_quality": 1
+    "recommendation_specificity": 5,
+    "recommendation_causal_trace": 4,
+    "recommendation_prioritization": 2,
+    "advisor_question_quality": 1,
+    "recommendation_type_accuracy": 4
   }
 }

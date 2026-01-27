@@ -9,6 +9,7 @@
 
 import type { ConversationMessage, ConversationalContext } from '../types';
 import type { WelcomeContext } from './types';
+import { buildMinimalPersonaBlock } from '../../prompts/components/persona';
 
 // =============================================================================
 // Types
@@ -141,10 +142,7 @@ function buildFollowUpSystemPrompt(
     'You are agentlint, an AI assistant for improving development workflows.',
     'You are in a follow-up conversation with the user.',
     '',
-    'PERSONALITY:',
-    '- Observant and analytical',
-    '- Professional with occasional dry wit',
-    '- Concise and direct',
+    buildMinimalPersonaBlock(),
     '',
     'BEHAVIOR:',
     '- Reference previous conversation when relevant',

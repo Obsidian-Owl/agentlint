@@ -1,0 +1,135 @@
+{
+  "version": "1.0.0",
+  "timestamp": "2026-01-27T08:55:00Z",
+  "scope": "changed_files",
+  "branch": "fix/tui-streaming-ux",
+  "filesAnalyzed": 29,
+  "score": 68,
+  "grade": "C",
+  "categories": {
+    "boundary": { "findings": 0, "impact": 0 },
+    "prompt": { "findings": 11, "impact": -20 },
+    "context": { "findings": 10, "impact": -15 },
+    "testing": { "findings": 8, "impact": -8 },
+    "error": { "findings": 17, "impact": -15 },
+    "state": { "findings": 11, "impact": -12 },
+    "observability": { "findings": 16, "impact": -10 },
+    "subagent": { "findings": 0, "impact": 0 }
+  },
+  "p1Findings": [
+    {
+      "pattern": "INJECTION_RISK",
+      "category": "prompt",
+      "file": "src/tui/welcome/conversation.ts",
+      "line": 176,
+      "snippet": "parts.push(`User: ${userInput}`);",
+      "severity": 8,
+      "priority": "P1"
+    },
+    {
+      "pattern": "INJECTION_RISK",
+      "category": "prompt",
+      "file": "src/cli/commands/conversation-manager.ts",
+      "line": 116,
+      "snippet": "`Analyze and respond to: ${processedInput}`",
+      "severity": 8,
+      "priority": "P1"
+    },
+    {
+      "pattern": "PROMPT_SPRAWL",
+      "category": "prompt",
+      "file": "src/tui/welcome/welcome-prompt.ts",
+      "line": 105,
+      "snippet": "Observant detective with dry wit",
+      "severity": 4,
+      "priority": "P1",
+      "note": "Personality duplicated in conversation.ts:144"
+    },
+    {
+      "pattern": "UNBOUNDED_HISTORY",
+      "category": "state",
+      "file": "src/tui/welcome/session-persistence.ts",
+      "line": 124,
+      "snippet": "messages: [...session.messages, message]",
+      "severity": 7,
+      "priority": "P1",
+      "note": "Persisted session not bounded like MAX_CONVERSATION_HISTORY"
+    }
+  ],
+  "p2Findings": [
+    {
+      "pattern": "HARDCODED_PROMPT",
+      "category": "prompt",
+      "file": "src/tui/welcome/welcome-prompt.ts",
+      "line": 105,
+      "severity": 3,
+      "priority": "P2"
+    },
+    {
+      "pattern": "HARDCODED_PROMPT",
+      "category": "prompt",
+      "file": "src/tui/welcome/welcome-prompt.ts",
+      "line": 134,
+      "severity": 3,
+      "priority": "P2"
+    },
+    {
+      "pattern": "HARDCODED_PROMPT",
+      "category": "prompt",
+      "file": "src/tui/welcome/conversation.ts",
+      "line": 136,
+      "severity": 3,
+      "priority": "P2"
+    },
+    {
+      "pattern": "NO_VERSIONING",
+      "category": "prompt",
+      "file": "src/tui/welcome/welcome-prompt.ts",
+      "line": 105,
+      "severity": 3,
+      "priority": "P2"
+    },
+    {
+      "pattern": "NO_VERSIONING",
+      "category": "prompt",
+      "file": "src/tui/welcome/conversation.ts",
+      "line": 136,
+      "severity": 3,
+      "priority": "P2"
+    },
+    {
+      "pattern": "MISSING_METRICS",
+      "category": "observability",
+      "file": "src/cli/commands/conversation-manager.ts",
+      "line": 122,
+      "severity": 4,
+      "priority": "P2",
+      "note": "No token tracking unlike analyse.ts"
+    }
+  ],
+  "goodPatterns": [
+    "MAX_CONVERSATION_HISTORY = 10 enforced in app-reducer.ts",
+    "InkRenderer.stop() clears all accumulated state",
+    "getGitSummary returns null on timeout/error (graceful degradation)",
+    "truncate() helper with configurable max length",
+    "Clean component boundaries - single responsibility per component"
+  ],
+  "acceptablePatterns": {
+    "SILENT_FAILURE": 8,
+    "GENERIC_CATCH": 5,
+    "NO_MOCK": 8,
+    "NO_DEBUG_LOG": 8,
+    "MEMORY_LEAK_SESSION_SCOPED": 5,
+    "MISSING_TIMEOUT_LOCAL_DB": 4
+  },
+  "trend": {
+    "previousScore": 72,
+    "previousDate": "2026-01-27",
+    "change": -4
+  },
+  "verdict": {
+    "canProceed": true,
+    "blockingIssues": 0,
+    "recommendation": "Address P1 items before merge. P2 items can be backlog."
+  }
+}

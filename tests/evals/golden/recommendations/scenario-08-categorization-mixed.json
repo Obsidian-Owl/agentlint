@@ -1,0 +1,103 @@
+{
+  "id": "rec-08-categorization-mixed",
+  "version": "1.0",
+  "source": "synthetic",
+  "description": "Test mixed categorization: findings requiring different recommendation types",
+  "difficulty": "hard",
+  "tags": ["categorization", "mixed", "multi-type"],
+
+  "input_data": {
+    "findings": [
+      {
+        "id": "finding-quick-001",
+        "type": "lint_error",
+        "severity": "low",
+        "message": "Missing semicolon",
+        "location": "src/index.ts:5",
+        "suggestion": "Add semicolon"
+      },
+      {
+        "id": "finding-pattern-001",
+        "type": "config_gap",
+        "severity": "high",
+        "message": "No error handling section in CLAUDE.md",
+        "location": "CLAUDE.md",
+        "suggestion": "Add error handling documentation"
+      },
+      {
+        "id": "finding-process-001",
+        "type": "workflow",
+        "severity": "critical",
+        "message": "No CI/CD pipeline defined",
+        "location": ".github/workflows/",
+        "suggestion": "Set up GitHub Actions"
+      }
+    ],
+    "causalTraces": [
+      {
+        "symptom": "No CI/CD",
+        "traced_cause": "Project setup incomplete",
+        "evidence": ["Missing .github/workflows", "No package.json test script", "No lint config"],
+        "mechanism": "Without CI, quality gates are not enforced"
+      }
+    ],
+    "historicRecommendations": [],
+    "interactionMode": "propose"
+  },
+
+  "expected_output": {
+    "recommendations": [
+      {
+        "type": "symptomatic",
+        "action": "Fix semicolon in src/index.ts:5",
+        "target": "src/index.ts",
+        "rationale": "Quick fix for immediate lint error",
+        "priority": "low",
+        "tracedOrigin": {
+          "findingId": "finding-quick-001",
+          "issueType": "Lint error"
+        }
+      },
+      {
+        "type": "preventive",
+        "action": "Add error handling section to CLAUDE.md with patterns for try-catch, error boundaries, and logging",
+        "target": "CLAUDE.md",
+        "rationale": "Documentation prevents inconsistent error handling across the codebase",
+        "priority": "high",
+        "tracedOrigin": {
+          "findingId": "finding-pattern-001",
+          "configGap": "Missing error handling guidance"
+        }
+      },
+      {
+        "type": "systemic",
+        "action": "Create CI/CD pipeline with GitHub Actions including: lint, typecheck, test, and build steps",
+        "target": ".github/workflows/ci.yml",
+        "rationale": "CI/CD establishes automated quality gates that enforce standards",
+        "priority": "critical",
+        "tracedOrigin": {
+          "findingId": "finding-process-001",
+          "systemicGap": "No automated quality enforcement"
+        }
+      }
+    ],
+    "clarifyingQuestions": [],
+    "assumptions": []
+  },
+
+  "expected_properties": {
+    "recommendation_count": 3,
+    "recommendation_types": ["symptomatic", "preventive", "systemic"],
+    "category_rationale": "Mixed because findings span quick fixes (symptomatic), documentation gaps (preventive), and process gaps (systemic)",
+    "priorities": ["low", "high", "critical"],
+    "has_traced_origins": true,
+    "question_count": 0
+  },
+
+  "rubric_weights": {
+    "recommendation_type_accuracy": 0.4,
+    "recommendation_prioritization": 0.3,
+    "recommendation_specificity": 0.2,
+    "recommendation_causal_trace": 0.1
+  }
+}

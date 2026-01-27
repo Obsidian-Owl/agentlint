@@ -1,0 +1,112 @@
+{
+  "version": "1.0",
+  "description": "Golden dataset for subagent routing/selection evaluations",
+  "created_at": "2026-01-27T08:50:00.000Z",
+  "adr_references": ["ADR-0011", "ADR-0012"],
+
+  "scenarios": [
+    {
+      "file": "scenario-01-temporal-trend.json",
+      "id": "subagent-01-temporal-trend",
+      "category": "clear-routing",
+      "difficulty": "easy",
+      "tests": ["subagent_selection_accuracy", "focus_appropriateness"],
+      "description": "Clear temporal trend query → spawn_temporal_analyst (trends)"
+    },
+    {
+      "file": "scenario-02-temporal-review.json",
+      "id": "subagent-02-temporal-review",
+      "category": "clear-routing",
+      "difficulty": "easy",
+      "tests": ["subagent_selection_accuracy", "focus_appropriateness"],
+      "description": "Developer feedback query → spawn_temporal_analyst (reviews)"
+    },
+    {
+      "file": "scenario-03-recommendations.json",
+      "id": "subagent-03-recommendations",
+      "category": "clear-routing",
+      "difficulty": "easy",
+      "tests": ["subagent_selection_accuracy"],
+      "description": "Prioritization request with findings → spawn_recommendation_advisor"
+    },
+    {
+      "file": "scenario-04-session-narrative.json",
+      "id": "subagent-04-session-narrative",
+      "category": "clear-routing",
+      "difficulty": "easy",
+      "tests": ["subagent_selection_accuracy", "focus_appropriateness"],
+      "description": "Session summary request → spawn_session_analyst (narrative)"
+    },
+    {
+      "file": "scenario-05-session-quality.json",
+      "id": "subagent-05-session-quality",
+      "category": "clear-routing",
+      "difficulty": "easy",
+      "tests": ["subagent_selection_accuracy", "focus_appropriateness"],
+      "description": "Session quality check → spawn_session_analyst (quality)"
+    },
+    {
+      "file": "scenario-06-config-analysis.json",
+      "id": "subagent-06-config-analysis",
+      "category": "clear-routing",
+      "difficulty": "easy",
+      "tests": ["subagent_selection_accuracy"],
+      "description": "Config file review → direct tool call (no subagent)"
+    },
+    {
+      "file": "scenario-07-ambiguous-temporal-vs-recommendations.json",
+      "id": "subagent-07-ambiguous-temporal-vs-recommendations",
+      "category": "boundary",
+      "difficulty": "medium",
+      "tests": ["subagent_selection_reasonableness", "explanation_quality"],
+      "description": "Ambiguous query that could use temporal or recommendations"
+    },
+    {
+      "file": "scenario-08-ambiguous-session-vs-temporal.json",
+      "id": "subagent-08-ambiguous-session-vs-temporal",
+      "category": "boundary",
+      "difficulty": "medium",
+      "tests": ["subagent_selection_reasonableness", "explanation_quality"],
+      "description": "Query involving both session and temporal aspects"
+    },
+    {
+      "file": "scenario-09-no-subagent-needed.json",
+      "id": "subagent-09-no-subagent-needed",
+      "category": "edge-case",
+      "difficulty": "medium",
+      "tests": ["correct_no_delegation"],
+      "description": "Simple query that tools can handle directly"
+    },
+    {
+      "file": "scenario-10-multi-subagent-sequence.json",
+      "id": "subagent-10-multi-subagent-sequence",
+      "category": "edge-case",
+      "difficulty": "hard",
+      "tests": ["multi_step_reasoning", "sequence_correctness"],
+      "description": "Complex query requiring sequential subagent calls"
+    }
+  ],
+
+  "coverage": {
+    "clear-routing": 6,
+    "boundary": 2,
+    "edge-case": 2,
+    "total": 10
+  },
+
+  "difficulty_distribution": {
+    "easy": 6,
+    "medium": 3,
+    "hard": 1
+  },
+
+  "feedback_function_coverage": {
+    "subagent_selection_accuracy": 5,
+    "focus_appropriateness": 4,
+    "subagent_selection_reasonableness": 2,
+    "explanation_quality": 2,
+    "correct_no_delegation": 1,
+    "multi_step_reasoning": 1,
+    "sequence_correctness": 1
+  }
+}
