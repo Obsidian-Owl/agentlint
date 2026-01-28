@@ -1,11 +1,6 @@
 {
-  "active_plan": "/Users/dmccarthy/Projects/agentlint/.sisyphus/plans/opencode-auth-migration.md",
-  "started_at": "2026-01-28T07:16:50.933Z",
+  "active_plan": "/Users/dmccarthy/Projects/agentlint/.sisyphus/plans/post-migration-quality.md",
+  "started_at": "2026-01-28T08:53:35.470Z",
   "session_ids": ["ses_3feba5e4dffeg6GODtHYas4w8N"],
-  "plan_name": "opencode-auth-migration",
-  "previous_plan": {
-    "name": "opencode-migration-consolidated",
-    "completed_at": "2026-01-28T07:16:50.933Z",
-    "status": "complete"
-  }
+  "plan_name": "post-migration-quality"
 }

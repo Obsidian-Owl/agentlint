@@ -52,13 +52,13 @@ Eliminate all ANTHROPIC_API_KEY credential management so agentlint delegates aut
 
 ### Definition of Done
 
-- [ ] Zero `hasApiKey()` gates blocking orchestrated analysis
-- [ ] `ApiKeyError` renamed to `ProviderAuthError` with provider-agnostic messages
-- [ ] All tests updated — no ANTHROPIC_API_KEY in test gates
-- [ ] ADR-0014 superseded with new ADR documenting Opencode delegation
-- [ ] All docs reference Opencode auth, not ANTHROPIC_API_KEY
-- [ ] `bun run typecheck` passes
-- [ ] `bun run test` passes
+- [x] Zero `hasApiKey()` gates blocking orchestrated analysis
+- [x] `ApiKeyError` renamed to `ProviderAuthError` with provider-agnostic messages
+- [x] All tests updated — no ANTHROPIC_API_KEY in test gates
+- [x] ADR-0014 superseded with new ADR documenting Opencode delegation
+- [x] All docs reference Opencode auth, not ANTHROPIC_API_KEY
+- [x] `bun run typecheck` passes
+- [x] `bun run test` passes
 
 ### Must NOT Have (Guardrails)
 
@@ -167,7 +167,7 @@ Critical Path: Task 1 → Task 3 → Task 5 → Task 7
 
 ---
 
-- [ ] 2. Replace test helper `require-api-key.ts` with provider-agnostic version
+- [x] 2. Replace test helper `require-api-key.ts` with provider-agnostic version
 
   **What to do**:
   - Rewrite `tests/lib/require-api-key.ts` → `tests/lib/require-provider.ts`:
@@ -211,7 +211,7 @@ Critical Path: Task 1 → Task 3 → Task 5 → Task 7
 
 ---
 
-- [ ] 3. Remove ANTHROPIC_API_KEY gating from `analyse.ts`
+- [x] 3. Remove ANTHROPIC_API_KEY gating from `analyse.ts`
 
   **What to do**:
   - In `src/cli/commands/analyse.ts`:
@@ -258,7 +258,7 @@ Critical Path: Task 1 → Task 3 → Task 5 → Task 7
 
 ---
 
-- [ ] 4. Update e2e and integration test files
+- [x] 4. Update e2e and integration test files
 
   **What to do**:
   - `tests/e2e/cli/analyse-live.test.ts`: Import `requireLiveProvider` from `require-provider.ts` instead of `requireAPIKey`
@@ -305,7 +305,7 @@ Critical Path: Task 1 → Task 3 → Task 5 → Task 7
 
 ---
 
-- [ ] 5. Update eval runner and remaining test references
+- [x] 5. Update eval runner and remaining test references
 
   **What to do**:
   - `tests/evals/run-evals.ts:22,125`: Update comments/messages from "ANTHROPIC_API_KEY Required" to provider-agnostic message about Opencode auth
@@ -342,7 +342,7 @@ Critical Path: Task 1 → Task 3 → Task 5 → Task 7
 
 ---
 
-- [ ] 6. Update documentation and supersede ADR-0014
+- [x] 6. Update documentation and supersede ADR-0014
 
   **What to do**:
   - Create `docs/architecture/adr/0026-opencode-auth-delegation.md`:
@@ -398,7 +398,7 @@ Critical Path: Task 1 → Task 3 → Task 5 → Task 7
 
 ---
 
-- [ ] 7. Final verification
+- [x] 7. Final verification
 
   **What to do**:
   - Run `bun run typecheck` — must pass with zero errors
@@ -458,9 +458,9 @@ grep -rn 'ANTHROPIC_API_KEY' src/ | grep -v redaction | grep -v gitleaks | grep 
 
 ### Final Checklist
 
-- [ ] Zero `hasApiKey()` gates in runtime code
-- [ ] `ProviderAuthError` with provider-agnostic messages
-- [ ] All tests provider-agnostic
-- [ ] ADR-0026 documents Opencode auth delegation
-- [ ] ADR-0014 superseded
-- [ ] All doc references updated
+- [x] Zero `hasApiKey()` gates in runtime code
+- [x] `ProviderAuthError` with provider-agnostic messages
+- [x] All tests provider-agnostic
+- [x] ADR-0026 documents Opencode auth delegation
+- [x] ADR-0014 superseded
+- [x] All doc references updated
