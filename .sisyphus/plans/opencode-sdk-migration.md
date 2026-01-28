@@ -801,7 +801,7 @@ Parallel Speedup: ~50% faster than sequential
 
 ---
 
-- [ ] **T13. Migrate Skill Tools (4 tools)**
+- [x] **T13. Migrate Skill Tools (4 tools)**
 
   **What to do**:
   - Migrate tools in `src/skills/tools/`:
@@ -839,7 +839,7 @@ Parallel Speedup: ~50% faster than sequential
 
 ---
 
-- [ ] **T14. Migrate Security Classifier (1 tool)**
+- [x] **T14. Migrate Security Classifier (1 tool)**
 
   **What to do**:
   - Migrate `src/security/classifier.ts`
@@ -875,7 +875,7 @@ Parallel Speedup: ~50% faster than sequential
 
 ### Wave 4: Integration
 
-- [ ] **T15. Convert ACT Subagents to Config**
+- [x] **T15. Convert ACT Subagents to Config**
 
   **What to do**:
   - Create `.opencode/agents/` directory

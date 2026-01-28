@@ -43,3 +43,34 @@
 
 **Blocker Status**: CRITICAL - blocks Wave 1 completion
 
+
+## T15 Blocker - Opencode Agent Config Format Unknown
+
+**Date**: 2026-01-28
+**Task**: T15 - Convert ACT Subagents to Config
+**Status**: BLOCKED
+
+### Problem
+
+T15 requires converting ACT subagents to Opencode config-based agent definitions, but:
+1. Plan references "Appendix A.4 for Opencode agent config format" which doesn't exist
+2. No documentation found on Opencode agent configuration format
+3. Current ACT system uses PromptKit with complex prompt specs
+4. Unclear how to map SDK agent definitions to Opencode config format
+
+### Impact
+
+- T15 blocks T16 (Migrate Orchestrator)
+- T16 blocks T17-T19 (TUI, Permissions, Prompts)
+- Entire Wave 4 is blocked
+
+### Options
+
+1. **Research Opencode agent format** - Use librarian to find documentation
+2. **Skip T15 temporarily** - Move to Wave 5 tasks that don't depend on it
+3. **Simplify approach** - Keep ACT subagents in code, just update to use Opencode client
+
+### Recommendation
+
+Research Opencode agent configuration format using librarian agent before proceeding with T15.
+
