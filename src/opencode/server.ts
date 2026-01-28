@@ -1,4 +1,6 @@
 import { createOpencodeServer } from '@opencode-ai/sdk';
+import type { AgentConfig } from '@opencode-ai/sdk';
+import { buildOpencodeAgents } from '../act/index.js';
 
 export interface OpencodeServerConfig {
   port?: number;
@@ -36,6 +38,9 @@ export class OpencodeServerManager implements IServerManager {
       port: this.config.port,
       hostname: this.config.hostname,
       timeout: this.config.timeout,
+      config: {
+        agent: buildOpencodeAgents() as Record<string, AgentConfig>,
+      },
     });
 
     this.running = true;
