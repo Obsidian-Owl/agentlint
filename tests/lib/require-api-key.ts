@@ -1,5 +1,8 @@
 /**
- * API Key Requirement for Live Tests
+ * API Key Requirement for Live Tests (DEPRECATED)
+ *
+ * @deprecated Use `require-provider.ts` instead for multi-provider support.
+ * This module is maintained for backward compatibility only.
  *
  * Import this at the top of any test file that requires ANTHROPIC_API_KEY.
  * If the key is missing, the test will fail immediately with a clear message
@@ -10,10 +13,13 @@
  * @module tests/lib/require-api-key
  */
 
+import { requireLiveProvider, hasLiveProvider } from './require-provider';
+
 /**
  * Ensure ANTHROPIC_API_KEY is available.
  * Call this at module load time to fail fast.
  *
+ * @deprecated Use `requireLiveProvider()` from `require-provider.ts` instead.
  * @throws {Error} If ANTHROPIC_API_KEY is not set
  *
  * @example
@@ -26,46 +32,27 @@
  * ```
  */
 export function requireAPIKey(): void {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    throw new Error(
-      '\n' +
-        '═══════════════════════════════════════════════════════════════════\n' +
-        '  ANTHROPIC_API_KEY Required\n' +
-        '═══════════════════════════════════════════════════════════════════\n' +
-        '\n' +
-        '  This test file makes LIVE API calls and requires ANTHROPIC_API_KEY.\n' +
-        '\n' +
-        '  To run live tests:\n' +
-        '    export ANTHROPIC_API_KEY="sk-ant-..."\n' +
-        '    bun run test:live\n' +
-        '\n' +
-        '  To run safe tests (no API calls):\n' +
-        '    bun run test\n' +
-        '\n' +
-        '  This test was likely triggered by running `bun test` directly.\n' +
-        '  Use `bun run test` instead for the safe default.\n' +
-        '\n' +
-        '═══════════════════════════════════════════════════════════════════\n'
-    );
-  }
+  requireLiveProvider();
 }
 
 /**
  * Check if API key is available without throwing.
  *
+ * @deprecated Use `hasLiveProvider()` from `require-provider.ts` instead.
  * @returns True if ANTHROPIC_API_KEY is set
  */
 export function hasAPIKey(): boolean {
-  return Boolean(process.env.ANTHROPIC_API_KEY);
+  return hasLiveProvider();
 }
 
 /**
  * Get the API key, throwing if not available.
  *
- * @returns The API key value
- * @throws {Error} If ANTHROPIC_API_KEY is not set
+ * @deprecated Use `requireLiveProvider()` from `require-provider.ts` instead.
+ * @returns The API key value (ANTHROPIC_API_KEY or OPENAI_API_KEY)
+ * @throws {Error} If no provider is configured
  */
 export function getAPIKey(): string {
-  requireAPIKey();
-  return process.env.ANTHROPIC_API_KEY!;
+  requireLiveProvider();
+  return process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY || '';
 }

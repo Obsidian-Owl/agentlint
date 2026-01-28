@@ -12,6 +12,7 @@ import { resolve } from 'path';
 import { existsSync, mkdirSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { randomUUID } from 'crypto';
+import { hasLiveProvider } from '../lib/require-provider';
 
 // =============================================================================
 // Types
@@ -239,13 +240,13 @@ export function isCI(): boolean {
  * Check if API key is available for live tests.
  */
 export function hasAPIKey(): boolean {
-  return Boolean(process.env.ANTHROPIC_API_KEY);
+  return hasLiveProvider();
 }
 
 /**
  * Skip condition for live tests.
  */
-export const SKIP_LIVE_TESTS = !hasAPIKey();
+export const SKIP_LIVE_TESTS = !hasLiveProvider();
 
 /**
  * Skip condition for CI-only tests.
