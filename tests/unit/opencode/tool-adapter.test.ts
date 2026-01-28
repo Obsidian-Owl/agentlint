@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'bun:test';
+import { describe, expect, it, mock } from 'bun:test';
 import { z } from 'zod';
 import { adaptTool, adaptTools, type SdkToolDefinition } from '../../../src/opencode/tool-adapter';
 
@@ -49,7 +49,7 @@ describe('adaptTool', () => {
     };
 
     const adapted = adaptTool(sdkTool);
-    const result = await adapted.handler({});
+    const result = await adapted.handler({ input: 'test' });
 
     expect(result).toBe('unwrapped data');
   });
@@ -65,7 +65,7 @@ describe('adaptTool', () => {
     };
 
     const adapted = adaptTool(sdkTool);
-    const result = await adapted.handler({});
+    const result = await adapted.handler({ input: 'test' });
 
     expect(result).toEqual({ data: 'direct' });
   });
@@ -81,7 +81,7 @@ describe('adaptTool', () => {
     };
 
     const adapted = adaptTool(sdkTool);
-    const result = await adapted.handler({});
+    const result = await adapted.handler({ input: 'test' });
 
     expect(result).toBe('string result');
   });
@@ -118,5 +118,65 @@ describe('adaptTools', () => {
   it('should handle empty array', () => {
     const adapted = adaptTools([]);
     expect(adapted).toEqual([]);
+  });
+});
+
+describe('input validation', () => {
+  it('should validate args against Zod schema and pass parsed data to handler', async () => {
+    const handlerMock = mock(async (args: unknown) => args);
+    const sdkTool: SdkToolDefinition = {
+      name: 'validated_tool',
+      description: 'Test validation',
+      schema: {
+        name: z.string(),
+        age: z.number(),
+      },
+      handler: handlerMock,
+    };
+
+    const adapted = adaptTool(sdkTool);
+    await adapted.handler({ name: 'Alice', age: 30 });
+
+    expect(handlerMock).toHaveBeenCalledTimes(1);
+    const calledWith = handlerMock.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(calledWith.name).toBe('Alice');
+    expect(calledWith.age).toBe(30);
+  });
+
+  it('should throw descriptive error for invalid args', async () => {
+    const sdkTool: SdkToolDefinition = {
+      name: 'strict_tool',
+      description: 'Test strict validation',
+      schema: {
+        name: z.string(),
+        count: z.number(),
+      },
+      handler: async () => ({}),
+    };
+
+    const adapted = adaptTool(sdkTool);
+
+    await expect(adapted.handler({ name: 123, count: 'not-a-number' })).rejects.toThrow(
+      "Tool 'strict_tool' received invalid arguments"
+    );
+  });
+
+  it('should strip extra properties by default (Zod default behavior)', async () => {
+    const handlerMock = mock(async (args: unknown) => args);
+    const sdkTool: SdkToolDefinition = {
+      name: 'strip_tool',
+      description: 'Test stripping',
+      schema: {
+        name: z.string(),
+      },
+      handler: handlerMock,
+    };
+
+    const adapted = adaptTool(sdkTool);
+    await adapted.handler({ name: 'Bob', extraField: 'should be stripped' });
+
+    const calledWith = handlerMock.mock.calls[0]?.[0] as Record<string, unknown>;
+    expect(calledWith.name).toBe('Bob');
+    expect('extraField' in calledWith).toBe(false);
   });
 });

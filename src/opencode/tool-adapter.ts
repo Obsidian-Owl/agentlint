@@ -18,16 +18,34 @@ export interface SdkToolDefinition {
   handler: (args: unknown) => Promise<unknown>;
 }
 
+/**
+ * Converts a Zod object schema to JSON Schema format.
+ * Isolates the `as never` cast required by zod-to-json-schema's overly strict generics.
+ */
+function zodToInputSchema(schema: z.ZodObject<z.ZodRawShape>): Record<string, unknown> {
+  // zod-to-json-schema has overly strict generic constraints that don't match
+  // Zod's actual runtime behavior. The `as never` is required to bridge this gap.
+  return zodToJsonSchema(schema as never, { $refStrategy: 'none' }) as Record<string, unknown>;
+}
+
 export function adaptTool(sdkTool: SdkToolDefinition): ToolDefinition {
   const zodSchema = z.object(sdkTool.schema);
-  const inputSchema = zodToJsonSchema(zodSchema as never, { $refStrategy: 'none' });
+  const inputSchema = zodToInputSchema(zodSchema);
 
   return {
     name: sdkTool.name,
     description: sdkTool.description,
-    inputSchema: inputSchema as Record<string, unknown>,
+    inputSchema,
     handler: async (args: unknown): Promise<unknown> => {
-      const result = await sdkTool.handler(args);
+      const parsed = zodSchema.safeParse(args);
+      if (!parsed.success) {
+        const issues = parsed.error.issues
+          .map((i) => `${i.path.join('.')}: ${i.message}`)
+          .join('; ');
+        throw new Error(`Tool '${sdkTool.name}' received invalid arguments: ${issues}`);
+      }
+
+      const result = await sdkTool.handler(parsed.data);
 
       if (result && typeof result === 'object' && 'content' in result) {
         return (result as { content: unknown }).content;
