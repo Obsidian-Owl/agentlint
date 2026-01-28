@@ -46,8 +46,8 @@ describe('TelemetryTracker', () => {
       tracker.onToolStart('parse_config', input);
       tracker.onToolComplete('parse_config', { result: 'ok' }, false);
 
-      const trackToolExMock = (client.trackToolEx as ReturnType<typeof mock>).bind(client);
-      expect(trackToolExMock).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(client.trackToolEx).toHaveBeenCalledTimes(1);
       const calls = (client.trackToolEx as ReturnType<typeof mock>).mock.calls as unknown[][];
       expect(calls[0]?.[0]).toBe('ses-test-123');
       const opts = calls[0]?.[1] as Record<string, unknown>;
@@ -62,18 +62,18 @@ describe('TelemetryTracker', () => {
     it('should handle tool complete without matching start', () => {
       tracker.onToolComplete('unknown_tool', { result: 'ok' });
 
-      const trackToolExMock = (client.trackToolEx as ReturnType<typeof mock>).bind(client);
-      expect(trackToolExMock).not.toHaveBeenCalled();
-      const warnMock = (logger.warn as ReturnType<typeof mock>).bind(logger);
-      expect(warnMock).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(client.trackToolEx).not.toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(logger.warn).toHaveBeenCalledTimes(1);
     });
 
     it('should extract error message on failed tools', () => {
       tracker.onToolStart('fail_tool');
       tracker.onToolComplete('fail_tool', { message: 'Something broke' }, true);
 
-      const trackToolExMock = (client.trackToolEx as ReturnType<typeof mock>).bind(client);
-      expect(trackToolExMock).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(client.trackToolEx).toHaveBeenCalledTimes(1);
       const calls = (client.trackToolEx as ReturnType<typeof mock>).mock.calls as unknown[][];
       const opts = calls[0]?.[1] as Record<string, unknown>;
       expect(opts?.success).toBe(false);
@@ -102,8 +102,8 @@ describe('TelemetryTracker', () => {
       tracker.onToolStart('tool_overflow');
 
       tracker.onToolComplete('tool_0', { result: 'late' });
-      const warnMock = (logger.warn as ReturnType<typeof mock>).bind(logger);
-      expect(warnMock).toHaveBeenCalled();
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(logger.warn).toHaveBeenCalled();
     });
   });
 
@@ -121,8 +121,8 @@ describe('TelemetryTracker', () => {
       };
       tracker.onLLMUsage(data);
 
-      const trackLLMExMock = (client.trackLLMEx as ReturnType<typeof mock>).bind(client);
-      expect(trackLLMExMock).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(client.trackLLMEx).toHaveBeenCalledTimes(1);
       const calls = (client.trackLLMEx as ReturnType<typeof mock>).mock.calls as unknown[][];
       const opts = calls[0]?.[1] as Record<string, unknown>;
       expect(opts?.model).toBe('claude-sonnet-4-20250514');
@@ -143,8 +143,8 @@ describe('TelemetryTracker', () => {
       };
       tracker.onLLMUsage(data);
 
-      const trackLLMExMock = (client.trackLLMEx as ReturnType<typeof mock>).bind(client);
-      expect(trackLLMExMock).toHaveBeenCalledTimes(1);
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(client.trackLLMEx).toHaveBeenCalledTimes(1);
       const calls = (client.trackLLMEx as ReturnType<typeof mock>).mock.calls as unknown[][];
       const opts = calls[0]?.[1] as Record<string, unknown>;
       expect(opts?.model).toBe('claude-sonnet-4-20250514');
