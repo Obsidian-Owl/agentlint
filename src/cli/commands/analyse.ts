@@ -578,9 +578,9 @@ function buildAnalyseResult(
 /**
  * Run orchestrated analysis using the Claude agent.
  *
- * This is the default mode when ANTHROPIC_API_KEY is available.
- * The agent uses tools to discover, parse, and analyze configurations,
- * then provides intelligent recommendations.
+ * This is the default mode. The agent uses tools to discover, parse,
+ * and analyze configurations, then provides intelligent recommendations.
+ * Falls back to static analysis if no LLM provider is configured.
  */
 async function runOrchestratedAnalysis(
   directory: string,
@@ -1174,14 +1174,6 @@ function formatDryRunJson(result: AnalyseResult): string {
 }
 
 /**
- * Check if orchestrated analysis is available.
- * Requires ANTHROPIC_API_KEY environment variable.
- */
-function canUseOrchestratedAnalysis(): boolean {
-  return !!process.env['ANTHROPIC_API_KEY'];
-}
-
-/**
  * Type description map for config types (from discovery module).
  * Extended for remediation to include rules, agents, and commands.
  */
@@ -1412,10 +1404,6 @@ export async function runAnalyse(options: AnalyseOptions): Promise<number> {
 
   // EP15: Session-specific analysis mode
   if (options.session) {
-    if (!canUseOrchestratedAnalysis()) {
-      console.error('Error: ANTHROPIC_API_KEY required for session analysis');
-      return 1;
-    }
     return runSessionAnalysis(options.session, options, outputMode);
   }
 
@@ -1454,7 +1442,7 @@ export async function runAnalyse(options: AnalyseOptions): Promise<number> {
 
   // Scan for configurations
   // Use basic scan for dry-run/static modes, comprehensive discovery for orchestrated
-  const useComprehensive = !options.dryRun && !options.static && canUseOrchestratedAnalysis();
+  const useComprehensive = !options.dryRun && !options.static;
   const scanResult = useComprehensive
     ? await runComprehensiveDiscovery(directory)
     : await scanForConfigs(directory);
@@ -1506,18 +1494,25 @@ export async function runAnalyse(options: AnalyseOptions): Promise<number> {
   if (options.static) {
     // Static analysis mode (explicit --static flag)
     result = runStaticAnalysisMode(directory, options, scanResult, outputMode, verbose);
-  } else if (!canUseOrchestratedAnalysis()) {
-    // No API key - fall back to static with warning
-    if (outputMode !== 'json' && !options.quiet) {
-      console.warn(
-        'ANTHROPIC_API_KEY not set. Falling back to static analysis.\n' +
-          'Set ANTHROPIC_API_KEY for intelligent agent-based analysis.\n'
-      );
-    }
-    result = runStaticAnalysisMode(directory, options, scanResult, outputMode, verbose);
   } else {
     // Default: Orchestrated analysis with Claude agent
-    result = await runOrchestratedAnalysis(directory, options, scanResult, outputMode);
+    // Falls back to static if no LLM provider is configured
+    try {
+      result = await runOrchestratedAnalysis(directory, options, scanResult, outputMode);
+    } catch (error) {
+      // Check if this is a provider auth error
+      if (error instanceof Error && error.name === 'ProviderAuthError') {
+        if (outputMode !== 'json' && !options.quiet) {
+          console.warn(
+            'No LLM provider configured. Run "opencode auth" or set provider env vars.\n' +
+              'Falling back to static analysis.\n'
+          );
+        }
+        result = runStaticAnalysisMode(directory, options, scanResult, outputMode, verbose);
+      } else {
+        throw error;
+      }
+    }
   }
 
   // Return exit code based on --fail-on-findings flag
