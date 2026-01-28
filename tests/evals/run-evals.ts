@@ -19,7 +19,7 @@
  *   --help               Show this help
  *
  * Environment:
- *   ANTHROPIC_API_KEY    Required for LLM-as-judge evaluations
+ *   LLM Provider Auth    Required for LLM-as-judge evaluations (via Opencode auth)
  *   UV_PROJECT_ENVIRONMENT  Path to uv virtual environment (default: tests/evals/.venv)
  */
 
@@ -122,7 +122,7 @@ Examples:
   bun tests/evals/run-evals.ts --dataset temporal --scenario scenario-05
 
 Environment:
-  ANTHROPIC_API_KEY    Required for LLM-as-judge evaluations
+  LLM Provider Auth    Required for LLM-as-judge evaluations (via Opencode auth)
 `);
 }
 

@@ -2,7 +2,7 @@
  * Live E2E Tests for Orchestrated Analysis
  *
  * These tests make REAL API calls to validate orchestrated analysis behavior.
- * They require ANTHROPIC_API_KEY and will FAIL (not skip) if missing.
+ * They require LLM provider auth (via Opencode) and will FAIL (not skip) if missing.
  *
  * Run with: bun run test:live
  *
