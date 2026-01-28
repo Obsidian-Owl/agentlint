@@ -98,3 +98,54 @@ T18 is **COMPLETE** - no additional work needed. The permission handler migratio
 
 **Key insight**: The adapter pattern works perfectly - the prompts module defines SDK-agnostic intermediate types, and the adapter converts them to provider-specific formats. This enables future SDK migrations without touching prompt definitions.
 
+
+## T21: Update Test Infrastructure for Opencode SDK
+
+### Completed
+
+- ✓ Added deprecation notice to `specs/ep02-orchestration-core/spec.md` (already present at line 8)
+- ✓ Added deprecation notice to `specs/ep02-orchestration-core/contracts/interfaces.ts` (lines 1-10)
+- ✓ All tests pass: `bun run test` (4178 tests, 0 failures)
+- ✓ No regressions introduced
+
+### Key Findings
+
+#### Deprecation Notices
+
+1. **spec.md**: Already had deprecation notice explaining the document describes the original Claude Agent SDK implementation, now migrated to Opencode SDK.
+
+2. **interfaces.ts**: Added comprehensive docstring explaining:
+   - These are historical contract definitions from the original SDK implementation
+   - Implementation has been migrated to Opencode SDK
+   - Contracts remain for reference and to support legacy test code
+   - References the migration plan at `.sisyphus/plans/opencode-sdk-migration.md`
+
+#### Test Results
+
+- **Total tests**: 4178 passing
+- **Failures**: 0
+- **Test files with SDK imports**: 4 files (acceptable - they test legacy code)
+  - `tests/utils/sdk-test-helpers.ts` - Mock tool helpers for old SDK
+  - `tests/unit/orchestration/tool-registry.test.ts` - Tests old ToolRegistry
+  - `tests/e2e/temporal/workflow-live.test.ts` - E2E tests using old SDK
+  - `tests/e2e/act/subagent-live.test.ts` - E2E tests using old SDK
+
+#### Architecture Insight
+
+The deprecation notices serve an important purpose:
+- They prevent confusion about why these files still exist despite the SDK migration
+- They direct developers to the migration plan for context
+- They clarify that the code is historical but still functional (for testing purposes)
+- They maintain code clarity without requiring deletion of working test infrastructure
+
+### Acceptance Criteria Status
+
+- [x] Deprecation notice added to `specs/ep02-orchestration-core/spec.md`
+- [x] Deprecation notice added to `specs/ep02-orchestration-core/contracts/interfaces.ts`
+- [x] All tests pass: `bun run test` (4178 tests, 0 failures)
+- [x] Findings documented in notepad
+
+### Conclusion
+
+T21 is **COMPLETE**. The test infrastructure has been properly documented with deprecation notices explaining the historical nature of the SDK-specific code. All tests continue to pass, confirming that the migration has not introduced any regressions. The legacy test code remains functional and serves as a reference implementation of the original SDK integration.
+

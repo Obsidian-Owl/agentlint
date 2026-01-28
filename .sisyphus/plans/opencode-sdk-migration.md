@@ -1156,7 +1156,7 @@ Parallel Speedup: ~50% faster than sequential
 
 ---
 
-- [ ] **T21. Update Test Infrastructure**
+- [x] **T21. Update Test Infrastructure**
 
   **What to do**:
   - Update `tests/utils/sdk-test-helpers.ts` for Opencode

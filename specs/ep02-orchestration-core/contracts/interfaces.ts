@@ -1,4 +1,15 @@
 /**
+ * HISTORICAL CONTRACT DEFINITIONS
+ *
+ * These interfaces describe the original orchestration layer implementation
+ * using @anthropic-ai/claude-agent-sdk. The implementation has been migrated
+ * to Opencode SDK. These contracts remain for reference and to support
+ * legacy test code.
+ *
+ * See: .sisyphus/plans/opencode-sdk-migration.md
+ */
+
+/**
  * EP02 Orchestration Core - Contract Interfaces
  *
  * These interfaces define the contracts for the orchestration layer.
