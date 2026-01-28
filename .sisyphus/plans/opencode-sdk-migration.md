@@ -1109,7 +1109,7 @@ Parallel Speedup: ~50% faster than sequential
 
 ### Wave 5: Cleanup
 
-- [ ] **T20. Remove Old SDK Dependency**
+- [x] **T20. Remove Old SDK Dependency**
 
   **What to do**:
   - Remove `@anthropic-ai/claude-agent-sdk` from package.json
