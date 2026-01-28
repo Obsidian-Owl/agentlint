@@ -46,6 +46,9 @@ export const DEBUG_NAMESPACES = {
   /** Orchestration core */
   ORCHESTRATION: 'agentlint:orchestration',
 
+  /** Server lifecycle and health */
+  SERVER: 'agentlint:server',
+
   /** Causal tracing engine */
   CAUSAL: 'agentlint:causal',
 
