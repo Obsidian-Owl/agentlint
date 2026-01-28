@@ -1250,7 +1250,7 @@ Parallel Speedup: ~50% faster than sequential
 
 ---
 
-- [ ] **T23. Update Documentation & ADRs**
+- [x] **T23. Update Documentation & ADRs**
 
   **What to do**:
 

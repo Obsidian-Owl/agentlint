@@ -187,3 +187,52 @@ The migration work in T01-T20 was done with proper typing throughout. No cleanup
 
 Proceed directly to T23 (Update Documentation & ADRs).
 
+
+## T23: Update Documentation & ADRs
+
+### Completed
+
+- ✓ Created `docs/architecture/adr/0024-opencode-sdk-migration.md`
+- ✓ Superseded ADR-0002, ADR-0005, ADR-0010 (added `status: superseded` and warning notes)
+- ✓ Updated ADR-0016 with bundled MCP server note
+- ✓ Updated ADR-0022 with SDK-agnostic design validation note
+- ✓ Updated Arc42 section 09-architecture-decisions.md (added ADR-0024, marked superseded ADRs)
+- ✓ Updated Arc42 section 05-building-blocks.md (updated code examples)
+- ✓ Updated CLAUDE.md (Stack, Orchestration Module section)
+- ✓ All SDK references in docs are now in historical/superseded contexts
+
+### Key Changes
+
+1. **ADR-0024 Created**: Comprehensive documentation of migration decision, rationale, consequences, and implementation approach
+
+2. **Superseded ADRs**: ADR-0002, ADR-0005, ADR-0010 marked with frontmatter `status: superseded` and warning boxes directing readers to ADR-0024
+
+3. **Updated ADRs**:
+   - ADR-0016: Added section about bundled MCP server via Opencode SDK
+   - ADR-0022: Added validation note confirming SDK-agnostic design worked
+
+4. **Arc42 Updates**:
+   - Section 09: Added ADR-0024 to table, added Status column, marked superseded ADRs
+   - Section 05: Updated code examples from Claude Agent SDK to Opencode SDK
+
+5. **CLAUDE.md Updates**:
+   - Stack: Changed from `@anthropic-ai/claude-agent-sdk` to `@opencode-ai/sdk`
+   - 6-Layer Architecture: Changed from "Claude Agent SDK" to "Opencode SDK"
+   - Orchestration Module: Complete rewrite with new/legacy module structure
+
+### Verification Results
+
+- ✓ TypeScript: 0 errors
+- ✓ Tests: 4178 passing, 0 failures
+- ✓ No unexpected SDK references (remaining are in ADR-0024 historical context)
+
+### Acceptance Criteria Status
+
+- [x] ADR-0024 created documenting migration decision
+- [x] ADR-0002, ADR-0005, ADR-0010 marked `status: superseded`
+- [x] ADR-0016 updated with bundled MCP server approach
+- [x] ADR-0022 notes SDK-agnostic design validated
+- [x] Arc42 sections 05, 09 updated
+- [x] CLAUDE.md references Opencode, not Claude Agent SDK
+- [x] `grep -r "claude-agent-sdk" docs/` returns only historical/superseded contexts
+

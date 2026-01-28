@@ -1,5 +1,6 @@
 ---
-status: accepted
+status: superseded
+superseded-by: ADR-0024
 date: 2026-01-14
 decision-makers: [Project Lead]
 consulted: []
@@ -7,6 +8,8 @@ informed: []
 ---
 
 # ADR-0010: Session State and Checkpointing
+
+> **⚠️ SUPERSEDED**: This ADR has been superseded by [ADR-0024: Opencode SDK Migration](0024-opencode-sdk-migration.md). The content below describes the original Claude Agent SDK session management.
 
 ## Context and Problem Statement
 
@@ -40,6 +43,7 @@ The Claude Agent SDK (ADR-0002) already provides conversation persistence via se
 ### Consequences
 
 **Good:**
+
 - Leverages SDK's battle-tested session management
 - Simple JSON state file follows established patterns (ADR-0008)
 - Dual triggers (events + intervals) ensure reasonable checkpoint frequency
@@ -47,11 +51,13 @@ The Claude Agent SDK (ADR-0002) already provides conversation persistence via se
 - Resume loads both SDK session and agentlint state atomically
 
 **Bad:**
+
 - Two systems to keep in sync (SDK session + state file)
 - Coarser granularity than event sourcing
 - State file may grow large for very long sessions
 
 **Neutral:**
+
 - SDK session ID becomes the correlation key for state files
 - Interval-based saves add minor CPU overhead
 
@@ -110,17 +116,17 @@ Save state after every tool call and finding.
 
 ## Constitution Compliance
 
-| Principle | Compliance | Notes |
-|-----------|------------|-------|
-| I. Local-First | Yes | All checkpoints stored locally in `.agentlint/` |
-| II. Improvement-Oriented | Yes | Preserved findings enable continued improvement |
-| III. Causal-First | Yes | Checkpoint captures traced origins of findings |
-| IV. Mixed-Methods | Yes | Both quantitative progress and qualitative findings preserved |
-| V. Language-Agnostic | Yes | Checkpoint format independent of analyzed project |
-| VI. Agent-Agnostic | Yes | State schema supports any ACT adapter |
-| VII. Intelligent Tooling | Yes | Agent can query checkpoint state |
-| VIII. Compounding Value | Yes | Session state feeds into baselines |
-| IX. Agent-Aware | Yes | Checkpoint structure optimized for agent consumption |
+| Principle                | Compliance | Notes                                                         |
+| ------------------------ | ---------- | ------------------------------------------------------------- |
+| I. Local-First           | Yes        | All checkpoints stored locally in `.agentlint/`               |
+| II. Improvement-Oriented | Yes        | Preserved findings enable continued improvement               |
+| III. Causal-First        | Yes        | Checkpoint captures traced origins of findings                |
+| IV. Mixed-Methods        | Yes        | Both quantitative progress and qualitative findings preserved |
+| V. Language-Agnostic     | Yes        | Checkpoint format independent of analyzed project             |
+| VI. Agent-Agnostic       | Yes        | State schema supports any ACT adapter                         |
+| VII. Intelligent Tooling | Yes        | Agent can query checkpoint state                              |
+| VIII. Compounding Value  | Yes        | Session state feeds into baselines                            |
+| IX. Agent-Aware          | Yes        | Checkpoint structure optimized for agent consumption          |
 
 ## More Information
 
@@ -162,20 +168,20 @@ Save state after every tool call and finding.
 ```typescript
 interface SessionState {
   // Identity
-  id: string;                        // Matches SDK session ID
-  version: string;                   // Schema version
-  createdAt: string;                 // ISO-8601
-  updatedAt: string;                 // Last checkpoint time
+  id: string; // Matches SDK session ID
+  version: string; // Schema version
+  createdAt: string; // ISO-8601
+  updatedAt: string; // Last checkpoint time
 
   // Analysis context
   projectPath: string;
   actType: ACTType;
   configPath: string;
-  command: string;                   // 'analyse' | 'scan' | 'compare' | etc.
+  command: string; // 'analyse' | 'scan' | 'compare' | etc.
 
   // Progress tracking
   phase: AnalysisPhase;
-  phaseProgress: number;             // 0-100 within current phase
+  phaseProgress: number; // 0-100 within current phase
   completedPhases: AnalysisPhase[];
 
   // Findings (accumulated during analysis)
@@ -203,7 +209,7 @@ interface SessionState {
   // Checkpoint metadata
   checkpoint: {
     trigger: 'event' | 'interval' | 'user' | 'phase';
-    sequence: number;                // Monotonic checkpoint number
+    sequence: number; // Monotonic checkpoint number
     lastEventTime: string;
     lastIntervalTime: string;
   };
@@ -236,28 +242,28 @@ interface Finding {
 interface CheckpointConfig {
   // Event-based triggers
   eventTriggers: {
-    onFinding: boolean;              // Save when new finding detected
-    onPhaseComplete: boolean;        // Save at phase boundaries
-    onToolResult: boolean;           // Save after tool calls
-    onRecommendation: boolean;       // Save when recommendation generated
+    onFinding: boolean; // Save when new finding detected
+    onPhaseComplete: boolean; // Save at phase boundaries
+    onToolResult: boolean; // Save after tool calls
+    onRecommendation: boolean; // Save when recommendation generated
   };
 
   // Interval-based trigger
-  intervalMs: number;                // Save every N milliseconds (default: 60000 = 1 min)
+  intervalMs: number; // Save every N milliseconds (default: 60000 = 1 min)
 
   // Minimum time between checkpoints (debounce)
-  minIntervalMs: number;             // Don't save more often than this (default: 10000 = 10s)
+  minIntervalMs: number; // Don't save more often than this (default: 10000 = 10s)
 }
 
 const DEFAULT_CHECKPOINT_CONFIG: CheckpointConfig = {
   eventTriggers: {
     onFinding: true,
     onPhaseComplete: true,
-    onToolResult: false,             // Too frequent
+    onToolResult: false, // Too frequent
     onRecommendation: true,
   },
-  intervalMs: 60000,                 // 1 minute
-  minIntervalMs: 10000,              // 10 seconds minimum between saves
+  intervalMs: 60000, // 1 minute
+  minIntervalMs: 10000, // 10 seconds minimum between saves
 };
 ```
 
@@ -311,7 +317,7 @@ class CheckpointManager {
   // Check debounce
   private canCheckpoint(): boolean {
     const now = Date.now();
-    return (now - this.lastCheckpointTime) >= this.config.minIntervalMs;
+    return now - this.lastCheckpointTime >= this.config.minIntervalMs;
   }
 
   // Save checkpoint to disk
@@ -323,8 +329,10 @@ class CheckpointManager {
     this.state.checkpoint = {
       trigger,
       sequence: this.checkpointSequence,
-      lastEventTime: trigger === 'event' ? this.state.updatedAt : this.state.checkpoint.lastEventTime,
-      lastIntervalTime: trigger === 'interval' ? this.state.updatedAt : this.state.checkpoint.lastIntervalTime,
+      lastEventTime:
+        trigger === 'event' ? this.state.updatedAt : this.state.checkpoint.lastEventTime,
+      lastIntervalTime:
+        trigger === 'interval' ? this.state.updatedAt : this.state.checkpoint.lastIntervalTime,
     };
 
     const statePath = this.getStatePath(this.state.id);
@@ -378,11 +386,11 @@ class CheckpointManager {
 async function resumeAnalysis(sessionId: string): Promise<void> {
   // 1. Resume SDK session (loads conversation history)
   const response = query({
-    prompt: "Continue the analysis from where we left off",
+    prompt: 'Continue the analysis from where we left off',
     options: {
       resume: sessionId,
-      model: "claude-sonnet-4-5",
-    }
+      model: 'claude-sonnet-4-5',
+    },
   });
 
   // 2. Load agentlint state
@@ -421,7 +429,7 @@ async function checkForRecovery(): Promise<SessionState | null> {
 
   if (!fs.existsSync(sessionsDir)) return null;
 
-  const stateFiles = fs.readdirSync(sessionsDir).filter(f => f.endsWith('-state.json'));
+  const stateFiles = fs.readdirSync(sessionsDir).filter((f) => f.endsWith('-state.json'));
 
   for (const file of stateFiles) {
     const state = JSON.parse(fs.readFileSync(path.join(sessionsDir, file), 'utf-8'));
@@ -441,7 +449,9 @@ async function main(): Promise<void> {
 
   if (incompleteSession) {
     console.log(`Found incomplete session from ${incompleteSession.updatedAt}`);
-    console.log(`Phase: ${incompleteSession.phase}, Findings: ${incompleteSession.findings.length}`);
+    console.log(
+      `Phase: ${incompleteSession.phase}, Findings: ${incompleteSession.findings.length}`
+    );
 
     const shouldResume = await promptUser('Resume this session? (y/n)');
 
@@ -490,9 +500,9 @@ async function getToolResult(
 // Clean up old completed sessions
 async function cleanupOldSessions(retentionDays: number = 30): Promise<void> {
   const sessionsDir = path.join(process.cwd(), '.agentlint', 'sessions');
-  const cutoff = Date.now() - (retentionDays * 24 * 60 * 60 * 1000);
+  const cutoff = Date.now() - retentionDays * 24 * 60 * 60 * 1000;
 
-  const stateFiles = fs.readdirSync(sessionsDir).filter(f => f.endsWith('-state.json'));
+  const stateFiles = fs.readdirSync(sessionsDir).filter((f) => f.endsWith('-state.json'));
 
   for (const file of stateFiles) {
     const filePath = path.join(sessionsDir, file);

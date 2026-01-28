@@ -38,6 +38,7 @@ This is an explicit **defer decision**—we acknowledge MCP's importance while a
 ### Consequences
 
 **Good:**
+
 - Zero additional implementation work for MVP
 - Current tool definitions are already MCP-compatible (format)
 - Claude Agent SDK provides native MCP connector support if needed later
@@ -45,11 +46,13 @@ This is an explicit **defer decision**—we acknowledge MCP's importance while a
 - Avoids protocol overhead for internal-only tools
 
 **Bad:**
+
 - Cannot consume ecosystem MCP servers (filesystem, GitHub, etc.) immediately
 - Other agents cannot invoke agentlint via MCP until we add server capability
 - May need to revisit if ecosystem integration becomes valuable
 
 **Neutral:**
+
 - Decision explicitly documented for future reference
 - Clear upgrade path exists via Claude Agent SDK
 
@@ -106,17 +109,17 @@ Both consume ecosystem MCP servers and expose agentlint as MCP server.
 
 ## Constitution Compliance
 
-| Principle | Compliance | Notes |
-|-----------|------------|-------|
-| I. Local-First | Yes | MCP servers run locally; no cloud dependency |
-| II. Improvement-Oriented | N/A | Protocol choice doesn't affect improvement model |
-| III. Causal-First | N/A | Protocol choice doesn't affect causal analysis |
-| IV. Mixed-Methods | N/A | Protocol choice doesn't affect analysis methods |
-| V. Language-Agnostic | Yes | MCP is language-agnostic protocol |
-| VI. Agent-Agnostic | Yes | MCP enables multi-agent interoperability |
-| VII. Intelligent Tooling | Yes | Tools remain freely selectable by agent |
-| VIII. Compounding Value | N/A | Protocol choice doesn't affect baselines |
-| IX. Agent-Aware | Yes | MCP compatibility preserved for future integration |
+| Principle                | Compliance | Notes                                              |
+| ------------------------ | ---------- | -------------------------------------------------- |
+| I. Local-First           | Yes        | MCP servers run locally; no cloud dependency       |
+| II. Improvement-Oriented | N/A        | Protocol choice doesn't affect improvement model   |
+| III. Causal-First        | N/A        | Protocol choice doesn't affect causal analysis     |
+| IV. Mixed-Methods        | N/A        | Protocol choice doesn't affect analysis methods    |
+| V. Language-Agnostic     | Yes        | MCP is language-agnostic protocol                  |
+| VI. Agent-Agnostic       | Yes        | MCP enables multi-agent interoperability           |
+| VII. Intelligent Tooling | Yes        | Tools remain freely selectable by agent            |
+| VIII. Compounding Value  | N/A        | Protocol choice doesn't affect baselines           |
+| IX. Agent-Aware          | Yes        | MCP compatibility preserved for future integration |
 
 ## More Information
 
@@ -142,15 +145,15 @@ Both consume ecosystem MCP servers and expose agentlint as MCP server.
 The Claude Agent SDK's `tool()` function already creates MCP-compatible definitions:
 
 ```typescript
-import { tool } from "@anthropic-ai/claude-agent-sdk";
-import { z } from "zod";
+import { tool } from '@anthropic-ai/claude-agent-sdk';
+import { z } from 'zod';
 
 // This tool definition is MCP-compatible at the format level
 const analyzeConfigTool = tool(
-  "analyze_config",
-  "Analyze an AI coding tool configuration file",
+  'analyze_config',
+  'Analyze an AI coding tool configuration file',
   {
-    file_path: z.string().describe("Path to config file"),
+    file_path: z.string().describe('Path to config file'),
   },
   async (args) => {
     // Implementation
@@ -184,20 +187,22 @@ When and if this is needed, it can be enabled with minimal code changes.
 To expose agentlint as an MCP server, use the TypeScript MCP SDK:
 
 ```typescript
-import { Server } from "@modelcontextprotocol/sdk/server";
-import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio";
+import { Server } from '@modelcontextprotocol/sdk/server';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio';
 
 const server = new Server({
-  name: "agentlint",
-  version: "1.0.0",
+  name: 'agentlint',
+  version: '1.0.0',
 });
 
-server.setRequestHandler("tools/list", async () => ({
+server.setRequestHandler('tools/list', async () => ({
   tools: [
     {
-      name: "analyze_config",
-      description: "Analyze an AI coding tool configuration",
-      inputSchema: { /* ... */ },
+      name: 'analyze_config',
+      description: 'Analyze an AI coding tool configuration',
+      inputSchema: {
+        /* ... */
+      },
     },
   ],
 }));
@@ -230,3 +235,17 @@ For historical context, the MCP ecosystem at time of this decision:
 - **Founding members**: OpenAI, Google, Microsoft, Amazon, Anthropic, Block
 
 This context supports the decision to maintain compatibility while deferring full integration until concrete use cases emerge.
+
+---
+
+## Update (2026-01-28): Bundled MCP Server via Opencode SDK
+
+With the migration to Opencode SDK ([ADR-0024](0024-opencode-sdk-migration.md)), MCP server creation is now handled by the SDK's built-in functionality. Key changes:
+
+1. **Bundled MCP Server**: `AgentlintMcpServer` in `src/opencode/mcp-server.ts` creates an MCP server exposing all 40+ agentlint tools
+2. **Lifecycle Management**: `OpencodeServerManager` provides full control over server start/stop/health monitoring
+3. **No External Processes**: MCP server runs in-process, eliminating external process management complexity
+
+This update does **not** change the decision to defer full MCP ecosystem integration (consuming external MCP servers). That remains a future consideration when concrete use cases emerge.
+
+See ADR-0024 for full migration details.

@@ -8,12 +8,12 @@ agentlint is a local-first CLI tool for continuous improvement of AI-assisted de
 
 **Status**: EP11 Complete (Quality & Security implemented)
 
-**Stack**: TypeScript + Bun, Claude Agent SDK (@anthropic-ai/claude-agent-sdk), Zod validation, SQLite
+**Stack**: TypeScript + Bun, Opencode SDK (@opencode-ai/sdk), Zod validation, SQLite
 
 **Implemented Epics**:
 
 - EP01: Project Setup (CI/CD, TypeScript config, test framework)
-- EP02: Orchestration Core (Claude Agent SDK wrapper, streaming, checkpoints, session management)
+- EP02: Orchestration Core (Opencode SDK wrapper, streaming, checkpoints, session management)
 - EP11: Quality & Security (debug infrastructure, session recording, evaluation framework, outcome tracking)
 
 ## Constitution
@@ -90,7 +90,7 @@ Epic identifiers are **NOT appropriate** for permanent code:
 
 ## Key Architecture Concepts
 
-**6-Layer Architecture**: CLI → Orchestration (Claude Agent SDK) → Tools → ACT Adapters → Persistence → Integration
+**6-Layer Architecture**: CLI → Orchestration (Opencode SDK) → Tools → ACT Adapters → Persistence → Integration
 
 **Two-Layer Analysis**: Static tools for speed (parsing, extraction) + agent reasoning for depth (causal analysis, quality judgment)
 
@@ -186,21 +186,33 @@ The most successful agent implementations use simple, composable patterns—not 
 
 ## Orchestration Module (EP02)
 
-The `src/orchestration/` module wraps the Claude Agent SDK:
+The orchestration layer uses **Opencode SDK** (`@opencode-ai/sdk`) with two module locations:
 
-| Component          | File                     | Purpose                                          |
-| ------------------ | ------------------------ | ------------------------------------------------ |
-| Orchestrator       | `orchestrator.ts`        | Main loop wrapping SDK `query()`                 |
-| ToolRegistry       | `tool-registry.ts`       | MCP tool registration via `createSdkMcpServer()` |
-| StreamProcessor    | `streaming.ts`           | SDK message → StreamChunk conversion             |
-| CheckpointHandler  | `checkpoint.ts`          | Crash recovery checkpoints                       |
-| SessionState       | `session-state.ts`       | Session persistence to JSON                      |
-| CognitiveWorkspace | `cognitive-workspace.ts` | Hierarchical context for agent                   |
-| Context            | `context.ts`             | Large result summarization                       |
+**New Implementation** (`src/opencode/` - Active):
+
+| Component               | File              | Purpose                                    |
+| ----------------------- | ----------------- | ------------------------------------------ |
+| OpencodeOrchestrator    | `orchestrator.ts` | Main orchestration integrating all modules |
+| OpencodeServerManager   | `server.ts`       | Server lifecycle (start/stop/health)       |
+| AgentlintOpencodeClient | `client.ts`       | SDK client wrapper                         |
+| AgentlintMcpServer      | `mcp-server.ts`   | MCP server exposing 40+ tools              |
+| StreamAdapter           | `streaming.ts`    | SSE → StreamChunk conversion               |
+| HybridSessionManager    | `sessions.ts`     | Opencode + agentlint metadata              |
+| adaptTool               | `tool-adapter.ts` | Tool format conversion                     |
+
+**Legacy Implementation** (`src/orchestration/` - Preserved for tests):
+
+| Component         | File               | Purpose (Historical)                         |
+| ----------------- | ------------------ | -------------------------------------------- |
+| Orchestrator      | `orchestrator.ts`  | Old main loop (unused, preserved for tests)  |
+| ToolRegistry      | `tool-registry.ts` | Old tool registration (unused)               |
+| StreamProcessor   | `streaming.ts`     | SDK message → StreamChunk (shared interface) |
+| CheckpointHandler | `checkpoint.ts`    | Crash recovery checkpoints                   |
+| SessionState      | `session-state.ts` | Session persistence to JSON                  |
 
 **Key patterns**:
 
-- Tool definitions use SDK's `tool()` with Zod schemas
+- Tool definitions use `adaptTool()` wrapper with Zod schemas
 - Streaming yields `StreamChunk` objects with verbosity levels
 - Checkpoints emit on tool completion, findings, phase changes, intervals
 - Subagent depth limited to 1 per Constitution Principle C8

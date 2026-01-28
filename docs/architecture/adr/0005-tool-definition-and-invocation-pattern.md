@@ -1,5 +1,6 @@
 ---
-status: accepted
+status: superseded
+superseded-by: ADR-0024
 date: 2026-01-14
 decision-makers: [Project Lead]
 consulted: []
@@ -7,6 +8,8 @@ informed: []
 ---
 
 # ADR-0005: Tool Definition and Invocation Pattern
+
+> **⚠️ SUPERSEDED**: This ADR has been superseded by [ADR-0024: Opencode SDK Migration](0024-opencode-sdk-migration.md). The content below describes the original Claude Agent SDK tool patterns.
 
 ## Context and Problem Statement
 
@@ -35,6 +38,7 @@ Chosen option: **"SDK Native `tool()` with Zod"** because the Claude Agent SDK a
 ### Consequences
 
 **Good:**
+
 - Zero additional dependencies—uses SDK's built-in `tool()` function
 - Type safety via Zod schemas with static TypeScript inference
 - Rich tool descriptions optimize agent comprehension
@@ -42,11 +46,13 @@ Chosen option: **"SDK Native `tool()` with Zod"** because the Claude Agent SDK a
 - Hybrid summarization balances context efficiency with data availability
 
 **Bad:**
+
 - Must build result storage and retrieval mechanism
 - LLM summarization adds latency/cost for large results
 - No ecosystem tool sharing (acceptable—agentlint's tools are internal)
 
 **Neutral:**
+
 - Can add full MCP protocol later if ecosystem integration needed
 - Tool definitions are simple TypeScript functions, easy to test
 
@@ -57,19 +63,19 @@ Chosen option: **"SDK Native `tool()` with Zod"** because the Claude Agent SDK a
 Use the Claude Agent SDK's built-in `tool()` function which creates type-safe, MCP-compatible tool definitions using Zod schemas.
 
 ```typescript
-import { tool } from "@anthropic-ai/claude-agent-sdk";
-import { z } from "zod";
+import { tool } from '@anthropic-ai/claude-agent-sdk';
+import { z } from 'zod';
 
 const configParserTool = tool(
-  "parse_config",
-  "Parse and analyze an AI coding tool configuration file (CLAUDE.md, AGENTS.md, etc.)",
+  'parse_config',
+  'Parse and analyze an AI coding tool configuration file (CLAUDE.md, AGENTS.md, etc.)',
   {
-    file_path: z.string().describe("Absolute path to the configuration file"),
-    include_metrics: z.boolean().optional().describe("Include token count and structure metrics")
+    file_path: z.string().describe('Absolute path to the configuration file'),
+    include_metrics: z.boolean().optional().describe('Include token count and structure metrics'),
   },
   async (args) => {
     // Implementation
-    return { content: [{ type: "text", text: JSON.stringify(result) }] };
+    return { content: [{ type: 'text', text: JSON.stringify(result) }] };
   }
 );
 ```
@@ -109,26 +115,28 @@ Build a custom tool registry with purpose-built schema, design for MCP compatibi
 
 ## Constitution Compliance
 
-| Principle | Compliance | Notes |
-|-----------|------------|-------|
-| I. Local-First | Yes | Tools run locally; no external services required |
-| II. Improvement-Oriented | Yes | Tools enable baseline capture and comparison |
-| III. Causal-First | Yes | Tools enable tracing (session search, git query) |
-| IV. Mixed-Methods | Yes | Tools support both quantitative (metrics) and qualitative (content) extraction |
-| V. Language-Agnostic | Yes | Tool pattern works regardless of analyzed project language |
-| VI. Agent-Agnostic | Yes | Tools can be adapted per-ACT via adapter pattern |
-| VII. Intelligent Tooling | Yes | Agent chooses tools freely; rich descriptions aid selection |
-| VIII. Compounding Value | Yes | Tools enable baseline storage and retrieval |
-| IX. Agent-Aware | Yes | Zod descriptions optimized for agent comprehension |
+| Principle                | Compliance | Notes                                                                          |
+| ------------------------ | ---------- | ------------------------------------------------------------------------------ |
+| I. Local-First           | Yes        | Tools run locally; no external services required                               |
+| II. Improvement-Oriented | Yes        | Tools enable baseline capture and comparison                                   |
+| III. Causal-First        | Yes        | Tools enable tracing (session search, git query)                               |
+| IV. Mixed-Methods        | Yes        | Tools support both quantitative (metrics) and qualitative (content) extraction |
+| V. Language-Agnostic     | Yes        | Tool pattern works regardless of analyzed project language                     |
+| VI. Agent-Agnostic       | Yes        | Tools can be adapted per-ACT via adapter pattern                               |
+| VII. Intelligent Tooling | Yes        | Agent chooses tools freely; rich descriptions aid selection                    |
+| VIII. Compounding Value  | Yes        | Tools enable baseline storage and retrieval                                    |
+| IX. Agent-Aware          | Yes        | Zod descriptions optimized for agent comprehension                             |
 
 ## More Information
 
 ### Related Documents
+
 - Architecture Vision: [Section 4 - High-Level Architecture](../../vision/agentlint-architecture-vision.md#4-high-level-architecture)
 - Design Decisions: [DD-004](../design-decisions.md#dd-004-tool-definition-and-invocation-pattern)
 - Prior Decisions: [ADR-0002 - Agentic Framework Strategy](./0002-agentic-framework-strategy.md)
 
 ### Research Sources
+
 - [Claude Agent SDK TypeScript Reference](https://platform.claude.com/docs/en/agent-sdk/typescript)
 - [Building Effective Agents - Anthropic](https://www.anthropic.com/research/building-effective-agents)
 - [Solving Context Window Overflow in AI Agents - arXiv](https://arxiv.org/html/2511.22729v1)
@@ -141,12 +149,12 @@ Build a custom tool registry with purpose-built schema, design for MCP compatibi
 #### 1. Tool Definition Pattern
 
 ```typescript
-import { tool, createSdkMcpServer } from "@anthropic-ai/claude-agent-sdk";
-import { z } from "zod";
+import { tool, createSdkMcpServer } from '@anthropic-ai/claude-agent-sdk';
+import { z } from 'zod';
 
 // Tool definitions with rich descriptions for agent comprehension
 export const configParserTool = tool(
-  "parse_config",
+  'parse_config',
   `Parse and analyze an AI coding tool configuration file.
 
    Use this tool when you need to understand:
@@ -157,16 +165,17 @@ export const configParserTool = tool(
 
    Returns structured data including parsed content, metrics, and validation warnings.`,
   {
-    file_path: z.string()
-      .describe("Absolute path to the configuration file to parse"),
-    include_metrics: z.boolean()
+    file_path: z.string().describe('Absolute path to the configuration file to parse'),
+    include_metrics: z
+      .boolean()
       .optional()
       .default(true)
-      .describe("Include token count, structure depth, and keyword analysis"),
-    detect_secrets: z.boolean()
+      .describe('Include token count, structure depth, and keyword analysis'),
+    detect_secrets: z
+      .boolean()
       .optional()
       .default(true)
-      .describe("Scan for potential secrets or credentials in content")
+      .describe('Scan for potential secrets or credentials in content'),
   },
   async (args) => {
     const result = await parseConfig(args);
@@ -176,15 +185,15 @@ export const configParserTool = tool(
 
 // Create in-process MCP server with tools
 export const agentlintTools = createSdkMcpServer({
-  name: "agentlint-tools",
-  version: "1.0.0",
+  name: 'agentlint-tools',
+  version: '1.0.0',
   tools: [
     configParserTool,
     sessionSearchTool,
     gitQueryTool,
     baselineQueryTool,
     // ... other tools
-  ]
+  ],
 });
 ```
 
@@ -194,16 +203,11 @@ Per Anthropic's research, invest heavily in tool descriptions:
 
 ```typescript
 // BAD: Minimal description
-const badTool = tool(
-  "search_sessions",
-  "Search session logs",
-  { query: z.string() },
-  handler
-);
+const badTool = tool('search_sessions', 'Search session logs', { query: z.string() }, handler);
 
 // GOOD: Rich description with usage guidance
 const goodTool = tool(
-  "search_sessions",
+  'search_sessions',
   `Search AI coding session logs for specific patterns or events.
 
    Use this tool when you need to:
@@ -223,19 +227,14 @@ const goodTool = tool(
    - "tool:Write file_path:*.ts" to find TypeScript file writes
    - "user_prompt:refactor" to find refactoring requests`,
   {
-    query: z.string()
-      .describe("Search query. Supports field:value syntax for structured search."),
-    session_id: z.string()
-      .optional()
-      .describe("Limit search to a specific session ID"),
-    limit: z.number()
-      .optional()
-      .default(50)
-      .describe("Maximum number of results to return"),
-    context_lines: z.number()
+    query: z.string().describe('Search query. Supports field:value syntax for structured search.'),
+    session_id: z.string().optional().describe('Limit search to a specific session ID'),
+    limit: z.number().optional().default(50).describe('Maximum number of results to return'),
+    context_lines: z
+      .number()
       .optional()
       .default(2)
-      .describe("Number of context lines before/after each match")
+      .describe('Number of context lines before/after each match'),
   },
   handler
 );
@@ -252,7 +251,7 @@ async function handleToolResult(result: unknown): Promise<CallToolResult> {
 
   if (serialized.length <= RESULT_THRESHOLD) {
     // Small result: return directly
-    return { content: [{ type: "text", text: serialized }] };
+    return { content: [{ type: 'text', text: serialized }] };
   }
 
   // Large result: summarize + store
@@ -263,44 +262,48 @@ async function handleToolResult(result: unknown): Promise<CallToolResult> {
   const summary = await summarizeResult(result);
 
   return {
-    content: [{
-      type: "text",
-      text: `${summary}
+    content: [
+      {
+        type: 'text',
+        text: `${summary}
 
 ---
 [Result truncated: ${serialized.length} chars]
 Full result stored as: ${resultId}
-Use retrieve_result("${resultId}") to access complete data.`
-    }]
+Use retrieve_result("${resultId}") to access complete data.`,
+      },
+    ],
   };
 }
 
 // Retrieval tool for accessing full results
 export const retrieveResultTool = tool(
-  "retrieve_result",
+  'retrieve_result',
   `Retrieve the full content of a previously truncated tool result.
 
    Use this when you received a summarized result and need the complete data
    for detailed analysis or to find specific information not in the summary.`,
   {
-    result_id: z.string().describe("The result ID provided in the truncated response"),
-    offset: z.number().optional().describe("Start position for pagination"),
-    limit: z.number().optional().describe("Maximum characters to return")
+    result_id: z.string().describe('The result ID provided in the truncated response'),
+    offset: z.number().optional().describe('Start position for pagination'),
+    limit: z.number().optional().describe('Maximum characters to return'),
   },
   async (args) => {
     const result = resultStore.get(args.result_id);
     if (!result) {
-      return { content: [{ type: "text", text: "Result not found or expired" }] };
+      return { content: [{ type: 'text', text: 'Result not found or expired' }] };
     }
 
     const serialized = JSON.stringify(result, null, 2);
     const chunk = serialized.slice(args.offset || 0, (args.offset || 0) + (args.limit || 10000));
 
     return {
-      content: [{
-        type: "text",
-        text: chunk,
-      }]
+      content: [
+        {
+          type: 'text',
+          text: chunk,
+        },
+      ],
     };
   }
 );
@@ -310,12 +313,12 @@ export const retrieveResultTool = tool(
 
 The agent has access to these Claude Agent SDK built-in tools:
 
-| SDK Tool | Purpose | Why Included |
-|----------|---------|--------------|
-| `Read` | Read any file for analysis | Core analysis capability |
-| `Glob` | Find files by pattern | Discover configs, session logs |
-| `Grep` | Search file contents | Find patterns across codebase |
-| `Bash` | Execute commands (git, etc.) | Git queries, read-only utilities |
+| SDK Tool | Purpose                      | Why Included                     |
+| -------- | ---------------------------- | -------------------------------- |
+| `Read`   | Read any file for analysis   | Core analysis capability         |
+| `Glob`   | Find files by pattern        | Discover configs, session logs   |
+| `Grep`   | Search file contents         | Find patterns across codebase    |
+| `Bash`   | Execute commands (git, etc.) | Git queries, read-only utilities |
 
 **Excluded SDK Tools**: `Write`, `Edit`, `WebFetch`, `WebSearch`, `Task`
 
@@ -327,32 +330,30 @@ The agent CAN write, but ONLY to agentlint-managed paths:
 
 ```typescript
 const ALLOWED_WRITE_PATHS = [
-  '.agentlint/',           // Project-local: baselines, recommendations
-  '~/.agentlint/',         // Global: learnings, user config
+  '.agentlint/', // Project-local: baselines, recommendations
+  '~/.agentlint/', // Global: learnings, user config
 ];
 
 // Custom write tool that enforces path restrictions
 export const agentlintWriteTool = tool(
-  "agentlint_write",
-  "Write data to agentlint configuration paths only.",
+  'agentlint_write',
+  'Write data to agentlint configuration paths only.',
   {
-    path: z.string().describe("Path relative to .agentlint/ or ~/.agentlint/"),
-    content: z.string().describe("Content to write"),
-    scope: z.enum(["project", "global"]).describe("Write to project or global config")
+    path: z.string().describe('Path relative to .agentlint/ or ~/.agentlint/'),
+    content: z.string().describe('Content to write'),
+    scope: z.enum(['project', 'global']).describe('Write to project or global config'),
   },
   async (args) => {
-    const basePath = args.scope === "global"
-      ? path.join(os.homedir(), ".agentlint")
-      : ".agentlint";
+    const basePath = args.scope === 'global' ? path.join(os.homedir(), '.agentlint') : '.agentlint';
     const fullPath = path.join(basePath, args.path);
 
     // Security: Ensure path doesn't escape allowed directories
     if (!fullPath.startsWith(basePath)) {
-      throw new Error("Path traversal not allowed");
+      throw new Error('Path traversal not allowed');
     }
 
     await fs.writeFile(fullPath, args.content);
-    return { content: [{ type: "text", text: `Written to ${fullPath}` }] };
+    return { content: [{ type: 'text', text: `Written to ${fullPath}` }] };
   }
 );
 ```
@@ -392,36 +393,36 @@ export const agentlintWriteTool = tool(
 #### 7. Error Handling Pattern
 
 ```typescript
-async function safeToolHandler<T>(
-  handler: () => Promise<T>
-): Promise<CallToolResult> {
+async function safeToolHandler<T>(handler: () => Promise<T>): Promise<CallToolResult> {
   try {
     const result = await handler();
     return handleToolResult(result);
   } catch (error) {
     // Return structured error for agent to reason about
     return {
-      content: [{
-        type: "text",
-        text: JSON.stringify({
-          error: true,
-          message: error instanceof Error ? error.message : "Unknown error",
-          suggestion: getSuggestionForError(error)
-        })
-      }],
-      isError: true
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify({
+            error: true,
+            message: error instanceof Error ? error.message : 'Unknown error',
+            suggestion: getSuggestionForError(error),
+          }),
+        },
+      ],
+      isError: true,
     };
   }
 }
 
 function getSuggestionForError(error: unknown): string {
   if (error instanceof FileNotFoundError) {
-    return "Check if the file path is correct. Use absolute paths.";
+    return 'Check if the file path is correct. Use absolute paths.';
   }
   if (error instanceof SessionNotIndexedError) {
     return "Session logs may not be indexed yet. Try running 'agentlint scan' first.";
   }
-  return "Review the error message and try again with corrected parameters.";
+  return 'Review the error message and try again with corrected parameters.';
 }
 ```
 
