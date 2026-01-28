@@ -18,6 +18,7 @@ import { join } from 'path';
 import { homedir } from 'os';
 import { query, type SDKMessage } from '@anthropic-ai/claude-agent-sdk';
 import type { IToolRegistry } from './tool-registry';
+import type { IOrchestrator } from './interfaces';
 import type {
   OrchestratorConfig,
   SessionState,
@@ -37,56 +38,7 @@ import type { INamespacedLogger } from '../debug/types';
 // IOrchestrator Interface
 // =============================================================================
 
-/**
- * Interface for the Orchestrator.
- */
-export interface IOrchestrator {
-  /** Current configuration (with defaults applied) */
-  readonly config: ResolvedOrchestratorConfig;
-
-  /** Tool registry */
-  readonly toolRegistry: IToolRegistry;
-
-  /** Current session state (null if not running) */
-  readonly sessionState: SessionState | null;
-
-  /** Whether orchestrator is currently running */
-  readonly isActive: boolean;
-
-  /** Current subagent depth level (0 = main, 1 = subagent) */
-  readonly depth: number;
-
-  /**
-   * Execute an analysis task
-   * @param task - The task description/prompt
-   * @returns AsyncGenerator yielding StreamChunks
-   */
-  run(task: string): AsyncGenerator<StreamChunk, void, unknown>;
-
-  /**
-   * Resume a previous session
-   * @param sessionId - The session ID to resume
-   * @returns AsyncGenerator yielding StreamChunks
-   */
-  resume(sessionId: string): AsyncGenerator<StreamChunk, void, unknown>;
-
-  /**
-   * Interrupt the current execution
-   */
-  interrupt(): Promise<void>;
-
-  /**
-   * Check if this orchestrator can spawn a subagent
-   * @returns true if depth < MAX_SUBAGENT_DEPTH
-   */
-  canSpawnSubagent(): boolean;
-
-  /**
-   * Get configuration for spawning a subagent
-   * @returns Config with incremented depth
-   */
-  getSubagentConfig(): OrchestratorConfig;
-}
+// Imported from ./interfaces.ts
 
 // =============================================================================
 // Orchestrator Implementation
@@ -1000,7 +952,7 @@ export class Orchestrator implements IOrchestrator {
  * @param toolRegistry - Tool registry
  * @returns A new Orchestrator instance
  */
-export function createOrchestrator(
+export function createLegacyOrchestrator(
   config: OrchestratorConfig,
   toolRegistry: IToolRegistry
 ): IOrchestrator {

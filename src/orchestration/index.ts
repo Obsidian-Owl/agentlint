@@ -79,8 +79,27 @@ export { ToolRegistry, createToolRegistry } from './tool-registry';
 // Orchestrator (T024-T026) - Phase 3 Complete
 // =============================================================================
 
-export type { IOrchestrator } from './orchestrator';
-export { Orchestrator, createOrchestrator } from './orchestrator';
+export type { IOrchestrator } from './interfaces';
+import { createLegacyOrchestrator } from './orchestrator';
+export { Orchestrator } from './orchestrator';
+import { OpencodeOrchestrator } from '../opencode/orchestrator';
+import type { OrchestratorConfig } from './types';
+import type { IToolRegistry } from './tool-registry';
+import type { IOrchestrator } from './interfaces';
+
+/**
+ * Create a new Orchestrator.
+ * Switches between Legacy and Opencode implementations based on config.
+ */
+export function createOrchestrator(
+  config: OrchestratorConfig,
+  toolRegistry: IToolRegistry
+): IOrchestrator {
+  if (config.useOpencode) {
+    return new OpencodeOrchestrator(config, toolRegistry);
+  }
+  return createLegacyOrchestrator(config, toolRegistry);
+}
 
 // =============================================================================
 // Streaming (T030-T032) - Phase 4 Complete

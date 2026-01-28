@@ -6,7 +6,7 @@
  * @module opencode/orchestrator
  */
 
-import type { IOrchestrator } from '../orchestration/orchestrator';
+import type { IOrchestrator } from '../orchestration/interfaces';
 import type { IToolRegistry } from '../orchestration/tool-registry';
 import type {
   OrchestratorConfig,

@@ -7,7 +7,7 @@
  * @module tui/permissions/tui-permission-handler
  */
 
-import type { PermissionResult } from '@anthropic-ai/claude-agent-sdk';
+import type { PermissionResult } from '../../orchestration/types';
 import type { ITuiRenderer, PermissionDecision, UserQuestion, UserQuestionOption } from '../types';
 
 // =============================================================================

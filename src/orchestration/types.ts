@@ -61,6 +61,16 @@ export interface StreamChunk {
   metadata?: Record<string, unknown>;
 }
 
+/**
+ * Result of a permission check.
+ * Matches the SDK's PermissionResult type.
+ */
+export interface PermissionResult {
+  behavior: 'allow' | 'deny';
+  message?: string;
+  updatedInput?: Record<string, unknown>;
+}
+
 // =============================================================================
 // Configuration (T012)
 // =============================================================================
@@ -205,6 +215,12 @@ export interface OrchestratorConfig {
    * For subagents, this would be the parent's subagent event ID.
    */
   telemetryParentEventId?: string;
+
+  /**
+   * Whether to use the OpencodeOrchestrator (true) or legacy Orchestrator (false).
+   * @default false
+   */
+  useOpencode?: boolean;
 }
 
 /**

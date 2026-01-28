@@ -133,6 +133,7 @@ export function getDefaultConfig(): ResolvedOrchestratorConfig {
     depth: DEFAULT_DEPTH,
     allowedTools: DEFAULT_ALLOWED_TOOLS,
     nonInteractive: false,
+    useOpencode: false,
   };
 }
 
@@ -179,6 +180,7 @@ export function loadConfig(overrides?: Partial<OrchestratorConfig>): ResolvedOrc
     depth: overrides?.depth ?? defaults.depth,
     allowedTools: overrides?.allowedTools ?? defaults.allowedTools,
     nonInteractive: overrides?.nonInteractive ?? defaults.nonInteractive,
+    useOpencode: overrides?.useOpencode ?? defaults.useOpencode,
   };
 
   // Only add canUseTool if provided (to satisfy exactOptionalPropertyTypes)
@@ -333,6 +335,7 @@ export function mergeWithDefaults(
     depth: partial.depth ?? defaults.depth,
     allowedTools: partial.allowedTools ?? defaults.allowedTools,
     nonInteractive: partial.nonInteractive ?? defaults.nonInteractive,
+    useOpencode: partial.useOpencode ?? defaults.useOpencode,
   };
 
   // Only add canUseTool if provided (to satisfy exactOptionalPropertyTypes)
