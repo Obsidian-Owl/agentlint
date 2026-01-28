@@ -8,6 +8,8 @@ informed: []
 
 # ADR-0016: MCP Integration Strategy
 
+> **Legacy Note (2026-01)**: This ADR references "Claude Agent SDK" (`@anthropic-ai/claude-agent-sdk`) which was replaced by Opencode SDK (`@opencode-ai/sdk`). See [ADR-0024](0024-opencode-sdk-migration.md) for migration details.
+
 ## Context and Problem Statement
 
 Model Context Protocol (MCP) has become the industry standard for AI tool integration, with adoption by ChatGPT, Cursor, Gemini, VS Code, and Microsoft Copilot. As of December 2025, MCP was donated to the Linux Foundation's Agentic AI Foundation, with founding members including OpenAI, Google, Microsoft, Amazon, Anthropic, and Block.

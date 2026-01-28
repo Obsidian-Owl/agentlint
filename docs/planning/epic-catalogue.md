@@ -17,21 +17,23 @@ agentlint enables continuous improvement of AI-assisted development workflows th
 
 ## Epic Overview
 
-| Epic | Name                       | Type        | Priority | Size | Duration | Status      |
-| ---- | -------------------------- | ----------- | -------- | ---- | -------- | ----------- |
-| EP01 | Project Foundation & CI/CD | Foundation  | P0       | M    | 4 weeks  | Complete    |
-| EP02 | Orchestration Core         | Foundation  | P0       | L    | 6 weeks  | Complete    |
-| EP03 | Persistence Layer          | Foundation  | P0       | M    | 4 weeks  | Not Started |
-| EP04 | CLI Interface & Commands   | Business    | P1       | M    | 4 weeks  | Not Started |
-| EP05 | Config Analysis Tools      | Business    | P1       | L    | 6 weeks  | Not Started |
-| EP06 | Session Analysis Tools     | Business    | P1       | L    | 6 weeks  | Complete    |
-| EP07 | Causal Tracing Engine      | Business    | P1       | L    | 6 weeks  | Complete    |
-| EP08 | ACT Adapters               | Business    | P1       | M    | 4 weeks  | Not Started |
-| EP09 | Temporal Analysis          | Business    | P1       | M    | 5 weeks  | Not Started |
-| EP10 | Recommendation Engine      | Business    | P1       | M    | 4 weeks  | Not Started |
-| EP11 | Quality & Security         | Enabler     | P2       | M    | 4 weeks  | Not Started |
-| EP12 | Global Learnings           | Integration | P2       | M    | 4 weeks  | Not Started |
-| EP13 | Git SDK Tools              | Enabler     | P3       | S    | 2 weeks  | Deferred    |
+| Epic | Name                       | Type        | Priority | Size | Duration | Status                                                                                                                                                                                      |
+| ---- | -------------------------- | ----------- | -------- | ---- | -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| EP01 | Project Foundation & CI/CD | Foundation  | P0       | M    | 4 weeks  | Complete                                                                                                                                                                                    |
+| EP02 | Orchestration Core         | Foundation  | P0       | L    | 6 weeks  | Complete                                                                                                                                                                                    |
+|      |                            |             |          |      |          | _Note: References to "Claude Agent SDK" in this epic description refer to the predecessor of the current Opencode SDK. See [ADR-0024](../architecture/adr/0024-opencode-sdk-migration.md)._ |
+| EP03 | Persistence Layer          | Foundation  | P0       | M    | 4 weeks  | Not Started                                                                                                                                                                                 |
+| EP04 | CLI Interface & Commands   | Business    | P1       | M    | 4 weeks  | Not Started                                                                                                                                                                                 |
+| EP05 | Config Analysis Tools      | Business    | P1       | L    | 6 weeks  | Not Started                                                                                                                                                                                 |
+| EP06 | Session Analysis Tools     | Business    | P1       | L    | 6 weeks  | Complete                                                                                                                                                                                    |
+| EP07 | Causal Tracing Engine      | Business    | P1       | L    | 6 weeks  | Complete                                                                                                                                                                                    |
+| EP08 | ACT Adapters               | Business    | P1       | M    | 4 weeks  | Not Started                                                                                                                                                                                 |
+| EP09 | Temporal Analysis          | Business    | P1       | M    | 5 weeks  | Not Started                                                                                                                                                                                 |
+| EP10 | Recommendation Engine      | Business    | P1       | M    | 4 weeks  | Not Started                                                                                                                                                                                 |
+|      |                            |             |          |      |          | _Note: References to "Claude Agent SDK" in this epic description refer to the predecessor of the current Opencode SDK. See [ADR-0024](../architecture/adr/0024-opencode-sdk-migration.md)._ |
+| EP11 | Quality & Security         | Enabler     | P2       | M    | 4 weeks  | Not Started                                                                                                                                                                                 |
+| EP12 | Global Learnings           | Integration | P2       | M    | 4 weeks  | Not Started                                                                                                                                                                                 |
+| EP13 | Git SDK Tools              | Enabler     | P3       | S    | 2 weeks  | Deferred                                                                                                                                                                                    |
 
 ### Phase 2: Strategic Pivot Epics (Jan 2026)
 

@@ -370,7 +370,7 @@ agentlint uses an **indirect telemetry architecture** — a custom Vercel proxy 
 └────────────────────┘     └──────────────────────┘     └─────────────────┘
 ```
 
-**Why indirect (not HoneyHive SDK)?** HoneyHive has no auto-instrumentation for the Opencode SDK or Claude Agent SDK. The custom proxy approach:
+**Why indirect (not HoneyHive SDK)?** HoneyHive has no auto-instrumentation for the Opencode SDK. The custom proxy approach:
 
 - Keeps API secrets server-side (CLI has zero secrets)
 - Allows schema transformation without CLI updates

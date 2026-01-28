@@ -142,7 +142,7 @@ src/cli/
 
 ## Level 2: Orchestration Layer
 
-The orchestration layer wraps the **Claude Agent SDK's `query()` function**, which implements the master agent loop internally. The `Orchestrator` class provides:
+The orchestration layer wraps the **Opencode SDK's session/prompt API**, which implements the master agent loop internally. The `OpencodeOrchestrator` class provides:
 
 1. **Configuration** - Model selection, verbosity, timeouts
 2. **Streaming Transformation** - SDK messages → `StreamChunk` objects
@@ -156,7 +156,7 @@ The orchestration layer wraps the **Claude Agent SDK's `query()` function**, whi
 │                  ORCHESTRATOR (SDK Wrapper)                     │
 │                                                                 │
 │  ┌───────────────────────────────────────────────────────────┐  │
-│  │              Claude Agent SDK query()                      │  │
+│  │              Opencode SDK session/prompt API              │  │
 │  │  • Master loop implemented by SDK                         │  │
 │  │  • Tool execution via MCP protocol                        │  │
 │  │  • Subagent spawning via agents option                    │  │
