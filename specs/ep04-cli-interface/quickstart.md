@@ -33,6 +33,7 @@ agentlint scan --directory /path/to/project
 ```
 
 **Output**:
+
 ```
 Found 2 AI configuration files:
 
@@ -59,6 +60,7 @@ agentlint analyse --sessions-only
 ```
 
 **Output** (streaming):
+
 ```
 ⠋ Initializing analysis...
 ⠋ Analyzing configuration...
@@ -100,6 +102,7 @@ agentlint compare --baseline "before-refactor"
 ```
 
 **Output**:
+
 ```
 Comparing against baseline: before-refactor (2026-01-15)
 
@@ -129,6 +132,7 @@ agentlint trace F001
 ```
 
 **Output**:
+
 ```
 Issue: API key exposed in session log
 ├── Detected: sessions/2026-01-14.jsonl:1247
@@ -189,6 +193,7 @@ agentlint analyse --json | jq '.findings[]'
 ```
 
 **JSON Output**:
+
 ```json
 {
   "format_version": "1.0",
@@ -243,6 +248,7 @@ agentlint analyse --markdown > analysis-report.md
 ```
 
 **GitHub Actions Example**:
+
 ```yaml
 - name: Run agentlint
   run: |
@@ -268,6 +274,7 @@ agentlint analyse --verbose
 ```
 
 **Verbose Output**:
+
 ```
 Starting analysis: Analyze my CLAUDE.md
 > Calling: readFile(CLAUDE.md)
@@ -297,20 +304,20 @@ agentlint --version
 
 ## Exit Codes
 
-| Code | Meaning |
-|------|---------|
-| 0 | Success (even if findings present) |
-| 1 | Error occurred |
-| 1 | Findings present (with --fail-on-findings) |
+| Code | Meaning                                    |
+| ---- | ------------------------------------------ |
+| 0    | Success (even if findings present)         |
+| 1    | Error occurred                             |
+| 1    | Findings present (with --fail-on-findings) |
 
 ---
 
 ## Environment Variables
 
-| Variable | Effect |
-|----------|--------|
-| `NO_COLOR` | Disable colors (accessibility) |
-| `ANTHROPIC_API_KEY` | API key for Claude analysis |
+| Variable           | Effect                                       |
+| ------------------ | -------------------------------------------- |
+| `NO_COLOR`         | Disable colors (accessibility)               |
+| `OPENCODE_API_KEY` | API key for analysis (delegated to Opencode) |
 
 ---
 

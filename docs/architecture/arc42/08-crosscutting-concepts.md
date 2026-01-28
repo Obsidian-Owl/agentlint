@@ -173,7 +173,7 @@ CREATE TABLE IF NOT EXISTS recommendation_outcomes (
 | Aspect               | Approach                                                                        |
 | -------------------- | ------------------------------------------------------------------------------- |
 | **Data Privacy**     | Local-first; all storage in `.agentlint/`                                       |
-| **API Credentials**  | User-provided via `ANTHROPIC_API_KEY`                                           |
+| **API Credentials**  | Delegated to Opencode SDK ([ADR-0026](../adr/0026-opencode-auth-delegation.md)) |
 | **Secret Detection** | Identify but never store ([ADR-0013](../adr/0013-secret-detection-strategy.md)) |
 | **File Access**      | Read project; write only to `.agentlint/`                                       |
 | **Telemetry**        | Zero usage tracking                                                             |

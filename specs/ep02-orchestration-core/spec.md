@@ -318,7 +318,7 @@ ToolRegistry --1:N--> Tool
 | Claude Agent SDK        | External      | Available | Core functionality blocked          |
 | Anthropic API           | External      | Available | Agent cannot execute                |
 | Zod                     | External      | Available | Schema validation blocked           |
-| ANTHROPIC_API_KEY       | User-provided | Required  | Analysis cannot run                 |
+| OPENCODE_API_KEY        | User-provided | Required  | Analysis cannot run                 |
 
 ### 7.2 Assumptions
 
@@ -434,7 +434,7 @@ ToolRegistry --1:N--> Tool
 **Impact**:
 
 - On authentication error (401/403), immediately trigger checkpoint
-- Emit error with specific message: "API key invalid or expired. Session saved. Re-run with valid ANTHROPIC_API_KEY."
+- Emit error with specific message: "API key invalid or expired. Session saved. Re-run with valid OPENCODE_API_KEY."
 - Exit with appropriate error code (per EP01 error handling patterns)
 - Resume capability (US-007) allows continuation after key is fixed
 

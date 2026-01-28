@@ -17,8 +17,9 @@ npm install -g @agentlint/cli
 ```
 
 **Prerequisites**:
+
 - Node.js 22+ or Bun
-- Anthropic API key (`ANTHROPIC_API_KEY` environment variable)
+- Opencode authentication (`opencode auth` or provider env vars)
 
 ---
 
@@ -77,13 +78,13 @@ Create `~/.agentlint/config.json`:
 
 ```typescript
 const orchestrator = new Orchestrator({
-  model: 'claude-opus-4-20250514',  // Use Opus for complex analysis
-  checkpointIntervalMs: 30000,       // Checkpoint every 30s
-  verbosity: 'verbose',              // Show agent reasoning
+  model: 'claude-opus-4-20250514', // Use Opus for complex analysis
+  checkpointIntervalMs: 30000, // Checkpoint every 30s
+  verbosity: 'verbose', // Show agent reasoning
   systemPromptAppend: `
     Focus on security-related configuration gaps.
     Prioritize findings related to secret management.
-  `
+  `,
 });
 ```
 
@@ -103,13 +104,13 @@ const myTool = tool(
   'Analyzes project for custom patterns',
   {
     pattern: z.string().describe('The pattern to search for'),
-    directory: z.string().optional().describe('Directory to search')
+    directory: z.string().optional().describe('Directory to search'),
   },
   async ({ pattern, directory }) => {
     // Tool implementation
     const results = await searchForPattern(pattern, directory);
     return {
-      content: [{ type: 'text', text: JSON.stringify(results) }]
+      content: [{ type: 'text', text: JSON.stringify(results) }],
     };
   }
 );
@@ -130,7 +131,7 @@ const checkpointHandler: CheckpointHandler = {
     console.log(`Checkpoint ${event.sequence}: ${event.trigger}`);
     // Save to custom storage
     await myStorage.save(event.sessionId, event.state);
-  }
+  },
 };
 
 const orchestrator = new Orchestrator();
@@ -178,27 +179,27 @@ for await (const chunk of orchestrator.run('Analyze project')) {
 
 ## Verbosity Levels
 
-| Level | What You See |
-|-------|--------------|
-| `quiet` | Errors only |
-| `normal` | Progress indicators, results, findings |
-| `verbose` | Agent reasoning, tool invocations |
-| `debug` | All events including internal state, context compression |
+| Level     | What You See                                             |
+| --------- | -------------------------------------------------------- |
+| `quiet`   | Errors only                                              |
+| `normal`  | Progress indicators, results, findings                   |
+| `verbose` | Agent reasoning, tool invocations                        |
+| `debug`   | All events including internal state, context compression |
 
 ---
 
 ## Stream Chunk Types
 
-| Type | Description |
-|------|-------------|
-| `text` | Agent reasoning/response text |
-| `tool_start` | Tool invocation beginning |
-| `tool_result` | Tool execution result |
-| `finding` | New finding detected |
-| `phase_change` | Analysis phase transition |
-| `checkpoint` | Checkpoint saved |
-| `error` | Error occurred |
-| `status` | Status update |
+| Type           | Description                   |
+| -------------- | ----------------------------- |
+| `text`         | Agent reasoning/response text |
+| `tool_start`   | Tool invocation beginning     |
+| `tool_result`  | Tool execution result         |
+| `finding`      | New finding detected          |
+| `phase_change` | Analysis phase transition     |
+| `checkpoint`   | Checkpoint saved              |
+| `error`        | Error occurred                |
+| `status`       | Status update                 |
 
 ---
 
@@ -209,7 +210,7 @@ import {
   Orchestrator,
   OrchestrationError,
   SessionResumeError,
-  ApiKeyError
+  ApiKeyError,
 } from '@agentlint/orchestration';
 
 try {

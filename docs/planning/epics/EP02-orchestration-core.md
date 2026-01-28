@@ -4,13 +4,13 @@
 
 ## Classification
 
-| Attribute | Value |
-|-----------|-------|
-| **Type** | Foundation |
-| **Priority** | P0-Critical |
-| **Size** | L |
-| **Estimated Duration** | 6 weeks |
-| **Target Stories** | 10-12 stories |
+| Attribute              | Value         |
+| ---------------------- | ------------- |
+| **Type**               | Foundation    |
+| **Priority**           | P0-Critical   |
+| **Size**               | L             |
+| **Estimated Duration** | 6 weeks       |
+| **Target Stories**     | 10-12 stories |
 
 ## Business Outcome Hypothesis
 
@@ -51,47 +51,47 @@ The minimum deliverable that proves the hypothesis:
 
 ## Arc42 Traceability
 
-| Source | References |
-|--------|------------|
-| **Building Blocks** | Orchestration Layer (Master Agent Loop, Cognitive Workspace) |
-| **Runtime Scenarios** | 6.1 Full Analysis (master loop flow) |
-| **Quality Requirements** | QS-2 (checkpoint recovery), QS-3 (graceful degradation) |
-| **Crosscutting Concepts** | 8.4 Context Management |
-| **ADRs** | ADR-0002 (Agentic Framework), ADR-0005 (Tool Definition) |
+| Source                    | References                                                   |
+| ------------------------- | ------------------------------------------------------------ |
+| **Building Blocks**       | Orchestration Layer (Master Agent Loop, Cognitive Workspace) |
+| **Runtime Scenarios**     | 6.1 Full Analysis (master loop flow)                         |
+| **Quality Requirements**  | QS-2 (checkpoint recovery), QS-3 (graceful degradation)      |
+| **Crosscutting Concepts** | 8.4 Context Management                                       |
+| **ADRs**                  | ADR-0002 (Agentic Framework), ADR-0005 (Tool Definition)     |
 
 ## Requirements Traceability
 
-| Source | References |
-|--------|------------|
-| **Personas** | Persona 0 (The agentlint Agent) - distilled context, hierarchical memory |
-| **Use Cases** | All use cases depend on orchestration |
-| **Requirements** | NFR-1.2 (Agentic Analysis), NFR-1.3 (Long Session Feedback) |
+| Source           | References                                                               |
+| ---------------- | ------------------------------------------------------------------------ |
+| **Personas**     | Persona 0 (The agentlint Agent) - distilled context, hierarchical memory |
+| **Use Cases**    | All use cases depend on orchestration                                    |
+| **Requirements** | NFR-1.2 (Agentic Analysis), NFR-1.3 (Long Session Feedback)              |
 
 ## Dependencies
 
 ### Blocked By (Cannot Start Without)
 
-| Epic | Dependency Type | What's Needed |
-|------|-----------------|---------------|
-| EP01 | Hard | Project structure, TypeScript config, dependency management |
+| Epic | Dependency Type | What's Needed                                               |
+| ---- | --------------- | ----------------------------------------------------------- |
+| EP01 | Hard            | Project structure, TypeScript config, dependency management |
 
 ### Blocks (Other Epics Waiting On This)
 
-| Epic | Dependency Type | What This Provides |
-|------|-----------------|-------------------|
-| EP04 | Hard | Agent execution entry point |
-| EP05 | Hard | Tool registration mechanism |
-| EP06 | Hard | Tool registration, context management |
-| EP07 | Hard | Agent reasoning infrastructure |
-| EP10 | Hard | Agent synthesis capabilities |
-| EP11 | Hard | Evaluation integration points |
+| Epic | Dependency Type | What This Provides                    |
+| ---- | --------------- | ------------------------------------- |
+| EP04 | Hard            | Agent execution entry point           |
+| EP05 | Hard            | Tool registration mechanism           |
+| EP06 | Hard            | Tool registration, context management |
+| EP07 | Hard            | Agent reasoning infrastructure        |
+| EP10 | Hard            | Agent synthesis capabilities          |
+| EP11 | Hard            | Evaluation integration points         |
 
 ### External Dependencies
 
-| System/Team | Dependency | Status |
-|-------------|------------|--------|
-| Claude Agent SDK | Tool registration, loop execution | Available |
-| Anthropic API | LLM provider | Requires ANTHROPIC_API_KEY |
+| System/Team  | Dependency                        | Status                 |
+| ------------ | --------------------------------- | ---------------------- |
+| Opencode SDK | Tool registration, loop execution | Available              |
+| LLM Provider | Anthropic/OpenAI/etc.             | Requires opencode auth |
 
 ## Technical Considerations
 
@@ -104,11 +104,11 @@ The minimum deliverable that proves the hypothesis:
 
 ### Risks & Mitigations
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|------------|--------|------------|
-| Claude Agent SDK API changes | Medium | Medium | Pin version, monitor changelog |
-| Context window limits hit | Medium | High | Aggressive compression, incremental loading |
-| API rate limits during long sessions | Medium | Medium | Exponential backoff, checkpointing |
+| Risk                                 | Likelihood | Impact | Mitigation                                  |
+| ------------------------------------ | ---------- | ------ | ------------------------------------------- |
+| Opencode SDK API changes             | Medium     | Medium | Pin version, monitor changelog              |
+| Context window limits hit            | Medium     | High   | Aggressive compression, incremental loading |
+| API rate limits during long sessions | Medium     | Medium | Exponential backoff, checkpointing          |
 
 ### Spikes Needed
 
@@ -161,10 +161,12 @@ The minimum deliverable that proves the hypothesis:
 ### Constraints to Encode
 
 From ADRs:
+
 - ADR-0002: Claude Agent SDK, Anthropic-only for MVP
 - ADR-0005: Tool definitions use SDK tool() with Zod schemas
 
 From Constitution:
+
 - IX. Agent-Aware: All design serves agent cognition
 - VII. Intelligent Tooling: Agent decides tool vs reasoning
 
@@ -186,6 +188,6 @@ From Constitution:
 
 ## Change Log
 
-| Date | Author | Change |
-|------|--------|--------|
+| Date       | Author           | Change                      |
+| ---------- | ---------------- | --------------------------- |
 | 2026-01-15 | Arc42 Decomposer | Initial creation from Arc42 |

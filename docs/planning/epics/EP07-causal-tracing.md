@@ -4,13 +4,13 @@
 
 ## Classification
 
-| Attribute | Value |
-|-----------|-------|
-| **Type** | Business |
-| **Priority** | P1-High |
-| **Size** | L |
-| **Estimated Duration** | 6 weeks |
-| **Target Stories** | 10-12 stories |
+| Attribute              | Value         |
+| ---------------------- | ------------- |
+| **Type**               | Business      |
+| **Priority**           | P1-High       |
+| **Size**               | L             |
+| **Estimated Duration** | 6 weeks       |
+| **Target Stories**     | 10-12 stories |
 
 ## Business Outcome Hypothesis
 
@@ -52,45 +52,45 @@ The minimum deliverable that proves the hypothesis:
 
 ## Arc42 Traceability
 
-| Source | References |
-|--------|------------|
-| **Building Blocks** | Tool Layer, Orchestration Layer (agent reasoning) |
-| **Runtime Scenarios** | 6.2 Causal Tracing (full flow) |
-| **Quality Requirements** | N/A (quality is the feature) |
-| **Crosscutting Concepts** | Domain model (Issue → origin → recommendation) |
-| **ADRs** | ADR-0005 (Tool Definition) |
+| Source                    | References                                        |
+| ------------------------- | ------------------------------------------------- |
+| **Building Blocks**       | Tool Layer, Orchestration Layer (agent reasoning) |
+| **Runtime Scenarios**     | 6.2 Causal Tracing (full flow)                    |
+| **Quality Requirements**  | N/A (quality is the feature)                      |
+| **Crosscutting Concepts** | Domain model (Issue → origin → recommendation)    |
+| **ADRs**                  | ADR-0005 (Tool Definition)                        |
 
 ## Requirements Traceability
 
-| Source | References |
-|--------|------------|
-| **Personas** | Persona 0 (Agent - causal reasoning), Persona 5 (Security - trace vulnerabilities) |
-| **Use Cases** | UC-008 (Trace Issue Origins), FR-6 (Causal Analysis) |
+| Source           | References                                                                                  |
+| ---------------- | ------------------------------------------------------------------------------------------- |
+| **Personas**     | Persona 0 (Agent - causal reasoning), Persona 5 (Security - trace vulnerabilities)          |
+| **Use Cases**    | UC-008 (Trace Issue Origins), FR-6 (Causal Analysis)                                        |
 | **Requirements** | FR-6.1 (Evidence Collection), FR-6.2 (Causal Chain Reasoning), FR-6.3 (Pattern Recognition) |
 
 ## Dependencies
 
 ### Blocked By (Cannot Start Without)
 
-| Epic | Dependency Type | What's Needed |
-|------|-----------------|---------------|
-| EP01 | Hard | Project structure |
-| EP02 | Hard | Agent reasoning infrastructure |
-| EP03 | Hard | Storage for causal analysis state |
-| EP05 | Soft | Config data for gap identification |
-| EP06 | Hard | Session search for evidence collection |
+| Epic | Dependency Type | What's Needed                          |
+| ---- | --------------- | -------------------------------------- |
+| EP01 | Hard            | Project structure                      |
+| EP02 | Hard            | Agent reasoning infrastructure         |
+| EP03 | Hard            | Storage for causal analysis state      |
+| EP05 | Soft            | Config data for gap identification     |
+| EP06 | Hard            | Session search for evidence collection |
 
 ### Blocks (Other Epics Waiting On This)
 
-| Epic | Dependency Type | What This Provides |
-|------|-----------------|-------------------|
-| EP10 | Hard | Causal chains for preventive recommendations |
+| Epic | Dependency Type | What This Provides                           |
+| ---- | --------------- | -------------------------------------------- |
+| EP10 | Hard            | Causal chains for preventive recommendations |
 
 ### External Dependencies
 
-| System/Team | Dependency | Status |
-|-------------|------------|--------|
-| Claude API | LLM reasoning for causal analysis | Available |
+| System/Team | Dependency                        | Status    |
+| ----------- | --------------------------------- | --------- |
+| LLM API     | LLM reasoning for causal analysis | Available |
 
 ## Technical Considerations
 
@@ -103,11 +103,11 @@ The minimum deliverable that proves the hypothesis:
 
 ### Risks & Mitigations
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|------------|--------|------------|
-| Causal claims too speculative | Medium | High | Confidence scoring, validation checklist |
-| Missing evidence (logs purged) | Medium | Medium | Graceful degradation, partial analysis |
-| Agent hallucinates connections | Medium | High | Evidence-based reasoning, source citations |
+| Risk                           | Likelihood | Impact | Mitigation                                 |
+| ------------------------------ | ---------- | ------ | ------------------------------------------ |
+| Causal claims too speculative  | Medium     | High   | Confidence scoring, validation checklist   |
+| Missing evidence (logs purged) | Medium     | Medium | Graceful degradation, partial analysis     |
+| Agent hallucinates connections | Medium     | High   | Evidence-based reasoning, source citations |
 
 ### Spikes Needed
 
@@ -162,10 +162,12 @@ The minimum deliverable that proves the hypothesis:
 ### Constraints to Encode
 
 From ADRs:
+
 - Causal analysis is agentic (LLM reasoning)
 - Evidence must be traceable to sources
 
 From Constitution:
+
 - III. Causal-First: Trace to origin, enable prevention
 - IV. Mixed-Methods: Evidence-based reasoning
 
@@ -178,7 +180,7 @@ From Constitution:
 
 ### Tech Stack Notes (for `/speckit.plan`)
 
-- Claude Agent SDK for reasoning
+- Opencode SDK for reasoning
 - Session search tools from EP06
 - Structured output for evidence chains
 
@@ -186,6 +188,6 @@ From Constitution:
 
 ## Change Log
 
-| Date | Author | Change |
-|------|--------|--------|
+| Date       | Author           | Change                      |
+| ---------- | ---------------- | --------------------------- |
 | 2026-01-15 | Arc42 Decomposer | Initial creation from Arc42 |

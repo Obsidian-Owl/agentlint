@@ -158,8 +158,8 @@ High-level framework combining Vercel AI SDK with Mastra's workflows, memory, an
 
 ### Implementation Notes
 
-1. **SDK Installation**: `npm install @anthropic-ai/claude-agent-sdk`
-2. **API Key Strategy**: Environment variable `ANTHROPIC_API_KEY` per Local-First principle
+1. **SDK Installation**: `npm install @opencode-ai/sdk`
+2. **API Key Strategy**: Delegated to Opencode auth (see ADR-0026)
 3. **Agent Loop Pattern**: Use built-in loop for MVP; can customize via V2 interface if needed
 4. **Tool Definition**: Leverage MCP-compatible tool definitions for future extensibility
 5. **Context Management**: Use SDK's compaction; add baseline hooks for improvement tracking

@@ -17,41 +17,41 @@ agentlint enables continuous improvement of AI-assisted development workflows th
 
 ## Epic Overview
 
-| Epic | Name | Type | Priority | Size | Duration | Status |
-|------|------|------|----------|------|----------|--------|
-| EP01 | Project Foundation & CI/CD | Foundation | P0 | M | 4 weeks | Complete |
-| EP02 | Orchestration Core | Foundation | P0 | L | 6 weeks | Complete |
-| EP03 | Persistence Layer | Foundation | P0 | M | 4 weeks | Not Started |
-| EP04 | CLI Interface & Commands | Business | P1 | M | 4 weeks | Not Started |
-| EP05 | Config Analysis Tools | Business | P1 | L | 6 weeks | Not Started |
-| EP06 | Session Analysis Tools | Business | P1 | L | 6 weeks | Complete |
-| EP07 | Causal Tracing Engine | Business | P1 | L | 6 weeks | Complete |
-| EP08 | ACT Adapters | Business | P1 | M | 4 weeks | Not Started |
-| EP09 | Temporal Analysis | Business | P1 | M | 5 weeks | Not Started |
-| EP10 | Recommendation Engine | Business | P1 | M | 4 weeks | Not Started |
-| EP11 | Quality & Security | Enabler | P2 | M | 4 weeks | Not Started |
-| EP12 | Global Learnings | Integration | P2 | M | 4 weeks | Not Started |
-| EP13 | Git SDK Tools | Enabler | P3 | S | 2 weeks | Deferred |
+| Epic | Name                       | Type        | Priority | Size | Duration | Status      |
+| ---- | -------------------------- | ----------- | -------- | ---- | -------- | ----------- |
+| EP01 | Project Foundation & CI/CD | Foundation  | P0       | M    | 4 weeks  | Complete    |
+| EP02 | Orchestration Core         | Foundation  | P0       | L    | 6 weeks  | Complete    |
+| EP03 | Persistence Layer          | Foundation  | P0       | M    | 4 weeks  | Not Started |
+| EP04 | CLI Interface & Commands   | Business    | P1       | M    | 4 weeks  | Not Started |
+| EP05 | Config Analysis Tools      | Business    | P1       | L    | 6 weeks  | Not Started |
+| EP06 | Session Analysis Tools     | Business    | P1       | L    | 6 weeks  | Complete    |
+| EP07 | Causal Tracing Engine      | Business    | P1       | L    | 6 weeks  | Complete    |
+| EP08 | ACT Adapters               | Business    | P1       | M    | 4 weeks  | Not Started |
+| EP09 | Temporal Analysis          | Business    | P1       | M    | 5 weeks  | Not Started |
+| EP10 | Recommendation Engine      | Business    | P1       | M    | 4 weeks  | Not Started |
+| EP11 | Quality & Security         | Enabler     | P2       | M    | 4 weeks  | Not Started |
+| EP12 | Global Learnings           | Integration | P2       | M    | 4 weeks  | Not Started |
+| EP13 | Git SDK Tools              | Enabler     | P3       | S    | 2 weeks  | Deferred    |
 
 ### Phase 2: Strategic Pivot Epics (Jan 2026)
 
-| Epic | Name | Type | Priority | Size | Status |
-|------|------|------|----------|------|--------|
-| EP14 | Skills Effectiveness Analysis | Business | P0 | L | Complete |
-| EP15 | Session Intelligence | Business | P1 | L | Planned |
-| ~~EP16~~ | ~~Symptom Pattern Detector~~ | — | — | — | *Absorbed into EP15* |
-| EP17 | TUI Architecture & Agent-Led Exploration | Foundation | P0 | XL | Planned |
-| ~~EP18~~ | ~~Subagent Delegation Tracker~~ | — | — | — | *Absorbed into EP15* |
-| EP19 | MCP Config Validation | Business | P2 | S | Planned |
-| EP20 | User Customization System | Business | P1 | L | Planned |
-| EP21 | Learning Improvements | Integration | P1 | L | Planned |
+| Epic     | Name                                     | Type        | Priority | Size | Status               |
+| -------- | ---------------------------------------- | ----------- | -------- | ---- | -------------------- |
+| EP14     | Skills Effectiveness Analysis            | Business    | P0       | L    | Complete             |
+| EP15     | Session Intelligence                     | Business    | P1       | L    | Planned              |
+| ~~EP16~~ | ~~Symptom Pattern Detector~~             | —           | —        | —    | _Absorbed into EP15_ |
+| EP17     | TUI Architecture & Agent-Led Exploration | Foundation  | P0       | XL   | Planned              |
+| ~~EP18~~ | ~~Subagent Delegation Tracker~~          | —           | —        | —    | _Absorbed into EP15_ |
+| EP19     | MCP Config Validation                    | Business    | P2       | S    | Planned              |
+| EP20     | User Customization System                | Business    | P1       | L    | Planned              |
+| EP21     | Learning Improvements                    | Integration | P1       | L    | Planned              |
 
 **Note**: EP15 (Session Intelligence) consolidates EP16 and EP18. MCP runtime analysis moved to EP15; EP19 is now static config validation only.
 
 ## Dependency Matrix
 
 |          | EP01 | EP02 | EP03 | EP04 | EP05 | EP06 | EP07 | EP08 | EP09 | EP10 | EP11 | EP12 |
-|----------|------|------|------|------|------|------|------|------|------|------|------|------|
+| -------- | ---- | ---- | ---- | ---- | ---- | ---- | ---- | ---- | ---- | ---- | ---- | ---- |
 | **EP01** | —    |      |      |      |      |      |      |      |      |      |      |      |
 | **EP02** | H    | —    |      |      |      |      |      |      |      |      |      |      |
 | **EP03** | H    |      | —    |      |      |      |      |      |      |      |      |      |
@@ -73,42 +73,42 @@ S = Soft dependency (row epic prefers column epic complete)
 
 ### Phase 1: Foundation (Weeks 1-6)
 
-| Epic | Focus | Key Deliverables |
-|------|-------|-----------------|
+| Epic | Focus                      | Key Deliverables                                                            |
+| ---- | -------------------------- | --------------------------------------------------------------------------- |
 | EP01 | Project Foundation & CI/CD | TypeScript + Bun setup, ESLint, Prettier, GitHub Actions, project structure |
-| EP02 | Orchestration Core | Master agent loop, Claude SDK integration, context management |
-| EP03 | Persistence Layer | SQLite setup, JSON storage, baseline format, session state |
+| EP02 | Orchestration Core         | Master agent loop, Claude SDK integration, context management               |
+| EP03 | Persistence Layer          | SQLite setup, JSON storage, baseline format, session state                  |
 
 **Phase Gate**: Agent loop executes with mock tools; persistence stores/retrieves baselines
 
 ### Phase 2: Core Tools (Weeks 5-14)
 
-| Epic | Focus | Key Deliverables |
-|------|-------|-----------------|
+| Epic | Focus                    | Key Deliverables                                                   |
+| ---- | ------------------------ | ------------------------------------------------------------------ |
 | EP04 | CLI Interface & Commands | Ink UI, Commander.js commands, progress indicators, output formats |
-| EP05 | Config Analysis Tools | Config detection, parsing, quality assessment tools |
-| EP06 | Session Analysis Tools | Session discovery, metrics extraction, FTS5 search |
-| EP08 | ACT Adapters | Claude Code adapter, Generalized adapter, adapter interface |
+| EP05 | Config Analysis Tools    | Config detection, parsing, quality assessment tools                |
+| EP06 | Session Analysis Tools   | Session discovery, metrics extraction, FTS5 search                 |
+| EP08 | ACT Adapters             | Claude Code adapter, Generalized adapter, adapter interface        |
 
 **Parallel Tracks**: EP04 + EP05 can proceed in parallel after EP02
 **Phase Gate**: `agentlint scan` and `agentlint analyse` produce meaningful output
 
 ### Phase 3: Advanced Features (Weeks 10-20)
 
-| Epic | Focus | Key Deliverables |
-|------|-------|-----------------|
-| EP07 | Causal Tracing Engine | Evidence collection, causal chain reasoning, origin linking |
-| EP09 | Temporal Analysis | Baseline management, delta calculation, trend tracking |
+| Epic | Focus                 | Key Deliverables                                                |
+| ---- | --------------------- | --------------------------------------------------------------- |
+| EP07 | Causal Tracing Engine | Evidence collection, causal chain reasoning, origin linking     |
+| EP09 | Temporal Analysis     | Baseline management, delta calculation, trend tracking          |
 | EP10 | Recommendation Engine | Generation, prioritization, tracking, effectiveness correlation |
 
 **Phase Gate**: Full causal analysis flow: detect → trace → understand → recommend
 
 ### Phase 4: Polish & Enhancement (Weeks 16-24)
 
-| Epic | Focus | Key Deliverables |
-|------|-------|-----------------|
+| Epic | Focus              | Key Deliverables                                         |
+| ---- | ------------------ | -------------------------------------------------------- |
 | EP11 | Quality & Security | LLM-as-judge evaluation, secret detection, debug logging |
-| EP12 | Global Learnings | Cross-project learning storage, transfer, promotion |
+| EP12 | Global Learnings   | Cross-project learning storage, transfer, promotion      |
 
 **Phase Gate**: Production-ready with evaluation and security features
 
@@ -136,70 +136,71 @@ Legend: ████ Active development  ░░░░ Awaiting dependency
 
 ## Risk Register
 
-| Risk | Affected Epics | Likelihood | Impact | Mitigation |
-|------|----------------|------------|--------|------------|
-| Claude Agent SDK API changes | EP02, EP07 | Medium | Medium | Pin versions; adapter layer isolation |
-| Large session logs exceed context | EP06, EP07 | Medium | High | Pre-summarization; chunked processing |
-| FTS5 performance with large datasets | EP06 | Low | Medium | Benchmarking; index optimization |
-| Causal analysis accuracy | EP07, EP10 | Medium | High | LLM-as-judge evaluation framework |
-| Multi-adapter complexity | EP08 | Low | Medium | Comprehensive adapter interface tests |
+| Risk                                 | Affected Epics | Likelihood | Impact | Mitigation                            |
+| ------------------------------------ | -------------- | ---------- | ------ | ------------------------------------- |
+| Opencode SDK API changes             | EP02, EP07     | Medium     | Medium | Pin versions; adapter layer isolation |
+| Large session logs exceed context    | EP06, EP07     | Medium     | High   | Pre-summarization; chunked processing |
+| FTS5 performance with large datasets | EP06           | Low        | Medium | Benchmarking; index optimization      |
+| Causal analysis accuracy             | EP07, EP10     | Medium     | High   | LLM-as-judge evaluation framework     |
+| Multi-adapter complexity             | EP08           | Low        | Medium | Comprehensive adapter interface tests |
 
 ## Arc42 Coverage
 
-| Arc42 Section | Covered By Epics |
-|---------------|------------------|
-| §4 Solution Strategy | EP02 (Two-layer analysis) |
-| §5 Building Blocks - CLI | EP04 |
-| §5 Building Blocks - Orchestration | EP02 |
-| §5 Building Blocks - Tools | EP05, EP06, EP07, EP09, EP10 |
-| §5 Building Blocks - Adapters | EP08 |
-| §5 Building Blocks - Persistence | EP03 |
-| §5 Building Blocks - Integration | EP06, EP12 |
-| §6 Runtime Scenarios | EP05, EP06, EP07, EP09 |
-| §7 Deployment | EP01 |
-| §8 Crosscutting Concepts | EP11 |
-| §10 Quality Requirements | All (distributed) |
-| §11 Risks | EP11 |
+| Arc42 Section                      | Covered By Epics             |
+| ---------------------------------- | ---------------------------- |
+| §4 Solution Strategy               | EP02 (Two-layer analysis)    |
+| §5 Building Blocks - CLI           | EP04                         |
+| §5 Building Blocks - Orchestration | EP02                         |
+| §5 Building Blocks - Tools         | EP05, EP06, EP07, EP09, EP10 |
+| §5 Building Blocks - Adapters      | EP08                         |
+| §5 Building Blocks - Persistence   | EP03                         |
+| §5 Building Blocks - Integration   | EP06, EP12                   |
+| §6 Runtime Scenarios               | EP05, EP06, EP07, EP09       |
+| §7 Deployment                      | EP01                         |
+| §8 Crosscutting Concepts           | EP11                         |
+| §10 Quality Requirements           | All (distributed)            |
+| §11 Risks                          | EP11                         |
 
 ## External Dependencies
 
-| Dependency | Required By | Owner | Status | Notes |
-|------------|-------------|-------|--------|-------|
-| Claude Agent SDK | EP02 | Anthropic | Available | Pin to stable version |
-| Bun runtime | EP01 | Oven | Available | v1.x required |
-| ANTHROPIC_API_KEY | EP02 | User | Required | Environment variable |
+| Dependency       | Required By | Owner    | Status    | Notes                 |
+| ---------------- | ----------- | -------- | --------- | --------------------- |
+| Opencode SDK     | EP02        | Opencode | Available | Pin to stable version |
+| Bun runtime      | EP01        | Oven     | Available | v1.x required         |
+| OPENCODE_API_KEY | EP02        | User     | Required  | Environment variable  |
 
 ## Success Metrics
 
-| Metric | Target | Measurement |
-|--------|--------|-------------|
-| Static analysis <10s | QR from §10 | Automated benchmark |
-| Trend queries <2s | QR from §10 | Automated benchmark |
-| >80% test coverage | NFR-7.2 | CI coverage report |
-| Session resumability | 100% recovery | Integration tests |
-| Config detection accuracy | >95% | Evaluation framework |
+| Metric                    | Target        | Measurement          |
+| ------------------------- | ------------- | -------------------- |
+| Static analysis <10s      | QR from §10   | Automated benchmark  |
+| Trend queries <2s         | QR from §10   | Automated benchmark  |
+| >80% test coverage        | NFR-7.2       | CI coverage report   |
+| Session resumability      | 100% recovery | Integration tests    |
+| Config detection accuracy | >95%          | Evaluation framework |
 
 ## Constitution Alignment
 
 All epics must respect the 9 constitutional principles:
 
-| Principle | Primary Enforcers | Validation |
-|-----------|-------------------|------------|
-| I. Local-First | EP03, EP12 | No external data transmission |
-| II. Improvement-Oriented | EP09, EP12 | Baseline tracking core |
-| III. Causal-First | EP07, EP10 | Trace to origin |
-| IV. Mixed-Methods | EP05, EP06, EP07 | Quantitative + qualitative |
-| V. Language-Agnostic | EP05 | No language-specific core logic |
-| VI. Agent-Agnostic | EP08 | Adapter pattern |
-| VII. Intelligent Tooling | EP02, All tools | Agent decides approach |
-| VIII. Compounding Value | EP09, EP12 | Learnings accumulate |
-| IX. Agent-Aware | EP02 | Design serves agent cognition |
+| Principle                | Primary Enforcers | Validation                      |
+| ------------------------ | ----------------- | ------------------------------- |
+| I. Local-First           | EP03, EP12        | No external data transmission   |
+| II. Improvement-Oriented | EP09, EP12        | Baseline tracking core          |
+| III. Causal-First        | EP07, EP10        | Trace to origin                 |
+| IV. Mixed-Methods        | EP05, EP06, EP07  | Quantitative + qualitative      |
+| V. Language-Agnostic     | EP05              | No language-specific core logic |
+| VI. Agent-Agnostic       | EP08              | Adapter pattern                 |
+| VII. Intelligent Tooling | EP02, All tools   | Agent decides approach          |
+| VIII. Compounding Value  | EP09, EP12        | Learnings accumulate            |
+| IX. Agent-Aware          | EP02              | Design serves agent cognition   |
 
 ## Appendix
 
 ### Epic Files
 
 #### Phase 1 Epics (Original)
+
 - [EP01: Project Foundation & CI/CD](epics/EP01-project-foundation.md)
 - [EP02: Orchestration Core](epics/EP02-orchestration-core.md)
 - [EP03: Persistence Layer](epics/EP03-persistence-layer.md)
@@ -212,13 +213,14 @@ All epics must respect the 9 constitutional principles:
 - [EP10: Recommendation Engine](epics/EP10-recommendation-engine.md)
 - [EP11: Quality & Security](epics/EP11-quality-security.md)
 - [EP12: Global Learnings](epics/EP12-global-learnings.md)
-- [EP13: Git SDK Tools](epics/EP13-git-sdk-tools.md) *(Deferred)*
+- [EP13: Git SDK Tools](epics/EP13-git-sdk-tools.md) _(Deferred)_
 
 #### Phase 2 Epics (Strategic Pivot - Jan 2026)
-- [EP14: Skills Effectiveness Analysis](epics/EP14-skills-effectiveness.md) *(Complete)*
-- [EP15: Session Intelligence](epics/EP15-session-intelligence.md) *(Consolidates EP16, EP18)*
+
+- [EP14: Skills Effectiveness Analysis](epics/EP14-skills-effectiveness.md) _(Complete)_
+- [EP15: Session Intelligence](epics/EP15-session-intelligence.md) _(Consolidates EP16, EP18)_
 - [EP17: TUI Architecture & Agent-Led Exploration](epics/EP17-tui-architecture.md)
-- [EP19: MCP Config Validation](epics/EP19-mcp-config-validation.md) *(Static analysis only)*
+- [EP19: MCP Config Validation](epics/EP19-mcp-config-validation.md) _(Static analysis only)_
 - [EP20: User Customization System](epics/EP20-user-customization.md)
 - [EP21: Learning Improvements](epics/EP21-learning-improvements.md)
 
@@ -231,6 +233,7 @@ All epics must respect the 9 constitutional principles:
 - [Constitution](../../.specify/memory/constitution.md)
 
 #### Phase 2 Strategic Documents
+
 - [Strategic Review (Jan 2026)](../review/agentlint-strategic-review-jan26.md)
 - [Phase 2 Strategic Analysis](../review/phase2-strategic-analysis.md)
 - [ADR-0021: TUI Architecture & Interaction Model](../architecture/adr/0021-tui-architecture-interaction-model.md)

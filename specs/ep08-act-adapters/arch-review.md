@@ -8,11 +8,11 @@
 
 ## Summary
 
-| Category | Count | Status |
-|----------|-------|--------|
-| Violations | 0 | ✓ |
-| Drift | 0 | ✓ |
-| Enhancements | 3 | ℹ️ |
+| Category     | Count | Status |
+| ------------ | ----- | ------ |
+| Violations   | 0     | ✓      |
+| Drift        | 0     | ✓      |
+| Enhancements | 3     | ℹ️     |
 
 **Overall**: PASS
 
@@ -20,21 +20,21 @@
 
 ## Changes Analyzed
 
-| File | Category | Arc42 Section |
-|------|----------|---------------|
-| src/act/index.ts | New | §5 Adapter Layer |
-| src/act/registry.ts | New | §5 Adapter Layer |
-| src/act/types.ts | New | §5 Adapter Layer |
-| src/act/instructions/claude-code.ts | New | §5 Adapter Layer |
-| src/act/instructions/generalized.ts | New | §5 Adapter Layer |
-| src/act/instructions/index.ts | New | §5 Adapter Layer |
-| src/orchestration/orchestrator.ts | Modified | §5 Orchestration Layer |
-| src/orchestration/config.ts | Modified | §5 Orchestration Layer |
-| src/orchestration/types.ts | Modified | §5 Orchestration Layer |
-| src/tools/types.ts | Modified | §5 Tool Layer |
-| tests/unit/act/*.test.ts | New | §8.5 Testing |
-| tests/integration/act/*.test.ts | New | §8.5 Testing |
-| tests/e2e/act/*.test.ts | New | §8.5 Testing |
+| File                                | Category | Arc42 Section          |
+| ----------------------------------- | -------- | ---------------------- |
+| src/act/index.ts                    | New      | §5 Adapter Layer       |
+| src/act/registry.ts                 | New      | §5 Adapter Layer       |
+| src/act/types.ts                    | New      | §5 Adapter Layer       |
+| src/act/instructions/claude-code.ts | New      | §5 Adapter Layer       |
+| src/act/instructions/generalized.ts | New      | §5 Adapter Layer       |
+| src/act/instructions/index.ts       | New      | §5 Adapter Layer       |
+| src/orchestration/orchestrator.ts   | Modified | §5 Orchestration Layer |
+| src/orchestration/config.ts         | Modified | §5 Orchestration Layer |
+| src/orchestration/types.ts          | Modified | §5 Orchestration Layer |
+| src/tools/types.ts                  | Modified | §5 Tool Layer          |
+| tests/unit/act/\*.test.ts           | New      | §8.5 Testing           |
+| tests/integration/act/\*.test.ts    | New      | §8.5 Testing           |
+| tests/e2e/act/\*.test.ts            | New      | §8.5 Testing           |
 
 ---
 
@@ -43,6 +43,7 @@
 ### §5 Building Blocks - Level 2: Adapter Layer
 
 **Documented Structure**:
+
 ```
 ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐
 │  CLAUDE CODE     │  │  GENERALIZED     │  │  FUTURE          │
@@ -54,6 +55,7 @@
 **Implementation Alignment**: ✓ ALIGNED
 
 EP08 implements the documented adapter pattern:
+
 - `claude-code-analyzer` - Claude Code specialist (priority 100)
 - `generalized-analyzer` - Fallback for unknown ACTs (priority 10)
 - Registry pattern enables future ACT additions (Cursor, Aider, Windsurf)
@@ -61,6 +63,7 @@ EP08 implements the documented adapter pattern:
 ### §5 Building Blocks - Level 2: Orchestration Layer
 
 **Documented Structure**:
+
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │               AGENT COGNITIVE WORKSPACE                         │
@@ -82,37 +85,38 @@ EP08 implements the documented adapter pattern:
 
 ### Claude Code Reference Pattern
 
-| Pattern | §4 Documentation | EP08 Implementation | Status |
-|---------|------------------|---------------------|--------|
-| Subagent depth limits | "Bounded delegation (single level)" | `MAX_SUBAGENT_DEPTH = 1` | ✓ |
-| Rich tool descriptions | "Poka-yoke design (ADR-0005)" | Context-engineered prompts | ✓ |
+| Pattern                | §4 Documentation                    | EP08 Implementation        | Status |
+| ---------------------- | ----------------------------------- | -------------------------- | ------ |
+| Subagent depth limits  | "Bounded delegation (single level)" | `MAX_SUBAGENT_DEPTH = 1`   | ✓      |
+| Rich tool descriptions | "Poka-yoke design (ADR-0005)"       | Context-engineered prompts | ✓      |
 
 ### Two-Layer Analysis
 
-| Layer | §4 Documentation | EP08 Implementation | Status |
-|-------|------------------|---------------------|--------|
-| Static Analysis | "Fast, deterministic extraction" | Tools: discover_configs, parse_config | ✓ |
-| Agentic Reasoning | "Semantic understanding, quality judgments" | Subagent prompts with domain knowledge | ✓ |
+| Layer             | §4 Documentation                            | EP08 Implementation                    | Status |
+| ----------------- | ------------------------------------------- | -------------------------------------- | ------ |
+| Static Analysis   | "Fast, deterministic extraction"            | Tools: discover_configs, parse_config  | ✓      |
+| Agentic Reasoning | "Semantic understanding, quality judgments" | Subagent prompts with domain knowledge | ✓      |
 
 ---
 
 ## Constitution Compliance
 
-| Principle | Compliance | Evidence |
-|-----------|------------|----------|
-| I. Local-First | ✓ | Subagents run locally with user's API key |
-| II. Improvement-Oriented | ✓ | Recommendations include preventive/systemic types |
-| III. Causal-First | ✓ | Output types include ACTRecommendationType: preventive > symptomatic |
-| IV. Mixed-Methods | ✓ | Subagents use both tools and reasoning |
-| V. Language-Agnostic | ✓ | No language-specific assumptions |
-| VI. Agent-Agnostic | ✓ | Adapter pattern supports multiple ACTs |
-| VII. Intelligent Tooling | ✓ | Subagents choose tools via semantic matching |
-| VIII. Compounding Value | ✓ | Session analysis enables trend detection |
-| IX. Agent-Aware | ✓ | Context-engineered prompts (4-layer structure) |
+| Principle                | Compliance | Evidence                                                             |
+| ------------------------ | ---------- | -------------------------------------------------------------------- |
+| I. Local-First           | ✓          | Subagents run locally with user's API key                            |
+| II. Improvement-Oriented | ✓          | Recommendations include preventive/systemic types                    |
+| III. Causal-First        | ✓          | Output types include ACTRecommendationType: preventive > symptomatic |
+| IV. Mixed-Methods        | ✓          | Subagents use both tools and reasoning                               |
+| V. Language-Agnostic     | ✓          | No language-specific assumptions                                     |
+| VI. Agent-Agnostic       | ✓          | Adapter pattern supports multiple ACTs                               |
+| VII. Intelligent Tooling | ✓          | Subagents choose tools via semantic matching                         |
+| VIII. Compounding Value  | ✓          | Session analysis enables trend detection                             |
+| IX. Agent-Aware          | ✓          | Context-engineered prompts (4-layer structure)                       |
 
 ### C8 Single-Depth Constraint
 
 **Enforcement Points**:
+
 1. `ACTInstructionsSchema` - Zod validation rejects 'Task' in tools array
 2. `MAX_SUBAGENT_DEPTH = 1` - Orchestrator enforces depth limit
 3. `SubagentDepthError` - Error class for depth violations
@@ -123,19 +127,19 @@ EP08 implements the documented adapter pattern:
 
 ### ADR-0002: Agentic Framework Strategy
 
-| Requirement | Implementation | Status |
-|-------------|----------------|--------|
-| Use Claude Agent SDK | SDK `query()` with `agents` option | ✓ |
-| Single subagent branches | MAX_SUBAGENT_DEPTH = 1 | ✓ |
-| MCP-compatible tools | Tools use SDK `tool()` pattern | ✓ |
+| Requirement              | Implementation                     | Status |
+| ------------------------ | ---------------------------------- | ------ |
+| Use Claude Agent SDK     | SDK `query()` with `agents` option | ✓      |
+| Single subagent branches | MAX_SUBAGENT_DEPTH = 1             | ✓      |
+| MCP-compatible tools     | Tools use SDK `tool()` pattern     | ✓      |
 
 ### ADR-0011: Testing Strategy
 
-| Test Suite | EP08 Implementation | Status |
-|------------|---------------------|--------|
-| Unit tests | tests/unit/act/*.test.ts (every commit) | ✓ |
-| Integration tests | tests/integration/act/*.test.ts (PR) | ✓ |
-| E2E tests | tests/e2e/act/*.test.ts (release tags) | ✓ |
+| Test Suite        | EP08 Implementation                      | Status |
+| ----------------- | ---------------------------------------- | ------ |
+| Unit tests        | tests/unit/act/\*.test.ts (every commit) | ✓      |
+| Integration tests | tests/integration/act/\*.test.ts (PR)    | ✓      |
+| E2E tests         | tests/e2e/act/\*.test.ts (release tags)  | ✓      |
 
 **Note**: E2E tests use `describe.skipIf(SKIP_LIVE_TESTS)` pattern per ADR-0011.
 
@@ -181,6 +185,7 @@ Added "Level 3: ACT Subagent Module (EP08)" to `docs/architecture/arc42/05-build
 **Status**: ✓ ALIGNED
 
 New output types align with domain model:
+
 - `ACTConfigIssue` → maps to Issue entity
 - `ACTSessionIssue` → maps to Session entity patterns
 - `ACTRecommendation` → maps to Recommendation entity
@@ -189,7 +194,7 @@ New output types align with domain model:
 
 **Status**: ✓ ALIGNED
 
-- API key via `ANTHROPIC_API_KEY` environment variable
+- API key delegated to Opencode SDK ([ADR-0026](../adr/0026-opencode-auth-delegation.md))
 - No secrets in instruction prompts
 - Subagent tools are read-only (discover, parse, analyze, search)
 
@@ -250,5 +255,6 @@ All drift items have been resolved. Arc42 documentation is now up to date.
 ---
 
 **Next Steps**:
+
 1. Run `/dev.integration-check` for final validation
 2. Create PR with `/dev.pr`

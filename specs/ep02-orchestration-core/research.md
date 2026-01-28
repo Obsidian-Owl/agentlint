@@ -12,20 +12,24 @@
 **Decision**: Pin `@anthropic-ai/claude-agent-sdk@0.2.7`
 
 **Rationale**:
+
 - Latest stable version as of 2026-01-16
 - Released 2026-01-14 (v0.2.7)
 - Stable V1 API with V2 preview available
 - Migration from "Claude Code SDK" to "Claude Agent SDK" complete
 
 **Alternatives Considered**:
+
 - `@latest`: Rejected - could introduce breaking changes
 - Earlier 0.1.x versions: Rejected - missing V1 API improvements
 
 **References**:
+
 - [GitHub Releases](https://github.com/anthropics/claude-agent-sdk-typescript/releases/tag/v0.2.7)
 - [npm Package](https://www.npmjs.com/package/@anthropic-ai/claude-agent-sdk)
 
 **Implementation Note**:
+
 ```json
 // package.json
 {
@@ -43,12 +47,14 @@
 **Decision**: Use `query()` as the primary interface
 
 **Rationale**:
+
 - Implements master loop internally (`while(tool_call) → execute → repeat`)
 - Returns `AsyncGenerator<SDKMessage>` for streaming
 - Supports all required options: `resume`, `hooks`, `mcpServers`, `model`
 - V2 interface available but V1 is stable and sufficient
 
 **Key Pattern**:
+
 ```typescript
 import { query } from '@anthropic-ai/claude-agent-sdk';
 
@@ -58,16 +64,20 @@ const result = query({
     model: 'claude-sonnet-4-20250514',
     cwd: process.cwd(),
     includePartialMessages: true,
-    resume: sessionId,  // For session resume
-    settingSources: ['project'],  // REQUIRED: Loads CLAUDE.md for analysis
-    hooks: { /* ... */ },
-    mcpServers: { /* ... */ },
+    resume: sessionId, // For session resume
+    settingSources: ['project'], // REQUIRED: Loads CLAUDE.md for analysis
+    hooks: {
+      /* ... */
+    },
+    mcpServers: {
+      /* ... */
+    },
     systemPrompt: {
       type: 'preset',
       preset: 'claude_code',
-      append: customInstructions
-    }
-  }
+      append: customInstructions,
+    },
+  },
 });
 
 for await (const message of result) {
@@ -76,6 +86,7 @@ for await (const message of result) {
 ```
 
 **References**:
+
 - [TypeScript SDK Reference](https://platform.claude.com/docs/en/agent-sdk/typescript)
 - [Claude Code Behind-the-Scenes](https://blog.promptlayer.com/claude-code-behind-the-scenes-of-the-master-agent-loop/)
 
@@ -86,12 +97,14 @@ for await (const message of result) {
 **Decision**: Use `tool()` + `createSdkMcpServer()` for agentlint tools
 
 **Rationale**:
+
 - SDK-native pattern, MCP-compatible
 - Type-safe with Zod schemas
 - In-process execution (no IPC overhead)
 - Consistent with ADR-0005
 
 **Key Pattern**:
+
 ```typescript
 import { tool, createSdkMcpServer } from '@anthropic-ai/claude-agent-sdk';
 import { z } from 'zod';
@@ -101,12 +114,12 @@ const parseConfigTool = tool(
   'Parse and analyze CLAUDE.md configuration file',
   {
     path: z.string().describe('Path to CLAUDE.md file'),
-    includeMetrics: z.boolean().optional().describe('Include quality metrics')
+    includeMetrics: z.boolean().optional().describe('Include quality metrics'),
   },
   async (args) => {
     // Tool implementation
     return {
-      content: [{ type: 'text', text: JSON.stringify(result) }]
+      content: [{ type: 'text', text: JSON.stringify(result) }],
     };
   }
 );
@@ -114,7 +127,7 @@ const parseConfigTool = tool(
 const agentlintServer = createSdkMcpServer({
   name: 'agentlint',
   version: '0.1.0',
-  tools: [parseConfigTool, /* ... more tools */]
+  tools: [parseConfigTool /* ... more tools */],
 });
 
 // Register with query()
@@ -122,13 +135,14 @@ query({
   prompt: '...',
   options: {
     mcpServers: {
-      agentlint: agentlintServer
-    }
-  }
+      agentlint: agentlintServer,
+    },
+  },
 });
 ```
 
 **References**:
+
 - [SDK TypeScript Reference - tool()](https://platform.claude.com/docs/en/agent-sdk/typescript#tool)
 - [ADR-0005 Tool Definition Pattern](../../docs/architecture/adr/0005-tool-definition-and-invocation-pattern.md)
 
@@ -148,6 +162,7 @@ query({
 | `SubagentStart/Stop` | Subagent lifecycle | Track delegations |
 
 **Key Pattern**:
+
 ```typescript
 import type { HookCallback, PostToolUseHookInput } from '@anthropic-ai/claude-agent-sdk';
 
@@ -160,7 +175,7 @@ const checkpointHook: HookCallback = async (input, toolUseId, { signal }) => {
       trigger: 'tool_complete',
       toolName: tool_name,
       sessionId: session_id,
-      state: getCurrentState()
+      state: getCurrentState(),
     });
   }
 
@@ -173,13 +188,14 @@ query({
     hooks: {
       PostToolUse: [{ hooks: [checkpointHook] }],
       SessionEnd: [{ hooks: [finalCheckpointHook] }],
-      PreCompact: [{ hooks: [preCompactHook] }]
-    }
-  }
+      PreCompact: [{ hooks: [preCompactHook] }],
+    },
+  },
 });
 ```
 
 **References**:
+
 - [SDK Hooks Guide](https://platform.claude.com/docs/en/agent-sdk/hooks)
 - [ADR-0010 Session State](../../docs/architecture/adr/0010-session-state-and-checkpointing.md)
 
@@ -190,11 +206,13 @@ query({
 **Decision**: Use SDK's `resume` option with session ID
 
 **Rationale**:
+
 - SDK handles conversation restore internally
 - agentlint adds state restoration via hooks
 - `forkSession` option allows branching
 
 **Key Pattern**:
+
 ```typescript
 // Resume existing session
 const result = query({
@@ -203,28 +221,33 @@ const result = query({
     resume: 'session-uuid-here',
     // forkSession: true,  // Optional: fork to new session
     hooks: {
-      SessionStart: [{
-        hooks: [async (input) => {
-          if (input.hook_event_name === 'SessionStart' && input.source === 'resume') {
-            // Restore agentlint state
-            const state = await loadAgentlintState(input.session_id);
-            return {
-              continue: true,
-              hookSpecificOutput: {
-                hookEventName: 'SessionStart',
-                additionalContext: formatStateForAgent(state)
+      SessionStart: [
+        {
+          hooks: [
+            async (input) => {
+              if (input.hook_event_name === 'SessionStart' && input.source === 'resume') {
+                // Restore agentlint state
+                const state = await loadAgentlintState(input.session_id);
+                return {
+                  continue: true,
+                  hookSpecificOutput: {
+                    hookEventName: 'SessionStart',
+                    additionalContext: formatStateForAgent(state),
+                  },
+                };
               }
-            };
-          }
-          return { continue: true };
-        }]
-      }]
-    }
-  }
+              return { continue: true };
+            },
+          ],
+        },
+      ],
+    },
+  },
 });
 ```
 
 **References**:
+
 - [SDK Reference - resume option](https://platform.claude.com/docs/en/agent-sdk/typescript#options)
 
 ---
@@ -243,6 +266,7 @@ const result = query({
 | `SDKCompactBoundaryMessage` | Context compaction | Compression metadata |
 
 **Key Pattern**:
+
 ```typescript
 import type {
   SDKMessage,
@@ -257,8 +281,8 @@ const result = query({
   prompt: '...',
   options: {
     includePartialMessages: true,
-    settingSources: ['project'],  // REQUIRED: Loads CLAUDE.md for analysis
-  }
+    settingSources: ['project'], // REQUIRED: Loads CLAUDE.md for analysis
+  },
 });
 
 for await (const message of result) {
@@ -309,11 +333,13 @@ for await (const message of result) {
 **Decision**: Use Claude Code preset with append
 
 **Rationale**:
+
 - Inherits Claude Code's proven system prompt
 - `append` adds agentlint-specific guidance
 - Keeps cognitive workspace structure
 
 **Key Pattern**:
+
 ```typescript
 const agentlintSystemPrompt = `
 ## agentlint Analysis Context
@@ -344,9 +370,9 @@ query({
     systemPrompt: {
       type: 'preset',
       preset: 'claude_code',
-      append: agentlintSystemPrompt
-    }
-  }
+      append: agentlintSystemPrompt,
+    },
+  },
 });
 ```
 
@@ -357,17 +383,19 @@ query({
 **Decision**: Global config at `~/.agentlint/config.json`
 
 **Schema**:
+
 ```typescript
 interface AgentlintConfig {
-  model: string;  // Default: 'claude-sonnet-4-20250514'
+  model: string; // Default: 'claude-sonnet-4-20250514'
   checkpoint: {
-    intervalMs: number;  // Default: 60000 (60s)
+    intervalMs: number; // Default: 60000 (60s)
   };
-  verbosity: 'quiet' | 'normal' | 'verbose' | 'debug';  // Default: 'normal'
+  verbosity: 'quiet' | 'normal' | 'verbose' | 'debug'; // Default: 'normal'
 }
 ```
 
 **Default Values**:
+
 ```json
 {
   "model": "claude-sonnet-4-20250514",
@@ -385,6 +413,7 @@ interface AgentlintConfig {
 **Decision**: Extend existing `AgentlintError` hierarchy
 
 **New Error Types**:
+
 ```typescript
 // src/errors/orchestration.ts
 
@@ -411,7 +440,7 @@ export class ToolRegistrationError extends OrchestrationError {
 
 export class ApiKeyError extends AgentlintError {
   constructor() {
-    super('API key invalid or expired. Session saved. Re-run with valid ANTHROPIC_API_KEY.');
+    super('API key invalid or expired. Session saved. Re-run with valid OPENCODE_API_KEY.');
     this.name = 'ApiKeyError';
   }
 }
@@ -424,6 +453,7 @@ export class ApiKeyError extends AgentlintError {
 **Decision**: VCR recordings + mock tools
 
 **Test Structure**:
+
 ```
 tests/
 ├── unit/
@@ -441,6 +471,7 @@ tests/
 ```
 
 **Mock Tool Pattern**:
+
 ```typescript
 // tests/fixtures/mock-tools.ts
 import { tool } from '@anthropic-ai/claude-agent-sdk';
@@ -451,7 +482,7 @@ export const mockParseConfig = tool(
   'Mock config parser for testing',
   { path: z.string() },
   async () => ({
-    content: [{ type: 'text', text: JSON.stringify({ score: 85, warnings: [] }) }]
+    content: [{ type: 'text', text: JSON.stringify({ score: 85, warnings: [] }) }],
   })
 );
 ```

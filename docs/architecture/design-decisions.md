@@ -18,12 +18,12 @@ Decisions are organized by architectural domain and prioritized by dependency (d
 
 ## Decision Status Legend
 
-| Status | Meaning |
-|--------|---------|
-| **OPEN** | Decision not yet researched |
-| **RESEARCHING** | Active investigation underway |
-| **PROPOSED** | Recommendation made, awaiting approval |
-| **DECIDED** | ADR approved and ratified |
+| Status          | Meaning                                |
+| --------------- | -------------------------------------- |
+| **OPEN**        | Decision not yet researched            |
+| **RESEARCHING** | Active investigation underway          |
+| **PROPOSED**    | Recommendation made, awaiting approval |
+| **DECIDED**     | ADR approved and ratified              |
 
 ---
 
@@ -38,6 +38,7 @@ These decisions establish the fundamental platform and must be resolved first.
 **Question**: What runtime platform and programming language should agentlint be built on?
 
 **Context**:
+
 - agentlint is a CLI tool for developers
 - Must support macOS, Linux, Windows
 - Requires excellent async/streaming support for LLM interactions
@@ -53,6 +54,7 @@ These decisions establish the fundamental platform and must be resolved first.
 | Go | Single binary distribution, good performance | Less flexible for dynamic agent patterns |
 
 **Evaluation Criteria**:
+
 - Developer productivity and maintainability
 - Distribution simplicity (single binary vs. runtime dependency)
 - LLM library ecosystem maturity
@@ -74,6 +76,7 @@ These decisions establish the fundamental platform and must be resolved first.
 **Decision**: Use the **Claude Agent SDK** with Anthropic-only for MVP. This provides the same proven infrastructure that powers Claude Code, with built-in agent loop, context management, and MCP support. Anthropic-only strategy simplifies testing and maximizes development velocity.
 
 **Context**:
+
 - agentlint requires a master agent loop with tool calling
 - Research shows production systems often use custom loops for control
 - Claude Code uses a simple single-threaded loop without complex frameworks
@@ -88,12 +91,14 @@ These decisions establish the fundamental platform and must be resolved first.
 | Hybrid | Custom loop with library utilities | Integration complexity |
 
 **Key Questions**:
+
 - How much control do we need over the agent loop?
 - What tool-calling abstractions exist in each framework?
 - How do frameworks handle streaming and checkpointing?
 - What are the escape hatches when frameworks don't fit?
 
 **Evaluation Criteria**:
+
 - Alignment with single-threaded master loop architecture
 - Tool definition and invocation flexibility
 - Streaming and progressive output support
@@ -115,6 +120,7 @@ These decisions establish the fundamental platform and must be resolved first.
 **Decision**: **Anthropic-only for MVP** via Claude Agent SDK. No provider abstraction layer needed initially. Multi-provider support can be added post-MVP via thin adapter layer if demand warrants. This decision was made alongside ADR-0002 to simplify development, testing, and maximize Anthropic-specific optimizations (prompt caching, extended thinking).
 
 **Context**:
+
 - Primary users will likely use Anthropic models (analyzing Claude Code)
 - Local-first principle requires user-provided credentials
 - Must support tool calling, streaming, and potentially extended thinking
@@ -129,12 +135,14 @@ These decisions establish the fundamental platform and must be resolved first.
 | Provider plugins | Extensible | Architecture complexity |
 
 **Key Questions**:
+
 - How critical is multi-provider support for MVP?
 - What provider-specific features do we need (extended thinking, caching)?
 - How do we handle streaming across providers consistently?
 - What's the cost of abstraction vs. direct integration?
 
 **Evaluation Criteria**:
+
 - Feature completeness for Anthropic (primary)
 - Abstraction overhead
 - Streaming support quality
@@ -157,11 +165,13 @@ These decisions establish the fundamental platform and must be resolved first.
 **Decision**: Use **Claude Agent SDK's native `tool()` function with Zod schemas**. No MCP protocol overhead—the SDK creates MCP-compatible definitions without requiring MCP servers. Rich tool descriptions follow Anthropic's Poka-yoke principle for agent comprehension. Large results use **hybrid summarization**: if result < threshold return full; if >= threshold return LLM summary + store full result for retrieval.
 
 **Tool Scope**:
+
 - SDK built-in tools: Read, Glob, Grep, Bash (analysis-focused, no Write/Edit to project files)
 - Custom tools: config parsing, session search, baselines, recommendations, learnings
 - Controlled write: Agent can only write to `.agentlint/` and `~/.agentlint/`
 
 **Context**:
+
 - Tools serve the agent's cognitive needs
 - Research emphasizes investing in Agent-Computer Interface (ACI) quality
 - Tools should be atomic, well-documented, and prevent common errors
@@ -176,12 +186,14 @@ These decisions establish the fundamental platform and must be resolved first.
 | Hybrid (internal + MCP bridge) | Flexibility | Complexity |
 
 **Key Questions**:
+
 - Should tool definitions be MCP-compatible from the start?
 - How do we ensure rich tool documentation for agent understanding?
 - What validation and error handling patterns work best?
 - How do we handle tool results that exceed context limits?
 
 **Evaluation Criteria**:
+
 - Ease of tool authoring
 - Agent comprehension of tool capabilities
 - Error handling and recovery
@@ -204,6 +216,7 @@ These decisions establish the fundamental platform and must be resolved first.
 **Research Finding**: Claude Code logs accumulate to 100s of MB (users report up to 379 MB). Logs stored as JSONL at `~/.claude/projects/[encoded-dir]/*.jsonl`.
 
 **Context**:
+
 - Claude Code session logs are large JSONL files
 - Logs must be searchable for causal tracing (FR-6)
 - Agent cannot ingest raw logs due to context limits
@@ -218,12 +231,14 @@ These decisions establish the fundamental platform and must be resolved first.
 | Streaming with summarization | Memory efficient | May lose detail |
 
 **Key Questions**:
+
 - What's the expected session log volume for typical users?
 - How do we balance search precision with context limits?
 - What indexing strategy enables efficient causal tracing?
 - How do we handle incremental updates as new sessions occur?
 
 **Evaluation Criteria**:
+
 - Search performance for causal tracing
 - Memory efficiency
 - Incremental update support
@@ -244,12 +259,14 @@ These decisions establish the fundamental platform and must be resolved first.
 **Decision**: Use **mdast + Adapter Pattern**. The unified/remark ecosystem parses markdown into AST, then adapters normalize output per ACT type. Claude Code adapter implemented for MVP; others via community contribution. Structural analysis extracts quality signals (size, coverage, patterns, anti-patterns) without semantic understanding.
 
 **Key Quality Signals Extracted**:
+
 - Size metrics: line count, token estimate, weight class (lightweight/medium/heavy)
 - Structure: sections, WHAT/WHY/HOW coverage, heading depth
 - Content: build/test commands, file references, emphasis markers
 - Anti-patterns: generic rules, secrets, linter jobs, instruction overload
 
 **Research-Backed Thresholds**:
+
 - CLAUDE.md: <60 lines recommended, <300 max (HumanLayer, Anthropic)
 - Cursor rules: <100 lines per file, <500 max
 - Token weight: <3k lightweight, 3-15k medium, >25k heavy (bottleneck)
@@ -271,12 +288,14 @@ These decisions establish the fundamental platform and must be resolved first.
 **Decision**: Use **JSON files + SQLite metadata index**. Each baseline is stored as a human-readable `.json` file in `.agentlint/baselines/`. SQLite database indexes metadata for fast trend queries. Delta calculation uses jsondiffpatch library. Baselines are project-local (no export/import for MVP).
 
 **Key Design Points**:
+
 - Human debuggable: Plain JSON files open in any editor
 - Efficient queries: SQLite indexes created_at, warning_count, coverage_score
 - User-configurable frequency: per-analysis, explicit, or on-change modes
 - Follows same pattern as session indexing (ADR-0006)
 
 **Storage Layout**:
+
 ```
 .agentlint/
 ├── baselines/
@@ -300,6 +319,7 @@ These decisions establish the fundamental platform and must be resolved first.
 **Decision**: Use **Markdown files + sqlite-vec for semantic search**. Each learning is stored as a human-readable markdown file with YAML frontmatter in `~/.agentlint/learnings/`. Semantic search via local embeddings (Transformers.js + sqlite-vec) finds relevant learnings at session start. LLM validates generalizability before promotion to global status.
 
 **Key Design Points**:
+
 - Human editable: Markdown with YAML frontmatter for metadata
 - Semantic retrieval: Local embeddings via `Xenova/gte-small` (~50MB cached)
 - Quality validation: LLM checks generalizability score (>0.7 to promote)
@@ -307,6 +327,7 @@ These decisions establish the fundamental platform and must be resolved first.
 - Usage metrics: Retrieval and application counts for learning effectiveness
 
 **Storage Layout**:
+
 ```
 ~/.agentlint/
 ├── learnings/
@@ -330,6 +351,7 @@ These decisions establish the fundamental platform and must be resolved first.
 **Decision**: Use **SDK sessions + state file** with **event + interval triggers**. The Claude Agent SDK handles conversation persistence natively via session IDs. agentlint adds a lightweight JSON state file for analysis-specific data (findings, tool results, progress). Checkpoints are saved on significant events AND at time intervals (whichever comes first).
 
 **Key Design Points**:
+
 - Leverage SDK's built-in session management (resume via `resume: sessionId`)
 - JSON state file per session: `.agentlint/sessions/{sessionId}-state.json`
 - Dual triggers: Event-based (findings, phase completion) + interval (every 60s)
@@ -337,6 +359,7 @@ These decisions establish the fundamental platform and must be resolved first.
 - Crash recovery: Check for incomplete sessions on startup
 
 **Checkpoint Triggers**:
+
 - On finding detected
 - On phase completion (scan → analyze → recommend)
 - On recommendation generated
@@ -360,6 +383,7 @@ These decisions establish the fundamental platform and must be resolved first.
 **Decision**: Use **Ink + Commander.js** following Claude Code's architecture pattern. Ink provides React-based terminal UI with streaming support and Yoga layout engine. Commander handles argument parsing. Commands use verb-based structure (scan, analyse, baseline, compare, recommend, trace, validate, learn).
 
 **Context**:
+
 - Primary interface is CLI
 - Commands: scan, analyse, baseline, compare, recommend, trace, validate, learn
 - Need excellent help, completion, and error messages
@@ -375,12 +399,14 @@ These decisions establish the fundamental platform and must be resolved first.
 | Cobra (Go) | Standard for Go CLIs | Go-only |
 
 **Key Questions**:
+
 - What command structure best serves the continuous improvement model?
 - How do we handle streaming output in CLI context?
 - What progress indication patterns work for 30+ minute operations?
 - How do we support both interactive and scripted usage?
 
 **Evaluation Criteria**:
+
 - Developer ergonomics
 - Streaming and progress support
 - Help and documentation quality
@@ -401,6 +427,7 @@ These decisions establish the fundamental platform and must be resolved first.
 **Decision**: Use **Ink UI Components + Custom Causal Tree**. Leverage @inkjs/ui for standard components (Spinner, ProgressBar, Table, StatusMessage), build custom tree component for causal chain visualization. Support three output formats: Terminal (default with rich Ink rendering), JSON (--json with JSON Lines for streaming), and Markdown (--markdown for reports).
 
 **Context**:
+
 - Multiple output formats: terminal (default), JSON, Markdown
 - Terminal output needs careful width handling
 - Streaming output during long operations
@@ -415,12 +442,14 @@ These decisions establish the fundamental platform and must be resolved first.
 | Plain text + ANSI | Simple, portable | Limited formatting |
 
 **Key Questions**:
+
 - How rich should terminal output be?
 - How do we handle output width across terminals?
 - What's the best way to represent causal chains visually?
 - How do we balance aesthetics with accessibility?
 
 **Evaluation Criteria**:
+
 - Readability and clarity
 - Streaming support
 - Cross-terminal compatibility
@@ -443,6 +472,7 @@ These decisions establish the fundamental platform and must be resolved first.
 **Decision**: Use **VCR-style recorded responses + TruLens evals** with **separate test suites**. Unit tests run on every commit with mocks. Integration tests use VCR-recorded API responses and run on pull requests. E2E tests and behavioral evaluations use TruLens with live LLM calls, running only on release tags.
 
 **Key Design Points**:
+
 - VCR recordings via bun-bagel for deterministic CI
 - TruLens provides explainable evaluation metrics with tracing
 - Four test suites: unit (mocked), integration (VCR), E2E (live), evals (TruLens)
@@ -474,6 +504,7 @@ These decisions establish the fundamental platform and must be resolved first.
 **Critical Finding**: No public session log dataset exists. Session logs must be generated through dogfooding.
 
 **Key Design Points**:
+
 - Three-tier grading: code-based (fast), LLM-as-judge (nuanced), human spot-check (gold standard)
 - Primary metrics: actionability, causal accuracy, relevance
 - Comprehensive dogfooding: CLAUDE.md, commands, skills, CI/CD, docs—all best-in-class
@@ -487,6 +518,7 @@ These decisions establish the fundamental platform and must be resolved first.
 | Ongoing | Above + community submissions | Above + opt-in user data |
 
 **Golden Dataset Sources**:
+
 - [metabase/metabase CLAUDE.md](https://github.com/metabase/metabase/blob/master/CLAUDE.md) - Real production
 - [langchain-ai/langgraphjs CLAUDE.md](https://github.com/langchain-ai/langgraphjs/blob/main/CLAUDE.md) - Real production
 - Session logs: **Dogfood only** (no public dataset exists)
@@ -508,6 +540,7 @@ These decisions establish the fundamental platform and must be resolved first.
 **Decision**: Use **Hybrid: Gitleaks patterns + LLM validation**. Parse Gitleaks' TOML pattern definitions (140+ community-maintained detectors) in TypeScript, then use LLM to validate candidates with redacted context. This provides battle-tested patterns without binary dependencies, while LLM reasoning reduces false positives.
 
 **Key Design Points**:
+
 - Pattern source: Gitleaks TOML rules (synced periodically from upstream)
 - Execution: Native TypeScript regex matching (no Go binary required)
 - Privacy: Secret values redacted before LLM sees context
@@ -515,6 +548,7 @@ These decisions establish the fundamental platform and must be resolved first.
 - Output: Classification with confidence score and reasoning
 
 **Research Findings**:
+
 - Entropy-only detection produces high false positives (210K candidates → first 50 all false positives in one study)
 - LLMs achieve F1 = 94.49% vs 80% for pure regex (IEEE research)
 - detect-secrets has lowest false positive rate but requires Python runtime
@@ -528,27 +562,25 @@ These decisions establish the fundamental platform and must be resolved first.
 
 ### DD-015: Credential Management
 
-**Status**: DECIDED (ADR-0014)
+**Status**: DECIDED (ADR-0026)
 
 **Question**: How should user LLM API credentials be stored and accessed?
 
-**Decision**: Use **environment variables with fallback chain**. Resolution order: (1) `ANTHROPIC_API_KEY` env var, (2) `~/.agentlint/credentials` TOML file, (3) interactive prompt if TTY, (4) error with setup instructions.
+**Decision**: **Delegate all authentication to the Opencode SDK**. agentlint no longer manages LLM credentials directly. Instead, it relies on the Opencode SDK's built-in authentication mechanisms, supporting multiple providers and OAuth.
 
 **Key Design Points**:
-- Matches Anthropic ecosystem conventions (`ANTHROPIC_API_KEY`)
-- Works in all CI/CD platforms without special configuration
-- No native dependencies (no node-keytar)
-- Credentials file with 600 permissions for local convenience
-- `agentlint auth` command for interactive setup
 
-**Credential Resolution Chain**:
-```
-ANTHROPIC_API_KEY env var → ~/.agentlint/credentials → interactive prompt → error
-```
+- Standardizes authentication across all agentlint installations.
+- Supports Anthropic, OpenAI, and other providers via Opencode delegation.
+- Leverages Opencode's `auth` command and environment variable handling.
+- Reduces security risk by not handling raw credentials in agentlint core.
 
-**Related Principles**: I (Local-First), NFR-2.3 (User provides own credentials)
+**Credential Resolution**:
+Managed by Opencode SDK (delegates to `opencode auth` or provider-specific env vars).
 
-**Dependencies**: Depends on DD-001; Blocks LLM integration
+**Related Principles**: I (Local-First), VI (Agent-Agnostic), NFR-2.3 (User provides own credentials)
+
+**Dependencies**: Depends on DD-001, ADR-0024; Blocks LLM integration
 
 ---
 
@@ -563,6 +595,7 @@ ANTHROPIC_API_KEY env var → ~/.agentlint/credentials → interactive prompt �
 **Decision**: Use **simple-git (Git CLI wrapper)**. This provides full access to all git operations (blame, log, diff, pickaxe) via the native git binary, with TypeScript support and zero native dependencies.
 
 **Key Design Points**:
+
 - Full git CLI functionality via simple-git npm package
 - Blame, log, diff, and pickaxe search for causal tracing
 - Graceful degradation: warn and continue when git unavailable
@@ -570,12 +603,14 @@ ANTHROPIC_API_KEY env var → ~/.agentlint/credentials → interactive prompt �
 - No native compilation required (unlike nodegit)
 
 **Why not isomorphic-git?**
+
 - Missing diff command (explicitly not implemented)
 - Missing blame command
 - No pickaxe search capability
 - These are critical for causal tracing (Constitution Principle III)
 
 **Git Operations Exposed**:
+
 - `git_blame` - Line-by-line authorship for tracing changes
 - `git_pickaxe` - Search history for when strings were added/removed
 - `git_log` - Commit history with filtering
@@ -596,17 +631,20 @@ ANTHROPIC_API_KEY env var → ~/.agentlint/credentials → interactive prompt �
 **Decision**: **Defer full MCP integration** - ADR-0002 and ADR-0005 already provide MCP compatibility at the tool definition level. The Claude Agent SDK creates MCP-compatible definitions via `tool()`, and supports MCP connectors if needed later. No additional work required for future-proofing.
 
 **Key Points**:
+
 - Current `tool()` definitions are already MCP-compatible (format level)
 - SDK natively supports MCP server consumption via `.mcp.json` when needed
 - Explicit defer decision, not neglect—documented upgrade path exists
 - MCP ecosystem context: 97M monthly downloads, 10K+ servers, major adopters
 
 **MCP Ecosystem (Dec 2025)**:
+
 - Donated to Linux Foundation Agentic AI Foundation
 - Founding members: OpenAI, Google, Microsoft, Amazon, Anthropic, Block
 - Adopted by: ChatGPT, Cursor, Gemini, VS Code, Microsoft Copilot
 
 **Upgrade Path** (when needed):
+
 1. Consume MCP servers: Add `.mcp.json`, use SDK's native connector
 2. Expose as MCP server: Create server using TypeScript MCP SDK
 3. Both: Combine above approaches
@@ -626,18 +664,21 @@ ANTHROPIC_API_KEY env var → ~/.agentlint/credentials → interactive prompt �
 **Decision**: **Extend Config Parser with SKILL.md adapter**. Add SKILL.md support to ADR-0007's mdast + adapter pattern, enabling quality analysis based on the official Agent Skills specification criteria. Distribution targets Claude Code plugin marketplace first; packaging as Agent Skill deferred to post-MVP.
 
 **Key Design Points**:
+
 - SKILL.md adapter integrates with existing config parser architecture
 - Quality checks based on official spec: naming conventions, description quality, size limits
 - Reuses mdast, remark-frontmatter from existing dependencies
 - Skills appear in baselines alongside other ACT configurations
 
 **Quality Criteria** (from agentskills.io/specification):
+
 - Name: lowercase, hyphens, max 64 chars, must match parent directory
 - Description: max 1024 chars, include trigger keywords ("use when/for")
 - SKILL.md body: < 500 lines, < 5000 tokens recommended
 - Valid YAML frontmatter required
 
 **Distribution Strategy**:
+
 - Phase 1 (MVP): Claude Code plugin marketplace
 - Phase 2 (Post-MVP): Agent Skill packaging for cross-platform invocation
 
@@ -658,6 +699,7 @@ ANTHROPIC_API_KEY env var → ~/.agentlint/credentials → interactive prompt �
 **Decision**: **Native binary primary (Claude Code pattern)**. Distribute via curl install script with Bun-compiled binaries hosted on GitHub Releases. Include `agentlint update` command for self-updates. npm package maintained as secondary option.
 
 **Key Design Points**:
+
 - Primary: `curl -fsSL https://agentlint.dev/install.sh | bash`
 - Secondary: `npm install -g @agentlint/cli`
 - Self-update via `agentlint update` command
@@ -665,11 +707,13 @@ ANTHROPIC_API_KEY env var → ~/.agentlint/credentials → interactive prompt �
 - Windows deferred to post-MVP
 
 **Installation Locations**:
+
 ```
 ~/.agentlint/bin/agentlint    # Primary binary
 ```
 
 **Platform Support (MVP)**:
+
 - macOS: arm64 (Apple Silicon), x64 (Intel)
 - Linux: x64, arm64
 - Windows: Deferred
@@ -723,23 +767,27 @@ DD-002 (Agentic Framework)
 Based on dependencies and risk, recommended research order:
 
 ### Phase 1: Foundation (Blocks Everything)
+
 1. **DD-001**: Runtime Platform and Language
 2. **DD-002**: Agentic Framework Strategy
 3. **DD-003**: LLM Provider Abstraction
 
 ### Phase 2: Core Capabilities
+
 4. **DD-004**: Tool Definition Pattern
 5. **DD-005**: Session Log Processing
 6. **DD-006**: Configuration Parser Design
 7. **DD-007**: Baseline Storage
 
 ### Phase 3: Supporting Infrastructure
+
 8. **DD-010**: CLI Framework
 9. **DD-012**: Testing Strategy
 10. **DD-015**: Credential Management
 11. **DD-016**: Git Integration
 
 ### Phase 4: Quality and Polish
+
 12. **DD-008**: Global Learnings
 13. **DD-009**: Session State/Checkpointing
 14. **DD-011**: Output Format
@@ -747,6 +795,7 @@ Based on dependencies and risk, recommended research order:
 16. **DD-014**: Secret Detection
 
 ### Phase 5: Future-Proofing
+
 17. **DD-017**: MCP Integration
 18. **DD-018**: Agent Skills Integration
 19. **DD-019**: Distribution Strategy
@@ -777,4 +826,4 @@ ADR template and examples can be found in `.specify/templates/` (when created).
 
 ---
 
-*This document will be updated as decisions are researched and resolved. Each resolved decision will reference its corresponding ADR.*
+_This document will be updated as decisions are researched and resolved. Each resolved decision will reference its corresponding ADR._
