@@ -53,8 +53,8 @@ describe('event-guards', () => {
       expect(isMessageEventData(data)).toBe(true);
     });
 
-    it('should return true for empty object', () => {
-      expect(isMessageEventData({})).toBe(true);
+    it('should return false for empty object (requires tokens, cost, or finish)', () => {
+      expect(isMessageEventData({})).toBe(false);
     });
 
     it('should return false for null', () => {
@@ -78,8 +78,8 @@ describe('event-guards', () => {
       expect(isErrorEventData(data)).toBe(true);
     });
 
-    it('should return true for empty object', () => {
-      expect(isErrorEventData({})).toBe(true);
+    it('should return false for empty object (requires message or error field)', () => {
+      expect(isErrorEventData({})).toBe(false);
     });
 
     it('should return false for null', () => {
@@ -97,8 +97,8 @@ describe('event-guards', () => {
       expect(isTextEventData(data)).toBe(true);
     });
 
-    it('should return true for empty object', () => {
-      expect(isTextEventData({})).toBe(true);
+    it('should return false for empty object (requires text field)', () => {
+      expect(isTextEventData({})).toBe(false);
     });
 
     it('should return false for null', () => {
@@ -116,8 +116,8 @@ describe('event-guards', () => {
       expect(isStatusEventData(data)).toBe(true);
     });
 
-    it('should return true for empty object', () => {
-      expect(isStatusEventData({})).toBe(true);
+    it('should return false for empty object (requires status field)', () => {
+      expect(isStatusEventData({})).toBe(false);
     });
 
     it('should return false for null', () => {

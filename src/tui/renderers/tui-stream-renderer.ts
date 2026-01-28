@@ -82,7 +82,6 @@ export class TuiStreamRenderer implements IStreamRenderer {
       timestamp: new Date().toISOString(),
       metadata: {
         name: error.name,
-        stack: error.stack,
       },
     };
     this._tuiRenderer.renderChunk(chunk);

@@ -68,7 +68,16 @@ export class StreamAdapter {
     const metadata: Record<string, unknown> = {};
 
     if (isToolEventData(event.data)) {
-      Object.assign(metadata, event.data);
+      metadata.name = event.data.name;
+      if (event.data.input !== undefined) {
+        metadata.input = event.data.input;
+      }
+      if (event.data.output !== undefined) {
+        metadata.output = event.data.output;
+      }
+      if (event.data.isError !== undefined) {
+        metadata.isError = event.data.isError;
+      }
     }
 
     return {
@@ -85,7 +94,16 @@ export class StreamAdapter {
     const metadata: Record<string, unknown> = {};
 
     if (isToolEventData(event.data)) {
-      Object.assign(metadata, event.data);
+      metadata.name = event.data.name;
+      if (event.data.input !== undefined) {
+        metadata.input = event.data.input;
+      }
+      if (event.data.output !== undefined) {
+        metadata.output = event.data.output;
+      }
+      if (event.data.isError !== undefined) {
+        metadata.isError = event.data.isError;
+      }
     }
 
     return {
@@ -149,7 +167,10 @@ export class StreamAdapter {
     };
 
     if (isErrorEventData(event.data)) {
-      chunk.metadata = event.data;
+      chunk.metadata = {};
+      if (typeof event.data.message === 'string') {
+        chunk.metadata.message = event.data.message;
+      }
     }
 
     return chunk;

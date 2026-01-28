@@ -105,6 +105,27 @@ describe('TelemetryTracker', () => {
       // eslint-disable-next-line @typescript-eslint/unbound-method
       expect(logger.warn).toHaveBeenCalled();
     });
+
+    it('should redact secrets in tool input and output strings', () => {
+      tracker.onToolStart('secret_tool', { apiKey: 'sk-ant-fake1234567890abcdef' });
+      tracker.onToolComplete('secret_tool', 'Output with sk-ant-fake1234567890abcdef secret');
+
+      // eslint-disable-next-line @typescript-eslint/unbound-method
+      expect(client.trackToolEx).toHaveBeenCalledTimes(1);
+      const calls = (client.trackToolEx as ReturnType<typeof mock>).mock.calls as unknown[][];
+      const opts = calls[0]?.[1] as Record<string, unknown>;
+
+      const toolInput = opts?.toolInput as Record<string, unknown> | undefined;
+      expect(toolInput).toBeDefined();
+      const apiKeyValue = toolInput?.apiKey as string | undefined;
+      expect(apiKeyValue).toBeDefined();
+      expect(apiKeyValue).not.toContain('sk-ant-fake1234567890abcdef');
+      expect(apiKeyValue).toContain('[REDACTED');
+
+      const toolOutput = opts?.toolOutput as string | undefined;
+      expect(toolOutput).toBeDefined();
+      expect(toolOutput).not.toContain('sk-ant-fake1234567890abcdef');
+    });
   });
 
   describe('LLM usage tracking', () => {

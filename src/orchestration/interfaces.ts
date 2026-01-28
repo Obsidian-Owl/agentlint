@@ -50,6 +50,13 @@ export interface IOrchestrator {
   interrupt(): Promise<void>;
 
   /**
+   * Dispose of the orchestrator and release all resources.
+   * Clears all sessions, stops any running servers, and resets state.
+   * Safe to call multiple times (idempotent).
+   */
+  dispose(): void;
+
+  /**
    * Check if this orchestrator can spawn a subagent
    * @returns true if depth < MAX_SUBAGENT_DEPTH
    */

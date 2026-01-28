@@ -25,6 +25,8 @@ import { parseConfigSync } from '../../tools/config/parse-config';
 import { assessQuality } from '../../tools/config/quality';
 import { GapAnalyzer } from '../../tools/causal/gap-analyzer';
 import type { QualityIssue } from '../../tools/config/types';
+import { sanitizePromptInput } from '../../utils/sanitize';
+import { redact } from '../../debug/redaction';
 
 // Orchestration imports
 import {
@@ -725,7 +727,7 @@ async function runOrchestratedAnalysis(
     verbosity,
     cwd: process.cwd(), // Agentlint's directory, NOT target
     settingSources: [], // Don't load ANY .mcp.json files
-    systemPromptAppend: `\nAnalysis target directory: ${directory}`,
+    systemPromptAppend: `\nAnalysis target directory: ${sanitizePromptInput(directory)}`,
     // ADR-0021: Pass nonInteractive for CI/automation mode
     nonInteractive: options.nonInteractive ?? false,
   };
@@ -1034,6 +1036,9 @@ async function runOrchestratedAnalysis(
     // Shutdown telemetry (flushes any buffered events)
     await telemetry.shutdown();
 
+    // Dispose orchestrator (clears sessions, stops server)
+    orchestrator.dispose();
+
     // Stop session recording
     if (recordingState) {
       recordingState.recorder.stopRecording();
@@ -1316,7 +1321,7 @@ async function runSessionAnalysis(
       verbosity,
       cwd: process.cwd(),
       settingSources: [],
-      systemPromptAppend: `\n\nSession Analysis Mode\n=====================\n\nYou are analyzing session: ${sessionId}\n\n${agent.prompt}`,
+      systemPromptAppend: `\n\nSession Analysis Mode\n=====================\n\nYou are analyzing session: ${sanitizePromptInput(sessionId)}\n\n${sanitizePromptInput(agent.prompt)}`,
       nonInteractive: options.nonInteractive ?? false,
     },
     registry
@@ -1382,6 +1387,7 @@ async function runSessionAnalysis(
     renderer.flush();
     return 1;
   } finally {
+    orchestrator.dispose();
     process.removeListener('SIGINT', handleInterrupt);
   }
 }
@@ -1413,7 +1419,7 @@ export async function runAnalyse(options: AnalyseOptions): Promise<number> {
     if (!stats.isDirectory()) {
       const error = `Not a directory: ${directory}`;
       if (outputMode === 'json') {
-        console.log(JSON.stringify({ status: 'error', error }, null, 2));
+        console.log(JSON.stringify({ status: 'error', error: redact(error) }, null, 2));
       } else {
         console.error(`Error: ${error}`);
       }
@@ -1423,7 +1429,13 @@ export async function runAnalyse(options: AnalyseOptions): Promise<number> {
     const message = err instanceof Error ? err.message : String(err);
     const error = `Cannot access directory: ${message}`;
     if (outputMode === 'json') {
-      console.log(JSON.stringify({ status: 'error', error, directory }, null, 2));
+      console.log(
+        JSON.stringify(
+          { status: 'error', error: redact(error), directory: redact(directory) },
+          null,
+          2
+        )
+      );
     } else {
       printIOError(error, directory);
     }

@@ -166,7 +166,9 @@ describe('StreamAdapter', () => {
       expect(chunks).toHaveLength(1);
       expect(chunks[0]?.type).toBe('error');
       expect(chunks[0]?.content).toBe('Rate limit exceeded');
-      expect(chunks[0]?.metadata?.code).toBe(429);
+      // Security fix: only 'message' is copied from error events (no arbitrary properties)
+      expect(chunks[0]?.metadata?.message).toBe('Rate limit exceeded');
+      expect(chunks[0]?.metadata?.code).toBeUndefined();
     });
 
     it('should handle session.error with no data', async () => {
@@ -203,8 +205,193 @@ describe('StreamAdapter', () => {
 
       expect(chunks).toHaveLength(1);
       expect(chunks[0]?.type).toBe('tool_result');
-      expect(chunks[0]?.metadata?.time).toEqual({ start: 1000, end: 2000 });
+      // Security fix: only name, input, output, isError are copied (no arbitrary properties)
+      expect(chunks[0]?.metadata?.time).toBeUndefined();
       expect(chunks[0]?.metadata?.output).toEqual({ result: 'ok' });
+      expect(chunks[0]?.metadata?.name).toBe('analyze_config');
+    });
+  });
+
+  describe('edge cases', () => {
+    it('should propagate isError in tool result metadata', async () => {
+      const adapter = new StreamAdapter();
+      const events: OpencodeEvent[] = [
+        {
+          type: 'tool.call.completed',
+          data: { name: 'broken_tool', output: 'fail', isError: true },
+        },
+      ];
+
+      const chunks = [];
+      for await (const chunk of adapter.adaptStream(createMockEventStream(events))) {
+        chunks.push(chunk);
+      }
+
+      expect(chunks).toHaveLength(1);
+      expect(chunks[0]?.type).toBe('tool_result');
+      expect(chunks[0]?.metadata?.isError).toBe(true);
+    });
+
+    it('should handle message.updated with only tokens', async () => {
+      const adapter = new StreamAdapter();
+      const events: OpencodeEvent[] = [
+        {
+          type: 'message.updated',
+          data: { tokens: { input: 10, output: 5 } },
+        },
+      ];
+
+      const chunks = [];
+      for await (const chunk of adapter.adaptStream(createMockEventStream(events))) {
+        chunks.push(chunk);
+      }
+
+      expect(chunks).toHaveLength(1);
+      expect(chunks[0]?.type).toBe('status');
+      expect(chunks[0]?.metadata?.tokens).toEqual({ input: 10, output: 5 });
+      expect('cost' in (chunks[0]?.metadata ?? {})).toBe(false);
+      expect('finish' in (chunks[0]?.metadata ?? {})).toBe(false);
+    });
+
+    it('should handle message.updated with only cost', async () => {
+      const adapter = new StreamAdapter();
+      const events: OpencodeEvent[] = [
+        {
+          type: 'message.updated',
+          data: { cost: 0.001 },
+        },
+      ];
+
+      const chunks = [];
+      for await (const chunk of adapter.adaptStream(createMockEventStream(events))) {
+        chunks.push(chunk);
+      }
+
+      expect(chunks).toHaveLength(1);
+      expect(chunks[0]?.type).toBe('status');
+      expect(chunks[0]?.metadata?.cost).toBe(0.001);
+      expect('tokens' in (chunks[0]?.metadata ?? {})).toBe(false);
+      expect('finish' in (chunks[0]?.metadata ?? {})).toBe(false);
+    });
+
+    it('should handle message.updated with only finish', async () => {
+      const adapter = new StreamAdapter();
+      const events: OpencodeEvent[] = [
+        {
+          type: 'message.updated',
+          data: { finish: 'stop' },
+        },
+      ];
+
+      const chunks = [];
+      for await (const chunk of adapter.adaptStream(createMockEventStream(events))) {
+        chunks.push(chunk);
+      }
+
+      expect(chunks).toHaveLength(1);
+      expect(chunks[0]?.type).toBe('status');
+      expect(chunks[0]?.metadata?.finish).toBe('stop');
+      expect('tokens' in (chunks[0]?.metadata ?? {})).toBe(false);
+      expect('cost' in (chunks[0]?.metadata ?? {})).toBe(false);
+    });
+
+    it('should yield zero chunks for empty event stream', async () => {
+      const adapter = new StreamAdapter();
+      const events: OpencodeEvent[] = [];
+
+      const chunks = [];
+      for await (const chunk of adapter.adaptStream(createMockEventStream(events))) {
+        chunks.push(chunk);
+      }
+
+      expect(chunks).toHaveLength(0);
+    });
+
+    it('should handle null data gracefully for all event types', async () => {
+      const adapter = new StreamAdapter();
+      const events: OpencodeEvent[] = [
+        { type: 'message.part.updated', data: null },
+        { type: 'tool.call.started', data: null },
+        { type: 'tool.call.completed', data: null },
+        { type: 'status.updated', data: null },
+        { type: 'message.updated', data: null },
+        { type: 'session.error', data: null },
+      ];
+
+      const chunks = [];
+      for await (const chunk of adapter.adaptStream(createMockEventStream(events))) {
+        chunks.push(chunk);
+      }
+
+      // message.part.updated with null data → extractText returns ''
+      expect(chunks[0]?.type).toBe('text');
+      expect(chunks[0]?.content).toBe('');
+
+      // tool.call.started with null data → extractToolName returns 'unknown'
+      expect(chunks[1]?.type).toBe('tool_start');
+      expect(chunks[1]?.content).toContain('unknown');
+
+      // tool.call.completed with null data → extractToolName returns 'unknown'
+      expect(chunks[2]?.type).toBe('tool_result');
+      expect(chunks[2]?.content).toContain('unknown');
+
+      // status.updated with null data → extractStatus returns 'status update'
+      expect(chunks[3]?.type).toBe('status');
+      expect(chunks[3]?.content).toBe('status update');
+
+      // message.updated with null data → filtered out (isMessageEventData returns false)
+      // session.error with null data → 'Unknown session error'
+      expect(chunks[4]?.type).toBe('error');
+      expect(chunks[4]?.content).toBe('Unknown session error');
+
+      expect(chunks).toHaveLength(5);
+    });
+
+    it('should handle non-string text values', async () => {
+      const adapter = new StreamAdapter();
+      const events: OpencodeEvent[] = [{ type: 'message.part.updated', data: { text: 42 } }];
+
+      const chunks = [];
+      for await (const chunk of adapter.adaptStream(createMockEventStream(events))) {
+        chunks.push(chunk);
+      }
+
+      expect(chunks).toHaveLength(1);
+      expect(chunks[0]?.type).toBe('text');
+      expect(chunks[0]?.content).toBe('');
+    });
+
+    it('should handle non-string status values', async () => {
+      const adapter = new StreamAdapter();
+      const events: OpencodeEvent[] = [{ type: 'status.updated', data: { status: 123 } }];
+
+      const chunks = [];
+      for await (const chunk of adapter.adaptStream(createMockEventStream(events))) {
+        chunks.push(chunk);
+      }
+
+      expect(chunks).toHaveLength(1);
+      expect(chunks[0]?.type).toBe('status');
+      expect(chunks[0]?.content).toBe('status update');
+    });
+
+    it('should handle tool events with undefined data', async () => {
+      const adapter = new StreamAdapter();
+      const events: OpencodeEvent[] = [
+        { type: 'tool.call.started' },
+        { type: 'tool.call.completed' },
+      ];
+
+      const chunks = [];
+      for await (const chunk of adapter.adaptStream(createMockEventStream(events))) {
+        chunks.push(chunk);
+      }
+
+      expect(chunks).toHaveLength(2);
+      expect(chunks[0]?.type).toBe('tool_start');
+      expect(chunks[0]?.content).toContain('unknown');
+      expect(chunks[1]?.type).toBe('tool_result');
+      expect(chunks[1]?.content).toContain('unknown');
     });
   });
 });

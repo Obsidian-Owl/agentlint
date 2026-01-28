@@ -57,7 +57,10 @@ export interface MessageEventData {
  * Type guard for message event data
  */
 export function isMessageEventData(data: unknown): data is MessageEventData {
-  return typeof data === 'object' && data !== null;
+  if (typeof data !== 'object' || data === null) return false;
+  const obj = data as Record<string, unknown>;
+  // Must have at least one message-specific field
+  return obj.tokens !== undefined || typeof obj.cost === 'number' || typeof obj.finish === 'string';
 }
 
 /**
@@ -72,7 +75,10 @@ export interface ErrorEventData {
  * Type guard for error event data
  */
 export function isErrorEventData(data: unknown): data is ErrorEventData {
-  return typeof data === 'object' && data !== null;
+  if (typeof data !== 'object' || data === null) return false;
+  const obj = data as Record<string, unknown>;
+  // Error events should have a message or error field
+  return typeof obj.message === 'string' || typeof obj.error === 'string';
 }
 
 /**
@@ -87,7 +93,10 @@ export interface TextEventData {
  * Type guard for text event data
  */
 export function isTextEventData(data: unknown): data is TextEventData {
-  return typeof data === 'object' && data !== null;
+  if (typeof data !== 'object' || data === null) return false;
+  const obj = data as Record<string, unknown>;
+  // Text events must have a text field
+  return 'text' in obj;
 }
 
 /**
@@ -102,7 +111,10 @@ export interface StatusEventData {
  * Type guard for status event data
  */
 export function isStatusEventData(data: unknown): data is StatusEventData {
-  return typeof data === 'object' && data !== null;
+  if (typeof data !== 'object' || data === null) return false;
+  const obj = data as Record<string, unknown>;
+  // Status events must have a status field
+  return 'status' in obj;
 }
 
 /**

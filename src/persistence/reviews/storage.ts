@@ -123,14 +123,23 @@ export async function loadReview(
 
   try {
     const content = await Bun.file(filePath).text();
-    const data = JSON.parse(content) as QualitativeReviewFile;
+    const data: unknown = JSON.parse(content);
 
-    // Basic validation
-    if (!data.version || !data.review) {
+    // Validate structure
+    if (typeof data !== 'object' || data === null || !('version' in data) || !('review' in data)) {
       return null;
     }
 
-    return data.review;
+    const file = data as { version: unknown; review: unknown };
+    if (
+      typeof file.version !== 'string' ||
+      typeof file.review !== 'object' ||
+      file.review === null
+    ) {
+      return null;
+    }
+
+    return file.review as QualitativeReview;
   } catch {
     // Invalid JSON or parse error
     return null;

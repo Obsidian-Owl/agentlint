@@ -6,6 +6,7 @@ interface ServerInternals {
   config: { port: number; hostname: string; timeout: number };
   server: { url: string; close: () => void } | null;
   running: boolean;
+  checkPortAvailable: () => Promise<boolean>;
 }
 
 function getInternals(server: OpencodeServerManager): ServerInternals {
@@ -136,6 +137,27 @@ describe('OpencodeServerManager', () => {
 
       server.stop();
       expect(() => server.stop()).not.toThrow();
+      expect(server.isRunning()).toBe(false);
+    });
+
+    it('should throw port-in-use error when port is occupied', async () => {
+      const server = new OpencodeServerManager({ port: 3000 });
+      const internals = getInternals(server);
+
+      internals.checkPortAvailable = () => Promise.resolve(false);
+
+      await expect(server.start()).rejects.toThrow('already in use');
+    });
+
+    it('should verify running state after start sequence', async () => {
+      const server = new OpencodeServerManager();
+      const internals = getInternals(server);
+
+      expect(internals.running).toBe(false);
+      expect(internals.server).toBeNull();
+
+      internals.checkPortAvailable = () => Promise.resolve(true);
+
       expect(server.isRunning()).toBe(false);
     });
   });

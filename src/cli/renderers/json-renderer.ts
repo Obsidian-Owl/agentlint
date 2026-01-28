@@ -108,7 +108,6 @@ export class JsonRenderer implements IStreamRenderer {
       data: {
         message: error.message,
         name: error.name,
-        ...(error.stack && { stack: error.stack }),
       },
     };
 

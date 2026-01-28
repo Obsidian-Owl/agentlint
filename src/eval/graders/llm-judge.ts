@@ -11,6 +11,7 @@ import { spawn } from 'child_process';
 import { existsSync } from 'fs';
 import { resolve } from 'path';
 import type { GoldenScenario, LLMJudgeGrade, ILLMJudgeGrader } from '../types';
+import { redact } from '../../debug/redaction';
 
 // =============================================================================
 // Types
@@ -233,7 +234,7 @@ export class LLMJudgeGrader implements ILLMJudgeGrader {
         clearTimeout(timeout);
 
         if (code !== 0) {
-          reject(new Error(`TruLens check failed with code ${code}: ${stderr}`));
+          reject(new Error(`TruLens check failed with code ${code}: ${redact(stderr)}`));
           return;
         }
 
@@ -289,7 +290,7 @@ export class LLMJudgeGrader implements ILLMJudgeGrader {
         clearTimeout(timeout);
 
         if (code !== 0) {
-          reject(new Error(`TruLens exited with code ${code}: ${stderr}`));
+          reject(new Error(`TruLens exited with code ${code}: ${redact(stderr)}`));
           return;
         }
 

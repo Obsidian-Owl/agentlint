@@ -15,6 +15,7 @@ import {
   truncateToolInput,
   extractErrorMessage,
 } from '../orchestration/telemetry-utils';
+import { redact } from '../debug/redaction';
 
 // =============================================================================
 // Constants
@@ -102,7 +103,12 @@ export class TelemetryTracker {
     };
 
     if (input) {
-      pending.input = truncateToolInput(input);
+      // Redact secrets before truncation to prevent sensitive data in telemetry
+      const redactedInput: Record<string, unknown> = {};
+      for (const [key, value] of Object.entries(input)) {
+        redactedInput[key] = typeof value === 'string' ? redact(value) : value;
+      }
+      pending.input = truncateToolInput(redactedInput);
     }
 
     // Add to FIFO queue for this tool name
@@ -134,7 +140,8 @@ export class TelemetryTracker {
 
     const durationMs = endTime - pending.startTime;
     const success = !isError;
-    const truncatedOutput = truncateToolOutput(output, 5000);
+    const redactedOutput = typeof output === 'string' ? redact(output) : output;
+    const truncatedOutput = truncateToolOutput(redactedOutput, 5000);
 
     // Build trackToolEx options with exactOptionalPropertyTypes compliance
     const options: Parameters<NonNullable<IOrchestratorTelemetryClient['trackToolEx']>>[1] = {

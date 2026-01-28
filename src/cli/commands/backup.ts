@@ -12,6 +12,7 @@ import * as tar from 'tar';
 
 import type { GlobalOptions } from '../types';
 import { getProjectDir, getBackupsDir, ensureDir } from '../../persistence/common/directories';
+import { redact } from '../../debug/redaction';
 
 const MAX_BACKUPS_TO_KEEP = 5;
 
@@ -90,7 +91,9 @@ export async function runBackup(options: BackupOptions): Promise<number> {
   // Check if .agentlint exists
   if (!existsSync(agentlintDir)) {
     if (options.json) {
-      console.log(JSON.stringify({ status: 'error', error: 'No .agentlint directory found' }));
+      console.log(
+        JSON.stringify({ status: 'error', error: redact('No .agentlint directory found') })
+      );
     } else {
       console.error('Error: No .agentlint directory found');
     }
@@ -118,7 +121,9 @@ export async function runBackup(options: BackupOptions): Promise<number> {
 
   if (filesToBackup.length === 0) {
     if (options.json) {
-      console.log(JSON.stringify({ status: 'error', error: 'No data to backup in .agentlint' }));
+      console.log(
+        JSON.stringify({ status: 'error', error: redact('No data to backup in .agentlint') })
+      );
     } else {
       console.error('Error: No data to backup in .agentlint');
     }
@@ -189,7 +194,7 @@ export async function runRestore(backupFile: string, options: RestoreOptions): P
   if (!existsSync(backupFile)) {
     if (options.json) {
       console.log(
-        JSON.stringify({ status: 'error', error: `Backup file not found: ${backupFile}` })
+        JSON.stringify({ status: 'error', error: redact(`Backup file not found: ${backupFile}`) })
       );
     } else {
       console.error(`Error: Backup file not found: ${backupFile}`);
@@ -227,9 +232,9 @@ export async function runRestore(backupFile: string, options: RestoreOptions): P
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       if (options.json) {
-        console.log(JSON.stringify({ status: 'error', error: errorMessage }));
+        console.log(JSON.stringify({ status: 'error', error: redact(errorMessage) }));
       } else {
-        console.error(`Error reading backup: ${errorMessage}`);
+        console.error(`Error reading backup: ${redact(errorMessage)}`);
       }
       return 1;
     }
@@ -243,7 +248,7 @@ export async function runRestore(backupFile: string, options: RestoreOptions): P
       console.log(
         JSON.stringify({
           status: 'error',
-          error: 'Existing .agentlint data found. Use --force to overwrite.',
+          error: redact('Existing .agentlint data found. Use --force to overwrite.'),
         })
       );
     } else {
@@ -281,9 +286,9 @@ export async function runRestore(backupFile: string, options: RestoreOptions): P
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     if (options.json) {
-      console.log(JSON.stringify({ status: 'error', error: errorMessage }));
+      console.log(JSON.stringify({ status: 'error', error: redact(errorMessage) }));
     } else {
-      console.error(`Error restoring backup: ${errorMessage}`);
+      console.error(`Error restoring backup: ${redact(errorMessage)}`);
     }
     return 1;
   }

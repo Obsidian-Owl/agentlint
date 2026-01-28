@@ -53,7 +53,10 @@ export async function getGitSummary(
       // Status (porcelain for parsing)
       runGitCommand(['status', '--porcelain'], projectPath, timeout),
       // Unpushed commits (count)
-      runGitCommand(['rev-list', '--count', '@{u}..HEAD'], projectPath, timeout).catch(() => null),
+      runGitCommand(['rev-list', '--count', '@{u}..HEAD'], projectPath, timeout).catch((_err) => {
+        // Expected to fail when no upstream is configured — not a security concern
+        return null;
+      }),
       // Last commit message (first line, max 50 chars)
       runGitCommand(['log', '-1', '--format=%s'], projectPath, timeout),
       // Last commit relative time

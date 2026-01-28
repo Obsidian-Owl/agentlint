@@ -106,6 +106,12 @@ export class AgentlintMcpServer implements IAgentlintMcpServer {
    *
    * Invokes the specified tool with provided arguments.
    *
+   * Security model: No authentication is required because:
+   * - Server binds to 127.0.0.1 only (not network-accessible)
+   * - Server is short-lived (started/stopped per orchestrator run)
+   * - Only the local agentlint process communicates with it
+   * - This is acceptable per Constitution Principle I (local-first)
+   *
    * @param name - Tool name
    * @param args - Tool arguments
    * @returns Tool execution result

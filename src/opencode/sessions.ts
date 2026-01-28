@@ -24,6 +24,8 @@ export interface IHybridSessionManager {
   saveCheckpoint(sessionId: string, metadata: Partial<SessionMetadata>): void;
   resumeSession(sessionId: string): SessionMetadata | null;
   getSession(sessionId: string): SessionMetadata | null;
+  clearSession(sessionId: string): void;
+  clearAll(): void;
 }
 
 export class HybridSessionManager implements IHybridSessionManager {
@@ -70,5 +72,13 @@ export class HybridSessionManager implements IHybridSessionManager {
 
   getSession(sessionId: string): SessionMetadata | null {
     return this.sessions.get(sessionId) ?? null;
+  }
+
+  clearSession(sessionId: string): void {
+    this.sessions.delete(sessionId);
+  }
+
+  clearAll(): void {
+    this.sessions.clear();
   }
 }

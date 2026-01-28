@@ -34,6 +34,14 @@ export class OpencodeServerManager implements IServerManager {
       throw new Error('Server is already running');
     }
 
+    // Check if port is available before binding
+    const portAvailable = await this.checkPortAvailable();
+    if (!portAvailable) {
+      throw new Error(
+        `Port ${this.config.port} is already in use. Is another agentlint instance running?`
+      );
+    }
+
     this.server = await createOpencodeServer({
       port: this.config.port,
       hostname: this.config.hostname,
@@ -54,7 +62,11 @@ export class OpencodeServerManager implements IServerManager {
     const serverToClose = this.server;
     this.server = null;
     this.running = false;
-    serverToClose.close();
+    try {
+      serverToClose.close();
+    } catch {
+      // Server close failure is non-fatal — process is shutting down
+    }
   }
 
   isRunning(): boolean {
@@ -74,5 +86,18 @@ export class OpencodeServerManager implements IServerManager {
       throw new Error('Server is not running');
     }
     return this.server.url;
+  }
+
+  private async checkPortAvailable(): Promise<boolean> {
+    try {
+      const response = await fetch(`http://${this.config.hostname}:${this.config.port}/health`, {
+        signal: AbortSignal.timeout(1000),
+      });
+      // If we get a response, something is already listening
+      return !response.ok;
+    } catch {
+      // Connection refused = port is available
+      return true;
+    }
   }
 }

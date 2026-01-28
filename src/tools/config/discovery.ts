@@ -24,6 +24,7 @@ import type {
   Skill,
 } from './types';
 import { parseSkill } from './skills';
+import { redact } from '../../debug/redaction';
 
 /**
  * Default directory patterns to exclude from discovery.
@@ -376,7 +377,10 @@ export async function discoverConfigs(input: DiscoverConfigsInput): Promise<Disc
     }
   } catch (error) {
     // Handle discovery errors gracefully
-    console.error('Config discovery error:', error);
+    console.error(
+      'Config discovery error:',
+      error instanceof Error ? redact(error.message) : 'unknown error'
+    );
   }
 
   // Add global configs if requested
@@ -399,7 +403,10 @@ export async function discoverConfigs(input: DiscoverConfigsInput): Promise<Disc
         parsedSkills.push(skill);
       } catch (error) {
         // Log warning but continue with other skills
-        console.warn(`Warning: Failed to parse skill ${skillInfo.path}:`, error);
+        console.warn(
+          `Warning: Failed to parse skill ${skillInfo.path}:`,
+          error instanceof Error ? redact(error.message) : 'unknown error'
+        );
       }
     }
   }
@@ -513,7 +520,10 @@ export function discoverConfigsSync(input: DiscoverConfigsInput): DiscoverConfig
       });
     }
   } catch (error) {
-    console.error('Config discovery error:', error);
+    console.error(
+      'Config discovery error:',
+      error instanceof Error ? redact(error.message) : 'unknown error'
+    );
   }
 
   // Add global configs if requested (sync)

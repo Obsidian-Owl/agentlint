@@ -135,4 +135,59 @@ describe('HybridSessionManager', () => {
       expect(retrieved).toBeNull();
     });
   });
+
+  describe('clearSession', () => {
+    it('should remove session by ID', async () => {
+      const client = new MockOpencodeClient();
+      const manager = new HybridSessionManager(client);
+
+      const session = await manager.startSession('Test');
+      manager.clearSession(session.sessionId);
+
+      const retrieved = manager.getSession(session.sessionId);
+      expect(retrieved).toBeNull();
+    });
+
+    it('should not affect other sessions', async () => {
+      const client = new MockOpencodeClient();
+      const manager = new HybridSessionManager(client);
+
+      const session1 = await manager.startSession('Test 1');
+      const session2 = await manager.startSession('Test 2');
+
+      manager.clearSession(session1.sessionId);
+
+      expect(manager.getSession(session1.sessionId)).toBeNull();
+      expect(manager.getSession(session2.sessionId)).toEqual(session2);
+    });
+
+    it('should be idempotent (clearing non-existent is no-op)', () => {
+      const client = new MockOpencodeClient();
+      const manager = new HybridSessionManager(client);
+
+      expect(() => manager.clearSession('nonexistent')).not.toThrow();
+    });
+  });
+
+  describe('clearAll', () => {
+    it('should remove all sessions', async () => {
+      const client = new MockOpencodeClient();
+      const manager = new HybridSessionManager(client);
+
+      const session1 = await manager.startSession('Test 1');
+      const session2 = await manager.startSession('Test 2');
+
+      manager.clearAll();
+
+      expect(manager.getSession(session1.sessionId)).toBeNull();
+      expect(manager.getSession(session2.sessionId)).toBeNull();
+    });
+
+    it('should be idempotent when empty', () => {
+      const client = new MockOpencodeClient();
+      const manager = new HybridSessionManager(client);
+
+      expect(() => manager.clearAll()).not.toThrow();
+    });
+  });
 });

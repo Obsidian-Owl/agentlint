@@ -35,6 +35,7 @@ export class OpencodeOrchestrator implements IOrchestrator {
   public readonly toolRegistry: IToolRegistry;
   private _sessionState: SessionState | null = null;
   private _isActive = false;
+  private _currentSessionId: string | null = null;
   private readonly server: OpencodeServerManager;
   private readonly client: AgentlintOpencodeClient;
   private readonly sessionManager: HybridSessionManager;
@@ -88,6 +89,11 @@ export class OpencodeOrchestrator implements IOrchestrator {
   }
 
   public async *run(task: string): AsyncGenerator<StreamChunk, void, unknown> {
+    if (this._isActive) {
+      throw new OrchestrationError(
+        'Cannot start a new run while another is in progress. Call interrupt() first.'
+      );
+    }
     this._isActive = true;
     this.logger.debug('Starting run', { taskLength: task.length });
 
@@ -116,6 +122,7 @@ export class OpencodeOrchestrator implements IOrchestrator {
       this.logger.debug('Client connected');
 
       const session = await this.sessionManager.startSession(task);
+      this._currentSessionId = session.sessionId;
       this._sessionState = this.createInitialState(task, session.sessionId);
       this.logger.debug('Session started', { sessionId: session.sessionId });
 
@@ -155,6 +162,11 @@ export class OpencodeOrchestrator implements IOrchestrator {
           error: stopError instanceof Error ? stopError.message : String(stopError),
         });
       }
+      // Clean up session to prevent memory leak
+      if (this._currentSessionId) {
+        this.sessionManager.clearSession(this._currentSessionId);
+        this._currentSessionId = null;
+      }
       this._isActive = false;
       this.logger.debug('Cleanup complete');
     }
@@ -172,6 +184,21 @@ export class OpencodeOrchestrator implements IOrchestrator {
   // eslint-disable-next-line @typescript-eslint/require-await
   public async interrupt(): Promise<void> {
     this._isActive = false;
+    this.sessionManager.clearAll();
+  }
+
+  public dispose(): void {
+    this.sessionManager.clearAll();
+    if (this.server.isRunning()) {
+      try {
+        this.server.stop();
+      } catch {
+        // Server stop failure during dispose is non-fatal
+      }
+    }
+    this._isActive = false;
+    this._sessionState = null;
+    this._currentSessionId = null;
   }
 
   public canSpawnSubagent(): boolean {

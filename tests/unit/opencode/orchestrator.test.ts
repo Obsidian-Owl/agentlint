@@ -30,6 +30,7 @@ interface OrchestratorInternals {
   server: {
     start: () => Promise<void>;
     stop: () => void;
+    isRunning: () => boolean;
   };
   client: {
     connect: () => Promise<void>;
@@ -38,11 +39,16 @@ interface OrchestratorInternals {
   };
   sessionManager: {
     startSession: (task: string) => Promise<{ sessionId: string }>;
+    clearSession: (sessionId: string) => void;
+    clearAll: () => void;
   };
   streamAdapter: {
     adaptStream: (events: AsyncIterable<unknown>) => AsyncIterable<StreamChunk>;
   };
   telemetryTracker: unknown;
+  _isActive: boolean;
+  _sessionState: unknown;
+  _currentSessionId: string | null;
 }
 
 function getInternals(orchestrator: OpencodeOrchestrator): OrchestratorInternals {
@@ -117,6 +123,33 @@ describe('OpencodeOrchestrator', () => {
 
       expect(chunks.length).toBeGreaterThanOrEqual(1);
       expect(chunks[0]?.content).toBe('Server started');
+      expect(orchestrator.isActive).toBe(false);
+    });
+
+    it('should throw OrchestrationError when run() called while already active', async () => {
+      const orchestrator = new OpencodeOrchestrator({}, registry);
+      const internals = getInternals(orchestrator);
+      setupSuccessfulRun(internals);
+
+      internals.streamAdapter.adaptStream = async function* () {
+        yield {
+          type: 'text' as const,
+          level: 'normal' as const,
+          content: 'First chunk',
+          timestamp: new Date().toISOString(),
+        };
+        await new Promise(() => {});
+      };
+
+      const gen = orchestrator.run('first task');
+      const firstChunk = await gen.next();
+      expect(firstChunk.done).toBe(false);
+      expect(orchestrator.isActive).toBe(true);
+
+      const secondGen = orchestrator.run('second task');
+      await expect(secondGen.next()).rejects.toThrow(OrchestrationError);
+
+      await gen.return();
       expect(orchestrator.isActive).toBe(false);
     });
   });
@@ -224,6 +257,99 @@ describe('OpencodeOrchestrator', () => {
     it('should throw OrchestrationError on getSubagentConfig', () => {
       const orchestrator = new OpencodeOrchestrator({}, registry);
       expect(() => orchestrator.getSubagentConfig()).toThrow(OrchestrationError);
+    });
+
+    it('should call sessionManager.clearAll() on interrupt', async () => {
+      const orchestrator = new OpencodeOrchestrator({}, registry);
+      const internals = getInternals(orchestrator);
+      const clearAllMock = mock(() => {});
+      internals.sessionManager.clearAll = clearAllMock;
+
+      await orchestrator.interrupt();
+
+      expect(clearAllMock).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('dispose', () => {
+    it('should clear all sessions', () => {
+      const orchestrator = new OpencodeOrchestrator({}, registry);
+      const internals = getInternals(orchestrator);
+      const clearAllMock = mock(() => {});
+      internals.sessionManager.clearAll = clearAllMock;
+      internals.server.isRunning = () => false;
+
+      orchestrator.dispose();
+
+      expect(clearAllMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('should stop server if running', () => {
+      const orchestrator = new OpencodeOrchestrator({}, registry);
+      const internals = getInternals(orchestrator);
+      const stopMock = mock(() => {});
+      internals.sessionManager.clearAll = mock(() => {});
+      internals.server.isRunning = () => true;
+      internals.server.stop = stopMock;
+
+      orchestrator.dispose();
+
+      expect(stopMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('should not stop server if not running', () => {
+      const orchestrator = new OpencodeOrchestrator({}, registry);
+      const internals = getInternals(orchestrator);
+      const stopMock = mock(() => {});
+      internals.sessionManager.clearAll = mock(() => {});
+      internals.server.isRunning = () => false;
+      internals.server.stop = stopMock;
+
+      orchestrator.dispose();
+
+      expect(stopMock).not.toHaveBeenCalled();
+    });
+
+    it('should reset state', () => {
+      const orchestrator = new OpencodeOrchestrator({}, registry);
+      const internals = getInternals(orchestrator);
+      internals.sessionManager.clearAll = mock(() => {});
+      internals.server.isRunning = () => false;
+      internals._isActive = true;
+      internals._sessionState = { id: 'test' };
+      internals._currentSessionId = 'ses-123';
+
+      orchestrator.dispose();
+
+      expect(orchestrator.isActive).toBe(false);
+      expect(orchestrator.sessionState).toBeNull();
+      expect(internals._currentSessionId).toBeNull();
+    });
+
+    it('should be idempotent (safe to call multiple times)', () => {
+      const orchestrator = new OpencodeOrchestrator({}, registry);
+      const internals = getInternals(orchestrator);
+      const clearAllMock = mock(() => {});
+      internals.sessionManager.clearAll = clearAllMock;
+      internals.server.isRunning = () => false;
+
+      orchestrator.dispose();
+      orchestrator.dispose();
+      orchestrator.dispose();
+
+      expect(clearAllMock).toHaveBeenCalledTimes(3);
+    });
+
+    it('should not throw if server.stop() fails', () => {
+      const orchestrator = new OpencodeOrchestrator({}, registry);
+      const internals = getInternals(orchestrator);
+      internals.sessionManager.clearAll = mock(() => {});
+      internals.server.isRunning = () => true;
+      internals.server.stop = () => {
+        throw new Error('stop failed');
+      };
+
+      expect(() => orchestrator.dispose()).not.toThrow();
     });
   });
 });
