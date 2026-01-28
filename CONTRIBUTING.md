@@ -57,20 +57,20 @@ bun run agentlint --version
 
 ### Available Scripts
 
-| Script | Command | Description |
-|--------|---------|-------------|
-| `test` | `bun run test` | Run safe tests (unit + integration) |
-| `test:live` | `bun run test:live` | Run E2E tests (requires API key) |
-| `test:evals` | `bun run test:evals` | Run evaluations (requires API key) |
-| `test:coverage` | `bun run test:coverage` | Run tests with coverage |
-| `lint` | `bun run lint` | Check code style |
-| `lint:fix` | `bun run lint:fix` | Fix lint issues |
-| `format` | `bun run format` | Format code with Prettier |
-| `format:check` | `bun run format:check` | Check formatting |
-| `typecheck` | `bun run typecheck` | Type check without emit |
-| `build` | `bun run build` | Build to dist/ |
+| Script          | Command                 | Description                         |
+| --------------- | ----------------------- | ----------------------------------- |
+| `test`          | `bun run test`          | Run safe tests (unit + integration) |
+| `test:live`     | `bun run test:live`     | Run E2E tests (requires API key)    |
+| `test:evals`    | `bun run test:evals`    | Run evaluations (requires API key)  |
+| `test:coverage` | `bun run test:coverage` | Run tests with coverage             |
+| `lint`          | `bun run lint`          | Check code style                    |
+| `lint:fix`      | `bun run lint:fix`      | Fix lint issues                     |
+| `format`        | `bun run format`        | Format code with Prettier           |
+| `format:check`  | `bun run format:check`  | Check formatting                    |
+| `typecheck`     | `bun run typecheck`     | Type check without emit             |
+| `build`         | `bun run build`         | Build to dist/                      |
 
-> **Note**: Always use `bun run test`, never raw `bun test`. Live tests (e2e/evals) require `ANTHROPIC_API_KEY` and cost money.
+> **Note**: Always use `bun run test`, never raw `bun test`. Live tests (e2e/evals) require Opencode authentication (`opencode auth`) and cost money.
 
 ### Code Style
 
@@ -105,6 +105,7 @@ agentlint/
 Use the format: `ep##-feature-name`
 
 Examples:
+
 - `ep01-project-setup`
 - `ep02-agent-sdk-integration`
 
@@ -176,10 +177,10 @@ bun run test tests/unit/
 # With coverage
 bun run test:coverage
 
-# Live E2E tests (requires ANTHROPIC_API_KEY, costs money)
+# Live E2E tests (requires opencode auth, costs money)
 bun run test:live
 
-# Evaluations (requires ANTHROPIC_API_KEY, costs money)
+# Evaluations (requires opencode auth, costs money)
 bun run test:evals
 ```
 

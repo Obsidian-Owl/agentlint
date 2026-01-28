@@ -9,7 +9,7 @@
  * @module sessions/tools/get-mcp-usage-tool
  */
 
-import { tool } from '@anthropic-ai/claude-agent-sdk';
+import { adaptTool } from '../../opencode/tool-adapter';
 import { z } from 'zod';
 import { readFile, access } from 'node:fs/promises';
 import { constants } from 'node:fs';
@@ -248,9 +248,9 @@ function formatToolOutput(data: GetMcpUsageOutput): string {
  * registry.register(getMcpUsageTool);
  * ```
  */
-export const getMcpUsageTool = tool(
-  'get_mcp_usage',
-  `Extract MCP (Model Context Protocol) tool call statistics from a Claude Code session.
+export const getMcpUsageTool = adaptTool({
+  name: 'get_mcp_usage',
+  description: `Extract MCP (Model Context Protocol) tool call statistics from a Claude Code session.
 
 Returns:
 - **Per-server stats**: Call counts, error counts, error rates for each MCP server
@@ -265,12 +265,13 @@ MCP patterns are DATA for your interpretation:
 
 Filter options:
 - \`serverName\`: Focus on specific MCP server (e.g., "linear", "github")`,
-  getMcpUsageInputSchema,
-  async (args) => {
+  schema: getMcpUsageInputSchema,
+  handler: async (args: unknown) => {
+    const typedArgs = args as { filePath?: string; sessionId?: string; serverName?: string };
     try {
       // For now, require direct file path
       // TODO: Add session ID lookup via database
-      if (!args.filePath) {
+      if (!typedArgs.filePath) {
         return {
           content: [
             {
@@ -284,10 +285,10 @@ Filter options:
 
       // Build input conditionally to satisfy exactOptionalPropertyTypes
       const input: GetMcpUsageInput = {
-        filePath: args.filePath,
+        filePath: typedArgs.filePath,
       };
-      if (args.serverName !== undefined) {
-        input.serverName = args.serverName;
+      if (typedArgs.serverName !== undefined) {
+        input.serverName = typedArgs.serverName;
       }
 
       const result = await getMcpUsage(input);
@@ -329,5 +330,5 @@ Filter options:
         isError: true,
       };
     }
-  }
-);
+  },
+});

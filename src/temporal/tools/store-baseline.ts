@@ -7,9 +7,10 @@
  * @module temporal/tools/store-baseline
  */
 
-import { tool } from '@anthropic-ai/claude-agent-sdk';
 import { z } from 'zod';
 import { v4 as uuidv4 } from 'uuid';
+
+import { adaptTool } from '../../opencode/tool-adapter';
 
 import { saveBaseline, getLatestBaseline } from '../../persistence/baselines/storage';
 import { initBaselineSchema, indexBaseline } from '../../persistence/baselines/indexer';
@@ -232,11 +233,17 @@ function formatToolOutput(result: StoreBaselineResult): string {
  * registry.register(storeBaselineTool);
  * ```
  */
-export const storeBaselineTool = tool(
-  'store_baseline',
-  TOOL_DESCRIPTIONS.store_baseline,
-  storeBaselineInputSchema,
-  async (args) => {
+export const storeBaselineTool = adaptTool({
+  name: 'store_baseline',
+  description: TOOL_DESCRIPTIONS.store_baseline,
+  schema: storeBaselineInputSchema,
+  handler: async (args: unknown) => {
+    const typedArgs = args as {
+      label?: string;
+      notes?: string;
+      includeSessionMetrics?: boolean;
+      includeSkillsMetrics?: boolean;
+    };
     try {
       // Generate baseline ID and timestamp
       const baselineId = uuidv4();
@@ -249,7 +256,7 @@ export const storeBaselineTool = tool(
       const metrics = createDefaultMetrics();
 
       // Gather skills metrics if enabled (EP14)
-      if (args.includeSkillsMetrics !== false) {
+      if (typedArgs.includeSkillsMetrics !== false) {
         const skillsMetrics = await gatherSkillsMetrics(process.cwd());
         if (skillsMetrics.skillInvocationCount !== undefined) {
           metrics.skillInvocationCount = skillsMetrics.skillInvocationCount;
@@ -276,8 +283,8 @@ export const storeBaselineTool = tool(
         gitCommit,
         metrics,
         findings: [], // Would be populated from analysis
-        label: args.label ?? null,
-        notes: args.notes ?? null,
+        label: typedArgs.label ?? null,
+        notes: typedArgs.notes ?? null,
       };
 
       // Save baseline to disk
@@ -352,8 +359,8 @@ export const storeBaselineTool = tool(
       };
 
       // Only include label if provided
-      if (args.label !== undefined) {
-        result.label = args.label;
+      if (typedArgs.label !== undefined) {
+        result.label = typedArgs.label;
       }
 
       // Include trigger check if available
@@ -383,5 +390,5 @@ export const storeBaselineTool = tool(
         isError: true,
       };
     }
-  }
-);
+  },
+});

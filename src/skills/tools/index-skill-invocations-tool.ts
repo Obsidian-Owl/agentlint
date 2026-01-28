@@ -7,8 +7,8 @@
  * @module src/skills/tools/index-skill-invocations-tool
  */
 
-import { tool } from '@anthropic-ai/claude-agent-sdk';
 import { z } from 'zod';
+import { adaptTool } from '../../opencode/tool-adapter';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { openDatabaseSync, tableExists } from '../../persistence/common/database';
@@ -72,9 +72,9 @@ function formatToolOutput(result: IndexSkillInvocationsResult): string {
  * registry.register(indexSkillInvocationsTool);
  * ```
  */
-export const indexSkillInvocationsTool = tool(
-  'index_skill_invocations',
-  `Index skill invocations from session logs into the database.
+export const indexSkillInvocationsTool = adaptTool({
+  name: 'index_skill_invocations',
+  description: `Index skill invocations from session logs into the database.
 
 This tool scans Claude Code session logs and extracts Skill tool invocations,
 storing them in the database for efficient querying.
@@ -90,10 +90,11 @@ Returns:
 - indexedAt: Timestamp of indexing
 
 Use this before querying skill invocations to ensure data is current.`,
-  indexSkillInvocationsInputSchema,
-  async (args) => {
+  schema: indexSkillInvocationsInputSchema,
+  handler: async (args: unknown) => {
     try {
-      const result = await indexSkillInvocations(args.projectPath, args.force);
+      const typedArgs = args as { projectPath?: string; force?: boolean };
+      const result = await indexSkillInvocations(typedArgs.projectPath, typedArgs.force);
       const output = formatToolOutput(result);
 
       return {
@@ -127,8 +128,8 @@ Use this before querying skill invocations to ensure data is current.`,
         _rawData: result,
       };
     }
-  }
-);
+  },
+});
 
 /**
  * Index skill invocations from session logs.

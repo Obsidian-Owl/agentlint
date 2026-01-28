@@ -7,8 +7,8 @@
  * @module tools/config/parse-config-tool
  */
 
-import { tool } from '@anthropic-ai/claude-agent-sdk';
 import { z } from 'zod';
+import { adaptTool } from '../../opencode/tool-adapter';
 import { parseConfig } from './parse-config';
 import { assessQuality } from './quality';
 import type { ParsedConfig, ParseConfigResult, QualityAssessment } from './types';
@@ -297,9 +297,9 @@ function formatSize(bytes: number): string {
  * registry.register(parseConfigTool);
  * ```
  */
-export const parseConfigTool = tool(
-  'parse_config',
-  `Parse an AI configuration file into structured data.
+export const parseConfigTool = adaptTool({
+  name: 'parse_config',
+  description: `Parse an AI configuration file into structured data.
 
 Parses the following file types:
 - CLAUDE.md - Claude Code configuration (markdown)
@@ -315,13 +315,19 @@ Returns:
 - Warnings for any parsing issues
 
 Handles malformed files gracefully by returning partial results with warnings.`,
-  parseConfigInputSchema,
-  async (args) => {
+  schema: parseConfigInputSchema,
+  handler: async (args: unknown) => {
     try {
-      const result = await parseConfig(args.filePath);
-      const includeRaw = args.includeRaw !== false; // Default true
-      const includeQuality = args.includeQuality !== false; // Default true
-      const includeFormatValidation = args.includeFormatValidation === true; // Default false
+      const typedArgs = args as {
+        filePath: string;
+        includeRaw?: boolean;
+        includeQuality?: boolean;
+        includeFormatValidation?: boolean;
+      };
+      const result = await parseConfig(typedArgs.filePath);
+      const includeRaw = typedArgs.includeRaw !== false; // Default true
+      const includeQuality = typedArgs.includeQuality !== false; // Default true
+      const includeFormatValidation = typedArgs.includeFormatValidation === true; // Default false
 
       // Optionally assess quality (with optional format validation)
       const quality = includeQuality
@@ -373,5 +379,5 @@ Handles malformed files gracefully by returning partial results with warnings.`,
         _rawData: failureResult,
       };
     }
-  }
-);
+  },
+});

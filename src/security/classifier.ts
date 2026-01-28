@@ -10,8 +10,8 @@
  * @module security/classifier
  */
 
-import { tool } from '@anthropic-ai/claude-agent-sdk';
 import { z } from 'zod';
+import { adaptTool } from '../opencode/tool-adapter';
 import { randomUUID } from 'crypto';
 import type {
   SecretCandidate,
@@ -74,9 +74,9 @@ type ClassificationResult = z.infer<typeof _classificationResultSchema>;
  * registry.register(classifySecretTool);
  * ```
  */
-export const classifySecretTool = tool(
-  'classify_secret',
-  `Analyze a potential secret candidate to determine if it's a real secret or false positive.
+export const classifySecretTool = adaptTool({
+  name: 'classify_secret',
+  description: `Analyze a potential secret candidate to determine if it's a real secret or false positive.
 
 You will receive:
 - redactedContext: Code snippet with the actual value replaced by [REDACTED:rule-id:len=N]
@@ -101,24 +101,34 @@ Consider these factors:
 6. Assignment patterns: process.env.X or os.getenv() are references, not secrets
 
 Return your classification with confidence score and reasoning.`,
-  classifySecretInputSchema,
-  // eslint-disable-next-line @typescript-eslint/require-await
-  async (args) => {
+  schema: classifySecretInputSchema,
+  handler: async (args: unknown) => {
     // The tool implementation provides a baseline heuristic classification.
     // In practice, the LLM agent calling this tool will use its reasoning
     // capabilities to provide the actual classification based on context.
     //
     // This implementation provides a fallback for programmatic use.
 
-    const analysisInput: CandidateAnalysis = {
-      candidateId: args.candidateId,
-      ruleId: args.ruleId,
-      redactedContext: args.redactedContext,
-      entropy: args.entropy,
-      filePath: args.filePath,
+    await Promise.resolve();
+
+    const typedArgs = args as {
+      candidateId: string;
+      ruleId: string;
+      redactedContext: string;
+      entropy: number;
+      filePath: string;
+      keywords?: string[];
     };
-    if (args.keywords !== undefined) {
-      analysisInput.keywords = args.keywords;
+
+    const analysisInput: CandidateAnalysis = {
+      candidateId: typedArgs.candidateId,
+      ruleId: typedArgs.ruleId,
+      redactedContext: typedArgs.redactedContext,
+      entropy: typedArgs.entropy,
+      filePath: typedArgs.filePath,
+    };
+    if (typedArgs.keywords !== undefined) {
+      analysisInput.keywords = typedArgs.keywords;
     }
 
     const classification = analyzeCandidate(analysisInput);
@@ -132,8 +142,8 @@ Return your classification with confidence score and reasoning.`,
         },
       ],
     };
-  }
-);
+  },
+});
 
 // =============================================================================
 // Heuristic Analysis (Fallback)

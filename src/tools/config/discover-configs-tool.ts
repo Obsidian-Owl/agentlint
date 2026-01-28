@@ -7,8 +7,8 @@
  * @module tools/config/discover-configs-tool
  */
 
-import { tool } from '@anthropic-ai/claude-agent-sdk';
 import { z } from 'zod';
+import { adaptTool } from '../../opencode/tool-adapter';
 import { discoverConfigs } from './discovery';
 import type { DiscoverConfigsResult } from './types';
 
@@ -133,9 +133,9 @@ function formatSize(bytes: number): string {
  * registry.register(discoverConfigsTool);
  * ```
  */
-export const discoverConfigsTool = tool(
-  'discover_configs',
-  `Discover AI configuration files in a project.
+export const discoverConfigsTool = adaptTool({
+  name: 'discover_configs',
+  description: `Discover AI configuration files in a project.
 
 Searches for:
 - CLAUDE.md files (Claude Code configuration)
@@ -145,20 +145,26 @@ Searches for:
 
 Automatically excludes common non-config directories (node_modules, .git, dist, etc.).
 Returns structured information about discovered files including type, hierarchy level, and metadata.`,
-  discoverConfigsInputSchema,
-  async (args) => {
+  schema: discoverConfigsInputSchema,
+  handler: async (args: unknown) => {
     try {
-      const input: Parameters<typeof discoverConfigs>[0] = {
-        cwd: args.cwd,
+      const typedArgs = args as {
+        cwd: string;
+        includeGlobal?: boolean;
+        exclude?: string[];
+        maxDepth?: number;
       };
-      if (args.includeGlobal !== undefined) {
-        input.includeGlobal = args.includeGlobal;
+      const input: Parameters<typeof discoverConfigs>[0] = {
+        cwd: typedArgs.cwd,
+      };
+      if (typedArgs.includeGlobal !== undefined) {
+        input.includeGlobal = typedArgs.includeGlobal;
       }
-      if (args.exclude !== undefined) {
-        input.exclude = args.exclude;
+      if (typedArgs.exclude !== undefined) {
+        input.exclude = typedArgs.exclude;
       }
-      if (args.maxDepth !== undefined) {
-        input.maxDepth = args.maxDepth;
+      if (typedArgs.maxDepth !== undefined) {
+        input.maxDepth = typedArgs.maxDepth;
       }
       const result = await discoverConfigs(input);
 
@@ -184,5 +190,5 @@ Returns structured information about discovered files including type, hierarchy 
         isError: true,
       };
     }
-  }
-);
+  },
+});

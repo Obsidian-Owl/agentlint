@@ -7,8 +7,9 @@
  * @module recommendations/tools/create-recommendation
  */
 
-import { tool } from '@anthropic-ai/claude-agent-sdk';
 import { z } from 'zod';
+
+import { adaptTool } from '../../opencode/tool-adapter';
 
 import { saveRecommendation } from '../storage';
 import { CreateRecommendationInputSchema } from '../schemas';
@@ -211,9 +212,9 @@ function formatToolOutput(result: CreateRecommendationResult): string {
  * registry.register(createRecommendationTool);
  * ```
  */
-export const createRecommendationTool = tool(
-  'create_recommendation',
-  `
+export const createRecommendationTool = adaptTool({
+  name: 'create_recommendation',
+  description: `
 Create a new recommendation case with a traced origin linking it to its source.
 
 Use this tool when you have:
@@ -243,29 +244,43 @@ Type guide:
 - preventive: Prevents recurrence (preferred with causal trace)
 - systemic: Structural change for deep-rooted issues
   `.trim(),
-  createRecommendationInputSchema,
-  async (args) => {
+  schema: createRecommendationInputSchema,
+  handler: async (args: unknown) => {
+    const typedArgs = args as {
+      type: string;
+      action: string;
+      target: string;
+      rationale: string;
+      priority: string;
+      tracedOrigin: {
+        findingId?: string;
+        sessionId?: string;
+        configGap?: string;
+        pattern?: string;
+      };
+    };
+
     // Build tracedOrigin without undefined values (exactOptionalPropertyTypes compatibility)
     const tracedOrigin: CreateRecommendationInput['tracedOrigin'] = {};
-    if (args.tracedOrigin.findingId !== undefined) {
-      tracedOrigin.findingId = args.tracedOrigin.findingId;
+    if (typedArgs.tracedOrigin.findingId !== undefined) {
+      tracedOrigin.findingId = typedArgs.tracedOrigin.findingId;
     }
-    if (args.tracedOrigin.sessionId !== undefined) {
-      tracedOrigin.sessionId = args.tracedOrigin.sessionId;
+    if (typedArgs.tracedOrigin.sessionId !== undefined) {
+      tracedOrigin.sessionId = typedArgs.tracedOrigin.sessionId;
     }
-    if (args.tracedOrigin.configGap !== undefined) {
-      tracedOrigin.configGap = args.tracedOrigin.configGap;
+    if (typedArgs.tracedOrigin.configGap !== undefined) {
+      tracedOrigin.configGap = typedArgs.tracedOrigin.configGap;
     }
-    if (args.tracedOrigin.pattern !== undefined) {
-      tracedOrigin.pattern = args.tracedOrigin.pattern;
+    if (typedArgs.tracedOrigin.pattern !== undefined) {
+      tracedOrigin.pattern = typedArgs.tracedOrigin.pattern;
     }
 
     const input: CreateRecommendationInput = {
-      type: args.type,
-      action: args.action,
-      target: args.target,
-      rationale: args.rationale,
-      priority: args.priority,
+      type: typedArgs.type as CreateRecommendationInput['type'],
+      action: typedArgs.action,
+      target: typedArgs.target,
+      rationale: typedArgs.rationale,
+      priority: typedArgs.priority as CreateRecommendationInput['priority'],
       tracedOrigin,
     };
 
@@ -281,5 +296,5 @@ Type guide:
       isError: !result.success,
       _rawData: result,
     };
-  }
-);
+  },
+});

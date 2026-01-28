@@ -7,8 +7,9 @@
  * @module temporal/tools/list-baselines
  */
 
-import { tool } from '@anthropic-ai/claude-agent-sdk';
 import { z } from 'zod';
+
+import { adaptTool } from '../../opencode/tool-adapter';
 
 import { initBaselineSchema, getIndexedBaselines } from '../../persistence/baselines/indexer';
 import type { BaselineSummary } from '../../persistence/types';
@@ -175,11 +176,19 @@ function formatDate(isoDate: string): string {
  * registry.register(listBaselinesTool);
  * ```
  */
-export const listBaselinesTool = tool(
-  'list_baselines',
-  TOOL_DESCRIPTIONS.list_baselines,
-  listBaselinesInputSchema,
-  async (args) => {
+export const listBaselinesTool = adaptTool({
+  name: 'list_baselines',
+  description: TOOL_DESCRIPTIONS.list_baselines,
+  schema: listBaselinesInputSchema,
+  handler: async (args: unknown) => {
+    const typedArgs = args as {
+      limit?: number;
+      after?: string;
+      before?: string;
+      label?: string;
+      orderBy?: 'createdAt' | 'findingsCount';
+      order?: 'asc' | 'desc';
+    };
     try {
       // Open the database
       const db = await initBaselineSchema();
@@ -187,25 +196,25 @@ export const listBaselinesTool = tool(
       try {
         // Query baselines with filters
         // Request one more than limit to check for hasMore
-        const limit = args.limit ?? 20;
+        const limit = typedArgs.limit ?? 20;
         const requestLimit = limit + 1;
 
         // Build query options, only including defined properties
         const queryOptions: Parameters<typeof getIndexedBaselines>[1] = {
-          orderBy: args.orderBy ?? 'createdAt',
-          order: args.order ?? 'desc',
+          orderBy: typedArgs.orderBy ?? 'createdAt',
+          order: typedArgs.order ?? 'desc',
           limit: requestLimit,
         };
 
         // Only add optional filters if they have values
-        if (args.after !== undefined) {
-          queryOptions.after = args.after;
+        if (typedArgs.after !== undefined) {
+          queryOptions.after = typedArgs.after;
         }
-        if (args.before !== undefined) {
-          queryOptions.before = args.before;
+        if (typedArgs.before !== undefined) {
+          queryOptions.before = typedArgs.before;
         }
-        if (args.label !== undefined) {
-          queryOptions.label = args.label;
+        if (typedArgs.label !== undefined) {
+          queryOptions.label = typedArgs.label;
         }
 
         const summaries = getIndexedBaselines(db, queryOptions);
@@ -250,5 +259,5 @@ export const listBaselinesTool = tool(
         isError: true,
       };
     }
-  }
-);
+  },
+});

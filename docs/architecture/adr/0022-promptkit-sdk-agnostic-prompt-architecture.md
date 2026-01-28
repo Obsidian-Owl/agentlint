@@ -201,3 +201,21 @@ Research sources:
 - Claude Code versions prompts per-release with token delta tracking
 - Production agents (Cline, Gemini CLI, Khoj) use prompt registries
 - Industry best practice: Single Source of Truth for personality
+
+---
+
+## Validation (2026-01-28): SDK Migration Confirmed SDK-Agnostic Design
+
+The Opencode SDK migration ([ADR-0024](0024-opencode-sdk-migration.md)) validated the SDK-agnostic design of PromptKit:
+
+1. **Prompts Required Zero Changes**: All prompt content remained unchanged during migration
+2. **Adapter Pattern Worked**: Only `src/prompts/adapters/claude-agent-sdk.ts` was updated (renamed to `toProviderMessage()`)
+3. **Centralized Persona Unchanged**: `DETECTIVE_PERSONA` and all personality components unchanged
+4. **Registry Unchanged**: `PromptRegistry` and `PromptSpec` interfaces unchanged
+
+This confirms the architecture's portability. Future SDK migrations will follow the same pattern:
+
+- Update adapters in `src/prompts/adapters/`
+- Leave prompt content (`src/prompts/components/`, `src/prompts/welcome/`, etc.) untouched
+
+See ADR-0024 for full migration details.

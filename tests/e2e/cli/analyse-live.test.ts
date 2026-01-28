@@ -2,7 +2,7 @@
  * Live E2E Tests for Orchestrated Analysis
  *
  * These tests make REAL API calls to validate orchestrated analysis behavior.
- * They require ANTHROPIC_API_KEY and will FAIL (not skip) if missing.
+ * They require LLM provider auth (via Opencode) and will FAIL (not skip) if missing.
  *
  * Run with: bun run test:live
  *
@@ -13,10 +13,10 @@ import { describe, test, expect } from 'bun:test';
 import { writeFileSync } from 'fs';
 import { join } from 'path';
 import { createTestFixture, runCLI, parseJSONOutput } from '../helpers';
-import { requireAPIKey } from '../../lib/require-api-key';
+import { requireLiveProvider } from '../../lib/require-provider';
 
-// Fail fast if API key is missing - no silent skips
-requireAPIKey();
+// Fail fast if no provider is configured - no silent skips
+requireLiveProvider();
 
 // =============================================================================
 // Types

@@ -142,7 +142,7 @@ export function queryAll<T>(db: Database, sql: string, params?: SQLParams): T[] 
     return (params ? stmt.all(params) : stmt.all()) as T[];
   } catch (error) {
     const cause = error instanceof Error ? error : undefined;
-    throw new DatabaseError('query', `Query failed: ${sql.slice(0, 100)}...`, { cause });
+    throw new DatabaseError('query', 'Database query failed', { cause });
   }
 }
 
@@ -162,7 +162,7 @@ export function queryOne<T>(db: Database, sql: string, params?: SQLParams): T | 
     return (result as T) ?? null;
   } catch (error) {
     const cause = error instanceof Error ? error : undefined;
-    throw new DatabaseError('query', `Query failed: ${sql.slice(0, 100)}...`, { cause });
+    throw new DatabaseError('query', 'Database query failed', { cause });
   }
 }
 
@@ -190,7 +190,7 @@ export function execute(db: Database, sql: string, params?: SQLParams): number {
           : 'unknown';
 
     const cause = error instanceof Error ? error : undefined;
-    throw new DatabaseError(operation, `Statement failed: ${sql.slice(0, 100)}...`, { cause });
+    throw new DatabaseError(operation, `Database ${operation} failed`, { cause });
   }
 }
 

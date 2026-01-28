@@ -40,16 +40,17 @@ The testing strategy must provide confidence in agent behavior while maintaining
 
 ### Test Suite Structure
 
-| Suite | Runs On | LLM Interaction | Purpose |
-|-------|---------|-----------------|---------|
-| Unit | Every commit | Mocked | Component logic, tool implementations |
-| Integration | Pull requests | Recorded (VCR) | Tool chains, session management |
-| E2E | Release tags | Live | Full analysis workflows |
-| Evals | Release tags | Live + TruLens | Behavioral quality assessment |
+| Suite       | Runs On       | LLM Interaction | Purpose                               |
+| ----------- | ------------- | --------------- | ------------------------------------- |
+| Unit        | Every commit  | Mocked          | Component logic, tool implementations |
+| Integration | Pull requests | Recorded (VCR)  | Tool chains, session management       |
+| E2E         | Release tags  | Live            | Full analysis workflows               |
+| Evals       | Release tags  | Live + TruLens  | Behavioral quality assessment         |
 
 ### Consequences
 
 **Good:**
+
 - Fast, deterministic CI on every commit
 - Behavioral confidence via TruLens evals on releases
 - VCR recordings capture real API behavior for high-fidelity integration tests
@@ -57,11 +58,13 @@ The testing strategy must provide confidence in agent behavior while maintaining
 - Clear separation prevents expensive tests from blocking development
 
 **Bad:**
+
 - VCR recordings need maintenance when prompts change significantly
 - TruLens adds Python dependency (runs as separate process)
 - Eval tests are slower and more expensive (but only run on releases)
 
 **Neutral:**
+
 - Two testing paradigms (Bun + TruLens) require learning both
 - Recording infrastructure adds some complexity
 
@@ -118,17 +121,17 @@ Test API contracts and response schemas without behavioral assessment.
 
 ## Constitution Compliance
 
-| Principle | Compliance | Notes |
-|-----------|------------|-------|
-| I. Local-First | Yes | TruLens self-hostable; all tests run locally |
-| II. Improvement-Oriented | Yes | Evals track quality metrics over time |
-| III. Causal-First | Yes | TruLens tracing enables causal analysis of agent behavior |
-| IV. Mixed-Methods | Yes | Combines quantitative metrics with qualitative eval |
-| V. Language-Agnostic | Yes | Testing infrastructure independent of analyzed projects |
-| VI. Agent-Agnostic | Yes | Tests agent behavior patterns, not specific LLM |
-| VII. Intelligent Tooling | Yes | Tests validate tool behavior for agent comprehension |
-| VIII. Compounding Value | Yes | Eval baselines enable regression detection |
-| IX. Agent-Aware | Yes | VCR recordings optimized for agent interaction patterns |
+| Principle                | Compliance | Notes                                                     |
+| ------------------------ | ---------- | --------------------------------------------------------- |
+| I. Local-First           | Yes        | TruLens self-hostable; all tests run locally              |
+| II. Improvement-Oriented | Yes        | Evals track quality metrics over time                     |
+| III. Causal-First        | Yes        | TruLens tracing enables causal analysis of agent behavior |
+| IV. Mixed-Methods        | Yes        | Combines quantitative metrics with qualitative eval       |
+| V. Language-Agnostic     | Yes        | Testing infrastructure independent of analyzed projects   |
+| VI. Agent-Agnostic       | Yes        | Tests agent behavior patterns, not specific LLM           |
+| VII. Intelligent Tooling | Yes        | Tests validate tool behavior for agent comprehension      |
+| VIII. Compounding Value  | Yes        | Eval baselines enable regression detection                |
+| IX. Agent-Aware          | Yes        | VCR recordings optimized for agent interaction patterns   |
 
 ## More Information
 
@@ -289,7 +292,7 @@ class VCR {
       if (this.strict) {
         throw new Error(
           `VCR: No recording found for ${options?.method || 'GET'} ${url}\n` +
-          `Run 'bun run record' locally and commit the recordings.`
+            `Run 'bun run record' locally and commit the recordings.`
         );
       }
       // In non-strict mode, make real request and optionally record
@@ -314,6 +317,7 @@ class VCR {
 ```
 
 **Recording Workflow:**
+
 1. Developer modifies prompts or adds new integration tests
 2. Runs `bun run record` (explicit, intentional)
 3. Reviews recording diffs for sanity (no secrets, reasonable responses)
@@ -322,6 +326,7 @@ class VCR {
 6. CI fails PR if recordings are missing or don't match
 
 **Why not auto-record in pre-push?**
+
 - Recording costs money (live API calls)
 - LLM responses are non-deterministic → noisy diffs on every push
 - Recording should be intentional, not automatic
@@ -446,13 +451,13 @@ jobs:
 
       - name: Run E2E tests
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
         run: bun test tests/e2e
 
       - name: Run behavioral evaluations
         env:
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}  # For TruLens judge
+          OPENCODE_API_KEY: ${{ secrets.OPENCODE_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }} # For TruLens judge
         run: bun run tests/evals/run-evals.ts
 
       - name: Upload eval results
@@ -509,9 +514,15 @@ export const fixtures = {
 
   // Sample session logs
   sessions: {
-    successful: { /* ... */ },
-    withErrors: { /* ... */ },
-    longRunning: { /* ... */ },
+    successful: {
+      /* ... */
+    },
+    withErrors: {
+      /* ... */
+    },
+    longRunning: {
+      /* ... */
+    },
   },
 
   // Expected analysis outputs (for assertions)

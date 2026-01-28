@@ -11,6 +11,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import * as os from 'node:os';
 import type { OrchestratorConfig, AgentlintGlobalConfig, VerbosityLevel } from './types';
+import { redact } from '../debug/redaction';
 
 // =============================================================================
 // Constants
@@ -204,13 +205,13 @@ function loadConfigFile(): AgentlintGlobalConfig | null {
 
     // Basic validation
     if (!isValidGlobalConfig(parsed)) {
-      console.warn(`Warning: Invalid config file at ${CONFIG_FILE}, using defaults`);
+      console.warn(`Warning: Invalid config file at ${redact(CONFIG_FILE)}, using defaults`);
       return null;
     }
 
     return parsed;
   } catch {
-    console.warn(`Warning: Failed to load config file at ${CONFIG_FILE}, using defaults`);
+    console.warn(`Warning: Failed to load config file at ${redact(CONFIG_FILE)}, using defaults`);
     return null;
   }
 }

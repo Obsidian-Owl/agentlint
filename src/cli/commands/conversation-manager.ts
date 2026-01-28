@@ -9,7 +9,7 @@
 
 import type { ITuiRenderer, ConversationMessage, ConversationalContext } from '../../tui/types';
 import type { WelcomeContext } from '../../tui/welcome/types';
-import type { IOrchestrator } from '../../orchestration/orchestrator';
+import type { IOrchestrator } from '../../orchestration/interfaces';
 import {
   buildFollowUpPrompt,
   createUserMessage,

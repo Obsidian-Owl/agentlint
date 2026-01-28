@@ -1,5 +1,5 @@
 ---
-status: accepted
+status: superseded by ADR-0026
 date: 2026-01-14
 decision-makers: [Project Lead]
 consulted: []
@@ -7,6 +7,8 @@ informed: []
 ---
 
 # ADR-0014: Credential Management Strategy
+
+> **Note**: This ADR is superseded by [ADR-0026](./0026-opencode-auth-delegation.md). agentlint now delegates all authentication to the Opencode SDK.
 
 ## Context and Problem Statement
 
@@ -49,6 +51,7 @@ agentlint requires LLM API credentials to function. Per ADR-0002, we use the Cla
 ### Consequences
 
 **Good:**
+
 - Matches Anthropic ecosystem conventions exactly
 - Works in all CI/CD platforms without special configuration
 - No native dependencies or platform-specific code
@@ -56,11 +59,13 @@ agentlint requires LLM API credentials to function. Per ADR-0002, we use the Cla
 - Clear separation: env var for CI, file for personal workstation
 
 **Bad:**
+
 - File-based credentials less secure than system keychain
 - User must ensure `~/.agentlint/` is not synced to cloud storage
 - No automatic credential rotation
 
 **Neutral:**
+
 - Requires user to add `~/.agentlint/` to global gitignore
 - Interactive prompt only works in TTY environments
 
@@ -120,17 +125,17 @@ External program protocol with get/store/erase operations.
 
 ## Constitution Compliance
 
-| Principle | Compliance | Notes |
-|-----------|------------|-------|
-| I. Local-First | Yes | All credentials stored locally; never transmitted except to user's LLM |
-| II. Improvement-Oriented | N/A | Credential management is infrastructure, not analysis |
-| III. Causal-First | N/A | Not applicable to credential storage |
-| IV. Mixed-Methods | N/A | Not applicable to credential storage |
-| V. Language-Agnostic | Yes | Credential system independent of analyzed project language |
-| VI. Agent-Agnostic | Partial | Anthropic-only for MVP; structure supports future providers |
-| VII. Intelligent Tooling | Yes | Clear fallback chain; agent can detect credential issues |
-| VIII. Compounding Value | N/A | Not applicable to credential storage |
-| IX. Agent-Aware | Yes | Credential errors reported clearly for agent reasoning |
+| Principle                | Compliance | Notes                                                                  |
+| ------------------------ | ---------- | ---------------------------------------------------------------------- |
+| I. Local-First           | Yes        | All credentials stored locally; never transmitted except to user's LLM |
+| II. Improvement-Oriented | N/A        | Credential management is infrastructure, not analysis                  |
+| III. Causal-First        | N/A        | Not applicable to credential storage                                   |
+| IV. Mixed-Methods        | N/A        | Not applicable to credential storage                                   |
+| V. Language-Agnostic     | Yes        | Credential system independent of analyzed project language             |
+| VI. Agent-Agnostic       | Partial    | Anthropic-only for MVP; structure supports future providers            |
+| VII. Intelligent Tooling | Yes        | Clear fallback chain; agent can detect credential issues               |
+| VIII. Compounding Value  | N/A        | Not applicable to credential storage                                   |
+| IX. Agent-Aware          | Yes        | Credential errors reported clearly for agent reasoning                 |
 
 ## More Information
 
@@ -313,6 +318,7 @@ Get your API key at: https://console.anthropic.com/settings/keys
 #### 7. CI/CD Examples
 
 **GitHub Actions:**
+
 ```yaml
 jobs:
   analyze:
@@ -325,12 +331,13 @@ jobs:
 ```
 
 **GitLab CI:**
+
 ```yaml
 analyze:
   script:
     - npx agentlint analyse
   variables:
-    ANTHROPIC_API_KEY: $ANTHROPIC_API_KEY  # From CI/CD settings
+    ANTHROPIC_API_KEY: $ANTHROPIC_API_KEY # From CI/CD settings
 ```
 
 #### 8. Security Considerations

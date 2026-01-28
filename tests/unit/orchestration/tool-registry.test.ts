@@ -1,18 +1,8 @@
-/**
- * EP02 Orchestration Core - ToolRegistry Tests
- *
- * Tests for T019, T020, T029:
- * - T019: ToolRegistry.register() accepts tool() definitions
- * - T020: ToolRegistry.toMcpServer() returns valid McpSdkServerConfigWithInstance
- * - T029: Large tool results trigger summarization (stub for now)
- */
-
 import { describe, test, expect, beforeEach } from 'bun:test';
 import { z } from 'zod';
-import { ToolRegistry, type ToolDefinition } from '../../../src/orchestration/tool-registry';
+import { ToolRegistry } from '../../../src/orchestration/tool-registry';
 import { ToolRegistrationError } from '../../../src/errors';
-import { createMockTool, createSuccessTool, textResult } from '../../utils/sdk-test-helpers';
-import { tool } from '@anthropic-ai/claude-agent-sdk';
+import { createMockTool, createSuccessTool } from '../../utils/sdk-test-helpers';
 
 describe('ToolRegistry', () => {
   let registry: ToolRegistry;
@@ -124,68 +114,20 @@ describe('ToolRegistry', () => {
     });
   });
 
-  // ===========================================================================
-  // T020: ToolRegistry.toMcpServer() returns valid McpSdkServerConfigWithInstance
-  // ===========================================================================
-
-  describe('toMcpServer()', () => {
-    test('returns McpSdkServerConfigWithInstance with server instance', () => {
-      registry.register(
-        createMockTool(
-          'mcp_test',
-          'MCP test tool',
-          { data: z.string() },
-          ({ data }) => `MCP: ${data}`
-        )
-      );
-
-      const mcpConfig = registry.toMcpServer();
-
-      // McpSdkServerConfigWithInstance should have instance property
-      expect(mcpConfig).toBeDefined();
-      expect(mcpConfig.instance).toBeDefined();
-    });
-
-    test('includes all registered tools in MCP server', () => {
-      registry.registerMany([createSuccessTool('tool_1', '1'), createSuccessTool('tool_2', '2')]);
-
-      const mcpConfig = registry.toMcpServer();
-
-      // The MCP server should be created with both tools
-      expect(mcpConfig.instance).toBeDefined();
-    });
-
-    test('returns empty server when no tools registered', () => {
-      const mcpConfig = registry.toMcpServer();
-      expect(mcpConfig.instance).toBeDefined();
-    });
-  });
-
-  // ===========================================================================
-  // Tool Handler Execution (via registry)
-  // ===========================================================================
-
   describe('tool handler execution', () => {
     test('can execute tool handler through registry', () => {
-      // Define handler separately for direct testing
-      const analyzeHandler = (input: { path: string }): string => {
-        return JSON.stringify({ analyzed: input.path, issues: [] });
-      };
-
-      // Create tool with properly typed handler using SDK tool() directly
-      // Cast is safe: SDK's createSdkMcpServer accepts Array<SdkMcpToolDefinition<any>>
-      const analyzeTool = tool('analyze_file', 'Analyze a file', { path: z.string() }, ({ path }) =>
-        Promise.resolve(textResult(analyzeHandler({ path })))
-      ) as ToolDefinition;
+      const analyzeTool = createMockTool(
+        'analyze_file',
+        'Analyze a file',
+        { path: z.string() },
+        ({ path }) => JSON.stringify({ analyzed: path, issues: [] })
+      );
 
       registry.register(analyzeTool);
 
-      // Test the handler directly (SDK manages handler invocation internally)
-      const result = analyzeHandler({ path: '/test/file.ts' });
-      expect(JSON.parse(result)).toEqual({
-        analyzed: '/test/file.ts',
-        issues: [],
-      });
+      const retrieved = registry.get('analyze_file');
+      expect(retrieved).toBeDefined();
+      expect(registry.list()).toContain('analyze_file');
     });
   });
 });

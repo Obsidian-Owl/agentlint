@@ -25,6 +25,17 @@
  */
 export type VerbosityLevel = 'quiet' | 'normal' | 'verbose' | 'debug';
 
+const VERBOSITY_ORDER: Record<VerbosityLevel, number> = {
+  quiet: 0,
+  normal: 1,
+  verbose: 2,
+  debug: 3,
+};
+
+export function shouldDisplay(chunkLevel: VerbosityLevel, displayLevel: VerbosityLevel): boolean {
+  return VERBOSITY_ORDER[chunkLevel] <= VERBOSITY_ORDER[displayLevel];
+}
+
 /**
  * Type of streaming output chunk.
  * Used to categorize and filter output based on verbosity.
@@ -59,6 +70,16 @@ export interface StreamChunk {
   timestamp: string;
   /** Optional additional metadata */
   metadata?: Record<string, unknown>;
+}
+
+/**
+ * Result of a permission check.
+ * Matches the SDK's PermissionResult type.
+ */
+export interface PermissionResult {
+  behavior: 'allow' | 'deny';
+  message?: string;
+  updatedInput?: Record<string, unknown>;
 }
 
 // =============================================================================

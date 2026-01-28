@@ -7,8 +7,9 @@
  * @module recommendations/tools/get-recommendation-summary
  */
 
-import { tool } from '@anthropic-ai/claude-agent-sdk';
 import { z } from 'zod';
+
+import { adaptTool } from '../../opencode/tool-adapter';
 
 import { loadRecommendation } from '../storage';
 import { compressRecommendation } from '../storage/compression';
@@ -142,9 +143,9 @@ function formatToolOutput(result: GetRecommendationSummaryResult): string {
  * registry.register(getRecommendationSummaryTool);
  * ```
  */
-export const getRecommendationSummaryTool = tool(
-  'get_recommendation_summary',
-  `
+export const getRecommendationSummaryTool = adaptTool({
+  name: 'get_recommendation_summary',
+  description: `
 Get a compressed summary of a recommendation for efficient context loading.
 
 Returns a summary view with:
@@ -160,9 +161,13 @@ Use this tool to:
 
 Use get_recommendation for full details including all events and rationale.
   `.trim(),
-  getRecommendationSummaryInputSchema,
-  async (args) => {
-    const result = await getRecommendationSummary(args.recommendationId);
+  schema: getRecommendationSummaryInputSchema,
+  handler: async (args: unknown) => {
+    const typedArgs = args as {
+      recommendationId: string;
+    };
+
+    const result = await getRecommendationSummary(typedArgs.recommendationId);
 
     return {
       content: [
@@ -174,5 +179,5 @@ Use get_recommendation for full details including all events and rationale.
       isError: !result.success,
       _rawData: result,
     };
-  }
-);
+  },
+});

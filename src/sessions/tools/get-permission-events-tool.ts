@@ -12,7 +12,7 @@
  * @module sessions/tools/get-permission-events-tool
  */
 
-import { tool } from '@anthropic-ai/claude-agent-sdk';
+import { adaptTool } from '../../opencode/tool-adapter';
 import { z } from 'zod';
 import { readFile, access } from 'node:fs/promises';
 import { constants } from 'node:fs';
@@ -392,9 +392,9 @@ function formatToolOutput(data: GetPermissionEventsOutput): string {
  *
  * Extracts permission approval/denial events from a session.
  */
-export const getPermissionEventsTool = tool(
-  'get_permission_events',
-  `Extract permission approval/denial events from a Claude Code session.
+export const getPermissionEventsTool = adaptTool({
+  name: 'get_permission_events',
+  description: `Extract permission approval/denial events from a Claude Code session.
 
 Returns:
 - **Permission events**: Approved, denied, and auto-approved tool requests
@@ -409,24 +409,31 @@ Use this tool to understand permission interaction patterns:
 - Command patterns that could benefit from auto-approval
 
 The agent interprets patterns to suggest configuration improvements.`,
-  getPermissionEventsInputSchema,
-  async (args) => {
+  schema: getPermissionEventsInputSchema,
+  handler: async (args: unknown) => {
+    const typedArgs = args as {
+      filePath: string;
+      projectPath?: string;
+      toolName?: string;
+      includeAutoApproved?: boolean;
+      inferFromToolUse?: boolean;
+    };
     try {
       // Build input conditionally to satisfy exactOptionalPropertyTypes
       const input: GetPermissionEventsInput = {
-        filePath: args.filePath,
+        filePath: typedArgs.filePath,
       };
-      if (args.projectPath !== undefined) {
-        input.projectPath = args.projectPath;
+      if (typedArgs.projectPath !== undefined) {
+        input.projectPath = typedArgs.projectPath;
       }
-      if (args.toolName !== undefined) {
-        input.toolName = args.toolName;
+      if (typedArgs.toolName !== undefined) {
+        input.toolName = typedArgs.toolName;
       }
-      if (args.includeAutoApproved !== undefined) {
-        input.includeAutoApproved = args.includeAutoApproved;
+      if (typedArgs.includeAutoApproved !== undefined) {
+        input.includeAutoApproved = typedArgs.includeAutoApproved;
       }
-      if (args.inferFromToolUse !== undefined) {
-        input.inferFromToolUse = args.inferFromToolUse;
+      if (typedArgs.inferFromToolUse !== undefined) {
+        input.inferFromToolUse = typedArgs.inferFromToolUse;
       }
 
       const result = await getPermissionEvents(input);
@@ -466,5 +473,5 @@ The agent interprets patterns to suggest configuration improvements.`,
         isError: true,
       };
     }
-  }
-);
+  },
+});

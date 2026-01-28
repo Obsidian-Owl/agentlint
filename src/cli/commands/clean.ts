@@ -13,6 +13,7 @@ import { resolve, join } from 'node:path';
 import type { CleanOptions } from '../types';
 import { getProjectDir, getGlobalDir, getBackupsDir } from '../../persistence/common/directories';
 import { runBackup } from './backup';
+import { redact } from '../../debug/redaction';
 
 // =============================================================================
 // Types
@@ -307,7 +308,12 @@ export async function runClean(options: CleanOptions): Promise<number> {
 
   if (result.status === 'error') {
     if (options.json) {
-      console.log(JSON.stringify({ status: 'error', error: result.error }));
+      console.log(
+        JSON.stringify({
+          status: 'error',
+          error: result.error ? redact(result.error) : 'unknown error',
+        })
+      );
     } else {
       console.error(`Error: ${result.error}`);
     }

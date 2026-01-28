@@ -7,8 +7,9 @@
  * @module recommendations/tools/add-event
  */
 
-import { tool } from '@anthropic-ai/claude-agent-sdk';
 import { z } from 'zod';
+
+import { adaptTool } from '../../opencode/tool-adapter';
 
 import { loadRecommendation as loadFromStorage, saveRecommendation } from '../storage';
 import type { Recommendation, RecommendationEvent, AddEventInput } from '../types';
@@ -202,7 +203,7 @@ function formatToolOutput(result: AddEventResult): string {
 /**
  * add_recommendation_event tool definition.
  *
- * Appends an event to a recommendation's append-only event log.
+ * Appends an event to a recommendation's event log.
  *
  * @example
  * ```typescript
@@ -213,9 +214,9 @@ function formatToolOutput(result: AddEventResult): string {
  * registry.register(addRecommendationEventTool);
  * ```
  */
-export const addRecommendationEventTool = tool(
-  'add_recommendation_event',
-  `
+export const addRecommendationEventTool = adaptTool({
+  name: 'add_recommendation_event',
+  description: `
 Append an event to a recommendation's event log.
 
 Use this tool to record:
@@ -236,23 +237,32 @@ Optional context fields help link events to other agentlint data:
 - sessionId: Session where observation was made
 - commitHash: Git commit related to the event
   `.trim(),
-  addRecommendationEventInputSchema,
-  async (args) => {
+  schema: addRecommendationEventInputSchema,
+  handler: async (args: unknown) => {
+    const typedArgs = args as {
+      recommendationId: string;
+      type: string;
+      content: string;
+      baselineId?: string;
+      sessionId?: string;
+      commitHash?: string;
+    };
+
     const input: AddEventInput = {
-      recommendationId: args.recommendationId,
-      type: args.type,
-      content: args.content,
+      recommendationId: typedArgs.recommendationId,
+      type: typedArgs.type as AddEventInput['type'],
+      content: typedArgs.content,
     };
 
     // Add optional fields only if defined
-    if (args.baselineId !== undefined) {
-      input.baselineId = args.baselineId;
+    if (typedArgs.baselineId !== undefined) {
+      input.baselineId = typedArgs.baselineId;
     }
-    if (args.sessionId !== undefined) {
-      input.sessionId = args.sessionId;
+    if (typedArgs.sessionId !== undefined) {
+      input.sessionId = typedArgs.sessionId;
     }
-    if (args.commitHash !== undefined) {
-      input.commitHash = args.commitHash;
+    if (typedArgs.commitHash !== undefined) {
+      input.commitHash = typedArgs.commitHash;
     }
 
     const result = await addRecommendationEvent(input);
@@ -267,5 +277,5 @@ Optional context fields help link events to other agentlint data:
       isError: !result.success,
       _rawData: result,
     };
-  }
-);
+  },
+});

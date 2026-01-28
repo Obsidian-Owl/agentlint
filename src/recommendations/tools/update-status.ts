@@ -7,8 +7,9 @@
  * @module recommendations/tools/update-status
  */
 
-import { tool } from '@anthropic-ai/claude-agent-sdk';
 import { z } from 'zod';
+
+import { adaptTool } from '../../opencode/tool-adapter';
 
 import { loadRecommendation, saveRecommendation } from '../storage';
 import type { Recommendation, RecommendationEvent, RecommendationStatus } from '../types';
@@ -173,9 +174,9 @@ function formatToolOutput(result: UpdateRecommendationStatusResult): string {
  * registry.register(updateRecommendationStatusTool);
  * ```
  */
-export const updateRecommendationStatusTool = tool(
-  'update_recommendation_status',
-  `
+export const updateRecommendationStatusTool = adaptTool({
+  name: 'update_recommendation_status',
+  description: `
 Update the status of a recommendation through its lifecycle.
 
 Status transitions:
@@ -194,11 +195,16 @@ Use this tool to:
 Cannot update status of completed recommendations. Use complete_recommendation
 to close a recommendation case entirely.
   `.trim(),
-  updateRecommendationStatusInputSchema,
-  async (args) => {
+  schema: updateRecommendationStatusInputSchema,
+  handler: async (args: unknown) => {
+    const typedArgs = args as {
+      recommendationId: string;
+      status: string;
+    };
+
     const result = await updateRecommendationStatus({
-      recommendationId: args.recommendationId,
-      status: args.status,
+      recommendationId: typedArgs.recommendationId,
+      status: typedArgs.status as RecommendationStatus,
     });
 
     return {
@@ -211,5 +217,5 @@ to close a recommendation case entirely.
       isError: !result.success,
       _rawData: result,
     };
-  }
-);
+  },
+});

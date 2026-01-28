@@ -10,7 +10,6 @@
  */
 
 import { describe, test, expect, beforeEach } from 'bun:test';
-import { z } from 'zod';
 
 // ACT module imports
 import { buildACTSubagents, ACTSubagentRegistry } from '../../../src/act/index.js';
@@ -19,11 +18,7 @@ import { getGeneralizedInstructions } from '../../../src/act/instructions/genera
 import { getBundledInstructions } from '../../../src/act/instructions/index.js';
 import type { ACTInstructions } from '../../../src/act/types.js';
 
-// Orchestration imports
-import { Orchestrator } from '../../../src/orchestration/orchestrator.js';
-import { ToolRegistry } from '../../../src/orchestration/tool-registry.js';
 import { loadConfig } from '../../../src/orchestration/config.js';
-import { createMockTool } from '../../utils/sdk-test-helpers.js';
 
 // =============================================================================
 // Test: Registry Integration
@@ -161,45 +156,6 @@ describe('Orchestrator ACT Configuration', () => {
 
     expect(config.allowedTools).toBeDefined();
     expect(config.allowedTools).toContain('Task');
-  });
-
-  test('orchestrator can be created with ACT-enabled config', () => {
-    const toolRegistry = new ToolRegistry();
-    toolRegistry.register(
-      createMockTool(
-        'discover_configs',
-        'Discover configuration files',
-        { path: z.string() },
-        () => '[]'
-      )
-    );
-
-    const config = loadConfig({
-      allowedTools: ['Task', 'Read', 'Write'],
-    });
-
-    const orchestrator = new Orchestrator(config, toolRegistry);
-
-    expect(orchestrator.config.allowedTools).toContain('Task');
-    expect(orchestrator.depth).toBe(0);
-    expect(orchestrator.canSpawnSubagent()).toBe(true);
-  });
-
-  test('subagent config has incremented depth', () => {
-    const toolRegistry = new ToolRegistry();
-    const orchestrator = new Orchestrator({}, toolRegistry);
-
-    const subConfig = orchestrator.getSubagentConfig();
-
-    expect(subConfig.depth).toBe(1);
-    expect(orchestrator.depth).toBe(0);
-  });
-
-  test('depth=1 orchestrator cannot spawn further subagents', () => {
-    const toolRegistry = new ToolRegistry();
-    const orchestrator = new Orchestrator({ depth: 1 }, toolRegistry);
-
-    expect(orchestrator.canSpawnSubagent()).toBe(false);
   });
 });
 

@@ -7,7 +7,7 @@
  * @module tools/sessions/get-session-stats-tool
  */
 
-import { tool } from '@anthropic-ai/claude-agent-sdk';
+import { adaptTool } from '../../opencode/tool-adapter';
 import { z } from 'zod';
 import { getSessionStats, type GetSessionStatsResult } from './stats';
 
@@ -149,9 +149,9 @@ function formatNumber(n: number): string {
  * registry.register(getSessionStatsTool);
  * ```
  */
-export const getSessionStatsTool = tool(
-  'get_session_stats',
-  `Get aggregated statistics across Claude Code sessions.
+export const getSessionStatsTool = adaptTool({
+  name: 'get_session_stats',
+  description: `Get aggregated statistics across Claude Code sessions.
 
 Returns metrics including:
 - Session count and average turns
@@ -167,23 +167,24 @@ Supports filtering by:
 - Model (e.g., "claude-opus-4-5-20251101")
 
 Use this to understand development patterns and resource usage.`,
-  getSessionStatsInputSchema,
-  // eslint-disable-next-line @typescript-eslint/require-await -- SDK tool() requires async but getSessionStats is sync
-  async (args) => {
+  schema: getSessionStatsInputSchema,
+  // eslint-disable-next-line @typescript-eslint/require-await -- Handler must return Promise for MCP compatibility
+  handler: async (args: unknown) => {
+    const typedArgs = args as { since?: string; until?: string; project?: string; model?: string };
     try {
       // Build input object, only including defined properties
       const input: Parameters<typeof getSessionStats>[0] = {};
-      if (args.since !== undefined) {
-        input.since = args.since;
+      if (typedArgs.since !== undefined) {
+        input.since = typedArgs.since;
       }
-      if (args.until !== undefined) {
-        input.until = args.until;
+      if (typedArgs.until !== undefined) {
+        input.until = typedArgs.until;
       }
-      if (args.project !== undefined) {
-        input.project = args.project;
+      if (typedArgs.project !== undefined) {
+        input.project = typedArgs.project;
       }
-      if (args.model !== undefined) {
-        input.model = args.model;
+      if (typedArgs.model !== undefined) {
+        input.model = typedArgs.model;
       }
 
       const result = getSessionStats(input);
@@ -225,5 +226,5 @@ Use this to understand development patterns and resource usage.`,
         isError: true,
       };
     }
-  }
-);
+  },
+});

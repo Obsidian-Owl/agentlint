@@ -213,6 +213,21 @@ function rowToChain(row: ChainRow, evidence: EvidenceItem[]): CausalChain {
 }
 
 /**
+ * Safely parse JSON metadata, returning undefined on parse failure.
+ */
+function safeParseJson(json: string): Record<string, unknown> | undefined {
+  try {
+    const parsed: unknown = JSON.parse(json);
+    if (typeof parsed === 'object' && parsed !== null) {
+      return parsed as Record<string, unknown>;
+    }
+    return undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
  * Convert a database row to an EvidenceItem object.
  */
 function rowToEvidence(row: EvidenceRow): EvidenceItem {
@@ -231,7 +246,7 @@ function rowToEvidence(row: EvidenceRow): EvidenceItem {
             snippet: row.snippet ?? undefined,
           }
         : undefined,
-    metadata: row.metadata ? (JSON.parse(row.metadata) as Record<string, unknown>) : undefined,
+    metadata: row.metadata ? safeParseJson(row.metadata) : undefined,
   };
 }
 

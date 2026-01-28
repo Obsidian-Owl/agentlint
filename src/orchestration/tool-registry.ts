@@ -1,22 +1,11 @@
 /**
- * EP02 Orchestration Core - Tool Registry
+ * Orchestration Core - Tool Registry
  *
  * Registry for managing MCP tools available to the orchestrator.
- * Uses Claude Agent SDK's tool() and createSdkMcpServer() patterns.
- *
- * Implementation tasks:
- * - T021: Create IToolRegistry interface implementation
- * - T022: Implement register() and registerMany() methods
- * - T023: Implement toMcpServer() using createSdkMcpServer()
  *
  * @module orchestration/tool-registry
  */
 
-import {
-  createSdkMcpServer,
-  type McpSdkServerConfigWithInstance,
-  type SdkMcpToolDefinition,
-} from '@anthropic-ai/claude-agent-sdk';
 import { ToolRegistrationError } from '../errors';
 
 // =============================================================================
@@ -24,16 +13,14 @@ import { ToolRegistrationError } from '../errors';
 // =============================================================================
 
 /**
- * Type alias for SDK tool definitions.
+ * Opaque tool definition type.
  *
- * Uses SdkMcpToolDefinition<any> to match the SDK's internal CreateSdkMcpServerOptions.tools type.
- * This allows registering tools with any schema shape, since:
- * 1. Tools can have various schema shapes (different Zod raw shapes)
- * 2. The SDK's createSdkMcpServer() expects Array<SdkMcpToolDefinition<any>>
- * 3. TypeScript's contravariance on handler args requires the permissive <any> type
+ * Tools are created by adaptTool() (opencode) or other adapters and registered here.
+ * The registry probes the internal structure via extractToolName() using `as any` casts.
+ * This permissive type allows any tool shape to be registered.
  */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type ToolDefinition = SdkMcpToolDefinition<any>;
+export type ToolDefinition = Record<string, any>;
 
 // =============================================================================
 // IToolRegistry Interface
@@ -55,9 +42,6 @@ export interface IToolRegistry {
 
   /** List all registered tool names */
   list(): string[];
-
-  /** Get MCP server configuration for SDK */
-  toMcpServer(): McpSdkServerConfigWithInstance;
 }
 
 // =============================================================================
@@ -74,16 +58,8 @@ export interface IToolRegistry {
  * @example
  * ```typescript
  * const registry = new ToolRegistry();
- *
- * registry.register(tool({
- *   name: 'analyze_config',
- *   description: 'Analyze configuration quality',
- *   schema: z.object({ path: z.string() }),
- *   handler: async ({ path }) => analyzeConfig(path),
- * }));
- *
- * const mcpServer = registry.toMcpServer();
- * // Pass to SDK query() via mcpServers option
+ * registry.register(adaptTool({ name: 'analyze_config', ... }));
+ * const tool = registry.get('analyze_config');
  * ```
  */
 export class ToolRegistry implements IToolRegistry {
@@ -92,9 +68,6 @@ export class ToolRegistry implements IToolRegistry {
 
   /** Name to index mapping for O(1) lookup and duplicate detection */
   private nameToIndex: Map<string, number> = new Map();
-
-  /** Cached MCP server instance - invalidated on registration */
-  private cachedMcpServer: McpSdkServerConfigWithInstance | null = null;
 
   /**
    * Register a single tool.
@@ -112,9 +85,6 @@ export class ToolRegistry implements IToolRegistry {
     const index = this.tools.length;
     this.tools.push(toolDef);
     this.nameToIndex.set(toolName, index);
-
-    // Invalidate cache
-    this.cachedMcpServer = null;
   }
 
   /**
@@ -158,9 +128,6 @@ export class ToolRegistry implements IToolRegistry {
         this.nameToIndex.set(toolName, index);
       }
     }
-
-    // Invalidate cache
-    this.cachedMcpServer = null;
   }
 
   /**
@@ -185,28 +152,6 @@ export class ToolRegistry implements IToolRegistry {
   list(): string[] {
     // Return names in registration order
     return Array.from(this.nameToIndex.keys());
-  }
-
-  /**
-   * Get MCP server configuration for SDK query() options.
-   *
-   * Uses SDK's createSdkMcpServer() to bundle all registered tools
-   * into a single MCP server instance.
-   *
-   * @returns McpSdkServerConfigWithInstance for SDK mcpServers option
-   */
-  toMcpServer(): McpSdkServerConfigWithInstance {
-    // Return cached server if available
-    if (this.cachedMcpServer !== null) {
-      return this.cachedMcpServer;
-    }
-
-    // Create new MCP server with all tools
-    this.cachedMcpServer = createSdkMcpServer({
-      name: 'agentlint',
-      tools: this.tools,
-    });
-    return this.cachedMcpServer;
   }
 
   /**

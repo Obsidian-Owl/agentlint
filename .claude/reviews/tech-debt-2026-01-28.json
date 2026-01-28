@@ -1,0 +1,70 @@
+{
+  "version": "1.0.0",
+  "timestamp": "2026-01-28T08:30:00Z",
+  "scope": "changed_files",
+  "filesAnalyzed": 12,
+  "score": 79,
+  "grade": "C",
+  "categories": {
+    "boundary": { "findings": 0, "impact": 0 },
+    "prompt": { "findings": 0, "impact": 0 },
+    "context": { "findings": 0, "impact": 0 },
+    "testing": { "findings": 0, "impact": 0 },
+    "error": { "findings": 2, "impact": -14 },
+    "state": { "findings": 0, "impact": 0 },
+    "observability": { "findings": 2, "impact": -7 },
+    "subagent": { "findings": 0, "impact": 0 }
+  },
+  "findings": [
+    {
+      "pattern": "NO_RETRY_LOGIC",
+      "category": "error",
+      "file": "src/opencode/orchestrator.ts",
+      "line": 58,
+      "snippet": "await this.server.start();",
+      "severity": 6,
+      "priority": "P1",
+      "note": "Server start has no retry logic - transient failures will crash analysis"
+    },
+    {
+      "pattern": "SILENT_FAILURE",
+      "category": "error",
+      "file": "src/opencode/orchestrator.ts",
+      "line": 72,
+      "snippet": "} finally { this._isActive = false; }",
+      "severity": 8,
+      "priority": "P1",
+      "note": "Server not stopped in finally block - orphan process on error"
+    },
+    {
+      "pattern": "NO_DEBUG_LOG",
+      "category": "observability",
+      "file": "src/opencode/orchestrator.ts",
+      "line": 54,
+      "snippet": "public async *run(task: string): AsyncGenerator<StreamChunk, void, unknown> {",
+      "severity": 3,
+      "priority": "P2",
+      "note": "No debug logging in run() method"
+    },
+    {
+      "pattern": "MISSING_TIMEOUT",
+      "category": "error",
+      "file": "src/opencode/orchestrator.ts",
+      "line": 68,
+      "snippet": "for await (const chunk of this.streamAdapter.adaptStream(events)) {",
+      "severity": 4,
+      "priority": "P2",
+      "note": "No timeout on event stream iteration - could block forever"
+    }
+  ],
+  "trend": {
+    "previousScore": 72,
+    "previousDate": "2026-01-27",
+    "change": 7
+  },
+  "context": {
+    "migration": "Opencode SDK migration (T01-T24) completed",
+    "newCode": "src/opencode/ is skeleton implementation",
+    "expectedDebt": "P1 items should be fixed before production"
+  }
+}

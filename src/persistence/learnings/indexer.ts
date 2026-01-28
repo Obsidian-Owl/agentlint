@@ -289,13 +289,28 @@ interface DbRow {
   updated_at: string;
 }
 
+/**
+ * Safely parse a JSON string array, returning empty array on parse failure.
+ */
+function safeParseStringArray(json: string): string[] {
+  try {
+    const parsed: unknown = JSON.parse(json);
+    if (Array.isArray(parsed) && parsed.every((item): item is string => typeof item === 'string')) {
+      return parsed;
+    }
+    return [];
+  } catch {
+    return [];
+  }
+}
+
 function rowToSummary(row: DbRow): LearningSummary {
   return {
     id: row.id,
     title: row.title,
     category: row.category as LearningSummary['category'],
     scope: row.scope as LearningSummary['scope'],
-    tags: JSON.parse(row.tags) as string[],
+    tags: safeParseStringArray(row.tags),
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

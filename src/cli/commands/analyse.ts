@@ -25,6 +25,8 @@ import { parseConfigSync } from '../../tools/config/parse-config';
 import { assessQuality } from '../../tools/config/quality';
 import { GapAnalyzer } from '../../tools/causal/gap-analyzer';
 import type { QualityIssue } from '../../tools/config/types';
+import { sanitizePromptInput } from '../../utils/sanitize';
+import { redact } from '../../debug/redaction';
 
 // Orchestration imports
 import {
@@ -578,9 +580,9 @@ function buildAnalyseResult(
 /**
  * Run orchestrated analysis using the Claude agent.
  *
- * This is the default mode when ANTHROPIC_API_KEY is available.
- * The agent uses tools to discover, parse, and analyze configurations,
- * then provides intelligent recommendations.
+ * This is the default mode. The agent uses tools to discover, parse,
+ * and analyze configurations, then provides intelligent recommendations.
+ * Falls back to static analysis if no LLM provider is configured.
  */
 async function runOrchestratedAnalysis(
   directory: string,
@@ -725,7 +727,7 @@ async function runOrchestratedAnalysis(
     verbosity,
     cwd: process.cwd(), // Agentlint's directory, NOT target
     settingSources: [], // Don't load ANY .mcp.json files
-    systemPromptAppend: `\nAnalysis target directory: ${directory}`,
+    systemPromptAppend: `\nAnalysis target directory: ${sanitizePromptInput(directory)}`,
     // ADR-0021: Pass nonInteractive for CI/automation mode
     nonInteractive: options.nonInteractive ?? false,
   };
@@ -1034,6 +1036,9 @@ async function runOrchestratedAnalysis(
     // Shutdown telemetry (flushes any buffered events)
     await telemetry.shutdown();
 
+    // Dispose orchestrator (clears sessions, stops server)
+    orchestrator.dispose();
+
     // Stop session recording
     if (recordingState) {
       recordingState.recorder.stopRecording();
@@ -1171,14 +1176,6 @@ function formatDryRunTerminal(result: AnalyseResult, verbose: boolean): string {
  */
 function formatDryRunJson(result: AnalyseResult): string {
   return JSON.stringify(result, null, 2);
-}
-
-/**
- * Check if orchestrated analysis is available.
- * Requires ANTHROPIC_API_KEY environment variable.
- */
-function canUseOrchestratedAnalysis(): boolean {
-  return !!process.env['ANTHROPIC_API_KEY'];
 }
 
 /**
@@ -1324,7 +1321,7 @@ async function runSessionAnalysis(
       verbosity,
       cwd: process.cwd(),
       settingSources: [],
-      systemPromptAppend: `\n\nSession Analysis Mode\n=====================\n\nYou are analyzing session: ${sessionId}\n\n${agent.prompt}`,
+      systemPromptAppend: `\n\nSession Analysis Mode\n=====================\n\nYou are analyzing session: ${sanitizePromptInput(sessionId)}\n\n${sanitizePromptInput(agent.prompt)}`,
       nonInteractive: options.nonInteractive ?? false,
     },
     registry
@@ -1390,6 +1387,7 @@ async function runSessionAnalysis(
     renderer.flush();
     return 1;
   } finally {
+    orchestrator.dispose();
     process.removeListener('SIGINT', handleInterrupt);
   }
 }
@@ -1412,10 +1410,6 @@ export async function runAnalyse(options: AnalyseOptions): Promise<number> {
 
   // EP15: Session-specific analysis mode
   if (options.session) {
-    if (!canUseOrchestratedAnalysis()) {
-      console.error('Error: ANTHROPIC_API_KEY required for session analysis');
-      return 1;
-    }
     return runSessionAnalysis(options.session, options, outputMode);
   }
 
@@ -1425,7 +1419,7 @@ export async function runAnalyse(options: AnalyseOptions): Promise<number> {
     if (!stats.isDirectory()) {
       const error = `Not a directory: ${directory}`;
       if (outputMode === 'json') {
-        console.log(JSON.stringify({ status: 'error', error }, null, 2));
+        console.log(JSON.stringify({ status: 'error', error: redact(error) }, null, 2));
       } else {
         console.error(`Error: ${error}`);
       }
@@ -1435,7 +1429,13 @@ export async function runAnalyse(options: AnalyseOptions): Promise<number> {
     const message = err instanceof Error ? err.message : String(err);
     const error = `Cannot access directory: ${message}`;
     if (outputMode === 'json') {
-      console.log(JSON.stringify({ status: 'error', error, directory }, null, 2));
+      console.log(
+        JSON.stringify(
+          { status: 'error', error: redact(error), directory: redact(directory) },
+          null,
+          2
+        )
+      );
     } else {
       printIOError(error, directory);
     }
@@ -1454,7 +1454,7 @@ export async function runAnalyse(options: AnalyseOptions): Promise<number> {
 
   // Scan for configurations
   // Use basic scan for dry-run/static modes, comprehensive discovery for orchestrated
-  const useComprehensive = !options.dryRun && !options.static && canUseOrchestratedAnalysis();
+  const useComprehensive = !options.dryRun && !options.static;
   const scanResult = useComprehensive
     ? await runComprehensiveDiscovery(directory)
     : await scanForConfigs(directory);
@@ -1506,18 +1506,25 @@ export async function runAnalyse(options: AnalyseOptions): Promise<number> {
   if (options.static) {
     // Static analysis mode (explicit --static flag)
     result = runStaticAnalysisMode(directory, options, scanResult, outputMode, verbose);
-  } else if (!canUseOrchestratedAnalysis()) {
-    // No API key - fall back to static with warning
-    if (outputMode !== 'json' && !options.quiet) {
-      console.warn(
-        'ANTHROPIC_API_KEY not set. Falling back to static analysis.\n' +
-          'Set ANTHROPIC_API_KEY for intelligent agent-based analysis.\n'
-      );
-    }
-    result = runStaticAnalysisMode(directory, options, scanResult, outputMode, verbose);
   } else {
     // Default: Orchestrated analysis with Claude agent
-    result = await runOrchestratedAnalysis(directory, options, scanResult, outputMode);
+    // Falls back to static if no LLM provider is configured
+    try {
+      result = await runOrchestratedAnalysis(directory, options, scanResult, outputMode);
+    } catch (error) {
+      // Check if this is a provider auth error
+      if (error instanceof Error && error.name === 'ProviderAuthError') {
+        if (outputMode !== 'json' && !options.quiet) {
+          console.warn(
+            'No LLM provider configured. Run "opencode auth" or set provider env vars.\n' +
+              'Falling back to static analysis.\n'
+          );
+        }
+        result = runStaticAnalysisMode(directory, options, scanResult, outputMode, verbose);
+      } else {
+        throw error;
+      }
+    }
   }
 
   // Return exit code based on --fail-on-findings flag

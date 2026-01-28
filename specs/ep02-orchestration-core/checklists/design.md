@@ -6,17 +6,17 @@
 
 ### Principle Validation
 
-| # | Principle | Status | Evidence |
-|---|-----------|--------|----------|
-| I | Local-First | ✅ | All processing local; only ANTHROPIC_API_KEY used; no telemetry |
-| II | Improvement-Oriented | ✅ | SessionState tracks findings over time; checkpoints enable continuity |
-| III | Causal-First | ✅ | Finding.origin traces to config/session/git; recommendations are preventive |
-| IV | Mixed-Methods | ✅ | Agent chooses tools freely (C5); no forced pipelines |
-| V | Language-Agnostic | ✅ | Orchestration layer is language-independent |
-| VI | Agent-Agnostic | ✅ | ToolRegistry supports any ACT adapter via MCP |
-| VII | Intelligent Tooling | ✅ | SDK tools + custom tools; agent decides usage |
-| VIII | Compounding Value | ✅ | BaselineAwareness, globalLearnings in CognitiveWorkspace |
-| IX | Agent-Aware | ✅ | CognitiveWorkspace structures context hierarchically |
+| #    | Principle            | Status | Evidence                                                                    |
+| ---- | -------------------- | ------ | --------------------------------------------------------------------------- |
+| I    | Local-First          | ✅     | All processing local; Opencode auth used; no telemetry                      |
+| II   | Improvement-Oriented | ✅     | SessionState tracks findings over time; checkpoints enable continuity       |
+| III  | Causal-First         | ✅     | Finding.origin traces to config/session/git; recommendations are preventive |
+| IV   | Mixed-Methods        | ✅     | Agent chooses tools freely (C5); no forced pipelines                        |
+| V    | Language-Agnostic    | ✅     | Orchestration layer is language-independent                                 |
+| VI   | Agent-Agnostic       | ✅     | ToolRegistry supports any ACT adapter via MCP                               |
+| VII  | Intelligent Tooling  | ✅     | SDK tools + custom tools; agent decides usage                               |
+| VIII | Compounding Value    | ✅     | BaselineAwareness, globalLearnings in CognitiveWorkspace                    |
+| IX   | Agent-Aware          | ✅     | CognitiveWorkspace structures context hierarchically                        |
 
 **Gate Status**: ✅ All principles pass
 
@@ -120,40 +120,40 @@
 
 ### Spec → Data Model
 
-| Spec Entity | Data Model Entity |
-|-------------|-------------------|
-| MasterLoop | Orchestrator |
+| Spec Entity        | Data Model Entity  |
+| ------------------ | ------------------ |
+| MasterLoop         | Orchestrator       |
 | CognitiveWorkspace | CognitiveWorkspace |
-| ToolRegistry | IToolRegistry |
-| CheckpointEvent | CheckpointEvent |
-| StreamChunk | StreamChunk |
-| SessionState | SessionState |
+| ToolRegistry       | IToolRegistry      |
+| CheckpointEvent    | CheckpointEvent    |
+| StreamChunk        | StreamChunk        |
+| SessionState       | SessionState       |
 
 ### Requirements → Design
 
-| Requirement | Design Element |
-|-------------|----------------|
-| FR-001 Master loop | Orchestrator.run() wrapping query() |
-| FR-002 Tool invocation | IToolRegistry.toMcpServer() |
-| FR-003 Tool registration | IToolRegistry.register() with tool() |
-| FR-004 Context compression | SDK PreCompact hook |
-| FR-007 Streaming | StreamChunk, IStreamProcessor |
-| FR-008 Checkpoints | CheckpointEvent, ICheckpointHandler |
-| FR-011 Session resume | Orchestrator.resume() |
-| FR-015 Cognitive workspace | CognitiveWorkspace interface |
+| Requirement                | Design Element                       |
+| -------------------------- | ------------------------------------ |
+| FR-001 Master loop         | Orchestrator.run() wrapping query()  |
+| FR-002 Tool invocation     | IToolRegistry.toMcpServer()          |
+| FR-003 Tool registration   | IToolRegistry.register() with tool() |
+| FR-004 Context compression | SDK PreCompact hook                  |
+| FR-007 Streaming           | StreamChunk, IStreamProcessor        |
+| FR-008 Checkpoints         | CheckpointEvent, ICheckpointHandler  |
+| FR-011 Session resume      | Orchestrator.resume()                |
+| FR-015 Cognitive workspace | CognitiveWorkspace interface         |
 
 ---
 
 ## Final Status
 
-| Artifact | Status | Notes |
-|----------|--------|-------|
-| plan.md | ✅ Complete | Technical context, constitution check |
-| research.md | ✅ Complete | 10 decisions documented |
-| data-model.md | ✅ Complete | All entities defined |
-| contracts/interfaces.ts | ✅ Complete | TypeScript interfaces |
-| quickstart.md | ✅ Complete | Usage guide |
-| checklists/design.md | ✅ Complete | This file |
+| Artifact                | Status      | Notes                                 |
+| ----------------------- | ----------- | ------------------------------------- |
+| plan.md                 | ✅ Complete | Technical context, constitution check |
+| research.md             | ✅ Complete | 10 decisions documented               |
+| data-model.md           | ✅ Complete | All entities defined                  |
+| contracts/interfaces.ts | ✅ Complete | TypeScript interfaces                 |
+| quickstart.md           | ✅ Complete | Usage guide                           |
+| checklists/design.md    | ✅ Complete | This file                             |
 
 ---
 
@@ -162,6 +162,7 @@
 **Status**: Ready for task generation (`/dev.tasks`)
 
 All design artifacts are complete:
+
 - Constitution compliance verified
 - Data model complete with TypeScript interfaces
 - Research decisions documented

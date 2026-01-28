@@ -44,14 +44,14 @@
 
 ## Layer Responsibilities
 
-| Layer | Responsibility |
-|-------|----------------|
-| **CLI Interface** | Parse commands, format output, progress reporting |
-| **Orchestration** | Agent reasoning, tool selection, finding synthesis |
-| **Tool** | Deterministic data gathering, scoped writing |
-| **Adapter** | ACT-specific abstraction (config locations, log formats) |
-| **Persistence** | Local storage (baselines, reviews, tracking, learnings, state) |
-| **Integration** | External interfaces (filesystem, git, LLM API) |
+| Layer             | Responsibility                                                 |
+| ----------------- | -------------------------------------------------------------- |
+| **CLI Interface** | Parse commands, format output, progress reporting              |
+| **Orchestration** | Agent reasoning, tool selection, finding synthesis             |
+| **Tool**          | Deterministic data gathering, scoped writing                   |
+| **Adapter**       | ACT-specific abstraction (config locations, log formats)       |
+| **Persistence**   | Local storage (baselines, reviews, tracking, learnings, state) |
+| **Integration**   | External interfaces (filesystem, git, LLM API)                 |
 
 ---
 
@@ -77,13 +77,13 @@
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-| Component | Purpose |
-|-----------|---------|
-| `cli.ts` | Entry point, argument parsing, command routing |
-| `version.ts` | Version info, runtime detection (Bun/Node) |
-| `commands/` | Command implementations (update, future commands) |
-| `errors/` | Typed error classes, exit codes, error formatting |
-| `types/` | Shared type definitions (Platform, Binary, Release) |
+| Component    | Purpose                                             |
+| ------------ | --------------------------------------------------- |
+| `cli.ts`     | Entry point, argument parsing, command routing      |
+| `version.ts` | Version info, runtime detection (Bun/Node)          |
+| `commands/`  | Command implementations (update, future commands)   |
+| `errors/`    | Typed error classes, exit codes, error formatting   |
+| `types/`     | Shared type definitions (Platform, Binary, Release) |
 
 ---
 
@@ -123,15 +123,16 @@ src/cli/
     └── output.ts      Output mode detection
 ```
 
-| Module | Responsibility |
-|--------|----------------|
-| `program.ts` | Commander.js configuration, global options, command routing |
-| `commands/` | Individual command logic, calls orchestration layer |
-| `components/` | Ink-based React components for terminal UI |
-| `formatters/` | Output serialization (JSON, Markdown, plain text) |
-| `utils/` | Terminal detection, color support, text formatting |
+| Module        | Responsibility                                              |
+| ------------- | ----------------------------------------------------------- |
+| `program.ts`  | Commander.js configuration, global options, command routing |
+| `commands/`   | Individual command logic, calls orchestration layer         |
+| `components/` | Ink-based React components for terminal UI                  |
+| `formatters/` | Output serialization (JSON, Markdown, plain text)           |
+| `utils/`      | Terminal detection, color support, text formatting          |
 
 **Key Design Decisions**:
+
 - Commander.js for argument parsing ([ADR-0003](../adr/0003-cli-framework-and-command-structure.md))
 - Ink for terminal UI with React components ([ADR-0004](../adr/0004-output-format-and-rendering.md))
 - Custom CausalTree component for trace visualization
@@ -141,7 +142,7 @@ src/cli/
 
 ## Level 2: Orchestration Layer
 
-The orchestration layer wraps the **Claude Agent SDK's `query()` function**, which implements the master agent loop internally. The `Orchestrator` class provides:
+The orchestration layer wraps the **Opencode SDK's session/prompt API**, which implements the master agent loop internally. The `OpencodeOrchestrator` class provides:
 
 1. **Configuration** - Model selection, verbosity, timeouts
 2. **Streaming Transformation** - SDK messages → `StreamChunk` objects
@@ -155,7 +156,7 @@ The orchestration layer wraps the **Claude Agent SDK's `query()` function**, whi
 │                  ORCHESTRATOR (SDK Wrapper)                     │
 │                                                                 │
 │  ┌───────────────────────────────────────────────────────────┐  │
-│  │              Claude Agent SDK query()                      │  │
+│  │              Opencode SDK session/prompt API              │  │
 │  │  • Master loop implemented by SDK                         │  │
 │  │  • Tool execution via MCP protocol                        │  │
 │  │  • Subagent spawning via agents option                    │  │
@@ -186,7 +187,7 @@ The orchestration layer wraps the **Claude Agent SDK's `query()` function**, whi
 ```
 src/orchestration/
 ├── index.ts                    Public exports
-├── orchestrator.ts             Orchestrator class wrapping SDK query()
+├── orchestrator.ts             Legacy orchestrator class wrapping SDK query()
 ├── tool-registry.ts            ToolRegistry with MCP server creation
 ├── streaming.ts                SDK message → StreamChunk transformation
 ├── checkpoint.ts               Session state persistence + recovery
@@ -195,54 +196,81 @@ src/orchestration/
 ├── context.ts                  Context utilities
 ├── config.ts                   Configuration loading + defaults
 ├── can-use-tool.ts             Human-in-the-loop callback (ADR-0021)
+├── telemetry-utils.ts          Shared truncation + error extraction for telemetry
 └── types.ts                    Type definitions
 ```
 
-| Component | Responsibility |
-|-----------|----------------|
-| `orchestrator.ts` | Wraps SDK `query()`, manages session lifecycle, enforces subagent depth |
-| `tool-registry.ts` | Registers tools, creates MCP server for SDK integration |
-| `streaming.ts` | Transforms `SDKMessage` events to `StreamChunk` with verbosity |
-| `checkpoint.ts` | Emits checkpoints on tool completion, findings, phase changes |
-| `session-state.ts` | Persists/loads session state to JSON for crash recovery |
-| `cognitive-workspace.ts` | Compresses large tool results to fit context window |
-| `can-use-tool.ts` | Human-in-the-loop: tool approval prompts, AskUserQuestion routing |
+| Component                | Responsibility                                                                               |
+| ------------------------ | -------------------------------------------------------------------------------------------- |
+| `orchestrator.ts`        | Legacy orchestrator wrapping SDK `query()`, session lifecycle                                |
+| `tool-registry.ts`       | Registers tools, creates MCP server for SDK integration                                      |
+| `streaming.ts`           | Transforms `SDKMessage` events to `StreamChunk` with verbosity                               |
+| `checkpoint.ts`          | Emits checkpoints on tool completion, findings, phase changes                                |
+| `session-state.ts`       | Persists/loads session state to JSON for crash recovery                                      |
+| `cognitive-workspace.ts` | Compresses large tool results to fit context window                                          |
+| `can-use-tool.ts`        | Human-in-the-loop: tool approval prompts, AskUserQuestion routing                            |
+| `telemetry-utils.ts`     | Shared telemetry utilities: `truncateToolOutput`, `truncateToolInput`, `extractErrorMessage` |
 
 ### Key Integration Point
 
 ```typescript
-import { query } from '@anthropic-ai/claude-agent-sdk';
-import { buildACTSubagents } from '../act';
+import { OpencodeOrchestrator } from '../opencode';
 
-// SDK handles the master loop internally
-const response = await query({
-  prompt: task,
-  options: {
-    model: config.model,
-    mcpServers: [toolRegistry.toMcpServer()],  // Tool registration
-    agents: buildACTSubagents(),                // Subagent definitions
-    allowedTools: [...],
-  },
-});
+// Opencode SDK provides self-managed server lifecycle
+const orchestrator = new OpencodeOrchestrator(config);
+
+// Run analysis task
+for await (const chunk of orchestrator.run(task)) {
+  // Process StreamChunk events (text, tool_start, tool_result, etc.)
+  handleChunk(chunk);
+}
 ```
+
+> **Note**: See ADR-0024 for the migration from Claude Agent SDK to Opencode SDK.
+
+### Opencode Module Structure (ADR-0024)
+
+```
+src/opencode/
+├── index.ts                    Public exports
+├── orchestrator.ts             OpencodeOrchestrator (active implementation)
+├── server.ts                   Server lifecycle management (start/stop/health)
+├── client.ts                   SDK client wrapper
+├── mcp-server.ts               MCP server exposing 40+ tools
+├── tool-adapter.ts             Tool format conversion (adaptTool)
+├── streaming.ts                SSE → StreamChunk conversion with telemetry metadata
+├── sessions.ts                 Hybrid session management (Claude + agentlint)
+└── telemetry-tracker.ts        Encapsulated tool/LLM telemetry tracking (FIFO correlation)
+```
+
+| Component              | Responsibility                                                                    |
+| ---------------------- | --------------------------------------------------------------------------------- |
+| `orchestrator.ts`      | Active orchestrator: server lifecycle, streaming, telemetry wiring                |
+| `server.ts`            | Server start/stop with health monitoring                                          |
+| `client.ts`            | SDK client wrapper for prompt and subscribe operations                            |
+| `mcp-server.ts`        | MCP server exposing agentlint tools to the agent                                  |
+| `tool-adapter.ts`      | Converts agentlint tool definitions to Opencode format                            |
+| `streaming.ts`         | Transforms SSE events to `StreamChunk` with telemetry metadata extraction         |
+| `sessions.ts`          | Manages session lifecycle across Claude and agentlint metadata                    |
+| `telemetry-tracker.ts` | Tracks tool executions (FIFO queue) and LLM usage, dispatches to telemetry client |
 
 ---
 
 ## Level 2: Tool Layer
 
-| Category | Tools |
-|----------|-------|
-| **Config Analysis (EP05)** | `discover_configs`, `parse_config`, `analyze_hierarchy` |
-| **Session Analysis (EP06)** | `search_sessions`, `get_session_stats` |
-| **Causal Analysis (EP07)** | `trace_issue_origin`, `get_issue_patterns` |
-| **Temporal Analysis (EP09)** | `store_baseline`, `query_baseline`, `list_baselines`, `calculate_delta`, `query_trends`, `conduct_review`, `get_review_history` |
+| Category                          | Tools                                                                                                                                                                                                                                               |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Config Analysis (EP05)**        | `discover_configs`, `parse_config`, `analyze_hierarchy`                                                                                                                                                                                             |
+| **Session Analysis (EP06)**       | `search_sessions`, `get_session_stats`                                                                                                                                                                                                              |
+| **Causal Analysis (EP07)**        | `trace_issue_origin`, `get_issue_patterns`                                                                                                                                                                                                          |
+| **Temporal Analysis (EP09)**      | `store_baseline`, `query_baseline`, `list_baselines`, `calculate_delta`, `query_trends`, `conduct_review`, `get_review_history`                                                                                                                     |
 | **Recommendation Advisor (EP10)** | `spawn_recommendation_advisor`, `create_recommendation`, `get_recommendation`, `list_recommendations`, `get_recommendation_summary`, `add_recommendation_event`, `update_recommendation_status`, `refine_recommendation`, `complete_recommendation` |
-| **Skills Effectiveness (EP14)** | `get_skill_inventory`, `index_skill_invocations`, `get_session_summaries`, `get_skill_invocations` |
-| **Session Intelligence (EP15)** | `get_session_timeline`, `get_tool_sequences`, `get_file_accesses`, `get_delegation_events`, `get_quality_signals`, `get_mcp_usage`, `get_permission_events`, `spawn_session_analyst` |
-| **MCP Config Validation (EP19)** | `get_mcp_configs`, `validate_mcp_config` |
-| **Git Analysis** | `query_git` |
-| **Learning** | `store_learning`, `list_learnings`, `promote_learning` |
-| **Utility** | `retrieve_result`, `agentlint_write` |
+| **Skills Effectiveness (EP14)**   | `get_skill_inventory`, `index_skill_invocations`, `get_session_summaries`, `get_skill_invocations`                                                                                                                                                  |
+| **Session Intelligence (EP15)**   | `get_session_timeline`, `get_tool_sequences`, `get_file_accesses`, `get_delegation_events`, `get_quality_signals`, `get_mcp_usage`, `get_permission_events`, `spawn_session_analyst`                                                                |
+| **MCP Config Validation (EP19)**  | `get_mcp_configs`, `validate_mcp_config`                                                                                                                                                                                                            |
+| **Git Analysis**                  | `query_git`                                                                                                                                                                                                                                         |
+| **Learning**                      | `store_learning`, `list_learnings`, `promote_learning`                                                                                                                                                                                              |
+| **Utility**                       | `retrieve_result`, `agentlint_write`                                                                                                                                                                                                                |
 
 **Design Principles**: Atomic operations, structured output, error transparency, poka-yoke.
 
@@ -271,22 +299,22 @@ src/tools/config/
 └── skills.ts                   SKILL.md discovery and parsing
 ```
 
-| Module | Responsibility |
-|--------|----------------|
-| `discovery.ts` | Discovers CLAUDE.md, AGENTS.md, settings.json, SKILL.md files using fast-glob with configurable exclusions |
-| `parse-config.ts` | Parses config files into structured `ParsedConfig` with AST, sections, code blocks, metrics |
-| `hierarchy.ts` | Builds global→project→local hierarchy, detects conflicts (contradicting/overlapping) |
-| `quality.ts` | Assesses config quality using ADR-0007 criteria: structure, size, completeness, specificity |
-| `metrics.ts` | Extracts quantitative signals: token estimates, emphasis markers, section counts |
-| `skills.ts` | Parses SKILL.md files with frontmatter validation and bundled file cataloging |
+| Module            | Responsibility                                                                                             |
+| ----------------- | ---------------------------------------------------------------------------------------------------------- |
+| `discovery.ts`    | Discovers CLAUDE.md, AGENTS.md, settings.json, SKILL.md files using fast-glob with configurable exclusions |
+| `parse-config.ts` | Parses config files into structured `ParsedConfig` with AST, sections, code blocks, metrics                |
+| `hierarchy.ts`    | Builds global→project→local hierarchy, detects conflicts (contradicting/overlapping)                       |
+| `quality.ts`      | Assesses config quality using ADR-0007 criteria: structure, size, completeness, specificity                |
+| `metrics.ts`      | Extracts quantitative signals: token estimates, emphasis markers, section counts                           |
+| `skills.ts`       | Parses SKILL.md files with frontmatter validation and bundled file cataloging                              |
 
 ### EP05 Tool Definitions
 
-| Tool | Description |
-|------|-------------|
-| `discover_configs` | Searches project for AI config files with hierarchy detection |
-| `parse_config` | Parses config file into structured data with quality assessment |
-| `analyze_hierarchy` | Analyzes full config hierarchy with conflict detection |
+| Tool                | Description                                                     |
+| ------------------- | --------------------------------------------------------------- |
+| `discover_configs`  | Searches project for AI config files with hierarchy detection   |
+| `parse_config`      | Parses config file into structured data with quality assessment |
+| `analyze_hierarchy` | Analyzes full config hierarchy with conflict detection          |
 
 ### Tool Registration Pattern
 
@@ -309,31 +337,31 @@ const mcpServer = registry.toMcpServer();
 
 ```typescript
 interface ParsedConfig {
-  file: ConfigFile;           // Path, type, hierarchy level
-  ast: Root;                  // mdast AST
-  frontmatter?: Record;       // YAML frontmatter
-  metrics: ConfigMetrics;     // Line count, tokens, emphasis
-  sections: Section[];        // Hierarchical sections
-  codeBlocks: CodeBlock[];    // Fenced code blocks
-  warnings: ParseWarning[];   // Parse issues
-  raw: string;                // Original content
+  file: ConfigFile; // Path, type, hierarchy level
+  ast: Root; // mdast AST
+  frontmatter?: Record; // YAML frontmatter
+  metrics: ConfigMetrics; // Line count, tokens, emphasis
+  sections: Section[]; // Hierarchical sections
+  codeBlocks: CodeBlock[]; // Fenced code blocks
+  warnings: ParseWarning[]; // Parse issues
+  raw: string; // Original content
 }
 
 interface ConfigHierarchy {
-  global?: ParsedConfig;      // ~/.claude/CLAUDE.md
-  project?: ParsedConfig;     // Project root CLAUDE.md
-  local: ParsedConfig[];      // Nested configs
-  skills: Skill[];            // Discovered skills
+  global?: ParsedConfig; // ~/.claude/CLAUDE.md
+  project?: ParsedConfig; // Project root CLAUDE.md
+  local: ParsedConfig[]; // Nested configs
+  skills: Skill[]; // Discovered skills
   effectiveConfig: EffectiveConfig;
-  conflicts: Conflict[];      // Detected conflicts
+  conflicts: Conflict[]; // Detected conflicts
 }
 
 interface Skill {
   path: string;
-  name: string;               // From frontmatter
+  name: string; // From frontmatter
   description: string;
-  allowedTools?: string[];    // Permitted MCP tools
-  model?: string;             // Specific model
+  allowedTools?: string[]; // Permitted MCP tools
+  model?: string; // Specific model
   userInvocable: boolean;
   bundledFiles: BundledFile[];
 }
@@ -341,11 +369,11 @@ interface Skill {
 
 ### Performance Characteristics (NFR)
 
-| Metric | Target | Implementation |
-|--------|--------|----------------|
-| Discovery time | <5s typical projects | fast-glob with early exclusion |
-| Parse memory | <50MB for 1000-line configs | Streaming parser, no caching |
-| Quality scoring | <100ms per file | In-memory analysis |
+| Metric          | Target                      | Implementation                 |
+| --------------- | --------------------------- | ------------------------------ |
+| Discovery time  | <5s typical projects        | fast-glob with early exclusion |
+| Parse memory    | <50MB for 1000-line configs | Streaming parser, no caching   |
+| Quality scoring | <100ms per file             | In-memory analysis             |
 
 ---
 
@@ -374,90 +402,90 @@ src/tools/config/mcp/
     └── patterns.ts             Anti-pattern detection (deprecated packages, etc.)
 ```
 
-| Module | Responsibility |
-|--------|----------------|
-| `discovery.ts` | Discovers MCP config files across ACT-specific locations (Claude Code, OpenCode, VS Code Copilot, Cursor, Windsurf, Amazon Q) |
-| `parser.ts` | Parses JSON/JSONC with position tracking for accurate line:column references |
-| `schemas.ts` | Zod schemas for different config formats, format detection |
-| `validators/schema.ts` | Validates required fields per transport type, field types |
-| `validators/path.ts` | Checks executable existence, PATH availability, relative path warnings |
-| `validators/env.ts` | Detects sensitive variable names, variable reference patterns |
-| `validators/transport.ts` | Validates URL format, Docker flags, SSE deprecation |
-| `validators/patterns.ts` | Detects deprecated npm packages, timeout issues |
+| Module                    | Responsibility                                                                                                                |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| `discovery.ts`            | Discovers MCP config files across ACT-specific locations (Claude Code, OpenCode, VS Code Copilot, Cursor, Windsurf, Amazon Q) |
+| `parser.ts`               | Parses JSON/JSONC with position tracking for accurate line:column references                                                  |
+| `schemas.ts`              | Zod schemas for different config formats, format detection                                                                    |
+| `validators/schema.ts`    | Validates required fields per transport type, field types                                                                     |
+| `validators/path.ts`      | Checks executable existence, PATH availability, relative path warnings                                                        |
+| `validators/env.ts`       | Detects sensitive variable names, variable reference patterns                                                                 |
+| `validators/transport.ts` | Validates URL format, Docker flags, SSE deprecation                                                                           |
+| `validators/patterns.ts`  | Detects deprecated npm packages, timeout issues                                                                               |
 
 ### EP19 Tool Definitions
 
-| Tool | Description |
-|------|-------------|
-| `get_mcp_configs` | Discovers MCP configuration files across ACT locations with format detection |
-| `validate_mcp_config` | Validates MCP config with schema, path, env, transport, and pattern checks |
+| Tool                  | Description                                                                  |
+| --------------------- | ---------------------------------------------------------------------------- |
+| `get_mcp_configs`     | Discovers MCP configuration files across ACT locations with format detection |
+| `validate_mcp_config` | Validates MCP config with schema, path, env, transport, and pattern checks   |
 
 ### ACT Support Matrix
 
-| ACT | Config Locations | Format |
-|-----|-----------------|--------|
-| Claude Code | `.mcp.json`, `~/.claude.json` | standard |
-| OpenCode | `opencode.json`, `~/.config/opencode/opencode.json` | opencode |
-| VS Code Copilot | `.vscode/mcp.json` | vscode-copilot |
-| Cursor | `mcp.json`, `.cursor/mcp.json` | standard |
-| Windsurf | `~/.codeium/windsurf/mcp_config.json` | standard |
-| Amazon Q | `.amazonq/mcp.json`, `~/.aws/amazonq/mcp.json` | standard |
+| ACT             | Config Locations                                    | Format         |
+| --------------- | --------------------------------------------------- | -------------- |
+| Claude Code     | `.mcp.json`, `~/.claude.json`                       | standard       |
+| OpenCode        | `opencode.json`, `~/.config/opencode/opencode.json` | opencode       |
+| VS Code Copilot | `.vscode/mcp.json`                                  | vscode-copilot |
+| Cursor          | `mcp.json`, `.cursor/mcp.json`                      | standard       |
+| Windsurf        | `~/.codeium/windsurf/mcp_config.json`               | standard       |
+| Amazon Q        | `.amazonq/mcp.json`, `~/.aws/amazonq/mcp.json`      | standard       |
 
 ### Key Entity Types
 
 ```typescript
 interface McpValidationIssue {
-  code: McpIssueCode;           // Structured issue identifier
-  severity: IssueSeverity;      // 'error' | 'warning' | 'info'
-  message: string;              // Human-readable description
-  file: string;                 // Absolute file path
-  position: Position;           // Line and column range
-  serverName?: string;          // Which server has the issue
-  suggestion?: string;          // Fix recommendation
+  code: McpIssueCode; // Structured issue identifier
+  severity: IssueSeverity; // 'error' | 'warning' | 'info'
+  message: string; // Human-readable description
+  file: string; // Absolute file path
+  position: Position; // Line and column range
+  serverName?: string; // Which server has the issue
+  suggestion?: string; // Fix recommendation
 }
 
 interface McpServerConfig {
-  command?: string;             // Executable for stdio transport
-  args?: string[];              // Command arguments
+  command?: string; // Executable for stdio transport
+  args?: string[]; // Command arguments
   env?: Record<string, string>; // Environment variables
-  url?: string;                 // URL for HTTP transport
-  timeout?: number;             // Server timeout in seconds
+  url?: string; // URL for HTTP transport
+  timeout?: number; // Server timeout in seconds
 }
 
 interface McpConfigInventory {
-  files: McpConfigFile[];       // Discovered config files
-  summary: InventorySummary;    // Aggregated statistics
+  files: McpConfigFile[]; // Discovered config files
+  summary: InventorySummary; // Aggregated statistics
 }
 ```
 
 ### Issue Code Categories
 
-| Category | Codes | Examples |
-|----------|-------|----------|
-| Schema | `MISSING_COMMAND`, `INVALID_ARGS_TYPE` | Missing required field, wrong type |
-| Path | `PATH_NOT_FOUND`, `NOT_EXECUTABLE` | Executable doesn't exist |
-| Environment | `SENSITIVE_ENV_NAME`, `VARIABLE_REF` | Secrets in config, unresolved variables |
-| Transport | `INVALID_URL`, `DOCKER_MISSING_FLAG` | Bad URL format, missing `-i` flag |
-| Patterns | `DEPRECATED_PACKAGE`, `HIGH_TIMEOUT` | Old npm package, excessive timeout |
+| Category    | Codes                                  | Examples                                |
+| ----------- | -------------------------------------- | --------------------------------------- |
+| Schema      | `MISSING_COMMAND`, `INVALID_ARGS_TYPE` | Missing required field, wrong type      |
+| Path        | `PATH_NOT_FOUND`, `NOT_EXECUTABLE`     | Executable doesn't exist                |
+| Environment | `SENSITIVE_ENV_NAME`, `VARIABLE_REF`   | Secrets in config, unresolved variables |
+| Transport   | `INVALID_URL`, `DOCKER_MISSING_FLAG`   | Bad URL format, missing `-i` flag       |
+| Patterns    | `DEPRECATED_PACKAGE`, `HIGH_TIMEOUT`   | Old npm package, excessive timeout      |
 
 ### Tool/Agent Boundary (ADR-0019)
 
 Per [ADR-0019](../adr/0019-tool-agent-boundary-temporal.md), MCP validation tools provide DATA while the agent provides JUDGMENT:
 
-| Tool Provides | Agent Reasons About |
-|--------------|---------------------|
-| Issue with severity and code | "Should this block the user?" |
-| Path existence check result | "Is this a critical missing executable?" |
+| Tool Provides                     | Agent Reasons About                            |
+| --------------------------------- | ---------------------------------------------- |
+| Issue with severity and code      | "Should this block the user?"                  |
+| Path existence check result       | "Is this a critical missing executable?"       |
 | Sensitive variable name detection | "Is this actually a secret or false positive?" |
-| Deprecated package identification | "What's the migration path?" |
+| Deprecated package identification | "What's the migration path?"                   |
 
 ### Performance Characteristics (NFR)
 
-| Metric | Target | Implementation |
-|--------|--------|----------------|
-| Config discovery | <2s for project + user dirs | Parallel file existence checks |
-| Single file validation | <500ms | In-memory validation |
-| Position tracking | <50ms overhead | JSONC AST with offset mapping |
+| Metric                 | Target                      | Implementation                 |
+| ---------------------- | --------------------------- | ------------------------------ |
+| Config discovery       | <2s for project + user dirs | Parallel file existence checks |
+| Single file validation | <500ms                      | In-memory validation           |
+| Position tracking      | <50ms overhead              | JSONC AST with offset mapping  |
 
 ---
 
@@ -482,22 +510,22 @@ src/tools/sessions/
 └── get-session-stats-tool.ts   SDK tool definition: get_session_stats
 ```
 
-| Module | Responsibility |
-|--------|----------------|
-| `discovery.ts` | Discovers session JSONL files, decodes project paths from directory names |
-| `parser.ts` | Parses JSONL session logs with streaming, handles malformed lines gracefully |
-| `utils.ts` | Path encoding/decoding, tool categorization (read/write/bash/search), timestamp validation |
-| `indexer.ts` | Indexes session entries into FTS5 table, tracks file metadata for incremental updates |
-| `search.ts` | Full-text search with BM25 ranking, date range filtering, project filtering |
-| `stats.ts` | Aggregates session statistics: token usage, tool distribution, model usage |
-| `metrics.ts` | Extracts per-session metrics: turns, tokens, compressions, errors |
+| Module         | Responsibility                                                                             |
+| -------------- | ------------------------------------------------------------------------------------------ |
+| `discovery.ts` | Discovers session JSONL files, decodes project paths from directory names                  |
+| `parser.ts`    | Parses JSONL session logs with streaming, handles malformed lines gracefully               |
+| `utils.ts`     | Path encoding/decoding, tool categorization (read/write/bash/search), timestamp validation |
+| `indexer.ts`   | Indexes session entries into FTS5 table, tracks file metadata for incremental updates      |
+| `search.ts`    | Full-text search with BM25 ranking, date range filtering, project filtering                |
+| `stats.ts`     | Aggregates session statistics: token usage, tool distribution, model usage                 |
+| `metrics.ts`   | Extracts per-session metrics: turns, tokens, compressions, errors                          |
 
 ### EP06 Tool Definitions
 
-| Tool | Description |
-|------|-------------|
-| `search_sessions` | Searches session logs with FTS5 query syntax, returns ranked results with snippets |
-| `get_session_stats` | Returns aggregated statistics across sessions with project/date/model filtering |
+| Tool                | Description                                                                        |
+| ------------------- | ---------------------------------------------------------------------------------- |
+| `search_sessions`   | Searches session logs with FTS5 query syntax, returns ranked results with snippets |
+| `get_session_stats` | Returns aggregated statistics across sessions with project/date/model filtering    |
 
 ### Persistence Layer Integration
 
@@ -514,21 +542,21 @@ Database stored at `.agentlint/sessions.db` per [ADR-0006](../adr/0006-session-l
 
 ```typescript
 interface SessionEntry {
-  type: EntryType;              // 'user' | 'assistant' | 'summary' | 'system'
+  type: EntryType; // 'user' | 'assistant' | 'summary' | 'system'
   sessionId: string;
   timestamp: string;
-  message?: Message;            // Role, content blocks, token usage
-  toolUseResult?: ToolResult;   // Tool execution result
-  filePath: string;             // Source file (for causal tracing)
-  lineNumber: number;           // Line number (for causal tracing)
+  message?: Message; // Role, content blocks, token usage
+  toolUseResult?: ToolResult; // Tool execution result
+  filePath: string; // Source file (for causal tracing)
+  lineNumber: number; // Line number (for causal tracing)
 }
 
 interface SearchResult {
   sessionId: string;
   timestamp: string;
-  contentSnippet: string;       // Highlighted match context
-  relevanceScore: number;       // BM25 score (lower = more relevant)
-  filePath: string;             // Source location for tracing
+  contentSnippet: string; // Highlighted match context
+  relevanceScore: number; // BM25 score (lower = more relevant)
+  filePath: string; // Source location for tracing
   lineNumber: number;
   projectPath: string;
 }
@@ -546,12 +574,12 @@ interface SessionStats {
 
 ### Performance Characteristics (NFR)
 
-| Metric | Target | Implementation |
-|--------|--------|----------------|
-| Search query time | <2s on 500MB corpus | FTS5 with BM25 ranking |
-| Indexing throughput | <60s for 500MB | Incremental indexing, mtime checks |
-| Memory during indexing | <100MB peak | Streaming parser |
-| Index storage overhead | <20% of log size | FTS5 compression |
+| Metric                 | Target              | Implementation                     |
+| ---------------------- | ------------------- | ---------------------------------- |
+| Search query time      | <2s on 500MB corpus | FTS5 with BM25 ranking             |
+| Indexing throughput    | <60s for 500MB      | Incremental indexing, mtime checks |
+| Memory during indexing | <100MB peak         | Streaming parser                   |
+| Index storage overhead | <20% of log size    | FTS5 compression                   |
 
 ---
 
@@ -577,23 +605,23 @@ src/tools/causal/
 └── get-patterns-tool.ts        SDK tool definition: get_issue_patterns
 ```
 
-| Module | Responsibility |
-|--------|----------------|
+| Module                  | Responsibility                                                          |
+| ----------------------- | ----------------------------------------------------------------------- |
 | `evidence-collector.ts` | Collects evidence from session FTS5 index by keywords and file location |
-| `gap-analyzer.ts` | Analyzes evidence to identify missing configuration guidance |
-| `chain-builder.ts` | Constructs causal chains from trigger → gap → mechanism → effect |
-| `confidence.ts` | Assesses chain confidence using 6-factor validation checklist |
-| `counterfactual.ts` | Generates preventive recommendations ("If X were present...") |
-| `pattern-detector.ts` | Detects recurring patterns across multiple causal chains |
-| `pattern-tracking.ts` | Tracks pattern frequency, severity, and trends over time |
-| `git-evidence.ts` | Collects git blame and pickaxe search evidence |
-| `config-snapshot.ts` | Captures CLAUDE.md, settings.json state for gap analysis |
+| `gap-analyzer.ts`       | Analyzes evidence to identify missing configuration guidance            |
+| `chain-builder.ts`      | Constructs causal chains from trigger → gap → mechanism → effect        |
+| `confidence.ts`         | Assesses chain confidence using 6-factor validation checklist           |
+| `counterfactual.ts`     | Generates preventive recommendations ("If X were present...")           |
+| `pattern-detector.ts`   | Detects recurring patterns across multiple causal chains                |
+| `pattern-tracking.ts`   | Tracks pattern frequency, severity, and trends over time                |
+| `git-evidence.ts`       | Collects git blame and pickaxe search evidence                          |
+| `config-snapshot.ts`    | Captures CLAUDE.md, settings.json state for gap analysis                |
 
 ### EP07 Tool Definitions
 
-| Tool | Description |
-|------|-------------|
-| `trace_issue_origin` | Traces detected issues to their origin in session logs, builds causal chain |
+| Tool                 | Description                                                                     |
+| -------------------- | ------------------------------------------------------------------------------- |
+| `trace_issue_origin` | Traces detected issues to their origin in session logs, builds causal chain     |
 | `get_issue_patterns` | Queries recurring issue patterns with filtering by project, category, frequency |
 
 ### Persistence Layer Integration
@@ -608,6 +636,7 @@ src/persistence/causal/
 ```
 
 Tables stored in `.agentlint/sessions.db`:
+
 - `causal_chains` - Traced causal chains with confidence scores
 - `evidence_items` - Individual evidence supporting chains
 - `issue_patterns` - Aggregated recurring patterns
@@ -617,40 +646,40 @@ Tables stored in `.agentlint/sessions.db`:
 
 ```typescript
 interface EvidenceItem {
-  id: string;                   // UUID
-  type: EvidenceType;           // SessionMatch, GitCorrelation, ConfigGap, etc.
-  source: string;               // Session ID, commit hash, etc.
-  timestamp?: string;           // When evidence was created
-  content?: string;             // Relevant snippet
-  position?: Position;          // File location if applicable
+  id: string; // UUID
+  type: EvidenceType; // SessionMatch, GitCorrelation, ConfigGap, etc.
+  source: string; // Session ID, commit hash, etc.
+  timestamp?: string; // When evidence was created
+  content?: string; // Relevant snippet
+  position?: Position; // File location if applicable
   metadata?: Record<string, unknown>;
 }
 
 interface CausalChain {
-  id: string;                   // UUID
-  issueId: string;              // Reference to detected issue
-  trigger: EvidenceItem;        // Origin action/prompt
-  gap?: Gap;                    // Configuration gap that enabled issue
-  mechanism: string;            // How gap led to issue
-  effect: string;               // Detected issue description
-  confidence: ConfidenceScore;  // Validation assessment
-  evidence: EvidenceItem[];     // All collected evidence
-  depth: number;                // Traversal steps (max 5)
+  id: string; // UUID
+  issueId: string; // Reference to detected issue
+  trigger: EvidenceItem; // Origin action/prompt
+  gap?: Gap; // Configuration gap that enabled issue
+  mechanism: string; // How gap led to issue
+  effect: string; // Detected issue description
+  confidence: ConfidenceScore; // Validation assessment
+  evidence: EvidenceItem[]; // All collected evidence
+  depth: number; // Traversal steps (max 5)
   projectPath: string;
   createdAt: string;
-  counterfactual?: string;      // "If X, then Y wouldn't have occurred"
+  counterfactual?: string; // "If X, then Y wouldn't have occurred"
 }
 
 interface IssuePattern {
-  id: string;                   // UUID
-  category: GapType;            // missing_config, context_loss, etc.
-  chainIds: string[];           // Related causal chains
-  frequency: number;            // Occurrence count
-  isSystemic: boolean;          // true if frequency >= 3
+  id: string; // UUID
+  category: GapType; // missing_config, context_loss, etc.
+  chainIds: string[]; // Related causal chains
+  frequency: number; // Occurrence count
+  isSystemic: boolean; // true if frequency >= 3
   firstOccurrence: string;
   lastOccurrence: string;
-  projectPath?: string;         // null = global pattern
-  summary: string;              // Human-readable description
+  projectPath?: string; // null = global pattern
+  summary: string; // Human-readable description
 }
 ```
 
@@ -658,24 +687,24 @@ interface IssuePattern {
 
 Causal chains are validated using a 6-factor checklist:
 
-| Factor | Description |
-|--------|-------------|
-| Specificity | Issue clearly links to specific trigger |
-| Temporal | Timing supports causal relationship |
-| Mechanistic | Plausible mechanism explains causation |
-| Evidence Quality | Evidence is direct, not inferred |
-| Reproducibility | Pattern seen multiple times |
-| Alternatives | Alternative causes were considered |
+| Factor           | Description                             |
+| ---------------- | --------------------------------------- |
+| Specificity      | Issue clearly links to specific trigger |
+| Temporal         | Timing supports causal relationship     |
+| Mechanistic      | Plausible mechanism explains causation  |
+| Evidence Quality | Evidence is direct, not inferred        |
+| Reproducibility  | Pattern seen multiple times             |
+| Alternatives     | Alternative causes were considered      |
 
 Overall confidence: `high` (5-6 factors), `medium` (3-4), `low` (0-2)
 
 ### Performance Characteristics (NFR)
 
-| Metric | Target | Implementation |
-|--------|--------|----------------|
-| Trace query time | <5s typical issues | FTS5 search + in-memory chain building |
-| Pattern detection | <2s for 100 chains | SQLite aggregation queries |
-| Evidence collection | <1s per source | Parallel session/git queries |
+| Metric              | Target             | Implementation                         |
+| ------------------- | ------------------ | -------------------------------------- |
+| Trace query time    | <5s typical issues | FTS5 search + in-memory chain building |
+| Pattern detection   | <2s for 100 chains | SQLite aggregation queries             |
+| Evidence collection | <1s per source     | Parallel session/git queries           |
 
 ---
 
@@ -739,40 +768,40 @@ src/temporal/
     └── git.ts                  Git command helpers
 ```
 
-| Module | Responsibility |
-|--------|----------------|
-| `tools/` | SDK tool definitions following ADR-0005 patterns |
-| `delta/` | Computes raw deltas between baselines (data, not judgment) |
-| `trends/` | Statistical analysis: slope, R², volatility, inflection points |
+| Module         | Responsibility                                                  |
+| -------------- | --------------------------------------------------------------- |
+| `tools/`       | SDK tool definitions following ADR-0005 patterns                |
+| `delta/`       | Computes raw deltas between baselines (data, not judgment)      |
+| `trends/`      | Statistical analysis: slope, R², volatility, inflection points  |
 | `qualitative/` | Dimension definitions, sentiment calculations, alignment checks |
-| `tracking/` | Evidence extraction for recommendation implementation detection |
-| `correlation/` | Git commit correlation for causal analysis |
-| `reminders/` | Heuristics for suggesting qualitative reviews |
-| `subagent/` | Temporal analyzer subagent for trend interpretation |
+| `tracking/`    | Evidence extraction for recommendation implementation detection |
+| `correlation/` | Git commit correlation for causal analysis                      |
+| `reminders/`   | Heuristics for suggesting qualitative reviews                   |
+| `subagent/`    | Temporal analyzer subagent for trend interpretation             |
 
 ### EP09 Tool Definitions
 
-| Tool | Description |
-|------|-------------|
-| `store_baseline` | Captures current workflow state as a baseline with metrics and findings |
-| `query_baseline` | Retrieves a specific baseline by ID with full metrics |
-| `list_baselines` | Lists available baselines with filtering by date range and labels |
-| `calculate_delta` | Computes differences between two baselines with change summaries |
-| `query_trends` | Analyzes metric trends over time with regression statistics |
-| `conduct_review` | Facilitates structured qualitative review across 6 dimensions |
-| `get_review_history` | Retrieves qualitative reviews with sentiment trends |
+| Tool                 | Description                                                             |
+| -------------------- | ----------------------------------------------------------------------- |
+| `store_baseline`     | Captures current workflow state as a baseline with metrics and findings |
+| `query_baseline`     | Retrieves a specific baseline by ID with full metrics                   |
+| `list_baselines`     | Lists available baselines with filtering by date range and labels       |
+| `calculate_delta`    | Computes differences between two baselines with change summaries        |
+| `query_trends`       | Analyzes metric trends over time with regression statistics             |
+| `conduct_review`     | Facilitates structured qualitative review across 6 dimensions           |
+| `get_review_history` | Retrieves qualitative reviews with sentiment trends                     |
 
 ### Tool/Agent Boundary (ADR-0019)
 
 Per [ADR-0019](../adr/0019-tool-agent-boundary-temporal.md), temporal tools provide DATA while the agent provides JUDGMENT:
 
-| Tool Provides | Agent Reasons About |
-|--------------|---------------------|
-| Raw metric deltas | "Is this an improvement?" |
-| Slope, R², volatility | "Is this trend significant?" |
-| Evidence with weights | "Was this recommendation implemented?" |
-| Change counts | "What's the overall trajectory?" |
-| Sentiment values | "What does this mean for workflow health?" |
+| Tool Provides         | Agent Reasons About                        |
+| --------------------- | ------------------------------------------ |
+| Raw metric deltas     | "Is this an improvement?"                  |
+| Slope, R², volatility | "Is this trend significant?"               |
+| Evidence with weights | "Was this recommendation implemented?"     |
+| Change counts         | "What's the overall trajectory?"           |
+| Sentiment values      | "What does this mean for workflow health?" |
 
 **Removed functions** (per ADR-0019): `isImprovement()`, `determineOverallTrend()`, `detectImplementation()`, `getSuggestedStatus()`, `generateExplanation()`, `classifyTrend()`, `getSentimentLabel()`
 
@@ -780,10 +809,10 @@ Per [ADR-0019](../adr/0019-tool-agent-boundary-temporal.md), temporal tools prov
 
 ```typescript
 interface BaselineDelta {
-  fromId: string;                // Source baseline
-  toId: string;                  // Target baseline
-  delta: DiffPatcher.Delta;      // jsondiffpatch output
-  summary: DeltaSummary;         // Human-readable changes
+  fromId: string; // Source baseline
+  toId: string; // Target baseline
+  delta: DiffPatcher.Delta; // jsondiffpatch output
+  summary: DeltaSummary; // Human-readable changes
 }
 
 interface DeltaSummary {
@@ -800,7 +829,7 @@ interface TrendAnalysis {
   projectPath: string;
   dateRange: DateRange;
   baselines: BaselineSummary[];
-  metricTrends: MetricTrend[];    // Per-metric: slope, R², direction
+  metricTrends: MetricTrend[]; // Per-metric: slope, R², direction
   inflectionPoints: InflectionPoint[];
   summary: TrendSummary;
 }
@@ -809,14 +838,14 @@ interface QualitativeReview {
   id: string;
   baselineId: string;
   createdAt: string;
-  dimensions: ReviewDimension[];  // 6 dimensions with sentiment + text
-  overallSentiment: number;       // -2 to +2 Likert scale
-  themes: string[];               // Extracted themes
+  dimensions: ReviewDimension[]; // 6 dimensions with sentiment + text
+  overallSentiment: number; // -2 to +2 Likert scale
+  themes: string[]; // Extracted themes
 }
 
 interface MatchEvidence {
-  evidence: DetectionEvidence[];  // Raw evidence items
-  totalWeight: number;            // Aggregate weight for agent
+  evidence: DetectionEvidence[]; // Raw evidence items
+  totalWeight: number; // Aggregate weight for agent
   keywordMatches: string[];
   fileMatches: string[];
   patternMatches: string[];
@@ -825,14 +854,14 @@ interface MatchEvidence {
 
 ### Review Dimensions
 
-| Dimension | Signal Type | Purpose |
-|-----------|-------------|---------|
-| `perceivedFriction` | Leading | Predict workflow issues |
-| `trustCalibration` | Leading | Agent reliability perception |
-| `taskFit` | Lagging | Tool-task alignment |
-| `configurationConfidence` | Qualitative | Setup effectiveness |
-| `improvementAttribution` | Causal | Change impact awareness |
-| `workflowSatisfaction` | Lagging | Overall experience |
+| Dimension                 | Signal Type | Purpose                      |
+| ------------------------- | ----------- | ---------------------------- |
+| `perceivedFriction`       | Leading     | Predict workflow issues      |
+| `trustCalibration`        | Leading     | Agent reliability perception |
+| `taskFit`                 | Lagging     | Tool-task alignment          |
+| `configurationConfidence` | Qualitative | Setup effectiveness          |
+| `improvementAttribution`  | Causal      | Change impact awareness      |
+| `workflowSatisfaction`    | Lagging     | Overall experience           |
 
 ### Persistence Layer Integration
 
@@ -851,6 +880,7 @@ src/persistence/
 ```
 
 Storage locations:
+
 - Baselines: `.agentlint/baselines/{id}.json`
 - Reviews: `.agentlint/reviews/{id}.json`
 - Tracking: `.agentlint/tracking/{id}.json`
@@ -858,12 +888,12 @@ Storage locations:
 
 ### Performance Characteristics (NFR)
 
-| Metric | Target | Implementation |
-|--------|--------|----------------|
-| Delta calculation | <500ms | jsondiffpatch in-memory |
-| Trend analysis | <2s for 100 baselines | SQLite aggregation + linear regression |
-| Review storage | <100ms | Atomic JSON writes |
-| Inflection detection | <1s | Statistical analysis on time series |
+| Metric               | Target                | Implementation                         |
+| -------------------- | --------------------- | -------------------------------------- |
+| Delta calculation    | <500ms                | jsondiffpatch in-memory                |
+| Trend analysis       | <2s for 100 baselines | SQLite aggregation + linear regression |
+| Review storage       | <100ms                | Atomic JSON writes                     |
+| Inflection detection | <1s                   | Statistical analysis on time series    |
 
 ---
 
@@ -901,52 +931,52 @@ src/recommendations/
     └── questions.ts            Clarifying question utilities
 ```
 
-| Module | Responsibility |
-|--------|----------------|
-| `storage/storage.ts` | Atomic JSON CRUD for recommendations in `.agentlint/recommendations/` |
-| `storage/compression.ts` | Token estimation, summary compression within 8K budget |
-| `tools/` | SDK tool definitions following ADR-0005 patterns |
-| `subagent/` | Recommendation advisor subagent for synthesis and judgment |
+| Module                   | Responsibility                                                        |
+| ------------------------ | --------------------------------------------------------------------- |
+| `storage/storage.ts`     | Atomic JSON CRUD for recommendations in `.agentlint/recommendations/` |
+| `storage/compression.ts` | Token estimation, summary compression within 8K budget                |
+| `tools/`                 | SDK tool definitions following ADR-0005 patterns                      |
+| `subagent/`              | Recommendation advisor subagent for synthesis and judgment            |
 
 ### EP10 Tool Definitions
 
-| Tool | Description |
-|------|-------------|
-| `spawn_recommendation_advisor` | Spawns the recommendation advisor subagent with configurable context |
-| `create_recommendation` | Creates a new recommendation case with traced origin |
-| `get_recommendation` | Retrieves a full recommendation with all events |
-| `list_recommendations` | Queries recommendations with filtering by status, type, priority |
-| `get_recommendation_summary` | Returns compressed summary for context loading |
-| `add_recommendation_event` | Appends observation, evidence, or feedback to a recommendation |
+| Tool                           | Description                                                                                |
+| ------------------------------ | ------------------------------------------------------------------------------------------ |
+| `spawn_recommendation_advisor` | Spawns the recommendation advisor subagent with configurable context                       |
+| `create_recommendation`        | Creates a new recommendation case with traced origin                                       |
+| `get_recommendation`           | Retrieves a full recommendation with all events                                            |
+| `list_recommendations`         | Queries recommendations with filtering by status, type, priority                           |
+| `get_recommendation_summary`   | Returns compressed summary for context loading                                             |
+| `add_recommendation_event`     | Appends observation, evidence, or feedback to a recommendation                             |
 | `update_recommendation_status` | Transitions recommendation status (open → pending_confirmation → implemented → monitoring) |
-| `refine_recommendation` | Updates action, target, or priority with audit trail |
-| `complete_recommendation` | Closes case with reason (implemented, superseded, obsolete, rejected) |
+| `refine_recommendation`        | Updates action, target, or priority with audit trail                                       |
+| `complete_recommendation`      | Closes case with reason (implemented, superseded, obsolete, rejected)                      |
 
 ### Tool/Agent Boundary (ADR-0019)
 
 Per [ADR-0019](../adr/0019-tool-agent-boundary-temporal.md), recommendation tools provide DATA while the agent provides JUDGMENT:
 
-| Tool Provides | Agent Reasons About |
-|--------------|---------------------|
-| Recommendation CRUD operations | "What type of recommendation is this?" |
-| Event history and summaries | "Has this recommendation been implemented?" |
-| Compressed context within budget | "Which recommendations are most relevant?" |
-| Traced origin data | "What caused this issue?" |
-| Status transitions | "What is the appropriate next status?" |
+| Tool Provides                    | Agent Reasons About                         |
+| -------------------------------- | ------------------------------------------- |
+| Recommendation CRUD operations   | "What type of recommendation is this?"      |
+| Event history and summaries      | "Has this recommendation been implemented?" |
+| Compressed context within budget | "Which recommendations are most relevant?"  |
+| Traced origin data               | "What caused this issue?"                   |
+| Status transitions               | "What is the appropriate next status?"      |
 
 ### Key Entity Types
 
 ```typescript
 interface Recommendation {
-  id: string;                   // UUID
+  id: string; // UUID
   projectPath: string;
-  createdAt: string;            // ISO 8601
-  type: RecommendationType;     // 'symptomatic' | 'preventive' | 'systemic'
-  action: string;               // WHAT to do (max 1000 chars)
-  target: string;               // WHERE to do it (max 500 chars)
-  rationale: string;            // WHY this helps (max 2000 chars)
-  priority: Priority;           // 'high' | 'medium' | 'low'
-  tracedOrigin: TracedOrigin;   // Causal link to source
+  createdAt: string; // ISO 8601
+  type: RecommendationType; // 'symptomatic' | 'preventive' | 'systemic'
+  action: string; // WHAT to do (max 1000 chars)
+  target: string; // WHERE to do it (max 500 chars)
+  rationale: string; // WHY this helps (max 2000 chars)
+  priority: Priority; // 'high' | 'medium' | 'low'
+  tracedOrigin: TracedOrigin; // Causal link to source
   status: RecommendationStatus; // Lifecycle state
   events: RecommendationEvent[]; // Append-only history
   completedAt?: string;
@@ -954,33 +984,33 @@ interface Recommendation {
 }
 
 interface RecommendationEvent {
-  id: string;                   // UUID
-  timestamp: string;            // ISO 8601
-  type: EventType;              // created, observation, refinement, etc.
-  content: string;              // Max 200 chars per NFR-003
+  id: string; // UUID
+  timestamp: string; // ISO 8601
+  type: EventType; // created, observation, refinement, etc.
+  content: string; // Max 200 chars per NFR-003
   baselineId?: string;
   sessionId?: string;
   commitHash?: string;
 }
 
 interface TracedOrigin {
-  findingId?: string;           // EP05/EP06/EP07 finding
-  sessionId?: string;           // Session where issue observed
-  configGap?: string;           // Missing configuration
-  pattern?: string;             // Recurring pattern
+  findingId?: string; // EP05/EP06/EP07 finding
+  sessionId?: string; // Session where issue observed
+  configGap?: string; // Missing configuration
+  pattern?: string; // Recurring pattern
 }
 
 interface RecommendationSummary {
   id: string;
   type: RecommendationType;
   status: RecommendationStatus;
-  actionSummary: string;        // Max 100 chars
+  actionSummary: string; // Max 100 chars
   target: string;
   priority: Priority;
   eventCount: number;
   lastEventAt: string;
   lastEventType: EventType;
-  recentActivity: string;       // Compressed event summary
+  recentActivity: string; // Compressed event summary
   milestones: Milestones;
 }
 ```
@@ -1012,9 +1042,10 @@ Recommendations are stored as individual JSON files:
 ```
 
 Each file follows the `RecommendationFile` schema:
+
 ```typescript
 interface RecommendationFile {
-  version: string;           // Schema version (e.g., "1.0.0")
+  version: string; // Schema version (e.g., "1.0.0")
   recommendation: Recommendation;
 }
 ```
@@ -1023,22 +1054,22 @@ interface RecommendationFile {
 
 Per Constitution IX (Agent-Aware), recommendations are compressed for context loading:
 
-| Event Count | Compression Strategy |
-|-------------|---------------------|
-| ≤3 events | Include all events verbatim |
-| 4-10 events | `[+N earlier events]` prefix + last 3 verbatim |
-| >10 events | `[Events summarized - use get_recommendation for full history]` |
+| Event Count | Compression Strategy                                            |
+| ----------- | --------------------------------------------------------------- |
+| ≤3 events   | Include all events verbatim                                     |
+| 4-10 events | `[+N earlier events]` prefix + last 3 verbatim                  |
+| >10 events  | `[Events summarized - use get_recommendation for full history]` |
 
 Token budget: 8K tokens for all recommendations (newest-first loading).
 
 ### Performance Characteristics (NFR)
 
-| Metric | Target | Implementation |
-|--------|--------|----------------|
-| Recommendation save | <100ms | Atomic JSON writes |
-| Context loading | <500ms | Compression + budget enforcement |
-| Summary generation | <50ms | In-memory compression |
-| List query | <200ms | Filesystem directory scan |
+| Metric              | Target | Implementation                   |
+| ------------------- | ------ | -------------------------------- |
+| Recommendation save | <100ms | Atomic JSON writes               |
+| Context loading     | <500ms | Compression + budget enforcement |
+| Summary generation  | <50ms  | In-memory compression            |
+| List query          | <200ms | Filesystem directory scan        |
 
 ---
 
@@ -1077,43 +1108,43 @@ src/act/
     └── generalized.ts          Fallback analyzer (priority 10)
 ```
 
-| Module | Responsibility |
-|--------|----------------|
-| `index.ts` | Builds subagent configuration for SDK `agents` option via `buildACTSubagents()` |
-| `registry.ts` | Manages registration, lookup by name/ACT type, priority-based routing |
-| `types.ts` | Zod-validated schemas (`ACTInstructionsSchema`), output types for findings |
+| Module          | Responsibility                                                                         |
+| --------------- | -------------------------------------------------------------------------------------- |
+| `index.ts`      | Builds subagent configuration for SDK `agents` option via `buildACTSubagents()`        |
+| `registry.ts`   | Manages registration, lookup by name/ACT type, priority-based routing                  |
+| `types.ts`      | Zod-validated schemas (`ACTInstructionsSchema`), output types for findings             |
 | `instructions/` | Context-engineered prompts following 4-layer structure (Role → Domain → Task → Output) |
 
 ### Subagent Definitions
 
-| Subagent | ACT Types | Priority | Tools |
-|----------|-----------|----------|-------|
-| `claude-code-analyzer` | claude-code | 100 | discover_configs, parse_config, analyze_hierarchy, search_sessions, get_session_stats |
-| `session-analyst` | session | 80 | get_session_timeline, get_tool_sequences, get_file_accesses, get_delegation_events, get_quality_signals, get_mcp_usage |
-| `recommendation-advisor` | recommendation | 80 | create_recommendation, get_recommendation, list_recommendations, get_recommendation_summary, add_recommendation_event, update_recommendation_status, refine_recommendation, complete_recommendation |
-| `temporal-analyzer` | temporal | 75 | store_baseline, query_baseline, list_baselines, calculate_delta, query_trends, conduct_review, get_review_history |
-| `temporal-analyzer-readonly` | temporal | 50 | query_baseline, list_baselines, calculate_delta, query_trends, get_review_history |
-| `generalized-analyzer` | agents-md, unknown | 10 | discover_configs, parse_config |
+| Subagent                     | ACT Types          | Priority | Tools                                                                                                                                                                                               |
+| ---------------------------- | ------------------ | -------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `claude-code-analyzer`       | claude-code        | 100      | discover_configs, parse_config, analyze_hierarchy, search_sessions, get_session_stats                                                                                                               |
+| `session-analyst`            | session            | 80       | get_session_timeline, get_tool_sequences, get_file_accesses, get_delegation_events, get_quality_signals, get_mcp_usage                                                                              |
+| `recommendation-advisor`     | recommendation     | 80       | create_recommendation, get_recommendation, list_recommendations, get_recommendation_summary, add_recommendation_event, update_recommendation_status, refine_recommendation, complete_recommendation |
+| `temporal-analyzer`          | temporal           | 75       | store_baseline, query_baseline, list_baselines, calculate_delta, query_trends, conduct_review, get_review_history                                                                                   |
+| `temporal-analyzer-readonly` | temporal           | 50       | query_baseline, list_baselines, calculate_delta, query_trends, get_review_history                                                                                                                   |
+| `generalized-analyzer`       | agents-md, unknown | 10       | discover_configs, parse_config                                                                                                                                                                      |
 
 ### Key Entity Types
 
 ```typescript
 interface AgentDefinition {
-  description: string;          // When to invoke (Claude uses for delegation)
-  prompt: string;               // Context-engineered system prompt
-  tools?: string[];             // Allowed tools (must NOT include 'Task')
+  description: string; // When to invoke (Claude uses for delegation)
+  prompt: string; // Context-engineered system prompt
+  tools?: string[]; // Allowed tools (must NOT include 'Task')
   model?: 'sonnet' | 'opus' | 'haiku' | 'inherit';
 }
 
 interface ACTInstructions {
-  name: string;                 // Unique identifier (e.g., "claude-code-analyzer")
-  displayName: string;          // Human-readable name
-  description: string;          // Delegation trigger description
-  prompt: string;               // Full system prompt (max 50KB)
-  tools: string[];              // Allowed tools (validated: no 'Task')
-  actTypes: ACTType[];          // Which ACT types this handles
-  priority: number;             // Selection priority (1-100, higher wins)
-  model?: string;               // Optional model override
+  name: string; // Unique identifier (e.g., "claude-code-analyzer")
+  displayName: string; // Human-readable name
+  description: string; // Delegation trigger description
+  prompt: string; // Full system prompt (max 50KB)
+  tools: string[]; // Allowed tools (validated: no 'Task')
+  actTypes: ACTType[]; // Which ACT types this handles
+  priority: number; // Selection priority (1-100, higher wins)
+  model?: string; // Optional model override
 }
 
 interface ACTAnalysisFindings {
@@ -1128,22 +1159,24 @@ interface ACTAnalysisFindings {
 }
 ```
 
-### SDK Integration
+### Opencode SDK Integration
 
 ```typescript
-import { query } from '@anthropic-ai/claude-agent-sdk';
-import { buildACTSubagents } from './act';
+import { OpencodeOrchestrator } from './opencode';
+import { buildOpencodeAgents } from './act';
 
-// Orchestrator passes subagents to SDK
-const response = await query({
-  prompt: task,
-  options: {
-    model: 'claude-sonnet-4-20250514',
-    agents: buildACTSubagents(),      // EP08: ACT subagents
-    allowedTools: ['Task', ...],       // Enable subagent invocation
-  },
+// Orchestrator uses Opencode SDK with programmatic agent config
+const orchestrator = new OpencodeOrchestrator({
+  model: 'claude-sonnet-4-20250514',
+  agents: buildOpencodeAgents(), // EP08: ACT subagents
 });
+
+for await (const chunk of orchestrator.run(task)) {
+  handleChunk(chunk);
+}
 ```
+
+> **Note**: See ADR-0024 for the migration from Claude Agent SDK to Opencode SDK.
 
 ### Single-Depth Constraint (C8)
 
@@ -1162,6 +1195,7 @@ This prevents infinite delegation chains while enabling specialized analysis.
 The debug module provides structured logging with namespace-based filtering, automatic secret redaction, and log rotation for safe debugging output.
 
 **Default Behavior** (following Claude Code / OpenCode pattern):
+
 - Log level: `info` (log everything useful by default)
 - Output: `both` (console stderr + file)
 - Default log file: `~/.agentlint/logs/{YYYY-MM-DD}.ndjson`
@@ -1179,23 +1213,23 @@ src/debug/
 └── rotation.ts                 Log rotation (file count + size limits)
 ```
 
-| Module | Responsibility |
-|--------|----------------|
-| `logger.ts` | Namespace-based debug logging with verbosity levels, default file output |
-| `namespaces.ts` | Standard namespace constants (TOOLS, LLM, ORCHESTRATION, etc.) |
-| `redaction.ts` | Pattern-based secret detection and replacement in strings/objects |
-| `metrics.ts` | Token usage tracking, latency timers, LLM call metrics aggregation |
-| `rotation.ts` | Log file rotation: keep last N files, enforce total size cap, cleanup on startup |
+| Module          | Responsibility                                                                   |
+| --------------- | -------------------------------------------------------------------------------- |
+| `logger.ts`     | Namespace-based debug logging with verbosity levels, default file output         |
+| `namespaces.ts` | Standard namespace constants (TOOLS, LLM, ORCHESTRATION, etc.)                   |
+| `redaction.ts`  | Pattern-based secret detection and replacement in strings/objects                |
+| `metrics.ts`    | Token usage tracking, latency timers, LLM call metrics aggregation               |
+| `rotation.ts`   | Log file rotation: keep last N files, enforce total size cap, cleanup on startup |
 
 ### Log Rotation
 
 The rotation module follows the OpenCode pattern for managing log file growth:
 
-| Configuration | Default | Description |
-|---------------|---------|-------------|
-| `maxFiles` | 10 | Maximum number of log files to keep |
-| `maxSizeBytes` | 500MB | Maximum total size of all log files |
-| `logDir` | `~/.agentlint/logs` | Log directory location |
+| Configuration  | Default             | Description                         |
+| -------------- | ------------------- | ----------------------------------- |
+| `maxFiles`     | 10                  | Maximum number of log files to keep |
+| `maxSizeBytes` | 500MB               | Maximum total size of all log files |
+| `logDir`       | `~/.agentlint/logs` | Log directory location              |
 
 ```typescript
 // Rotation runs automatically on startup
@@ -1207,13 +1241,13 @@ rotateLogFiles({ maxFiles: 5, maxSizeBytes: 100 * 1024 * 1024 });
 
 ### CLI Flags
 
-| Flag | Effect |
-|------|--------|
-| `--no-log` | Disable file logging for this run |
-| `--no-session` | Disable session recording for this run |
-| `--log-file <path>` | Override default log file location |
-| `--verbose` | Increase console verbosity to debug level |
-| `--quiet` | Suppress console output (file logging continues) |
+| Flag                | Effect                                           |
+| ------------------- | ------------------------------------------------ |
+| `--no-log`          | Disable file logging for this run                |
+| `--no-session`      | Disable session recording for this run           |
+| `--log-file <path>` | Override default log file location               |
+| `--verbose`         | Increase console verbosity to debug level        |
+| `--quiet`           | Suppress console output (file logging continues) |
 
 ### Key Entity Types
 
@@ -1244,21 +1278,21 @@ interface RedactionPattern {
 
 The redaction module provides defense-in-depth for debug output:
 
-| Pattern Category | Examples |
-|-----------------|----------|
-| API Keys | `sk-...`, `AKIA...`, `ghp_...`, `ghs_...` |
-| Passwords | `password=`, `secret=`, `token=` |
-| Connection Strings | `postgres://`, `mongodb://`, `redis://` |
-| JWT Tokens | `eyJ...` (Base64 encoded) |
-| Private Keys | `-----BEGIN ... KEY-----` |
+| Pattern Category   | Examples                                  |
+| ------------------ | ----------------------------------------- |
+| API Keys           | `sk-...`, `AKIA...`, `ghp_...`, `ghs_...` |
+| Passwords          | `password=`, `secret=`, `token=`          |
+| Connection Strings | `postgres://`, `mongodb://`, `redis://`   |
+| JWT Tokens         | `eyJ...` (Base64 encoded)                 |
+| Private Keys       | `-----BEGIN ... KEY-----`                 |
 
 ### Performance Characteristics (NFR)
 
-| Metric | Target | Implementation |
-|--------|--------|----------------|
+| Metric                     | Target       | Implementation                |
+| -------------------------- | ------------ | ----------------------------- |
 | Logger overhead (disabled) | <0.01ms/call | Namespace check short-circuit |
-| Redaction (1000 lines) | <500ms | Regex-based pattern matching |
-| Token tracking | <1ms/call | In-memory accumulation |
+| Redaction (1000 lines)     | <500ms       | Regex-based pattern matching  |
+| Token tracking             | <1ms/call    | In-memory accumulation        |
 
 ---
 
@@ -1279,13 +1313,13 @@ src/eval/
     └── llm-judge.ts            LLM-as-judge via TruLens
 ```
 
-| Module | Responsibility |
-|--------|----------------|
-| `scoring.ts` | Score normalization, weighted aggregation, grade computation |
-| `feedback.ts` | Opt-in feedback collection with rate limiting (Constitution I) |
-| `runner.ts` | Load scenarios, run graders, aggregate results, check release gate |
-| `graders/code-based.ts` | Deterministic checks (structure, completeness, patterns) |
-| `graders/llm-judge.ts` | TruLens subprocess integration for semantic evaluation |
+| Module                  | Responsibility                                                     |
+| ----------------------- | ------------------------------------------------------------------ |
+| `scoring.ts`            | Score normalization, weighted aggregation, grade computation       |
+| `feedback.ts`           | Opt-in feedback collection with rate limiting (Constitution I)     |
+| `runner.ts`             | Load scenarios, run graders, aggregate results, check release gate |
+| `graders/code-based.ts` | Deterministic checks (structure, completeness, patterns)           |
+| `graders/llm-judge.ts`  | TruLens subprocess integration for semantic evaluation             |
 
 ### Key Entity Types
 
@@ -1329,11 +1363,11 @@ const proc = spawn('uv', ['run', 'python', 'trulens-runner.py', '-'], {
 
 ### Performance Characteristics (NFR)
 
-| Metric | Target | Implementation |
-|--------|--------|----------------|
-| Code-based grading | <100ms/scenario | In-memory checks |
-| LLM-judge grading | <30s/scenario | TruLens subprocess |
-| Release gate check | <5min total | Parallel scenario evaluation |
+| Metric             | Target          | Implementation               |
+| ------------------ | --------------- | ---------------------------- |
+| Code-based grading | <100ms/scenario | In-memory checks             |
+| LLM-judge grading  | <30s/scenario   | TruLens subprocess           |
+| Release gate check | <5min total     | Parallel scenario evaluation |
 
 ---
 
@@ -1355,22 +1389,22 @@ src/security/
     └── gitleaks.toml           Bundled detection rules
 ```
 
-| Module | Responsibility |
-|--------|----------------|
-| `entropy.ts` | Shannon entropy calculation, character set detection, threshold analysis |
-| `detector.ts` | Pattern-based secret detection using Gitleaks rules |
-| `classifier.ts` | LLM-assisted classification of detected candidates |
-| `patterns/parser.ts` | Parse Gitleaks TOML format to internal rules |
+| Module               | Responsibility                                                           |
+| -------------------- | ------------------------------------------------------------------------ |
+| `entropy.ts`         | Shannon entropy calculation, character set detection, threshold analysis |
+| `detector.ts`        | Pattern-based secret detection using Gitleaks rules                      |
+| `classifier.ts`      | LLM-assisted classification of detected candidates                       |
+| `patterns/parser.ts` | Parse Gitleaks TOML format to internal rules                             |
 
 ### Key Entity Types
 
 ```typescript
 interface SecretCandidate {
-  id: string;                    // UUID
+  id: string; // UUID
   ruleId: string;
   ruleDescription: string;
-  match: string;                 // INTERNAL ONLY - never serialized
-  redactedContext: string;       // Context with secret replaced
+  match: string; // INTERNAL ONLY - never serialized
+  redactedContext: string; // Context with secret replaced
   entropy: number;
   location: FileLocation;
   keywords?: string[];
@@ -1414,6 +1448,7 @@ Content → Pattern Matching → Entropy Analysis → Classification → Report
 ### Pattern Compatibility
 
 Gitleaks patterns use Go regex syntax, which differs from JavaScript:
+
 - **Go-specific features**: Some patterns use features not available in JS (e.g., `(?i)` inline case-insensitive)
 - **Pattern loading**: Parser strips `(?i)` flags and applies JS equivalents
 - **Validation**: `isValidRegex()` validates patterns for JS compatibility at runtime
@@ -1421,21 +1456,21 @@ Gitleaks patterns use Go regex syntax, which differs from JavaScript:
 
 ### Security Considerations
 
-| Aspect | Implementation |
-|--------|---------------|
-| Never store secrets | `match` field stripped via Zod schema validation before serialization |
+| Aspect              | Implementation                                                          |
+| ------------------- | ----------------------------------------------------------------------- |
+| Never store secrets | `match` field stripped via Zod schema validation before serialization   |
 | Runtime enforcement | `SafeSecretCandidateSchema` validates at runtime, not just compile time |
-| Redact in logs | Debug output uses redaction patterns |
-| Entropy threshold | Default 3.5 bits/char filters false positives |
-| Pattern source | Gitleaks community rules (open source) |
+| Redact in logs      | Debug output uses redaction patterns                                    |
+| Entropy threshold   | Default 3.5 bits/char filters false positives                           |
+| Pattern source      | Gitleaks community rules (open source)                                  |
 
 ### Performance Characteristics (NFR)
 
-| Metric | Target | Implementation |
-|--------|--------|----------------|
-| File scan | <1s/file | Regex pattern matching |
-| Entropy calculation | <1ms/string | Shannon formula |
-| Pattern loading | <100ms | TOML parsing + regex compilation |
+| Metric              | Target      | Implementation                   |
+| ------------------- | ----------- | -------------------------------- |
+| File scan           | <1s/file    | Regex pattern matching           |
+| Entropy calculation | <1ms/string | Shannon formula                  |
+| Pattern loading     | <100ms      | TOML parsing + regex compilation |
 
 ---
 
@@ -1444,6 +1479,7 @@ Gitleaks patterns use Go regex syntax, which differs from JavaScript:
 The telemetry module provides opt-in observability infrastructure for agentlint with HoneyHive integration for trace visualization. **Disabled by default** per Constitution Principle I (Local-First).
 
 **Enable via:**
+
 - Environment variable: `AGENTLINT_TELEMETRY=alpha`
 - Debug mode: `AGENTLINT_TELEMETRY_DEBUG=1` (logs to stderr)
 
@@ -1495,39 +1531,39 @@ apps/telemetry-api/
     └── route.ts                Vercel Edge Function for HoneyHive forwarding
 ```
 
-| Module | Responsibility |
-|--------|----------------|
-| `index.ts` | ITelemetryClient interface, TrackToolOptions/TrackLLMOptions types |
-| `events.ts` | TelemetryEvent schema, sanitizeEventData(), secret redaction |
-| `alpha-client.ts` | AlphaTelemetryClient with buffering, flush, session tracking |
-| `route.ts` | Edge function: validation, HoneyHive schema mapping, API forwarding |
+| Module            | Responsibility                                                      |
+| ----------------- | ------------------------------------------------------------------- |
+| `index.ts`        | ITelemetryClient interface, TrackToolOptions/TrackLLMOptions types  |
+| `events.ts`       | TelemetryEvent schema, sanitizeEventData(), secret redaction        |
+| `alpha-client.ts` | AlphaTelemetryClient with buffering, flush, session tracking        |
+| `route.ts`        | Edge function: validation, HoneyHive schema mapping, API forwarding |
 
 ### Event Types
 
-| Event Type | HoneyHive Type | Data Captured |
-|------------|----------------|---------------|
-| `session.start` | `chain` | Command, directory, project type, config presence |
-| `session.end` | `chain` | Duration, tool/finding counts, total tokens, success |
-| `tool.call` | `tool` | Tool name, arguments (full), result (truncated), error message |
-| `llm.usage` | `model` | Model, tokens (in/out/cache), latency, stop reason |
-| `finding.detected` | `chain` | Finding type, severity |
-| `session.error` | `chain` | Error type, error code |
+| Event Type         | HoneyHive Type | Data Captured                                                  |
+| ------------------ | -------------- | -------------------------------------------------------------- |
+| `session.start`    | `chain`        | Command, directory, project type, config presence              |
+| `session.end`      | `chain`        | Duration, tool/finding counts, total tokens, success           |
+| `tool.call`        | `tool`         | Tool name, arguments (full), result (truncated), error message |
+| `llm.usage`        | `model`        | Model, tokens (in/out/cache), latency, stop reason             |
+| `finding.detected` | `chain`        | Finding type, severity                                         |
+| `session.error`    | `chain`        | Error type, error code                                         |
 
 ### HoneyHive Schema Mapping
 
 The edge function transforms agentlint events to HoneyHive's full schema:
 
-| HoneyHive Field | Source | Purpose |
-|-----------------|--------|---------|
-| `session_name` | `agentlint-{command}-{YYYY-MM-DD}` | Human-readable session identification |
-| `event_name` | `Tool: {name}`, `Claude: {model}` | Descriptive event names in traces |
-| `config` | Model params, tool provider | Event-specific configuration |
-| `inputs` | Tool arguments, LLM params | Full debugging context |
-| `outputs` | Tool results, completion tokens | Operation outcomes |
-| `metrics` | Tokens, latency, cache hits | KPI tracking and dashboards |
-| `user_properties` | Version, platform, node | Filtering and segmentation |
-| `error` | Error message | Failed operation tracking |
-| `parent_id` | Session event ID | Trace hierarchy |
+| HoneyHive Field   | Source                             | Purpose                               |
+| ----------------- | ---------------------------------- | ------------------------------------- |
+| `session_name`    | `agentlint-{command}-{YYYY-MM-DD}` | Human-readable session identification |
+| `event_name`      | `Tool: {name}`, `Claude: {model}`  | Descriptive event names in traces     |
+| `config`          | Model params, tool provider        | Event-specific configuration          |
+| `inputs`          | Tool arguments, LLM params         | Full debugging context                |
+| `outputs`         | Tool results, completion tokens    | Operation outcomes                    |
+| `metrics`         | Tokens, latency, cache hits        | KPI tracking and dashboards           |
+| `user_properties` | Version, platform, node            | Filtering and segmentation            |
+| `error`           | Error message                      | Failed operation tracking             |
+| `parent_id`       | Session event ID                   | Trace hierarchy                       |
 
 ### Cache Token Tracking
 
@@ -1536,8 +1572,8 @@ Prompt caching metrics are captured for cost optimization insights:
 ```typescript
 interface TrackLLMOptions {
   // ... standard fields ...
-  cacheReadTokens?: number;      // Tokens read from Anthropic cache
-  cacheCreationTokens?: number;  // Tokens added to cache
+  cacheReadTokens?: number; // Tokens read from Anthropic cache
+  cacheCreationTokens?: number; // Tokens added to cache
 }
 ```
 
@@ -1565,12 +1601,12 @@ interface ITelemetryClient {
 
 interface TelemetryEvent {
   type: TelemetryEventType;
-  timestamp: string;              // ISO-8601
-  startTime: number;              // UTC ms (HoneyHive requirement)
-  endTime: number;                // UTC ms (HoneyHive requirement)
+  timestamp: string; // ISO-8601
+  startTime: number; // UTC ms (HoneyHive requirement)
+  endTime: number; // UTC ms (HoneyHive requirement)
   sessionId: string;
-  eventId: string;                // UUID for hierarchy
-  parentEventId?: string;         // Parent for trace tree
+  eventId: string; // UUID for hierarchy
+  parentEventId?: string; // Parent for trace tree
   sequence: number;
   data: Record<string, unknown>;
   meta: TelemetryEventMeta;
@@ -1579,27 +1615,27 @@ interface TelemetryEvent {
 
 ### Client Implementations
 
-| Client | Mode | Behavior |
-|--------|------|----------|
-| `NoOpTelemetryClient` | `disabled` | All methods are no-ops (default) |
-| `AlphaTelemetryClient` | `alpha` | Buffers events, POSTs to Vercel proxy |
+| Client                 | Mode       | Behavior                              |
+| ---------------------- | ---------- | ------------------------------------- |
+| `NoOpTelemetryClient`  | `disabled` | All methods are no-ops (default)      |
+| `AlphaTelemetryClient` | `alpha`    | Buffers events, POSTs to Vercel proxy |
 
 ### Constitution Compliance
 
-| Principle | Implementation |
-|-----------|----------------|
+| Principle      | Implementation                                                     |
+| -------------- | ------------------------------------------------------------------ |
 | I. Local-First | Disabled by default, explicit `AGENTLINT_TELEMETRY=alpha` required |
-| Privacy | Secrets redacted via `redact()` patterns; API key server-side only |
-| Agent-Aware | Full tool I/O captured for debugging agent behavior |
+| Privacy        | Secrets redacted via `redact()` patterns; API key server-side only |
+| Agent-Aware    | Full tool I/O captured for debugging agent behavior                |
 
 ### Performance Characteristics (NFR)
 
-| Metric | Target | Implementation |
-|--------|--------|----------------|
-| Event buffering | 10s interval | setInterval with unref() |
-| Flush timeout | 5s max | AbortController |
-| Max buffer size | 100 events | Force flush at limit |
-| Redaction overhead | <1ms/event | Regex pattern matching |
+| Metric             | Target       | Implementation           |
+| ------------------ | ------------ | ------------------------ |
+| Event buffering    | 10s interval | setInterval with unref() |
+| Flush timeout      | 5s max       | AbortController          |
+| Max buffer size    | 100 events   | Force flush at limit     |
+| Redaction overhead | <1ms/event   | Regex pattern matching   |
 
 ---
 
@@ -1629,33 +1665,33 @@ src/skills/
     └── get-skill-invocations-tool.ts     get_skill_invocations tool
 ```
 
-| Module | Responsibility |
-|--------|----------------|
-| `discovery.ts` | Discovers SKILL.md files in `.claude/skills/`, extracts names, descriptions, file patterns |
-| `detection.ts` | Detects Skill tool_use entries in session JSONL logs, extracts command and context |
-| `storage/schema.ts` | Defines `skill_invocations` table in sessions.db |
-| `storage/queries.ts` | Query functions with filtering by skill, session, date range |
-| `tools/` | SDK tool definitions following ADR-0005 patterns |
+| Module               | Responsibility                                                                             |
+| -------------------- | ------------------------------------------------------------------------------------------ |
+| `discovery.ts`       | Discovers SKILL.md files in `.claude/skills/`, extracts names, descriptions, file patterns |
+| `detection.ts`       | Detects Skill tool_use entries in session JSONL logs, extracts command and context         |
+| `storage/schema.ts`  | Defines `skill_invocations` table in sessions.db                                           |
+| `storage/queries.ts` | Query functions with filtering by skill, session, date range                               |
+| `tools/`             | SDK tool definitions following ADR-0005 patterns                                           |
 
 ### EP14 Tool Definitions
 
-| Tool | Description |
-|------|-------------|
-| `get_skill_inventory` | Returns skills defined in `.claude/skills/` with names, descriptions, and file patterns |
-| `index_skill_invocations` | Indexes Skill tool_use entries from session logs into database |
-| `get_session_summaries` | Returns session summaries with first user prompt, files operated, and skills invoked |
-| `get_skill_invocations` | Queries skill invocation records with filtering by skill, session, and date range |
+| Tool                      | Description                                                                             |
+| ------------------------- | --------------------------------------------------------------------------------------- |
+| `get_skill_inventory`     | Returns skills defined in `.claude/skills/` with names, descriptions, and file patterns |
+| `index_skill_invocations` | Indexes Skill tool_use entries from session logs into database                          |
+| `get_session_summaries`   | Returns session summaries with first user prompt, files operated, and skills invoked    |
+| `get_skill_invocations`   | Queries skill invocation records with filtering by skill, session, and date range       |
 
 ### Tool/Agent Boundary (Constitution VII)
 
 Per Constitution Principle VII, skills tools provide DATA while the agent provides JUDGMENT:
 
-| Tool Provides | Agent Reasons About |
-|--------------|---------------------|
-| Raw invocation counts | "Is this usage rate low?" |
-| Session summaries with skills invoked | "Should a skill have been used here?" |
-| User prompts that triggered skills | "Does the description match how users phrase requests?" |
-| File patterns in skill definitions | "Are the patterns effective hints?" |
+| Tool Provides                         | Agent Reasons About                                     |
+| ------------------------------------- | ------------------------------------------------------- |
+| Raw invocation counts                 | "Is this usage rate low?"                               |
+| Session summaries with skills invoked | "Should a skill have been used here?"                   |
+| User prompts that triggered skills    | "Does the description match how users phrase requests?" |
+| File patterns in skill definitions    | "Are the patterns effective hints?"                     |
 
 **Critical Design Principle**: Tools return facts; the agent reasons about what they mean. No thresholds, no detection logic, no "missed opportunity" classification in tools.
 
@@ -1663,29 +1699,29 @@ Per Constitution Principle VII, skills tools provide DATA while the agent provid
 
 ```typescript
 interface SkillInventoryItem {
-  name: string;                   // Skill name from frontmatter
-  description: string;            // Skill description
-  path: string;                   // Relative path to SKILL.md
-  filePath: string;               // Absolute path
-  userInvocable: boolean;         // Can users invoke via /skill
-  filePatterns?: string[];        // Optional hint patterns
+  name: string; // Skill name from frontmatter
+  description: string; // Skill description
+  path: string; // Relative path to SKILL.md
+  filePath: string; // Absolute path
+  userInvocable: boolean; // Can users invoke via /skill
+  filePatterns?: string[]; // Optional hint patterns
 }
 
 interface SkillInvocationRecord {
-  id: string;                     // UUID
-  sessionId: string;              // Session where invoked
-  skillName: string;              // Which skill
-  timestamp: string;              // ISO 8601
-  userPromptContext?: string;     // User prompt that triggered invocation
-  filesOperated?: string[];       // Files touched during invocation
+  id: string; // UUID
+  sessionId: string; // Session where invoked
+  skillName: string; // Which skill
+  timestamp: string; // ISO 8601
+  userPromptContext?: string; // User prompt that triggered invocation
+  filesOperated?: string[]; // Files touched during invocation
 }
 
 interface SessionSummary {
   sessionId: string;
   projectPath: string;
-  firstUserPrompt?: string;       // First user message (truncated)
-  filesOperated: string[];        // Files read/written/edited
-  skillsInvoked: string[];        // Skills used in session
+  firstUserPrompt?: string; // First user message (truncated)
+  filesOperated: string[]; // Files read/written/edited
+  skillsInvoked: string[]; // Skills used in session
   timestamp: string;
 }
 
@@ -1738,21 +1774,21 @@ agentlint skills --markdown       # Markdown output
 
 Skills metrics are optionally captured in baselines via `store_baseline --include-skills-metrics`:
 
-| Metric | Description |
-|--------|-------------|
-| `skillInvocationCount` | Total skill invocations across sessions |
-| `uniqueSkillsUsed` | Number of distinct skills invoked |
-| `sessionsWithSkillUsage` | Sessions that used at least one skill |
-| `skillsDefinedCount` | Total skills in `.claude/skills/` |
+| Metric                   | Description                             |
+| ------------------------ | --------------------------------------- |
+| `skillInvocationCount`   | Total skill invocations across sessions |
+| `uniqueSkillsUsed`       | Number of distinct skills invoked       |
+| `sessionsWithSkillUsage` | Sessions that used at least one skill   |
+| `skillsDefinedCount`     | Total skills in `.claude/skills/`       |
 
 ### Performance Characteristics (NFR)
 
-| Metric | Target | Implementation |
-|--------|--------|----------------|
-| Skill discovery | <100ms | fast-glob with early exclusion |
-| Invocation indexing | <2s for 100 sessions | Streaming JSONL parse + batch SQLite inserts |
-| Query by skill | <50ms | SQLite indexed queries |
-| Session summaries | <500ms for 50 sessions | Aggregate query with limits |
+| Metric              | Target                 | Implementation                               |
+| ------------------- | ---------------------- | -------------------------------------------- |
+| Skill discovery     | <100ms                 | fast-glob with early exclusion               |
+| Invocation indexing | <2s for 100 sessions   | Streaming JSONL parse + batch SQLite inserts |
+| Query by skill      | <50ms                  | SQLite indexed queries                       |
+| Session summaries   | <500ms for 50 sessions | Aggregate query with limits                  |
 
 ---
 
@@ -1799,37 +1835,37 @@ src/sessions/
     └── session-analyst.ts      Agent prompt + builder
 ```
 
-| Module | Responsibility |
-|--------|----------------|
+| Module        | Responsibility                                                     |
+| ------------- | ------------------------------------------------------------------ |
 | `extraction/` | Static functions for extracting structured data from session JSONL |
-| `storage/` | SQLite schema and queries for session intelligence data |
-| `tools/` | SDK tool definitions following ADR-0005 patterns |
-| `subagent/` | Session Analyst subagent for narrative analysis |
+| `storage/`    | SQLite schema and queries for session intelligence data            |
+| `tools/`      | SDK tool definitions following ADR-0005 patterns                   |
+| `subagent/`   | Session Analyst subagent for narrative analysis                    |
 
 ### EP15 Tool Definitions
 
-| Tool | Description |
-|------|-------------|
-| `get_session_timeline` | Extracts session intent, outcome signals, and token metrics |
-| `get_tool_sequences` | Extracts tool call sequences with repeat pattern detection |
-| `get_file_accesses` | Tracks file read/write/edit operations per session |
-| `get_delegation_events` | Identifies Task tool usage and subagent patterns |
-| `get_quality_signals` | Detects test/build/lint outcomes from Bash outputs |
-| `get_mcp_usage` | Analyzes MCP server usage and error rates |
-| `get_permission_events` | Queries permission request patterns and approval rates |
-| `spawn_session_analyst` | Spawns Session Analyst subagent for deep analysis |
+| Tool                    | Description                                                 |
+| ----------------------- | ----------------------------------------------------------- |
+| `get_session_timeline`  | Extracts session intent, outcome signals, and token metrics |
+| `get_tool_sequences`    | Extracts tool call sequences with repeat pattern detection  |
+| `get_file_accesses`     | Tracks file read/write/edit operations per session          |
+| `get_delegation_events` | Identifies Task tool usage and subagent patterns            |
+| `get_quality_signals`   | Detects test/build/lint outcomes from Bash outputs          |
+| `get_mcp_usage`         | Analyzes MCP server usage and error rates                   |
+| `get_permission_events` | Queries permission request patterns and approval rates      |
+| `spawn_session_analyst` | Spawns Session Analyst subagent for deep analysis           |
 
 ### Tool/Agent Boundary (ADR-0019)
 
 Per [ADR-0019](../adr/0019-tool-agent-boundary-temporal.md), session tools provide DATA while the agent provides JUDGMENT:
 
-| Tool Provides | Agent Reasons About |
-|--------------|---------------------|
-| Raw timeline (intent, outcome signals) | "Was this session successful?" |
-| Tool sequences with repeat counts | "Is the agent stuck in a loop?" |
-| File access patterns | "What was the focus area?" |
-| Quality signal outcomes | "Did the tests pass? Is the code ready?" |
-| MCP error rates | "Is this integration healthy?" |
+| Tool Provides                          | Agent Reasons About                      |
+| -------------------------------------- | ---------------------------------------- |
+| Raw timeline (intent, outcome signals) | "Was this session successful?"           |
+| Tool sequences with repeat counts      | "Is the agent stuck in a loop?"          |
+| File access patterns                   | "What was the focus area?"               |
+| Quality signal outcomes                | "Did the tests pass? Is the code ready?" |
+| MCP error rates                        | "Is this integration healthy?"           |
 
 **Critical Design Principle**: Tools return signals (containsThanks, endsWithError, repeatCount); the agent interprets what they mean in context.
 
@@ -1866,6 +1902,7 @@ const SESSION_ANALYST_TOOLS = [
 ```
 
 Focus options for `spawn_session_analyst`:
+
 - `narrative`: Session story and key decisions
 - `flow`: Tool patterns and phase detection
 - `quality`: Test/build outcomes and reliability
@@ -1879,7 +1916,7 @@ interface SessionTimeline {
   projectPath: string;
   startTime: string;
   endTime: string;
-  duration: number;              // milliseconds
+  duration: number; // milliseconds
   turnCount: number;
   intent: Intent;
   outcome: SessionOutcome;
@@ -1901,10 +1938,10 @@ interface SessionOutcome {
 }
 
 interface OutcomeSignals {
-  containsThanks: boolean;       // User expressed gratitude
-  containsDone: boolean;         // User indicated completion
-  endsWithError: boolean;        // Last message was error
-  hasUnresolvedError: boolean;   // Error without recovery
+  containsThanks: boolean; // User expressed gratitude
+  containsDone: boolean; // User indicated completion
+  endsWithError: boolean; // Last message was error
+  hasUnresolvedError: boolean; // Error without recovery
 }
 
 interface ToolCallRecord {
@@ -1912,9 +1949,9 @@ interface ToolCallRecord {
   sequenceNumber: number;
   toolName: string;
   timestamp: string;
-  inputHash: string;             // For repeat detection
+  inputHash: string; // For repeat detection
   isError: boolean;
-  filePath: string;              // Source for causal tracing
+  filePath: string; // Source for causal tracing
   lineNumber: number;
 }
 
@@ -1922,7 +1959,7 @@ interface QualitySignalRecord {
   sessionId: string;
   signalType: 'test' | 'build' | 'lint';
   outcome: 'pass' | 'fail' | 'indeterminate';
-  rawOutput: string;             // For agent interpretation
+  rawOutput: string; // For agent interpretation
   timestamp: string;
 }
 ```
@@ -2006,9 +2043,9 @@ agentlint analyse --session <path>  # Analyze from file path
 
 ### Performance Characteristics (NFR)
 
-| Metric | Target | Implementation |
-|--------|--------|----------------|
-| Timeline extraction | <500ms | Streaming JSONL parse |
-| Tool sequence query | <100ms | SQLite indexed queries |
-| Quality signal detection | <200ms | Regex pattern matching |
-| Full session analysis | <5s | Parallel extraction + subagent |
+| Metric                   | Target | Implementation                 |
+| ------------------------ | ------ | ------------------------------ |
+| Timeline extraction      | <500ms | Streaming JSONL parse          |
+| Tool sequence query      | <100ms | SQLite indexed queries         |
+| Quality signal detection | <200ms | Regex pattern matching         |
+| Full session analysis    | <5s    | Parallel extraction + subagent |

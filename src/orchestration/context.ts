@@ -1,13 +1,5 @@
 /**
- * EP02 Orchestration Core - Context Management
- *
- * Handles context compression and large tool result summarization.
- * Works with SDK's PreCompact hook to manage context window.
- *
- * Implementation tasks:
- * - T029: Large tool results trigger summarization
- * - T033: PreCompact hook handler
- * - T034: handleToolResult() with summarization stub
+ * Context management utilities for large tool result summarization.
  *
  * @module orchestration/context
  */
@@ -52,28 +44,8 @@ export interface ToolResultSummary {
   fullContentRef?: string;
 }
 
-/**
- * Handler for PreCompact events from the SDK.
- */
-export interface PreCompactHandler {
-  /** Called when context compression is about to occur */
-  onPreCompact(event: PreCompactEvent): void;
-}
-
-/**
- * Event data for PreCompact hook.
- */
-export interface PreCompactEvent {
-  /** Current token count before compaction */
-  tokenCount: number;
-  /** Percentage of context window used */
-  usagePercent: number;
-  /** Whether this is automatic (threshold) or manual */
-  trigger: 'auto' | 'manual';
-}
-
 // =============================================================================
-// Tool Result Handling (T029, T034)
+// Tool Result Handling
 // =============================================================================
 
 /**
@@ -179,84 +151,4 @@ function createPreview(result: unknown): string {
 
   // Show first part and indicate truncation
   return str.slice(0, PREVIEW_LENGTH) + '\n... [truncated]';
-}
-
-// =============================================================================
-// PreCompact Hook Handler (T033)
-// =============================================================================
-
-/**
- * Create a PreCompact hook handler for the SDK.
- *
- * The SDK fires PreCompact when context usage reaches ~92%.
- * This handler:
- * 1. Logs the compression event
- * 2. Emits a checkpoint event for recovery
- * 3. Preserves critical context (task goals, findings)
- *
- * @param onPreCompact - Callback for precompact events
- * @returns Hook callback function
- *
- * @example
- * ```typescript
- * const handler = createPreCompactHandler((event) => {
- *   console.log(`Context at ${event.usagePercent}%, compacting...`);
- *   checkpointHandler.emit('pre_compact');
- * });
- *
- * // Register with SDK
- * query({
- *   prompt: task,
- *   options: {
- *     hooks: { PreCompact: handler },
- *   },
- * });
- * ```
- */
-export function createPreCompactHandler(
-  onPreCompact: (event: PreCompactEvent) => void
-): (info: unknown) => void {
-  return (info: unknown) => {
-    // Extract event data from SDK hook info - disable strict checks for SDK interop
-    /* eslint-disable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment */
-    const hookInfo = info as any;
-    const event: PreCompactEvent = {
-      tokenCount: hookInfo.tokenCount ?? 0,
-      usagePercent: hookInfo.usagePercent ?? 0,
-      trigger: hookInfo.trigger ?? 'auto',
-    };
-    /* eslint-enable @typescript-eslint/no-explicit-any, @typescript-eslint/no-unsafe-member-access, @typescript-eslint/no-unsafe-assignment */
-
-    onPreCompact(event);
-  };
-}
-
-// =============================================================================
-// Context Preservation (for PreCompact)
-// =============================================================================
-
-/**
- * Build preserved context for injection after compression.
- *
- * Critical information that must survive compression:
- * - Task goals
- * - Current phase
- * - Key findings
- * - Progress summary
- *
- * @param taskGoal - The original task goal
- * @param currentPhase - Current analysis phase
- * @param findingCount - Number of findings so far
- * @returns Context string for injection
- */
-export function buildPreservedContext(
-  taskGoal: string,
-  currentPhase: string,
-  findingCount: number
-): string {
-  return `[Context Recovery]
-Task Goal: ${taskGoal}
-Current Phase: ${currentPhase}
-Findings So Far: ${findingCount}
-[End Context Recovery]`;
 }

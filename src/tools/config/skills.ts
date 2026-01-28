@@ -20,6 +20,7 @@ import type {
   ParseWarning,
   WarningCode,
 } from './types';
+import { redact } from '../../debug/redaction';
 
 // =============================================================================
 // Constants
@@ -93,14 +94,20 @@ export async function discoverSkills(options: {
         skills.push(skill);
       } catch (error) {
         // Log error but continue discovering other skills
-        console.warn(`Warning: Failed to parse skill at ${skillPath}:`, error);
+        console.warn(
+          `Warning: Failed to parse skill at ${skillPath}:`,
+          error instanceof Error ? redact(error.message) : 'unknown error'
+        );
       }
     }
 
     return skills;
   } catch (error) {
     // Return empty array on glob failure
-    console.warn('Warning: Skill discovery failed:', error);
+    console.warn(
+      'Warning: Skill discovery failed:',
+      error instanceof Error ? redact(error.message) : 'unknown error'
+    );
     return [];
   }
 }

@@ -8,12 +8,12 @@ agentlint is a local-first CLI tool for continuous improvement of AI-assisted de
 
 **Status**: EP11 Complete (Quality & Security implemented)
 
-**Stack**: TypeScript + Bun, Claude Agent SDK (@anthropic-ai/claude-agent-sdk), Zod validation, SQLite
+**Stack**: TypeScript + Bun, Opencode SDK (@opencode-ai/sdk), Zod validation, SQLite
 
 **Implemented Epics**:
 
 - EP01: Project Setup (CI/CD, TypeScript config, test framework)
-- EP02: Orchestration Core (Claude Agent SDK wrapper, streaming, checkpoints, session management)
+- EP02: Orchestration Core (Opencode SDK wrapper, streaming, checkpoints, session management)
 - EP11: Quality & Security (debug infrastructure, session recording, evaluation framework, outcome tracking)
 
 ## Constitution
@@ -90,7 +90,7 @@ Epic identifiers are **NOT appropriate** for permanent code:
 
 ## Key Architecture Concepts
 
-**6-Layer Architecture**: CLI → Orchestration (Claude Agent SDK) → Tools → ACT Adapters → Persistence → Integration
+**6-Layer Architecture**: CLI → Orchestration (Opencode SDK) → Tools → ACT Adapters → Persistence → Integration
 
 **Two-Layer Analysis**: Static tools for speed (parsing, extraction) + agent reasoning for depth (causal analysis, quality judgment)
 
@@ -98,7 +98,7 @@ Epic identifiers are **NOT appropriate** for permanent code:
 
 ## Agent SDK Design Patterns (CRITICAL)
 
-agentlint is a Claude Agent SDK application. These patterns are **CRITICAL** and **MUST** be followed.
+agentlint is an Opencode SDK application. These patterns are **CRITICAL** and **MUST** be followed.
 
 ### Tool/Agent Boundary (MUST)
 
@@ -179,28 +179,44 @@ The most successful agent implementations use simple, composable patterns—not 
 | Location                          | Content                                      |
 | --------------------------------- | -------------------------------------------- |
 | `docs/architecture/arc42/`        | 12-section Arc42 architecture docs           |
-| `docs/architecture/adr/`          | 18 Architecture Decision Records             |
+| `docs/architecture/adr/`          | 25 Architecture Decision Records             |
 | `docs/planning/epic-catalogue.md` | 12 implementation epics with dependencies    |
 | `docs/requirements/`              | Functional requirements, use cases, personas |
 | `docs/vision/north-star.md`       | Mission, vision, success indicators          |
 
 ## Orchestration Module (EP02)
 
-The `src/orchestration/` module wraps the Claude Agent SDK:
+The orchestration layer uses **Opencode SDK** (`@opencode-ai/sdk`) with two module locations:
 
-| Component          | File                     | Purpose                                          |
-| ------------------ | ------------------------ | ------------------------------------------------ |
-| Orchestrator       | `orchestrator.ts`        | Main loop wrapping SDK `query()`                 |
-| ToolRegistry       | `tool-registry.ts`       | MCP tool registration via `createSdkMcpServer()` |
-| StreamProcessor    | `streaming.ts`           | SDK message → StreamChunk conversion             |
-| CheckpointHandler  | `checkpoint.ts`          | Crash recovery checkpoints                       |
-| SessionState       | `session-state.ts`       | Session persistence to JSON                      |
-| CognitiveWorkspace | `cognitive-workspace.ts` | Hierarchical context for agent                   |
-| Context            | `context.ts`             | Large result summarization                       |
+**Opencode Integration** (`src/opencode/`):
+
+| Component               | File                   | Purpose                                              |
+| ----------------------- | ---------------------- | ---------------------------------------------------- |
+| OpencodeOrchestrator    | `orchestrator.ts`      | Main orchestration integrating all modules           |
+| OpencodeServerManager   | `server.ts`            | Server lifecycle (start/stop/health)                 |
+| AgentlintOpencodeClient | `client.ts`            | SDK client wrapper                                   |
+| AgentlintMcpServer      | `mcp-server.ts`        | MCP server exposing 40+ tools                        |
+| StreamAdapter           | `streaming.ts`         | SSE → StreamChunk conversion with telemetry metadata |
+| HybridSessionManager    | `sessions.ts`          | Opencode + agentlint metadata                        |
+| adaptTool               | `tool-adapter.ts`      | Tool format conversion                               |
+| TelemetryTracker        | `telemetry-tracker.ts` | Tool/LLM telemetry tracking (FIFO queue correlation) |
+
+**Shared Infrastructure** (`src/orchestration/`):
+
+| Component         | File                   | Purpose                                    |
+| ----------------- | ---------------------- | ------------------------------------------ |
+| ToolRegistry      | `tool-registry.ts`     | Tool registration and lookup               |
+| Types             | `types.ts`             | StreamChunk, SessionState, Finding, etc.   |
+| Config            | `config.ts`            | Configuration loading with defaults        |
+| CheckpointHandler | `checkpoint.ts`        | Crash recovery checkpoints                 |
+| Retry             | `retry.ts`             | Retry logic with exponential backoff       |
+| TelemetryUtils    | `telemetry-utils.ts`   | Shared truncation + error extraction utils |
+| Context           | `context.ts`           | Large tool result summarization            |
+| ExecutionContext  | `execution-context.ts` | Target directory tracking via AsyncLocal   |
 
 **Key patterns**:
 
-- Tool definitions use SDK's `tool()` with Zod schemas
+- Tool definitions use `adaptTool()` wrapper with Zod schemas
 - Streaming yields `StreamChunk` objects with verbosity levels
 - Checkpoints emit on tool completion, findings, phase changes, intervals
 - Subagent depth limited to 1 per Constitution Principle C8

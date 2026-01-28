@@ -40,7 +40,7 @@ describe('Quickstart: Tool Registration', () => {
   });
 
   test('all documented tool names are correct', () => {
-    const toolNames = TEMPORAL_TOOLS.map((t) => t.name);
+    const toolNames = TEMPORAL_TOOLS.map((t) => t.name as string);
 
     // Matches quickstart.md Tool Reference section
     expect(toolNames).toContain('store_baseline');
@@ -84,7 +84,7 @@ describe('Quickstart: store_baseline', () => {
   test('tool accepts documented parameters', () => {
     // From quickstart.md: store_baseline accepts label (optional)
     // SDK tools have inputSchema as the raw Zod shape object
-    const schema = storeBaselineTool.inputSchema as Record<string, unknown>;
+    const schema = storeBaselineTool.inputSchema;
     expect(schema).toBeDefined();
     expect(schema.label).toBeDefined(); // label is documented as optional parameter
   });
@@ -122,7 +122,7 @@ describe('Quickstart: calculate_delta', () => {
   test('tool accepts documented parameters', () => {
     // From quickstart.md: calculate_delta accepts fromId, toId, includeGitCommits, detailedDiff
     // SDK tools have inputSchema as the raw Zod shape object
-    const schema = calculateDeltaTool.inputSchema as Record<string, unknown>;
+    const schema = calculateDeltaTool.inputSchema;
     expect(schema).toBeDefined();
     expect(schema.fromId).toBeDefined();
     expect(schema.toId).toBeDefined();
@@ -151,7 +151,7 @@ describe('Quickstart: conduct_review', () => {
   test('tool accepts documented parameters', () => {
     // From quickstart.md: conduct_review accepts dimensions array with scores
     // SDK tools have inputSchema as the raw Zod shape object
-    const schema = conductReviewTool.inputSchema as Record<string, unknown>;
+    const schema = conductReviewTool.inputSchema;
     expect(schema).toBeDefined();
     expect(schema.dimensions).toBeDefined();
   });

@@ -1,5 +1,7 @@
 # Plan: P3+ Tech Debt Remediation
 
+> **Legacy Note (2026-01)**: This plan references "Claude Agent SDK" which was replaced by Opencode SDK. See [ADR-0024](../../docs/architecture/adr/0024-opencode-sdk-migration.md).
+
 ## Overview
 
 Address remaining tech debt findings (P3 and below) focusing on error resilience, testing determinism, and observability patterns aligned with [Claude Agent SDK best practices](https://platform.claude.com/docs/en/agent-sdk/overview) and [Anthropic's engineering guidance](https://www.anthropic.com/engineering/building-agents-with-the-claude-agent-sdk).
@@ -8,13 +10,13 @@ Address remaining tech debt findings (P3 and below) focusing on error resilience
 
 ## P3+ Issues Summary
 
-| Priority | Pattern | File(s) | Severity | Impact |
-|----------|---------|---------|----------|--------|
-| P3 | SILENT_FAILURE | alpha-client.ts:437 | 8 | Error opacity |
-| P3 | UNHANDLED_REJECTION | alpha-client.ts:113 | 7 | Crash risk |
-| P4 | MISSING_VCR | honeyhive-api-live.test.ts | 6 | CI non-determinism |
-| P4 | MISSING_VCR | vercel-proxy-live.test.ts | 6 | CI non-determinism |
-| P5 | UNSTRUCTURED_ERRORS | Multiple CLI/tools | 4 | Debug difficulty |
+| Priority | Pattern             | File(s)                    | Severity | Impact             |
+| -------- | ------------------- | -------------------------- | -------- | ------------------ |
+| P3       | SILENT_FAILURE      | alpha-client.ts:437        | 8        | Error opacity      |
+| P3       | UNHANDLED_REJECTION | alpha-client.ts:113        | 7        | Crash risk         |
+| P4       | MISSING_VCR         | honeyhive-api-live.test.ts | 6        | CI non-determinism |
+| P4       | MISSING_VCR         | vercel-proxy-live.test.ts  | 6        | CI non-determinism |
+| P5       | UNSTRUCTURED_ERRORS | Multiple CLI/tools         | 4        | Debug difficulty   |
 
 ---
 
@@ -29,11 +31,13 @@ The `flush()` method catch block (lines 437-454) logs warnings but provides no s
 ### Solution
 
 Per [Claude Agent SDK patterns](https://docs.claude.com/en/docs/agent-sdk/overview), error handling should:
+
 1. Classify errors by category (timeout, network, api_error)
 2. Emit structured events for observability
 3. Enable optional callback for error notification
 
 **Add error classification:**
+
 ```typescript
 type TelemetryErrorCategory = 'timeout' | 'network' | 'rate_limited' | 'server_error' | 'unknown';
 
@@ -66,6 +70,7 @@ private classifyError(error: unknown, eventCount: number): TelemetryError {
 ```
 
 **Add optional error callback:**
+
 ```typescript
 export interface TelemetryClientOptions {
   onError?: (error: TelemetryError) => void;
@@ -78,6 +83,7 @@ this.onError = options?.onError ?? null;
 ```
 
 **Update catch block:**
+
 ```typescript
 } catch (error) {
   const classified = this.classifyError(error, events.length);
@@ -116,6 +122,7 @@ Line 113: `void this.flush();` creates a floating promise. While it has a `.catc
 Use consistent error handling pattern across all flush calls.
 
 **Update record() method:**
+
 ```typescript
 record(event: TelemetryEvent): void {
   if (!this.enabled) {
@@ -162,12 +169,14 @@ this.safeFireAndForget(this.flush(), 'Buffer flush');
 ## Task 3: Create VCR Recordings for Live Tests (Severity 6)
 
 **Files**:
+
 - `tests/integration/honeyhive-api-live.test.ts`
 - `tests/integration/vercel-proxy-live.test.ts`
 
 ### Problem
 
 Per [ADR-0011](../docs/architecture/adr/0011-testing-strategy-for-agentic-components.md), integration tests should use VCR recordings for deterministic CI. These live tests make actual network calls, which:
+
 1. Are non-deterministic (API responses may change)
 2. Require API keys in CI
 3. Can fail due to network issues
@@ -260,9 +269,7 @@ const vcr = new VCR({
   requestFilter: createAuthRedactFilter(),
   responseFilter: (response) => ({
     ...response,
-    body: typeof response.body === 'object'
-      ? sanitizeResponseBody(response.body)
-      : response.body,
+    body: typeof response.body === 'object' ? sanitizeResponseBody(response.body) : response.body,
   }),
 });
 ```
@@ -276,6 +283,7 @@ const vcr = new VCR({
 ### Problem
 
 Inconsistent `console.error()` usage across the codebase:
+
 - Some use structured format: `console.error('[module] message:', error)`
 - Some use bare strings: `console.error('Error: message')`
 - No standard error classification
@@ -415,21 +423,21 @@ this.metrics.errorsByCategory[classified.category]++;
 
 ## Files to Modify
 
-| File | Changes |
-|------|---------|
-| `src/telemetry/alpha-client.ts` | Tasks 1, 2, 5 - error handling, metrics |
-| `tests/integration/honeyhive-api-live.test.ts` | Task 3 - rename, keep as live |
-| `tests/integration/vercel-proxy-live.test.ts` | Task 3 - rename, keep as live |
+| File                                           | Changes                                 |
+| ---------------------------------------------- | --------------------------------------- |
+| `src/telemetry/alpha-client.ts`                | Tasks 1, 2, 5 - error handling, metrics |
+| `tests/integration/honeyhive-api-live.test.ts` | Task 3 - rename, keep as live           |
+| `tests/integration/vercel-proxy-live.test.ts`  | Task 3 - rename, keep as live           |
 
 ## Files to Create
 
-| File | Purpose |
-|------|---------|
-| `tests/integration/honeyhive-api.test.ts` | VCR-enabled HoneyHive tests |
-| `tests/integration/vercel-proxy.test.ts` | VCR-enabled Vercel proxy tests |
-| `tests/integration/recordings/honeyhive-api.json` | HoneyHive API cassette |
-| `tests/integration/recordings/vercel-proxy.json` | Vercel proxy cassette |
-| `src/cli/utils/error.ts` | Standardized CLI error utility |
+| File                                              | Purpose                        |
+| ------------------------------------------------- | ------------------------------ |
+| `tests/integration/honeyhive-api.test.ts`         | VCR-enabled HoneyHive tests    |
+| `tests/integration/vercel-proxy.test.ts`          | VCR-enabled Vercel proxy tests |
+| `tests/integration/recordings/honeyhive-api.json` | HoneyHive API cassette         |
+| `tests/integration/recordings/vercel-proxy.json`  | Vercel proxy cassette          |
+| `src/cli/utils/error.ts`                          | Standardized CLI error utility |
 
 ---
 
@@ -446,16 +454,19 @@ this.metrics.errorsByCategory[classified.category]++;
 ## Verification
 
 ### 1. Unit Tests Pass
+
 ```bash
 bun run test
 ```
 
 ### 2. Type Check
+
 ```bash
 bun run typecheck
 ```
 
 ### 3. Telemetry Error Callback Test
+
 ```typescript
 describe('telemetry error handling', () => {
   it('calls onError callback when flush fails', async () => {
@@ -474,12 +485,14 @@ describe('telemetry error handling', () => {
 ```
 
 ### 4. VCR Playback Test
+
 ```bash
 # Ensure VCR tests pass without network
 CI=true bun test tests/integration/honeyhive-api.test.ts
 ```
 
 ### 5. Re-run Tech Debt Review
+
 ```bash
 /dev.tech-debt-review
 # Expected: P3+ issues should be resolved, score should improve
@@ -489,13 +502,13 @@ CI=true bun test tests/integration/honeyhive-api.test.ts
 
 ## Constitution Alignment
 
-| Task | Principle | Alignment |
-|------|-----------|-----------|
-| SILENT_FAILURE | III (Causal-First) | Classified errors enable root cause analysis |
-| UNHANDLED_REJECTION | VIII (Compounding Value) | Prevents silent degradation over time |
-| MISSING_VCR | I (Local-First) | VCR recordings enable offline CI |
-| UNSTRUCTURED_ERRORS | IX (Agent-Aware) | Consistent errors help agent comprehension |
-| TELEMETRY_METRICS | II (Improvement-Oriented) | Metrics enable continuous improvement |
+| Task                | Principle                 | Alignment                                    |
+| ------------------- | ------------------------- | -------------------------------------------- |
+| SILENT_FAILURE      | III (Causal-First)        | Classified errors enable root cause analysis |
+| UNHANDLED_REJECTION | VIII (Compounding Value)  | Prevents silent degradation over time        |
+| MISSING_VCR         | I (Local-First)           | VCR recordings enable offline CI             |
+| UNSTRUCTURED_ERRORS | IX (Agent-Aware)          | Consistent errors help agent comprehension   |
+| TELEMETRY_METRICS   | II (Improvement-Oriented) | Metrics enable continuous improvement        |
 
 ---
 

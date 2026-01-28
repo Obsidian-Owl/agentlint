@@ -10,7 +10,7 @@
  * @module sessions/tools/spawn-session-analyst
  */
 
-import { tool } from '@anthropic-ai/claude-agent-sdk';
+import { adaptTool } from '../../opencode/tool-adapter';
 import { z } from 'zod';
 import { access } from 'node:fs/promises';
 import { constants } from 'node:fs';
@@ -243,9 +243,9 @@ function formatToolOutput(result: SpawnSessionAnalystOutput): string {
  * registry.register(spawnSessionAnalystTool);
  * ```
  */
-export const spawnSessionAnalystTool = tool(
-  'spawn_session_analyst',
-  `
+export const spawnSessionAnalystTool = adaptTool({
+  name: 'spawn_session_analyst',
+  description: `
 Spawn a session analyst subagent to understand a Claude Code session.
 
 Use this tool when you need to:
@@ -270,53 +270,61 @@ Focus options:
 Returns the subagent definition and context for orchestrator delegation.
 The orchestrator should invoke the subagent using the SDK agents option.
   `.trim(),
-  spawnSessionAnalystInputSchema,
-  async (args) => {
+  schema: spawnSessionAnalystInputSchema,
+  handler: async (args: unknown) => {
+    const typedArgs = args as {
+      sessionId: string;
+      filePath?: string;
+      compareToSessionId?: string;
+      compareToFilePath?: string;
+      query?: string;
+      focus: AnalysisFocus;
+    };
     try {
       // Build agent definition
       const agent = buildSessionAnalystAgent();
 
       // Build context args - only pass defined optional properties
       const contextArgs: Parameters<typeof buildAnalysisContext>[0] = {
-        sessionId: args.sessionId,
-        focus: args.focus,
+        sessionId: typedArgs.sessionId,
+        focus: typedArgs.focus,
       };
-      if (args.filePath !== undefined) {
-        contextArgs.filePath = args.filePath;
+      if (typedArgs.filePath !== undefined) {
+        contextArgs.filePath = typedArgs.filePath;
       }
-      if (args.compareToSessionId !== undefined) {
-        contextArgs.compareToSessionId = args.compareToSessionId;
+      if (typedArgs.compareToSessionId !== undefined) {
+        contextArgs.compareToSessionId = typedArgs.compareToSessionId;
       }
-      if (args.compareToFilePath !== undefined) {
-        contextArgs.compareToFilePath = args.compareToFilePath;
+      if (typedArgs.compareToFilePath !== undefined) {
+        contextArgs.compareToFilePath = typedArgs.compareToFilePath;
       }
-      if (args.query !== undefined) {
-        contextArgs.query = args.query;
+      if (typedArgs.query !== undefined) {
+        contextArgs.query = typedArgs.query;
       }
 
       // Build analysis context
       const context = await buildAnalysisContext(contextArgs);
 
       // Build query prompt for the subagent
-      const queryPrompt = buildQueryPrompt(args.focus, context);
+      const queryPrompt = buildQueryPrompt(typedArgs.focus, context);
 
       // Get tools from agent
       const agentTools = agent.tools ?? [];
 
       // Build output context with only defined properties
       const outputContext: SpawnSessionAnalystOutput['context'] = {
-        sessionId: args.sessionId,
+        sessionId: typedArgs.sessionId,
       };
-      if (args.compareToSessionId !== undefined) {
-        outputContext.compareToSessionId = args.compareToSessionId;
+      if (typedArgs.compareToSessionId !== undefined) {
+        outputContext.compareToSessionId = typedArgs.compareToSessionId;
       }
-      if (args.query !== undefined) {
-        outputContext.query = args.query;
+      if (typedArgs.query !== undefined) {
+        outputContext.query = typedArgs.query;
       }
 
       const result: SpawnSessionAnalystOutput = {
         success: true,
-        focus: args.focus,
+        focus: typedArgs.focus,
         agentType: 'session-analyst',
         context: outputContext,
         agentDefinition: {
@@ -350,5 +358,5 @@ The orchestrator should invoke the subagent using the SDK agents option.
         isError: true,
       };
     }
-  }
-);
+  },
+});

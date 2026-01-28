@@ -7,7 +7,7 @@
  * @module tools/sessions/search-sessions-tool
  */
 
-import { tool } from '@anthropic-ai/claude-agent-sdk';
+import { adaptTool } from '../../opencode/tool-adapter';
 import { z } from 'zod';
 import { searchSessions, type SearchSessionsResult } from './search';
 import type { SearchResult } from './types';
@@ -145,9 +145,9 @@ function formatToolOutput(result: SearchSessionsResult): string {
  * registry.register(searchSessionsTool);
  * ```
  */
-export const searchSessionsTool = tool(
-  'search_sessions',
-  `Search Claude Code session logs using full-text search.
+export const searchSessionsTool = adaptTool({
+  name: 'search_sessions',
+  description: `Search Claude Code session logs using full-text search.
 
 Searches through indexed session logs with BM25 ranking for relevance.
 Returns matching entries with highlighted snippets and source locations.
@@ -165,31 +165,40 @@ Filters:
 - sessionId: Filter to specific session
 
 Returns results ranked by relevance with snippets showing match context.`,
-  searchSessionsInputSchema,
-  // eslint-disable-next-line @typescript-eslint/require-await -- SDK tool() requires async but searchSessions is sync
-  async (args) => {
+  schema: searchSessionsInputSchema,
+  // eslint-disable-next-line @typescript-eslint/require-await -- Handler must return Promise for MCP compatibility
+  handler: async (args: unknown) => {
+    const typedArgs = args as {
+      query: string;
+      since?: string;
+      until?: string;
+      project?: string;
+      sessionId?: string;
+      limit?: number;
+      offset?: number;
+    };
     try {
       // Build input object, only including defined properties
       const input: Parameters<typeof searchSessions>[0] = {
-        query: args.query,
+        query: typedArgs.query,
       };
-      if (args.since !== undefined) {
-        input.since = args.since;
+      if (typedArgs.since !== undefined) {
+        input.since = typedArgs.since;
       }
-      if (args.until !== undefined) {
-        input.until = args.until;
+      if (typedArgs.until !== undefined) {
+        input.until = typedArgs.until;
       }
-      if (args.project !== undefined) {
-        input.project = args.project;
+      if (typedArgs.project !== undefined) {
+        input.project = typedArgs.project;
       }
-      if (args.sessionId !== undefined) {
-        input.sessionId = args.sessionId;
+      if (typedArgs.sessionId !== undefined) {
+        input.sessionId = typedArgs.sessionId;
       }
-      if (args.limit !== undefined) {
-        input.limit = args.limit;
+      if (typedArgs.limit !== undefined) {
+        input.limit = typedArgs.limit;
       }
-      if (args.offset !== undefined) {
-        input.offset = args.offset;
+      if (typedArgs.offset !== undefined) {
+        input.offset = typedArgs.offset;
       }
 
       const result = searchSessions(input);
@@ -231,5 +240,5 @@ Returns results ranked by relevance with snippets showing match context.`,
         isError: true,
       };
     }
-  }
-);
+  },
+});

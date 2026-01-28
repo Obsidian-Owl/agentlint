@@ -1,0 +1,355 @@
+import { describe, expect, it, mock, beforeEach } from 'bun:test';
+import { OpencodeOrchestrator } from '../../../src/opencode/orchestrator';
+import type { IToolRegistry } from '../../../src/orchestration/tool-registry';
+import type { StreamChunk } from '../../../src/orchestration/types';
+import { SessionResumeError, OrchestrationError } from '../../../src/errors/orchestration';
+
+function createMockToolRegistry(): IToolRegistry {
+  return {
+    register: mock(() => {}),
+    get: mock(() => undefined),
+    getAll: mock(() => []),
+    has: mock(() => false),
+    remove: mock(() => false),
+    clear: mock(() => {}),
+    count: 0,
+    toSDKTools: mock(() => []),
+  } as unknown as IToolRegistry;
+}
+
+async function collectChunks(gen: AsyncGenerator<StreamChunk>): Promise<StreamChunk[]> {
+  const chunks: StreamChunk[] = [];
+  for await (const chunk of gen) {
+    chunks.push(chunk);
+  }
+  return chunks;
+}
+
+/** Centralises `as unknown as` casts — a private field rename only breaks this one spot. */
+interface OrchestratorInternals {
+  server: {
+    start: () => Promise<void>;
+    stop: () => void;
+    isRunning: () => boolean;
+  };
+  client: {
+    connect: () => Promise<void>;
+    prompt: () => Promise<string>;
+    subscribe: () => AsyncIterable<unknown>;
+  };
+  sessionManager: {
+    startSession: (task: string) => Promise<{ sessionId: string }>;
+    clearSession: (sessionId: string) => void;
+    clearAll: () => void;
+  };
+  streamAdapter: {
+    adaptStream: (events: AsyncIterable<unknown>) => AsyncIterable<StreamChunk>;
+  };
+  telemetryTracker: unknown;
+  _isActive: boolean;
+  _sessionState: unknown;
+  _currentSessionId: string | null;
+}
+
+function getInternals(orchestrator: OpencodeOrchestrator): OrchestratorInternals {
+  return orchestrator as unknown as OrchestratorInternals;
+}
+
+function setupSuccessfulRun(internals: OrchestratorInternals): {
+  stopMock: ReturnType<typeof mock>;
+} {
+  const stopMock = mock(() => {});
+  internals.server.start = () => Promise.resolve();
+  internals.server.stop = stopMock;
+  internals.client.connect = () => Promise.resolve();
+  internals.client.prompt = () => Promise.resolve('');
+  internals.client.subscribe = async function* () {};
+  internals.sessionManager.startSession = () => Promise.resolve({ sessionId: 'ses-1' });
+  return { stopMock };
+}
+
+describe('OpencodeOrchestrator', () => {
+  let registry: IToolRegistry;
+
+  beforeEach(() => {
+    registry = createMockToolRegistry();
+  });
+
+  describe('run', () => {
+    it('should set isActive to false after server.start() throws', async () => {
+      const orchestrator = new OpencodeOrchestrator({}, registry);
+      const internals = getInternals(orchestrator);
+
+      internals.server.start = () => Promise.reject(new TypeError('Cannot start server'));
+      internals.server.stop = mock(() => {});
+
+      await expect(collectChunks(orchestrator.run('test task'))).rejects.toThrow(
+        'Cannot start server'
+      );
+      expect(orchestrator.isActive).toBe(false);
+    });
+
+    it('should call server.stop() in finally block on error', async () => {
+      const orchestrator = new OpencodeOrchestrator({}, registry);
+      const internals = getInternals(orchestrator);
+
+      const stopMock = mock(() => {});
+      internals.server.start = () => Promise.reject(new TypeError('fail'));
+      internals.server.stop = stopMock;
+
+      await expect(collectChunks(orchestrator.run('test'))).rejects.toThrow();
+      expect(stopMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('should not throw if server.stop() fails during cleanup', async () => {
+      const orchestrator = new OpencodeOrchestrator({}, registry);
+      const internals = getInternals(orchestrator);
+
+      internals.server.start = () => Promise.reject(new TypeError('fail'));
+      internals.server.stop = () => {
+        throw new Error('stop failed');
+      };
+
+      await expect(collectChunks(orchestrator.run('test'))).rejects.toThrow('fail');
+      expect(orchestrator.isActive).toBe(false);
+    });
+
+    it('should set isActive to false after successful run', async () => {
+      const orchestrator = new OpencodeOrchestrator({}, registry);
+      const internals = getInternals(orchestrator);
+      setupSuccessfulRun(internals);
+
+      const chunks = await collectChunks(orchestrator.run('test'));
+
+      expect(chunks.length).toBeGreaterThanOrEqual(1);
+      expect(chunks[0]?.content).toBe('Server started');
+      expect(orchestrator.isActive).toBe(false);
+    });
+
+    it('should throw OrchestrationError when run() called while already active', async () => {
+      const orchestrator = new OpencodeOrchestrator({}, registry);
+      const internals = getInternals(orchestrator);
+      setupSuccessfulRun(internals);
+
+      internals.streamAdapter.adaptStream = async function* () {
+        yield {
+          type: 'text' as const,
+          level: 'normal' as const,
+          content: 'First chunk',
+          timestamp: new Date().toISOString(),
+        };
+        await new Promise(() => {});
+      };
+
+      const gen = orchestrator.run('first task');
+      const firstChunk = await gen.next();
+      expect(firstChunk.done).toBe(false);
+      expect(orchestrator.isActive).toBe(true);
+
+      const secondGen = orchestrator.run('second task');
+      await expect(secondGen.next()).rejects.toThrow(OrchestrationError);
+
+      await gen.return();
+      expect(orchestrator.isActive).toBe(false);
+    });
+  });
+
+  describe('telemetry', () => {
+    it('should create TelemetryTracker when telemetry client is provided', () => {
+      const telemetryClient = {
+        isEnabled: () => true,
+        trackToolEx: mock(() => {}),
+        trackLLMEx: mock(() => {}),
+      };
+
+      const orchestrator = new OpencodeOrchestrator(
+        { telemetryClient, telemetrySessionId: 'ses-test' },
+        registry
+      );
+
+      expect(getInternals(orchestrator).telemetryTracker).not.toBeNull();
+    });
+
+    it('should not create TelemetryTracker when telemetry client is not provided', () => {
+      const orchestrator = new OpencodeOrchestrator({}, registry);
+      expect(getInternals(orchestrator).telemetryTracker).toBeNull();
+    });
+
+    it('should not create TelemetryTracker when telemetry client is disabled', () => {
+      const telemetryClient = {
+        isEnabled: () => false,
+        trackToolEx: mock(() => {}),
+        trackLLMEx: mock(() => {}),
+      };
+
+      const orchestrator = new OpencodeOrchestrator({ telemetryClient }, registry);
+      expect(getInternals(orchestrator).telemetryTracker).toBeNull();
+    });
+
+    it('should forward tool events to tracker during run', async () => {
+      const trackToolEx = mock(() => {});
+      const telemetryClient = {
+        isEnabled: () => true,
+        trackToolEx,
+        trackLLMEx: mock(() => {}),
+      };
+
+      const orchestrator = new OpencodeOrchestrator(
+        { telemetryClient, telemetrySessionId: 'ses-test' },
+        registry
+      );
+
+      const internals = getInternals(orchestrator);
+      setupSuccessfulRun(internals);
+
+      internals.streamAdapter.adaptStream = async function* () {
+        yield {
+          type: 'tool_start' as const,
+          level: 'verbose' as const,
+          content: 'Calling tool: test_tool',
+          timestamp: new Date().toISOString(),
+          metadata: { name: 'test_tool', input: { key: 'value' } },
+        };
+        yield {
+          type: 'tool_result' as const,
+          level: 'verbose' as const,
+          content: 'Tool completed: test_tool',
+          timestamp: new Date().toISOString(),
+          metadata: { name: 'test_tool', output: { result: 'ok' } },
+        };
+      };
+
+      const chunks = await collectChunks(orchestrator.run('test'));
+
+      expect(chunks.length).toBeGreaterThanOrEqual(2);
+      expect(trackToolEx).toHaveBeenCalledTimes(1);
+
+      const calls = trackToolEx.mock.calls as unknown[][];
+      expect(calls.length).toBeGreaterThan(0);
+      const opts = calls[0]?.[1] as Record<string, unknown>;
+      expect(opts.tool).toBe('test_tool');
+      expect(opts.success).toBe(true);
+    });
+  });
+
+  describe('contract methods', () => {
+    it('should set isActive to false on interrupt', async () => {
+      const orchestrator = new OpencodeOrchestrator({}, registry);
+      const internals = getInternals(orchestrator);
+      setupSuccessfulRun(internals);
+
+      // Start a run to set isActive = true
+      const gen = orchestrator.run('test');
+      await gen.next(); // consume first chunk
+      expect(orchestrator.isActive).toBe(true);
+
+      await orchestrator.interrupt();
+      expect(orchestrator.isActive).toBe(false);
+    });
+
+    it('should throw SessionResumeError on resume with session ID', async () => {
+      const orchestrator = new OpencodeOrchestrator({}, registry);
+      const gen = orchestrator.resume('ses-resume-123');
+
+      await expect(gen.next()).rejects.toThrow(SessionResumeError);
+    });
+
+    it('should throw OrchestrationError on getSubagentConfig', () => {
+      const orchestrator = new OpencodeOrchestrator({}, registry);
+      expect(() => orchestrator.getSubagentConfig()).toThrow(OrchestrationError);
+    });
+
+    it('should call sessionManager.clearAll() on interrupt', async () => {
+      const orchestrator = new OpencodeOrchestrator({}, registry);
+      const internals = getInternals(orchestrator);
+      const clearAllMock = mock(() => {});
+      internals.sessionManager.clearAll = clearAllMock;
+
+      await orchestrator.interrupt();
+
+      expect(clearAllMock).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  describe('dispose', () => {
+    it('should clear all sessions', () => {
+      const orchestrator = new OpencodeOrchestrator({}, registry);
+      const internals = getInternals(orchestrator);
+      const clearAllMock = mock(() => {});
+      internals.sessionManager.clearAll = clearAllMock;
+      internals.server.isRunning = () => false;
+
+      orchestrator.dispose();
+
+      expect(clearAllMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('should stop server if running', () => {
+      const orchestrator = new OpencodeOrchestrator({}, registry);
+      const internals = getInternals(orchestrator);
+      const stopMock = mock(() => {});
+      internals.sessionManager.clearAll = mock(() => {});
+      internals.server.isRunning = () => true;
+      internals.server.stop = stopMock;
+
+      orchestrator.dispose();
+
+      expect(stopMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('should not stop server if not running', () => {
+      const orchestrator = new OpencodeOrchestrator({}, registry);
+      const internals = getInternals(orchestrator);
+      const stopMock = mock(() => {});
+      internals.sessionManager.clearAll = mock(() => {});
+      internals.server.isRunning = () => false;
+      internals.server.stop = stopMock;
+
+      orchestrator.dispose();
+
+      expect(stopMock).not.toHaveBeenCalled();
+    });
+
+    it('should reset state', () => {
+      const orchestrator = new OpencodeOrchestrator({}, registry);
+      const internals = getInternals(orchestrator);
+      internals.sessionManager.clearAll = mock(() => {});
+      internals.server.isRunning = () => false;
+      internals._isActive = true;
+      internals._sessionState = { id: 'test' };
+      internals._currentSessionId = 'ses-123';
+
+      orchestrator.dispose();
+
+      expect(orchestrator.isActive).toBe(false);
+      expect(orchestrator.sessionState).toBeNull();
+      expect(internals._currentSessionId).toBeNull();
+    });
+
+    it('should be idempotent (safe to call multiple times)', () => {
+      const orchestrator = new OpencodeOrchestrator({}, registry);
+      const internals = getInternals(orchestrator);
+      const clearAllMock = mock(() => {});
+      internals.sessionManager.clearAll = clearAllMock;
+      internals.server.isRunning = () => false;
+
+      orchestrator.dispose();
+      orchestrator.dispose();
+      orchestrator.dispose();
+
+      expect(clearAllMock).toHaveBeenCalledTimes(3);
+    });
+
+    it('should not throw if server.stop() fails', () => {
+      const orchestrator = new OpencodeOrchestrator({}, registry);
+      const internals = getInternals(orchestrator);
+      internals.sessionManager.clearAll = mock(() => {});
+      internals.server.isRunning = () => true;
+      internals.server.stop = () => {
+        throw new Error('stop failed');
+      };
+
+      expect(() => orchestrator.dispose()).not.toThrow();
+    });
+  });
+});

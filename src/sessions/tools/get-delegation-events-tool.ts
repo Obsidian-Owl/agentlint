@@ -9,7 +9,7 @@
  * @module sessions/tools/get-delegation-events-tool
  */
 
-import { tool } from '@anthropic-ai/claude-agent-sdk';
+import { adaptTool } from '../../opencode/tool-adapter';
 import { z } from 'zod';
 import { readFile, access } from 'node:fs/promises';
 import { constants } from 'node:fs';
@@ -244,9 +244,9 @@ function formatToolOutput(data: GetDelegationEventsOutput): string {
  * registry.register(getDelegationEventsTool);
  * ```
  */
-export const getDelegationEventsTool = tool(
-  'get_delegation_events',
-  `Extract Task tool delegation events from a Claude Code session.
+export const getDelegationEventsTool = adaptTool({
+  name: 'get_delegation_events',
+  description: `Extract Task tool delegation events from a Claude Code session.
 
 Returns:
 - **Events**: Each Task tool invocation with subagent type, prompt, and success status
@@ -260,12 +260,13 @@ Delegation patterns are DATA for your interpretation:
 
 Filter options:
 - \`subagentType\`: Focus on specific subagent (e.g., "Explore", "Bash")`,
-  getDelegationEventsInputSchema,
-  async (args) => {
+  schema: getDelegationEventsInputSchema,
+  handler: async (args: unknown) => {
+    const typedArgs = args as { filePath?: string; sessionId?: string; subagentType?: string };
     try {
       // For now, require direct file path
       // TODO: Add session ID lookup via database
-      if (!args.filePath) {
+      if (!typedArgs.filePath) {
         return {
           content: [
             {
@@ -279,10 +280,10 @@ Filter options:
 
       // Build input conditionally to satisfy exactOptionalPropertyTypes
       const input: GetDelegationEventsInput = {
-        filePath: args.filePath,
+        filePath: typedArgs.filePath,
       };
-      if (args.subagentType !== undefined) {
-        input.subagentType = args.subagentType;
+      if (typedArgs.subagentType !== undefined) {
+        input.subagentType = typedArgs.subagentType;
       }
 
       const result = await getDelegationEvents(input);
@@ -324,5 +325,5 @@ Filter options:
         isError: true,
       };
     }
-  }
-);
+  },
+});

@@ -23,4 +23,6 @@ export {
   SKIP_NON_CI,
 } from './helpers';
 
+export { requireLiveProvider, hasLiveProvider } from '../lib/require-provider';
+
 export type { CLIResult, CLIOptions, TestFixture } from './helpers';

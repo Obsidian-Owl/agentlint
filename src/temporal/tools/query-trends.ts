@@ -7,8 +7,9 @@
  * @module temporal/tools/query-trends
  */
 
-import { tool } from '@anthropic-ai/claude-agent-sdk';
 import { z } from 'zod';
+
+import { adaptTool } from '../../opencode/tool-adapter';
 
 import { getBaselineHistory, type QueryOptions } from '../../persistence/baselines/queries';
 import { loadBaseline } from '../../persistence/baselines/storage';
@@ -251,21 +252,29 @@ function formatMetricLabel(name: string): string {
  * registry.register(queryTrendsTool);
  * ```
  */
-export const queryTrendsTool = tool(
-  'query_trends',
-  TOOL_DESCRIPTIONS.query_trends,
-  queryTrendsInputSchema,
-  async (args) => {
+export const queryTrendsTool = adaptTool({
+  name: 'query_trends',
+  description: TOOL_DESCRIPTIONS.query_trends,
+  schema: queryTrendsInputSchema,
+  handler: async (args: unknown) => {
+    const typedArgs = args as {
+      metrics?: string[];
+      afterDate?: string;
+      beforeDate?: string;
+      minBaselines?: number;
+      includeQualitative?: boolean;
+      includeCorrelations?: boolean;
+    };
     try {
-      const minBaselines = args.minBaselines ?? 3;
+      const minBaselines = typedArgs.minBaselines ?? 3;
 
       // Build query options for date filtering
       const filter: BaselineQueryOptions = {};
-      if (args.afterDate) {
-        filter.after = args.afterDate;
+      if (typedArgs.afterDate) {
+        filter.after = typedArgs.afterDate;
       }
-      if (args.beforeDate) {
-        filter.before = args.beforeDate;
+      if (typedArgs.beforeDate) {
+        filter.before = typedArgs.beforeDate;
       }
 
       // Get baseline summaries
@@ -324,8 +333,8 @@ export const queryTrendsTool = tool(
       };
 
       // Add metric filters if specified
-      if (args.metrics && args.metrics.length > 0) {
-        analysisOptions.includeMetrics = args.metrics;
+      if (typedArgs.metrics && typedArgs.metrics.length > 0) {
+        analysisOptions.includeMetrics = typedArgs.metrics;
       }
 
       // Build the trend analysis
@@ -361,5 +370,5 @@ export const queryTrendsTool = tool(
         isError: true,
       };
     }
-  }
-);
+  },
+});

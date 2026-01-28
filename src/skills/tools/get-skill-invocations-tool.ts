@@ -7,8 +7,8 @@
  * @module src/skills/tools/get-skill-invocations-tool
  */
 
-import { tool } from '@anthropic-ai/claude-agent-sdk';
 import { z } from 'zod';
+import { adaptTool } from '../../opencode/tool-adapter';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 import { openDatabaseSync, tableExists } from '../../persistence/common/database';
@@ -136,9 +136,9 @@ function formatToolOutput(result: GetSkillInvocationsResult): string {
  * registry.register(getSkillInvocationsTool);
  * ```
  */
-export const getSkillInvocationsTool = tool(
-  'get_skill_invocations',
-  `Query skill invocation records from session history.
+export const getSkillInvocationsTool = adaptTool({
+  name: 'get_skill_invocations',
+  description: `Query skill invocation records from session history.
 
 Returns raw invocation data for reasoning about skill usage patterns:
 - **skillName**: Which skill was invoked
@@ -161,18 +161,25 @@ Parameters:
 
 Run index_skill_invocations first to ensure data is current.
 The tool returns facts; the agent reasons about what they mean.`,
-  getSkillInvocationsInputSchema,
-  async (args) => {
+  schema: getSkillInvocationsInputSchema,
+  handler: async (args: unknown) => {
     try {
-      // Await to satisfy SDK's async handler requirement
       await Promise.resolve();
+      const typedArgs = args as {
+        skillName?: string;
+        sessionId?: string;
+        since?: string;
+        until?: string;
+        limit?: number;
+        offset?: number;
+      };
       const result = getSkillInvocationsImpl(
-        args.skillName,
-        args.sessionId,
-        args.since,
-        args.until,
-        Math.min(args.limit ?? DEFAULT_LIMIT, MAX_LIMIT),
-        args.offset ?? 0
+        typedArgs.skillName,
+        typedArgs.sessionId,
+        typedArgs.since,
+        typedArgs.until,
+        Math.min(typedArgs.limit ?? DEFAULT_LIMIT, MAX_LIMIT),
+        typedArgs.offset ?? 0
       );
       const output = formatToolOutput(result);
 
@@ -207,8 +214,8 @@ The tool returns facts; the agent reasons about what they mean.`,
         _rawData: result,
       };
     }
-  }
-);
+  },
+});
 
 /**
  * Get skill invocations from the database.

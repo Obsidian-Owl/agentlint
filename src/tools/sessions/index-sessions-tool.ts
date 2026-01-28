@@ -7,7 +7,7 @@
  * @module src/tools/sessions/index-sessions-tool
  */
 
-import { tool } from '@anthropic-ai/claude-agent-sdk';
+import { adaptTool } from '../../opencode/tool-adapter';
 import { z } from 'zod';
 
 import { discoverSessions } from './discovery';
@@ -160,9 +160,9 @@ function formatToolOutput(result: IndexSessionsToolResult): string {
  * registry.register(indexSessionsTool);
  * ```
  */
-export const indexSessionsTool = tool(
-  'index_sessions',
-  `
+export const indexSessionsTool = adaptTool({
+  name: 'index_sessions',
+  description: `
 Index Claude Code session log files into the search database.
 
 Use this tool to:
@@ -176,9 +176,10 @@ allowing you to find patterns, issues, and insights from past sessions.
 Note: Sessions are automatically indexed when running \`agentlint analyse\`,
 so you typically only need this tool if you want to refresh during analysis.
   `.trim(),
-  indexSessionsInputSchema,
-  async (args) => {
-    const result = await indexSessionsCore(args.projectPath, args.force);
+  schema: indexSessionsInputSchema,
+  handler: async (args: unknown) => {
+    const typedArgs = args as { projectPath?: string; force?: boolean };
+    const result = await indexSessionsCore(typedArgs.projectPath, typedArgs.force);
 
     return {
       content: [
@@ -190,5 +191,5 @@ so you typically only need this tool if you want to refresh during analysis.
       isError: !result.success,
       _rawData: result,
     };
-  }
-);
+  },
+});

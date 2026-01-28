@@ -7,8 +7,8 @@
  * @module tools/causal/get-patterns-tool
  */
 
-import { tool } from '@anthropic-ai/claude-agent-sdk';
 import { z } from 'zod';
+import { adaptTool } from '../../opencode/tool-adapter';
 
 import type { IssuePattern, GetPatternsOutput, GapType } from './types';
 import { GapTypeSchema } from './types';
@@ -156,9 +156,9 @@ function formatPatterns(patterns: IssuePattern[], totalCount: number): string {
  * registry.register(getIssuePatternsTool);
  * ```
  */
-export const getIssuePatternsTool = tool(
-  'get_issue_patterns',
-  `Retrieve recurring issue patterns detected from causal chains.
+export const getIssuePatternsTool = adaptTool({
+  name: 'get_issue_patterns',
+  description: `Retrieve recurring issue patterns detected from causal chains.
 
 Patterns represent categories of issues that recur across multiple sessions.
 They are grouped by gap category (missing_guidance, missing_config, etc.)
@@ -173,31 +173,37 @@ Patterns are created automatically when trace_issue_origin builds causal chains.
 Each pattern links back to the chains that contributed to it.
 
 Returns patterns sorted by frequency (most common first).`,
-  getPatternsInputSchema,
+  schema: getPatternsInputSchema,
   // eslint-disable-next-line @typescript-eslint/require-await
-  async (args) => {
+  handler: async (args: unknown) => {
+    const typedArgs = args as {
+      projectPath?: string;
+      minFrequency?: number;
+      category?: string;
+      systemicOnly?: boolean;
+    };
     const dbPath = DEFAULT_SESSIONS_DB_PATH;
 
     try {
       const db = openDatabase(dbPath);
       try {
         // Fetch patterns from database
-        let patterns: IssuePattern[] = args.projectPath
-          ? getPatternsByProject(db, args.projectPath)
+        let patterns: IssuePattern[] = typedArgs.projectPath
+          ? getPatternsByProject(db, typedArgs.projectPath)
           : getAllPatterns(db);
 
         const totalCount = patterns.length;
 
         // Apply filters
-        if (args.minFrequency && args.minFrequency > 1) {
-          patterns = patterns.filter((p) => p.frequency >= args.minFrequency!);
+        if (typedArgs.minFrequency && typedArgs.minFrequency > 1) {
+          patterns = patterns.filter((p) => p.frequency >= typedArgs.minFrequency!);
         }
 
-        if (args.category) {
-          patterns = patterns.filter((p) => p.category === args.category);
+        if (typedArgs.category) {
+          patterns = patterns.filter((p) => p.category === typedArgs.category);
         }
 
-        if (args.systemicOnly) {
+        if (typedArgs.systemicOnly) {
           patterns = patterns.filter((p) => p.isSystemic);
         }
 
@@ -243,5 +249,5 @@ Returns patterns sorted by frequency (most common first).`,
         _rawData: output,
       };
     }
-  }
-);
+  },
+});

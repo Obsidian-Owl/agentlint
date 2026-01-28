@@ -7,8 +7,9 @@
  * @module temporal/tools/calculate-delta
  */
 
-import { tool } from '@anthropic-ai/claude-agent-sdk';
 import { z } from 'zod';
+
+import { adaptTool } from '../../opencode/tool-adapter';
 
 import { loadBaseline, getLatestBaseline } from '../../persistence/baselines/storage';
 import type { Baseline } from '../../persistence/types';
@@ -137,18 +138,24 @@ function formatDate(isoDate: string): string {
  * registry.register(calculateDeltaTool);
  * ```
  */
-export const calculateDeltaTool = tool(
-  'calculate_delta',
-  TOOL_DESCRIPTIONS.calculate_delta,
-  calculateDeltaInputSchema,
-  async (args) => {
+export const calculateDeltaTool = adaptTool({
+  name: 'calculate_delta',
+  description: TOOL_DESCRIPTIONS.calculate_delta,
+  schema: calculateDeltaInputSchema,
+  handler: async (args: unknown) => {
+    const typedArgs = args as {
+      fromId: string;
+      toId: string;
+      includeGitCommits?: boolean;
+      detailedDiff?: boolean;
+    };
     try {
       // Load the source baseline
-      const fromBaseline = await loadBaseline(args.fromId);
+      const fromBaseline = await loadBaseline(typedArgs.fromId);
       if (!fromBaseline) {
         const result: CalculateDeltaResult = {
           success: false,
-          error: `Source baseline not found: ${args.fromId}`,
+          error: `Source baseline not found: ${typedArgs.fromId}`,
         };
         return {
           content: [{ type: 'text' as const, text: formatToolOutput(result) }],
@@ -158,14 +165,14 @@ export const calculateDeltaTool = tool(
       }
 
       // Load the target baseline
-      const toBaseline = await loadBaselineOrLatest(args.toId);
+      const toBaseline = await loadBaselineOrLatest(typedArgs.toId);
       if (!toBaseline) {
         const result: CalculateDeltaResult = {
           success: false,
           error:
-            args.toId.toLowerCase() === 'latest'
+            typedArgs.toId.toLowerCase() === 'latest'
               ? 'No latest baseline found. Store a baseline first.'
-              : `Target baseline not found: ${args.toId}`,
+              : `Target baseline not found: ${typedArgs.toId}`,
         };
         return {
           content: [{ type: 'text' as const, text: formatToolOutput(result) }],
@@ -186,12 +193,12 @@ export const calculateDeltaTool = tool(
         toId: toBaseline.id,
         fromTimestamp: fromBaseline.createdAt,
         toTimestamp: toBaseline.createdAt,
-        delta: args.detailedDiff ? delta : undefined,
+        delta: typedArgs.detailedDiff ? delta : undefined,
         summary,
       };
 
       // Add git commits if requested
-      const includeGitCommits = args.includeGitCommits ?? true;
+      const includeGitCommits = typedArgs.includeGitCommits ?? true;
       if (includeGitCommits) {
         let commits: string[] = [];
 
@@ -229,5 +236,5 @@ export const calculateDeltaTool = tool(
         isError: true,
       };
     }
-  }
-);
+  },
+});

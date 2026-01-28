@@ -7,8 +7,9 @@
  * @module temporal/tools/get-review-history
  */
 
-import { tool } from '@anthropic-ai/claude-agent-sdk';
 import { z } from 'zod';
+
+import { adaptTool } from '../../opencode/tool-adapter';
 
 import {
   getReviewIndexDb,
@@ -233,13 +234,22 @@ function truncateResponse(text: string, maxLength = 100): string {
  *
  * Retrieves qualitative review history with filtering.
  */
-export const getReviewHistoryTool = tool(
-  'get_review_history',
-  TOOL_DESCRIPTIONS.get_review_history,
-  getReviewHistoryInputSchema,
-  async (args) => {
+export const getReviewHistoryTool = adaptTool({
+  name: 'get_review_history',
+  description: TOOL_DESCRIPTIONS.get_review_history,
+  schema: getReviewHistoryInputSchema,
+  handler: async (args: unknown) => {
+    const typedArgs = args as {
+      baselineId?: string;
+      afterDate?: string;
+      beforeDate?: string;
+      triggerReason?: 'scheduled' | 'triggered' | 'manual';
+      dimension?: string;
+      limit?: number;
+      includeResponses?: boolean;
+    };
     try {
-      const limit = args.limit ?? 20;
+      const limit = typedArgs.limit ?? 20;
 
       // Build query options
       const queryOptions: ReviewQueryOptions = {
@@ -248,17 +258,17 @@ export const getReviewHistoryTool = tool(
         order: 'desc',
       };
 
-      if (args.baselineId) {
-        queryOptions.baselineId = args.baselineId;
+      if (typedArgs.baselineId) {
+        queryOptions.baselineId = typedArgs.baselineId;
       }
-      if (args.afterDate) {
-        queryOptions.after = args.afterDate;
+      if (typedArgs.afterDate) {
+        queryOptions.after = typedArgs.afterDate;
       }
-      if (args.beforeDate) {
-        queryOptions.before = args.beforeDate;
+      if (typedArgs.beforeDate) {
+        queryOptions.before = typedArgs.beforeDate;
       }
-      if (args.triggerReason) {
-        queryOptions.triggerReason = args.triggerReason;
+      if (typedArgs.triggerReason) {
+        queryOptions.triggerReason = typedArgs.triggerReason;
       }
 
       // Open database and query
@@ -291,7 +301,7 @@ export const getReviewHistoryTool = tool(
         }
 
         // If filtering by dimension or including responses, load full review
-        if (args.dimension || args.includeResponses) {
+        if (typedArgs.dimension || typedArgs.includeResponses) {
           const fullReview = await loadReview(summary.id);
           if (fullReview) {
             // Build dimension sentiments map
@@ -301,8 +311,8 @@ export const getReviewHistoryTool = tool(
             }
 
             // Filter by dimension if specified
-            if (args.dimension) {
-              const matchingDim = fullReview.dimensions.find((d) => d.name === args.dimension);
+            if (typedArgs.dimension) {
+              const matchingDim = fullReview.dimensions.find((d) => d.name === typedArgs.dimension);
               if (!matchingDim) {
                 // Skip this review if it doesn't have the requested dimension
                 continue;
@@ -310,7 +320,7 @@ export const getReviewHistoryTool = tool(
             }
 
             // Include full responses if requested
-            if (args.includeResponses) {
+            if (typedArgs.includeResponses) {
               item.responses = fullReview.dimensions.map((d) => ({
                 dimension: d.name,
                 response: d.response,
@@ -335,18 +345,18 @@ export const getReviewHistoryTool = tool(
 
       // Add active filters
       if (
-        args.baselineId ||
-        args.afterDate ||
-        args.beforeDate ||
-        args.triggerReason ||
-        args.dimension
+        typedArgs.baselineId ||
+        typedArgs.afterDate ||
+        typedArgs.beforeDate ||
+        typedArgs.triggerReason ||
+        typedArgs.dimension
       ) {
         result.filter = {};
-        if (args.baselineId) result.filter.baselineId = args.baselineId;
-        if (args.afterDate) result.filter.afterDate = args.afterDate;
-        if (args.beforeDate) result.filter.beforeDate = args.beforeDate;
-        if (args.triggerReason) result.filter.triggerReason = args.triggerReason;
-        if (args.dimension) result.filter.dimension = args.dimension;
+        if (typedArgs.baselineId) result.filter.baselineId = typedArgs.baselineId;
+        if (typedArgs.afterDate) result.filter.afterDate = typedArgs.afterDate;
+        if (typedArgs.beforeDate) result.filter.beforeDate = typedArgs.beforeDate;
+        if (typedArgs.triggerReason) result.filter.triggerReason = typedArgs.triggerReason;
+        if (typedArgs.dimension) result.filter.dimension = typedArgs.dimension;
       }
 
       return {
@@ -367,5 +377,5 @@ export const getReviewHistoryTool = tool(
         _rawData: result,
       };
     }
-  }
-);
+  },
+});

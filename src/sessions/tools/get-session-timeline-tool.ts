@@ -10,7 +10,7 @@
  * @module sessions/tools/get-session-timeline-tool
  */
 
-import { tool } from '@anthropic-ai/claude-agent-sdk';
+import { adaptTool } from '../../opencode/tool-adapter';
 import { z } from 'zod';
 import { readFile, access } from 'node:fs/promises';
 import { constants } from 'node:fs';
@@ -270,9 +270,9 @@ function formatNumber(n: number): string {
  * registry.register(getSessionTimelineTool);
  * ```
  */
-export const getSessionTimelineTool = tool(
-  'get_session_timeline',
-  `Extract session timeline, intent, and outcome signals from a Claude Code session.
+export const getSessionTimelineTool = adaptTool({
+  name: 'get_session_timeline',
+  description: `Extract session timeline, intent, and outcome signals from a Claude Code session.
 
 Returns:
 - **Intent**: First user prompt with timestamp and length
@@ -288,12 +288,13 @@ Example signals interpretation:
 - containsThanks + containsDone → likely successful
 - endsWithError + hasUnresolvedError → likely failed/abandoned
 - hasCommitActivity → session produced code changes`,
-  getSessionTimelineInputSchema,
-  async (args) => {
+  schema: getSessionTimelineInputSchema,
+  handler: async (args: unknown) => {
+    const typedArgs = args as { filePath?: string; sessionId?: string; projectPath?: string };
     try {
       // For now, require direct file path
       // TODO: Add session ID lookup via database
-      if (!args.filePath) {
+      if (!typedArgs.filePath) {
         return {
           content: [
             {
@@ -306,7 +307,7 @@ Example signals interpretation:
       }
 
       const result = await getSessionTimeline({
-        filePath: args.filePath,
+        filePath: typedArgs.filePath,
         projectPath: 'unknown', // TODO: Extract from file path or database
       });
 
@@ -347,5 +348,5 @@ Example signals interpretation:
         isError: true,
       };
     }
-  }
-);
+  },
+});

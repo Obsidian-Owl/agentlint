@@ -36,8 +36,8 @@ if (isLiveTest && !process.env.RUN_LIVE_TESTS) {
   To run safe tests only:
     bun run test
 
-  To run live tests (requires ANTHROPIC_API_KEY):
-    RUN_LIVE_TESTS=1 bun test tests/e2e
+   To run live tests (requires LLM provider auth via Opencode):
+     RUN_LIVE_TESTS=1 bun test tests/e2e
 
   Or use the npm scripts:
     bun run test:live    # e2e tests

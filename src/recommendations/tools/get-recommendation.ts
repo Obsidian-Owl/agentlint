@@ -7,8 +7,9 @@
  * @module recommendations/tools/get-recommendation
  */
 
-import { tool } from '@anthropic-ai/claude-agent-sdk';
 import { z } from 'zod';
+
+import { adaptTool } from '../../opencode/tool-adapter';
 
 import { loadRecommendation as loadFromStorage, resolveRecommendationId } from '../storage';
 import type { Recommendation } from '../types';
@@ -173,9 +174,9 @@ function formatToolOutput(result: GetRecommendationResult): string {
  * registry.register(getRecommendationTool);
  * ```
  */
-export const getRecommendationTool = tool(
-  'get_recommendation',
-  `
+export const getRecommendationTool = adaptTool({
+  name: 'get_recommendation',
+  description: `
 Retrieve a full recommendation case by ID, including all events and traced origin.
 
 Use this tool when you need:
@@ -193,9 +194,13 @@ Returns:
 Use get_recommendation_summary for a compressed view, or list_recommendations
 to query multiple recommendations with filters.
   `.trim(),
-  getRecommendationInputSchema,
-  async (args) => {
-    const result = await getRecommendation(args.id);
+  schema: getRecommendationInputSchema,
+  handler: async (args: unknown) => {
+    const typedArgs = args as {
+      id: string;
+    };
+
+    const result = await getRecommendation(typedArgs.id);
 
     return {
       content: [
@@ -207,5 +212,5 @@ to query multiple recommendations with filters.
       isError: !result.success,
       _rawData: result,
     };
-  }
-);
+  },
+});
