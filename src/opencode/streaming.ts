@@ -8,6 +8,14 @@
  */
 
 import type { StreamChunk, VerbosityLevel } from '../orchestration/types';
+import {
+  isToolEventData,
+  isMessageEventData,
+  isErrorEventData,
+  extractToolName,
+  extractText,
+  extractStatus,
+} from './event-guards';
 
 export interface OpencodeEvent {
   type: string;
@@ -46,7 +54,7 @@ export class StreamAdapter {
   }
 
   private handleTextEvent(event: OpencodeEvent, timestamp: string): StreamChunk {
-    const text = this.extractText(event.data);
+    const text = extractText(event.data);
     return {
       type: 'text',
       level: 'normal' as VerbosityLevel,
@@ -56,26 +64,28 @@ export class StreamAdapter {
   }
 
   private handleToolStartEvent(event: OpencodeEvent, timestamp: string): StreamChunk {
-    const toolName = this.extractToolName(event.data);
+    const toolName = extractToolName(event.data);
+    const metadata: Record<string, unknown> = {};
+
+    if (isToolEventData(event.data)) {
+      Object.assign(metadata, event.data);
+    }
+
     return {
       type: 'tool_start',
       level: 'verbose' as VerbosityLevel,
       content: `Calling tool: ${toolName}`,
       timestamp,
-      metadata: event.data as Record<string, unknown>,
+      metadata,
     };
   }
 
   private handleToolResultEvent(event: OpencodeEvent, timestamp: string): StreamChunk {
-    const toolName = this.extractToolName(event.data);
-    const data = event.data as Record<string, unknown> | undefined;
+    const toolName = extractToolName(event.data);
+    const metadata: Record<string, unknown> = {};
 
-    const metadata: Record<string, unknown> = { ...(data ?? {}) };
-
-    // Extract timing data if present
-    const time = data?.time as Record<string, unknown> | undefined;
-    if (time) {
-      metadata.time = time;
+    if (isToolEventData(event.data)) {
+      Object.assign(metadata, event.data);
     }
 
     return {
@@ -88,7 +98,7 @@ export class StreamAdapter {
   }
 
   private handleStatusEvent(event: OpencodeEvent, timestamp: string): StreamChunk {
-    const status = this.extractStatus(event.data);
+    const status = extractStatus(event.data);
     return {
       type: 'status',
       level: 'normal' as VerbosityLevel,
@@ -98,22 +108,20 @@ export class StreamAdapter {
   }
 
   private handleMessageUpdatedEvent(event: OpencodeEvent, timestamp: string): StreamChunk | null {
-    const data = event.data as Record<string, unknown> | undefined;
-    if (!data) return null;
+    if (!isMessageEventData(event.data)) return null;
 
     const metadata: Record<string, unknown> = {};
 
-    const tokens = data.tokens as Record<string, unknown> | undefined;
-    if (tokens) {
-      metadata.tokens = tokens;
+    if (event.data.tokens) {
+      metadata.tokens = event.data.tokens;
     }
 
-    if (typeof data.cost === 'number') {
-      metadata.cost = data.cost;
+    if (typeof event.data.cost === 'number') {
+      metadata.cost = event.data.cost;
     }
 
-    if (typeof data.finish === 'string') {
-      metadata.finish = data.finish;
+    if (typeof event.data.finish === 'string') {
+      metadata.finish = event.data.finish;
     }
 
     if (Object.keys(metadata).length === 0) return null;
@@ -128,9 +136,10 @@ export class StreamAdapter {
   }
 
   private handleSessionErrorEvent(event: OpencodeEvent, timestamp: string): StreamChunk {
-    const data = event.data as Record<string, unknown> | undefined;
     const errorMessage =
-      data && typeof data.message === 'string' ? data.message : 'Unknown session error';
+      isErrorEventData(event.data) && typeof event.data.message === 'string'
+        ? event.data.message
+        : 'Unknown session error';
 
     const chunk: StreamChunk = {
       type: 'error',
@@ -139,31 +148,10 @@ export class StreamAdapter {
       timestamp,
     };
 
-    if (data) {
-      chunk.metadata = data;
+    if (isErrorEventData(event.data)) {
+      chunk.metadata = event.data;
     }
 
     return chunk;
-  }
-
-  private extractText(data: unknown): string {
-    if (data && typeof data === 'object' && 'text' in data) {
-      return String((data as { text: unknown }).text);
-    }
-    return '';
-  }
-
-  private extractToolName(data: unknown): string {
-    if (data && typeof data === 'object' && 'name' in data) {
-      return String((data as { name: unknown }).name);
-    }
-    return 'unknown';
-  }
-
-  private extractStatus(data: unknown): string {
-    if (data && typeof data === 'object' && 'status' in data) {
-      return String((data as { status: unknown }).status);
-    }
-    return 'status update';
   }
 }
