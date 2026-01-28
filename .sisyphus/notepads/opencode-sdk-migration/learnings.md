@@ -149,3 +149,41 @@ The deprecation notices serve an important purpose:
 
 T21 is **COMPLETE**. The test infrastructure has been properly documented with deprecation notices explaining the historical nature of the SDK-specific code. All tests continue to pass, confirming that the migration has not introduced any regressions. The legacy test code remains functional and serves as a reference implementation of the original SDK integration.
 
+
+## T22: Fix Remaining Type Errors
+
+### Status: ALREADY COMPLETE
+
+Upon investigation, T22 was found to be already complete:
+
+#### Verification Results
+
+✓ **TypeScript Clean**
+- `bun run typecheck` → 0 errors, 0 warnings
+- All type checking passes
+
+✓ **No SDK-Related Workarounds**
+- No SDK-related eslint-disable comments in active code
+- No SDK-related `any` types in active code
+- Old orchestrator (`src/orchestration/orchestrator.ts`) has SDK workarounds, but that's dead code
+
+✓ **Opencode Code Quality**
+- Only 2 eslint-disable comments in `src/opencode/orchestrator.ts`
+- Both are for stub methods (`resume()`, `interrupt()`) - legitimate suppressions
+- No type-related TODOs or FIXMEs
+
+#### Conclusion
+
+The migration work in T01-T20 was done with proper typing throughout. No cleanup needed.
+
+### Acceptance Criteria Status
+
+- [x] `bun run typecheck` passes with zero errors
+- [x] No eslint-disable for SDK types (in active code)
+- [x] No `any` types for SDK interop (in active code)
+- [x] Clean type exports
+
+### Next Steps
+
+Proceed directly to T23 (Update Documentation & ADRs).
+
