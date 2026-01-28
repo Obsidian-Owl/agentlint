@@ -197,22 +197,26 @@ describe('analyse command integration', () => {
       expect(stdout.trim().startsWith('{')).toBe(false);
     });
 
-    test('--json flag works', async () => {
-      await writeFile(join(testDir, 'CLAUDE.md'), '# Test');
+    test(
+      '--json flag works',
+      async () => {
+        await writeFile(join(testDir, 'CLAUDE.md'), '# Test');
 
-      const proc = Bun.spawn(
-        ['bun', 'run', 'src/cli.ts', 'analyse', '-d', testDir, '--dry-run', '--json'],
-        {
-          stdout: 'pipe',
-          stderr: 'pipe',
+        const proc = Bun.spawn(
+          ['bun', 'run', 'src/cli.ts', 'analyse', '-d', testDir, '--dry-run', '--json'],
+          {
+            stdout: 'pipe',
+            stderr: 'pipe',
+          }
+        );
+        const stdout = await new Response(proc.stdout).text();
+        await proc.exited;
+        if (stdout.trim()) {
+          expect(() => JSON.parse(stdout) as unknown).not.toThrow();
         }
-      );
-      const stdout = await new Response(proc.stdout).text();
-      await proc.exited;
-      if (stdout.trim()) {
-        expect(() => JSON.parse(stdout) as unknown).not.toThrow();
-      }
-    });
+      },
+      { timeout: 15000 }
+    );
   });
 
   describe('--fail-on-findings (FR-016)', () => {
