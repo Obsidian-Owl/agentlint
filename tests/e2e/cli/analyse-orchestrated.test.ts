@@ -217,7 +217,7 @@ describe('E2E: Orchestrated Analysis Fallback', () => {
 
       const result = await runCLI(['analyse', '-d', fixture.path], {
         json: true,
-        env: { ANTHROPIC_API_KEY: '' },
+        env: { ANTHROPIC_API_KEY: '', OPENAI_API_KEY: '' },
       });
 
       // Should succeed by falling back to static

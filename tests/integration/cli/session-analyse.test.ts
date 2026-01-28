@@ -119,13 +119,14 @@ describe('agentlint analyse --session', () => {
         cwd: process.cwd(),
         env: {
           ...process.env,
-          ANTHROPIC_API_KEY: '', // Clear API key
+          ANTHROPIC_API_KEY: '',
+          OPENAI_API_KEY: '',
         },
       });
 
-      // Should fail with API key error
+      // Should fail with provider error
       expect(result.status).toBe(1);
-      expect(result.stderr).toContain('ANTHROPIC_API_KEY');
+      expect(result.stderr.toLowerCase()).toMatch(/api.?key|provider/i);
     });
 
     // Note: Full session analysis tests with API key are in live tests

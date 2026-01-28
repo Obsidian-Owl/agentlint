@@ -13,10 +13,10 @@ import { describe, test, expect } from 'bun:test';
 import { writeFileSync } from 'fs';
 import { join } from 'path';
 import { createTestFixture, runCLI, parseJSONOutput } from '../helpers';
-import { requireAPIKey } from '../../lib/require-api-key';
+import { requireLiveProvider } from '../../lib/require-provider';
 
-// Fail fast if API key is missing - no silent skips
-requireAPIKey();
+// Fail fast if no provider is configured - no silent skips
+requireLiveProvider();
 
 // =============================================================================
 // Types

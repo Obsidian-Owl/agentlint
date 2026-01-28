@@ -42,7 +42,7 @@ describe('analyse command integration', () => {
       const proc = Bun.spawn(['bun', 'run', 'src/cli.ts', 'analyse', '-d', testDir, '--json'], {
         stdout: 'pipe',
         stderr: 'pipe',
-        env: { ...process.env, ANTHROPIC_API_KEY: '' },
+        env: { ...process.env, ANTHROPIC_API_KEY: '', OPENAI_API_KEY: '' },
       });
       await proc.exited;
       // Command should be recognized even if it fails for other reasons
@@ -88,7 +88,7 @@ describe('analyse command integration', () => {
         {
           stdout: 'pipe',
           stderr: 'pipe',
-          env: { ...process.env, ANTHROPIC_API_KEY: '' },
+          env: { ...process.env, ANTHROPIC_API_KEY: '', OPENAI_API_KEY: '' },
         }
       );
       await proc.exited;
@@ -112,7 +112,7 @@ describe('analyse command integration', () => {
         {
           stdout: 'pipe',
           stderr: 'pipe',
-          env: { ...process.env, ANTHROPIC_API_KEY: '' },
+          env: { ...process.env, ANTHROPIC_API_KEY: '', OPENAI_API_KEY: '' },
         }
       );
       await proc.exited;
@@ -133,7 +133,7 @@ describe('analyse command integration', () => {
       const proc = Bun.spawn(['bun', 'run', 'src/cli.ts', 'analyse', '-d', testDir, '--dry-run'], {
         stdout: 'pipe',
         stderr: 'pipe',
-        env: { ...process.env, ANTHROPIC_API_KEY: '' },
+        env: { ...process.env, ANTHROPIC_API_KEY: '', OPENAI_API_KEY: '' },
       });
       const exitCode = await proc.exited;
       // Dry run should succeed without API key

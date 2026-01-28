@@ -133,10 +133,11 @@ describe('Dogfood: Full Analysis (Live)', () => {
     }
   }, 180000);
 
-  test('requires ANTHROPIC_API_KEY', () => {
+  test('requires LLM provider', () => {
+    const hasProvider = process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY;
     expect(
-      process.env.ANTHROPIC_API_KEY,
-      'ANTHROPIC_API_KEY environment variable not set - live tests require API access'
+      hasProvider,
+      'No LLM provider configured - live tests require ANTHROPIC_API_KEY or OPENAI_API_KEY'
     ).toBeTruthy();
   });
 
