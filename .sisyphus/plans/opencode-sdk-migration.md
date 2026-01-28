@@ -924,7 +924,7 @@ Parallel Speedup: ~50% faster than sequential
 
 ---
 
-- [ ] **T16. Migrate Orchestrator**
+- [x] **T16. Migrate Orchestrator**
 
   **What to do**:
   - Create `src/opencode/orchestrator.ts` as new entry point
@@ -972,7 +972,7 @@ Parallel Speedup: ~50% faster than sequential
 
 ---
 
-- [ ] **T17. Update TUI Integration**
+- [x] **T17. Update TUI Integration**
 
   **What to do**:
   - Update `src/tui/index.ts` to use new orchestrator
@@ -1027,7 +1027,7 @@ Parallel Speedup: ~50% faster than sequential
 
 ---
 
-- [ ] **T18. Migrate Permission Handler**
+- [x] **T18. Migrate Permission Handler**
 
   **What to do**:
   - Update `src/tui/permissions/tui-permission-handler.ts`
