@@ -1,34 +1,26 @@
-import type { SDKMessage } from '@anthropic-ai/claude-agent-sdk';
 import type { PromptMessage, PromptSpec, StaticPromptSpec } from '../promptkit/types';
 import type { PromptAdapter } from './types';
 
-type SDKRole = 'user' | 'assistant';
-
-interface SDKTextBlock {
-  type: 'text';
-  text: string;
+interface ProviderMessage {
+  role: 'user' | 'assistant';
+  content: Array<{ type: 'text'; text: string }>;
 }
 
-interface SDKMessageWithContent {
-  role: SDKRole;
-  content: SDKTextBlock[];
-}
-
-function toSDKRole(role: PromptMessage['role']): SDKRole {
+function toProviderRole(role: PromptMessage['role']): 'user' | 'assistant' {
   if (role === 'system' || role === 'developer') {
     return 'user';
   }
   return role;
 }
 
-function toSDKMessage(message: PromptMessage): SDKMessageWithContent {
+function toProviderMessage(message: PromptMessage): ProviderMessage {
   return {
-    role: toSDKRole(message.role),
+    role: toProviderRole(message.role),
     content: [{ type: 'text', text: message.content }],
   };
 }
 
-export const claudeAgentSdkAdapter: PromptAdapter<SDKMessage> = {
+export const claudeAgentSdkAdapter: PromptAdapter<ProviderMessage> = {
   name: 'claude-agent-sdk',
 
   toSystemPrompt(messages: PromptMessage[]): string {
@@ -36,17 +28,17 @@ export const claudeAgentSdkAdapter: PromptAdapter<SDKMessage> = {
     return systemMessages.map((m) => m.content).join('\n\n');
   },
 
-  toProviderMessages(messages: PromptMessage[]): SDKMessage[] {
+  toProviderMessages(messages: PromptMessage[]): ProviderMessage[] {
     const nonSystemMessages = messages.filter((m) => m.role === 'user');
-    return nonSystemMessages.map(toSDKMessage) as unknown as SDKMessage[];
+    return nonSystemMessages.map(toProviderMessage);
   },
 
-  renderSpec<TCtx>(spec: PromptSpec<TCtx>, ctx: TCtx): SDKMessage[] {
+  renderSpec<TCtx>(spec: PromptSpec<TCtx>, ctx: TCtx): ProviderMessage[] {
     const messages = spec.render(ctx);
     return this.toProviderMessages(messages);
   },
 
-  renderStaticSpec(spec: StaticPromptSpec): SDKMessage[] {
+  renderStaticSpec(spec: StaticPromptSpec): ProviderMessage[] {
     return this.toProviderMessages(spec.messages);
   },
 };

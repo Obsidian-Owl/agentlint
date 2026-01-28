@@ -76,3 +76,25 @@ This demonstrates the value of the interface-based architecture - permission han
 ### Conclusion
 
 T18 is **COMPLETE** - no additional work needed. The permission handler migration was successfully completed as part of T17's broader refactoring.
+
+## SDK Dependency Removal from Prompts Module (Quick Task)
+
+**Task**: Remove SDK-specific types from `src/prompts/adapters/claude-agent-sdk.ts`
+
+**What was done**:
+1. Removed direct import of `SDKMessage` from `@anthropic-ai/claude-agent-sdk`
+2. Created SDK-agnostic `ProviderMessage` interface locally in the adapter
+3. Renamed `SDKRole` → `toProviderRole()` function
+4. Renamed `SDKTextBlock` → inline type in `ProviderMessage`
+5. Renamed `toSDKMessage()` → `toProviderMessage()` for clarity
+6. Updated adapter type signature to use `ProviderMessage` instead of `SDKMessage`
+
+**Result**:
+- ✓ No SDK imports in `src/prompts/` directory
+- ✓ All tests pass (576+ tests)
+- ✓ TypeScript type checking passes
+- ✓ Prompts module is now SDK-agnostic per ADR-0022
+- ✓ SDK types remain only in `src/orchestration/` where they belong
+
+**Key insight**: The adapter pattern works perfectly - the prompts module defines SDK-agnostic intermediate types, and the adapter converts them to provider-specific formats. This enables future SDK migrations without touching prompt definitions.
+

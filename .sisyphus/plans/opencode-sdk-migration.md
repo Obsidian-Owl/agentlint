@@ -1068,7 +1068,7 @@ Parallel Speedup: ~50% faster than sequential
 
 ---
 
-- [ ] **T19. Update Prompt Adapters**
+- [x] **T19. Update Prompt Adapters**
 
   **What to do**:
   - Update `src/prompts/adapters/claude-agent-sdk.ts`
