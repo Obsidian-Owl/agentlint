@@ -2,6 +2,7 @@ import { describe, expect, it, mock, beforeEach } from 'bun:test';
 import { OpencodeOrchestrator } from '../../../src/opencode/orchestrator';
 import type { IToolRegistry } from '../../../src/orchestration/tool-registry';
 import type { StreamChunk } from '../../../src/orchestration/types';
+import { SessionResumeError, OrchestrationError } from '../../../src/errors/orchestration';
 
 function createMockToolRegistry(): IToolRegistry {
   return {
@@ -195,6 +196,34 @@ describe('OpencodeOrchestrator', () => {
       const opts = calls[0]?.[1] as Record<string, unknown>;
       expect(opts.tool).toBe('test_tool');
       expect(opts.success).toBe(true);
+    });
+  });
+
+  describe('contract methods', () => {
+    it('should set isActive to false on interrupt', async () => {
+      const orchestrator = new OpencodeOrchestrator({}, registry);
+      const internals = getInternals(orchestrator);
+      setupSuccessfulRun(internals);
+
+      // Start a run to set isActive = true
+      const gen = orchestrator.run('test');
+      await gen.next(); // consume first chunk
+      expect(orchestrator.isActive).toBe(true);
+
+      await orchestrator.interrupt();
+      expect(orchestrator.isActive).toBe(false);
+    });
+
+    it('should throw SessionResumeError on resume with session ID', async () => {
+      const orchestrator = new OpencodeOrchestrator({}, registry);
+      const gen = orchestrator.resume('ses-resume-123');
+
+      await expect(gen.next()).rejects.toThrow(SessionResumeError);
+    });
+
+    it('should throw OrchestrationError on getSubagentConfig', () => {
+      const orchestrator = new OpencodeOrchestrator({}, registry);
+      expect(() => orchestrator.getSubagentConfig()).toThrow(OrchestrationError);
     });
   });
 });

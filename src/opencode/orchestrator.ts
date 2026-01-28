@@ -24,6 +24,8 @@ import { AgentlintOpencodeClient } from './client';
 import { HybridSessionManager } from './sessions';
 import { StreamAdapter, type OpencodeEvent } from './streaming';
 import { TelemetryTracker } from './telemetry-tracker';
+import { SessionResumeError, OrchestrationError } from '../errors/orchestration';
+import { isToolEventData, isMessageEventData } from './event-guards';
 
 /** Default timeout for event stream iteration (5 minutes) */
 const STREAM_TIMEOUT_MS = 300_000;
@@ -160,13 +162,16 @@ export class OpencodeOrchestrator implements IOrchestrator {
 
   // eslint-disable-next-line @typescript-eslint/require-await, require-yield
   public async *resume(sessionId: string): AsyncGenerator<StreamChunk, void, unknown> {
-    void sessionId;
-    throw new Error('Not implemented - will be added in next step');
+    throw new SessionResumeError(
+      sessionId,
+      'unknown',
+      `Session resume not yet supported by OpencodeOrchestrator for session '${sessionId}'`
+    );
   }
 
   // eslint-disable-next-line @typescript-eslint/require-await
   public async interrupt(): Promise<void> {
-    throw new Error('Not implemented - will be added in next step');
+    this._isActive = false;
   }
 
   public canSpawnSubagent(): boolean {
@@ -174,7 +179,9 @@ export class OpencodeOrchestrator implements IOrchestrator {
   }
 
   public getSubagentConfig(): OrchestratorConfig {
-    throw new Error('Not implemented - will be added in next step');
+    throw new OrchestrationError(
+      'Subagent configuration not supported by OpencodeOrchestrator. Use canSpawnSubagent() to check.'
+    );
   }
 
   private forwardToTelemetry(chunk: StreamChunk): void {
@@ -182,21 +189,25 @@ export class OpencodeOrchestrator implements IOrchestrator {
 
     switch (chunk.type) {
       case 'tool_start': {
-        const name = (chunk.metadata?.name as string) ?? 'unknown';
-        const input = chunk.metadata?.input as Record<string, unknown> | undefined;
-        this.telemetryTracker.onToolStart(name, input);
+        if (isToolEventData(chunk.metadata)) {
+          this.telemetryTracker.onToolStart(chunk.metadata.name, chunk.metadata.input);
+        } else {
+          this.telemetryTracker.onToolStart('unknown', undefined);
+        }
         break;
       }
       case 'tool_result': {
-        const name = (chunk.metadata?.name as string) ?? 'unknown';
-        const output = chunk.metadata?.output;
-        const isError = chunk.metadata?.isError === true;
-        this.telemetryTracker.onToolComplete(name, output, isError);
+        if (isToolEventData(chunk.metadata)) {
+          const isError = chunk.metadata.isError === true;
+          this.telemetryTracker.onToolComplete(chunk.metadata.name, chunk.metadata.output, isError);
+        } else {
+          this.telemetryTracker.onToolComplete('unknown', undefined, false);
+        }
         break;
       }
       case 'status': {
-        const tokens = chunk.metadata?.tokens as Record<string, unknown> | undefined;
-        if (tokens) {
+        if (isMessageEventData(chunk.metadata) && chunk.metadata.tokens) {
+          const tokens = chunk.metadata.tokens;
           const usageData: {
             inputTokens: number;
             outputTokens: number;
@@ -205,30 +216,25 @@ export class OpencodeOrchestrator implements IOrchestrator {
             cost?: number;
             finishReason?: string;
           } = {
-            inputTokens: (tokens.input as number) ?? 0,
-            outputTokens: (tokens.output as number) ?? 0,
+            inputTokens: tokens.input ?? 0,
+            outputTokens: tokens.output ?? 0,
           };
 
-          const cache = tokens.cache as Record<string, unknown> | undefined;
-          if (cache) {
-            const cacheRead = cache.read as number | undefined;
-            const cacheWrite = cache.write as number | undefined;
-            if (cacheRead !== undefined) {
-              usageData.cacheReadTokens = cacheRead;
+          if (tokens.cache) {
+            if (tokens.cache.read !== undefined) {
+              usageData.cacheReadTokens = tokens.cache.read;
             }
-            if (cacheWrite !== undefined) {
-              usageData.cacheWriteTokens = cacheWrite;
+            if (tokens.cache.write !== undefined) {
+              usageData.cacheWriteTokens = tokens.cache.write;
             }
           }
 
-          const cost = chunk.metadata?.cost as number | undefined;
-          if (cost !== undefined) {
-            usageData.cost = cost;
+          if (chunk.metadata.cost !== undefined) {
+            usageData.cost = chunk.metadata.cost;
           }
 
-          const finishReason = chunk.metadata?.finish as string | undefined;
-          if (finishReason !== undefined) {
-            usageData.finishReason = finishReason;
+          if (chunk.metadata.finish !== undefined) {
+            usageData.finishReason = chunk.metadata.finish;
           }
 
           this.telemetryTracker.onLLMUsage(usageData);
