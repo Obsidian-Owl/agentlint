@@ -25,6 +25,17 @@
  */
 export type VerbosityLevel = 'quiet' | 'normal' | 'verbose' | 'debug';
 
+const VERBOSITY_ORDER: Record<VerbosityLevel, number> = {
+  quiet: 0,
+  normal: 1,
+  verbose: 2,
+  debug: 3,
+};
+
+export function shouldDisplay(chunkLevel: VerbosityLevel, displayLevel: VerbosityLevel): boolean {
+  return VERBOSITY_ORDER[chunkLevel] <= VERBOSITY_ORDER[displayLevel];
+}
+
 /**
  * Type of streaming output chunk.
  * Used to categorize and filter output based on verbosity.
@@ -215,12 +226,6 @@ export interface OrchestratorConfig {
    * For subagents, this would be the parent's subagent event ID.
    */
   telemetryParentEventId?: string;
-
-  /**
-   * Whether to use the OpencodeOrchestrator (true) or legacy Orchestrator (false).
-   * @default false
-   */
-  useOpencode?: boolean;
 }
 
 /**

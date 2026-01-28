@@ -23,8 +23,8 @@ export const OrchestrationExitCode = {
   SessionResumeError: 10,
   /** Tool registration failed */
   ToolRegistrationError: 11,
-  /** API key missing or invalid */
-  ApiKeyError: 12,
+  /** LLM provider authentication failed */
+  ProviderAuthError: 12,
   /** Orchestration execution error */
   OrchestrationError: 13,
   /** Subagent depth limit exceeded */
@@ -140,29 +140,31 @@ export class ToolRegistrationError extends OrchestrationError {
 }
 
 /**
- * Error thrown when API key is missing or invalid.
+ * Error thrown when LLM provider authentication fails.
  * This occurs when:
- * - ANTHROPIC_API_KEY environment variable is not set
- * - API key format is invalid
- * - API key is rejected by the API
+ * - No LLM provider is configured
+ * - Provider authentication fails
+ * - Provider rejects the request
  */
-export class ApiKeyError extends OrchestrationError {
+export class ProviderAuthError extends OrchestrationError {
   /** Reason for the failure */
-  public readonly reason: 'missing' | 'invalid_format' | 'rejected' | 'unknown';
+  public readonly reason: 'no_provider' | 'auth_failed' | 'rejected' | 'unknown';
 
-  constructor(reason: 'missing' | 'invalid_format' | 'rejected' | 'unknown', message?: string) {
+  constructor(reason: 'no_provider' | 'auth_failed' | 'rejected' | 'unknown', message?: string) {
     const defaultMessages: Record<typeof reason, string> = {
-      missing: 'ANTHROPIC_API_KEY environment variable is not set',
-      invalid_format: 'ANTHROPIC_API_KEY has an invalid format',
-      rejected: 'API key was rejected by the Anthropic API',
-      unknown: 'API key error',
+      no_provider:
+        'No LLM provider configured. Run "opencode auth" or set provider env vars (ANTHROPIC_API_KEY, OPENAI_API_KEY, etc.)',
+      auth_failed:
+        'LLM provider authentication failed. Check your credentials with "opencode auth status"',
+      rejected: 'LLM provider rejected the request. Verify your subscription or API key is active.',
+      unknown: 'LLM provider auth error',
     };
 
     super(message ?? defaultMessages[reason], {
-      code: OrchestrationExitCode.ApiKeyError,
+      code: OrchestrationExitCode.ProviderAuthError,
     });
 
-    this.name = 'ApiKeyError';
+    this.name = 'ProviderAuthError';
     this.reason = reason;
   }
 }
@@ -193,10 +195,10 @@ export function isToolRegistrationError(error: unknown): error is ToolRegistrati
 }
 
 /**
- * Check if an error is an ApiKeyError
+ * Check if an error is a ProviderAuthError
  */
-export function isApiKeyError(error: unknown): error is ApiKeyError {
-  return error instanceof ApiKeyError;
+export function isProviderAuthError(error: unknown): error is ProviderAuthError {
+  return error instanceof ProviderAuthError;
 }
 
 // =============================================================================

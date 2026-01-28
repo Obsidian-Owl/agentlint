@@ -36,6 +36,10 @@ export class StreamAdapter {
         return this.handleToolResultEvent(event, timestamp);
       case 'status.updated':
         return this.handleStatusEvent(event, timestamp);
+      case 'message.updated':
+        return this.handleMessageUpdatedEvent(event, timestamp);
+      case 'session.error':
+        return this.handleSessionErrorEvent(event, timestamp);
       default:
         return null;
     }
@@ -64,12 +68,22 @@ export class StreamAdapter {
 
   private handleToolResultEvent(event: OpencodeEvent, timestamp: string): StreamChunk {
     const toolName = this.extractToolName(event.data);
+    const data = event.data as Record<string, unknown> | undefined;
+
+    const metadata: Record<string, unknown> = { ...(data ?? {}) };
+
+    // Extract timing data if present
+    const time = data?.time as Record<string, unknown> | undefined;
+    if (time) {
+      metadata.time = time;
+    }
+
     return {
       type: 'tool_result',
       level: 'verbose' as VerbosityLevel,
       content: `Tool completed: ${toolName}`,
       timestamp,
-      metadata: event.data as Record<string, unknown>,
+      metadata,
     };
   }
 
@@ -81,6 +95,55 @@ export class StreamAdapter {
       content: status,
       timestamp,
     };
+  }
+
+  private handleMessageUpdatedEvent(event: OpencodeEvent, timestamp: string): StreamChunk | null {
+    const data = event.data as Record<string, unknown> | undefined;
+    if (!data) return null;
+
+    const metadata: Record<string, unknown> = {};
+
+    const tokens = data.tokens as Record<string, unknown> | undefined;
+    if (tokens) {
+      metadata.tokens = tokens;
+    }
+
+    if (typeof data.cost === 'number') {
+      metadata.cost = data.cost;
+    }
+
+    if (typeof data.finish === 'string') {
+      metadata.finish = data.finish;
+    }
+
+    if (Object.keys(metadata).length === 0) return null;
+
+    return {
+      type: 'status',
+      level: 'verbose' as VerbosityLevel,
+      content: 'message updated',
+      timestamp,
+      metadata,
+    };
+  }
+
+  private handleSessionErrorEvent(event: OpencodeEvent, timestamp: string): StreamChunk {
+    const data = event.data as Record<string, unknown> | undefined;
+    const errorMessage =
+      data && typeof data.message === 'string' ? data.message : 'Unknown session error';
+
+    const chunk: StreamChunk = {
+      type: 'error',
+      level: 'normal' as VerbosityLevel,
+      content: errorMessage,
+      timestamp,
+    };
+
+    if (data) {
+      chunk.metadata = data;
+    }
+
+    return chunk;
   }
 
   private extractText(data: unknown): string {

@@ -1,8 +1,5 @@
 /**
- * EP11 Quality & Security - Retry Logic with Exponential Backoff
- *
- * Implements network resilience for the orchestrator (AGE-665).
- * Based on patterns from Claude Code (10 retries) and OpenCode (8 retries).
+ * Retry logic with exponential backoff for network resilience.
  *
  * @module orchestration/retry
  */
@@ -31,22 +28,6 @@ export interface RetryConfig {
 }
 
 /**
- * Result of a retry attempt.
- */
-export interface RetryResult<T> {
-  /** Whether the operation succeeded */
-  success: boolean;
-  /** The result if successful */
-  result?: T;
-  /** The error if failed */
-  error?: Error;
-  /** Number of attempts made */
-  attempts: number;
-  /** Total time spent in milliseconds */
-  totalTimeMs: number;
-}
-
-/**
  * Callback for retry events.
  */
 export type RetryCallback = (attempt: number, delay: number, error: Error) => void;
@@ -58,7 +39,7 @@ export type RetryCallback = (attempt: number, delay: number, error: Error) => vo
 /**
  * Default retry configuration.
  */
-export const DEFAULT_RETRY_CONFIG: RetryConfig = {
+const DEFAULT_RETRY_CONFIG: RetryConfig = {
   maxRetries: 8,
   initialDelayMs: 1000,
   maxDelayMs: 60000,
@@ -69,7 +50,7 @@ export const DEFAULT_RETRY_CONFIG: RetryConfig = {
 /**
  * HTTP status codes that should trigger a retry.
  */
-export const RETRYABLE_STATUS_CODES = [
+const RETRYABLE_STATUS_CODES = [
   429, // Too Many Requests (rate limit)
   500, // Internal Server Error
   502, // Bad Gateway
@@ -116,7 +97,7 @@ const RETRYABLE_ERROR_PATTERNS = [
  * @param error - The error to check
  * @returns true if the error should trigger a retry
  */
-export function isRetryableError(error: unknown): boolean {
+function isRetryableError(error: unknown): boolean {
   if (!error) return false;
 
   // Check for Anthropic API errors with status codes
@@ -170,10 +151,7 @@ export function isRetryableError(error: unknown): boolean {
  * @param config - Retry configuration
  * @returns Delay in milliseconds
  */
-export function calculateBackoff(
-  attempt: number,
-  config: RetryConfig = DEFAULT_RETRY_CONFIG
-): number {
+function calculateBackoff(attempt: number, config: RetryConfig = DEFAULT_RETRY_CONFIG): number {
   // Exponential backoff: initialDelay * multiplier^attempt
   const exponentialDelay = config.initialDelayMs * Math.pow(config.backoffMultiplier, attempt);
 
@@ -275,51 +253,4 @@ export async function withRetry<T>(
 
   // Should never reach here, but TypeScript needs this
   throw lastError ?? new Error('Retry failed with no error');
-}
-
-/**
- * Execute a function with retry and return detailed result.
- *
- * @param fn - The async function to execute
- * @param config - Retry configuration (optional)
- * @returns Detailed result including attempt count and timing
- *
- * @example
- * ```typescript
- * const result = await withRetryResult(
- *   () => fetch('https://api.example.com/data'),
- *   { maxRetries: 5 }
- * );
- * if (result.success) {
- *   console.log('Succeeded after', result.attempts, 'attempts');
- * }
- * ```
- */
-export async function withRetryResult<T>(
-  fn: () => Promise<T>,
-  config: Partial<RetryConfig> = {}
-): Promise<RetryResult<T>> {
-  const startTime = Date.now();
-  let attempts = 0;
-
-  const onRetry: RetryCallback = (attempt) => {
-    attempts = attempt;
-  };
-
-  try {
-    const result = await withRetry(fn, config, onRetry);
-    return {
-      success: true,
-      result,
-      attempts: attempts + 1,
-      totalTimeMs: Date.now() - startTime,
-    };
-  } catch (error) {
-    return {
-      success: false,
-      error: error instanceof Error ? error : new Error(String(error)),
-      attempts: attempts + 1,
-      totalTimeMs: Date.now() - startTime,
-    };
-  }
 }

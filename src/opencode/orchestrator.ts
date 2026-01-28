@@ -14,11 +14,19 @@ import type {
   StreamChunk,
   VerbosityLevel,
 } from '../orchestration/types';
+import type { INamespacedLogger } from '../debug/types';
 import { loadConfig, type ResolvedOrchestratorConfig } from '../orchestration/config';
+import { withRetry } from '../orchestration/retry';
+import { getDefaultLogger } from '../debug/logger';
+import { DEBUG_NAMESPACES } from '../debug/namespaces';
 import { OpencodeServerManager } from './server';
 import { AgentlintOpencodeClient } from './client';
 import { HybridSessionManager } from './sessions';
 import { StreamAdapter, type OpencodeEvent } from './streaming';
+import { TelemetryTracker } from './telemetry-tracker';
+
+/** Default timeout for event stream iteration (5 minutes) */
+const STREAM_TIMEOUT_MS = 300_000;
 
 export class OpencodeOrchestrator implements IOrchestrator {
   public readonly config: ResolvedOrchestratorConfig;
@@ -29,6 +37,8 @@ export class OpencodeOrchestrator implements IOrchestrator {
   private readonly client: AgentlintOpencodeClient;
   private readonly sessionManager: HybridSessionManager;
   private readonly streamAdapter: StreamAdapter;
+  private readonly logger: INamespacedLogger;
+  private readonly telemetryTracker: TelemetryTracker | null;
 
   constructor(config: OrchestratorConfig, toolRegistry: IToolRegistry) {
     this.config = loadConfig(config);
@@ -37,6 +47,30 @@ export class OpencodeOrchestrator implements IOrchestrator {
     this.client = new AgentlintOpencodeClient({ baseUrl: 'http://localhost:4096' });
     this.sessionManager = new HybridSessionManager(this.client);
     this.streamAdapter = new StreamAdapter();
+    this.logger = getDefaultLogger().child(DEBUG_NAMESPACES.ORCHESTRATION);
+
+    // Initialize telemetry tracker if telemetry is configured
+    const telemetryClient = config.telemetryClient;
+    if (telemetryClient && telemetryClient.isEnabled()) {
+      const trackerConfig: {
+        telemetryClient: typeof telemetryClient;
+        sessionId: string;
+        model: string;
+        logger: INamespacedLogger;
+        parentEventId?: string;
+      } = {
+        telemetryClient,
+        sessionId: config.telemetrySessionId ?? 'unknown',
+        model: this.config.model,
+        logger: this.logger,
+      };
+      if (config.telemetryParentEventId !== undefined) {
+        trackerConfig.parentEventId = config.telemetryParentEventId;
+      }
+      this.telemetryTracker = new TelemetryTracker(trackerConfig);
+    } else {
+      this.telemetryTracker = null;
+    }
   }
 
   get sessionState(): SessionState | null {
@@ -53,24 +87,74 @@ export class OpencodeOrchestrator implements IOrchestrator {
 
   public async *run(task: string): AsyncGenerator<StreamChunk, void, unknown> {
     this._isActive = true;
+    this.logger.debug('Starting run', { taskLength: task.length });
 
     try {
-      await this.server.start();
+      await withRetry(
+        () => this.server.start(),
+        { maxRetries: 3 },
+        (attempt, delay, error) => {
+          this.logger.warn('Server start retry', { attempt, delayMs: delay, error: error.message });
+        }
+      );
+      this.logger.debug('Server started');
       yield this.createChunk('status', 'normal', 'Server started');
 
-      await this.client.connect();
+      await withRetry(
+        () => this.client.connect(),
+        { maxRetries: 3 },
+        (attempt, delay, error) => {
+          this.logger.warn('Client connect retry', {
+            attempt,
+            delayMs: delay,
+            error: error.message,
+          });
+        }
+      );
+      this.logger.debug('Client connected');
 
       const session = await this.sessionManager.startSession(task);
       this._sessionState = this.createInitialState(task, session.sessionId);
+      this.logger.debug('Session started', { sessionId: session.sessionId });
 
       await this.client.prompt(session.sessionId, task);
 
-      const events = this.client.subscribe() as AsyncIterable<OpencodeEvent>;
-      for await (const chunk of this.streamAdapter.adaptStream(events)) {
-        yield chunk;
+      this.telemetryTracker?.onTurnStart();
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => {
+        this.logger.warn('Stream timeout reached', { timeoutMs: STREAM_TIMEOUT_MS });
+        controller.abort();
+      }, STREAM_TIMEOUT_MS);
+
+      try {
+        const events = this.client.subscribe() as AsyncIterable<OpencodeEvent>;
+        for await (const chunk of this.streamAdapter.adaptStream(events)) {
+          if (controller.signal.aborted) {
+            this.logger.debug('Stream aborted due to timeout');
+            break;
+          }
+          yield chunk;
+
+          // Forward telemetry-relevant chunks to tracker
+          this.forwardToTelemetry(chunk);
+        }
+      } finally {
+        clearTimeout(timeoutId);
       }
+
+      this.logger.debug('Stream complete');
     } finally {
+      try {
+        this.server.stop();
+        this.logger.debug('Server stopped');
+      } catch (stopError) {
+        this.logger.warn('Server stop failed', {
+          error: stopError instanceof Error ? stopError.message : String(stopError),
+        });
+      }
       this._isActive = false;
+      this.logger.debug('Cleanup complete');
     }
   }
 
@@ -91,6 +175,69 @@ export class OpencodeOrchestrator implements IOrchestrator {
 
   public getSubagentConfig(): OrchestratorConfig {
     throw new Error('Not implemented - will be added in next step');
+  }
+
+  private forwardToTelemetry(chunk: StreamChunk): void {
+    if (!this.telemetryTracker) return;
+
+    switch (chunk.type) {
+      case 'tool_start': {
+        const name = (chunk.metadata?.name as string) ?? 'unknown';
+        const input = chunk.metadata?.input as Record<string, unknown> | undefined;
+        this.telemetryTracker.onToolStart(name, input);
+        break;
+      }
+      case 'tool_result': {
+        const name = (chunk.metadata?.name as string) ?? 'unknown';
+        const output = chunk.metadata?.output;
+        const isError = chunk.metadata?.isError === true;
+        this.telemetryTracker.onToolComplete(name, output, isError);
+        break;
+      }
+      case 'status': {
+        const tokens = chunk.metadata?.tokens as Record<string, unknown> | undefined;
+        if (tokens) {
+          const usageData: {
+            inputTokens: number;
+            outputTokens: number;
+            cacheReadTokens?: number;
+            cacheWriteTokens?: number;
+            cost?: number;
+            finishReason?: string;
+          } = {
+            inputTokens: (tokens.input as number) ?? 0,
+            outputTokens: (tokens.output as number) ?? 0,
+          };
+
+          const cache = tokens.cache as Record<string, unknown> | undefined;
+          if (cache) {
+            const cacheRead = cache.read as number | undefined;
+            const cacheWrite = cache.write as number | undefined;
+            if (cacheRead !== undefined) {
+              usageData.cacheReadTokens = cacheRead;
+            }
+            if (cacheWrite !== undefined) {
+              usageData.cacheWriteTokens = cacheWrite;
+            }
+          }
+
+          const cost = chunk.metadata?.cost as number | undefined;
+          if (cost !== undefined) {
+            usageData.cost = cost;
+          }
+
+          const finishReason = chunk.metadata?.finish as string | undefined;
+          if (finishReason !== undefined) {
+            usageData.finishReason = finishReason;
+          }
+
+          this.telemetryTracker.onLLMUsage(usageData);
+        }
+        break;
+      }
+      default:
+        break;
+    }
   }
 
   private createInitialState(task: string, sessionId: string): SessionState {

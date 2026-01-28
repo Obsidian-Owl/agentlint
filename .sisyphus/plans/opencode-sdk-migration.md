@@ -765,7 +765,7 @@ Parallel Speedup: ~50% faster than sequential
 
 ---
 
-- [ ] **T12. Migrate Causal Tools (2 tools)**
+- [x] **T12. Migrate Causal Tools (2 tools)**
 
   **What to do**:
   - Migrate tools in `src/tools/causal/`:

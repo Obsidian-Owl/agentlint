@@ -36,6 +36,7 @@ All decisions are documented in [docs/architecture/adr/](../adr/).
 | [0021](../adr/0021-tui-architecture-and-state-management.md)      | TUI Architecture           | Redux-style reducer pattern                 | Accepted              |
 | [0022](../adr/0022-promptkit-sdk-agnostic-prompt-architecture.md) | PromptKit                  | SDK-agnostic prompts                        | Accepted (Validated)  |
 | [0024](../adr/0024-opencode-sdk-migration.md)                     | **Opencode SDK Migration** | **Migrate to Opencode SDK**                 | **Accepted**          |
+| [0025](../adr/0025-telemetry-architecture.md)                     | Telemetry Architecture     | Custom Vercel proxy → HoneyHive             | Accepted              |
 
 ---
 
@@ -72,6 +73,12 @@ All decisions are documented in [docs/architecture/adr/](../adr/).
 
 - Environment-based credentials
 - Standards compatibility (MCP, Agent Skills)
+
+### Observability (ADR 0025)
+
+- Opt-in telemetry via custom Vercel proxy → HoneyHive
+- Zero secrets in CLI; graceful degradation on failure
+- Shared truncation utilities for data sanitization
 
 ---
 

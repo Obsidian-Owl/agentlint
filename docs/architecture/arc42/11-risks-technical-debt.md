@@ -9,40 +9,44 @@
 
 ## 11.1 SDK Dependencies
 
-| Risk | Probability | Impact | Mitigation |
-|------|-------------|--------|------------|
-| Claude Agent SDK API changes | Medium | Medium | Pin versions; monitor changelog; adapter layer |
-| Preview features may change | Medium | Low | Use stable V1 patterns; isolate preview usage |
-| Performance differs from expectations | Low | Medium | Benchmark during implementation; fallback patterns |
-| API rate limits affect long sessions | Medium | Medium | Backoff strategy; frequent checkpoints; resume |
+> **Updated**: January 2026 — Migrated from Claude Agent SDK to Opencode SDK per [ADR-0024](../adr/0024-opencode-sdk-migration.md).
+
+| Risk                                   | Probability | Impact | Mitigation                                                                 |
+| -------------------------------------- | ----------- | ------ | -------------------------------------------------------------------------- |
+| Opencode SDK API changes               | Medium      | Medium | Pin versions; `adaptTool()` wrapper isolates tool definitions              |
+| Opencode SDK event model changes       | Low         | Medium | `StreamAdapter` abstracts event conversion; single update point            |
+| Self-managed server lifecycle failures | Low         | High   | Retry logic (3 retries), timeout (5 min), `server.stop()` in finally block |
+| API rate limits affect long sessions   | Medium      | Medium | Backoff strategy; frequent checkpoints; resume                             |
+| Telemetry proxy unavailability         | Low         | Low    | Graceful degradation — `AlphaTelemetryClient` silently drops on failure    |
 
 ---
 
 ## 11.2 Architecture Gaps
 
-| Gap | Description | Impact | Resolution |
-|-----|-------------|--------|------------|
-| **Multi-provider abstraction** | Anthropic-only; no LLM provider adapter | Limits future flexibility | Post-MVP: thin provider abstraction |
-| **MCP protocol** | Format compatible, not running servers | Cannot share tools with ecosystem | Optional: MCP server mode if needed |
-| **Additional adapters** | Only Claude Code for MVP | Limited ACT support | Implement based on user demand |
-| **Skills as producer** | Can consume but not produce | Cannot package as skill | Future: expose as SKILL.md |
-| **Evaluation framework** | ADR-0012 defines but not implemented | Cannot measure quality | Implement during initial development |
+| Gap                            | Description                             | Impact                            | Resolution                           |
+| ------------------------------ | --------------------------------------- | --------------------------------- | ------------------------------------ |
+| **Multi-provider abstraction** | Anthropic-only; no LLM provider adapter | Limits future flexibility         | Post-MVP: thin provider abstraction  |
+| **MCP protocol**               | Format compatible, not running servers  | Cannot share tools with ecosystem | Optional: MCP server mode if needed  |
+| **Additional adapters**        | Only Claude Code for MVP                | Limited ACT support               | Implement based on user demand       |
+| **Skills as producer**         | Can consume but not produce             | Cannot package as skill           | Future: expose as SKILL.md           |
+| **Evaluation framework**       | ADR-0012 defines but not implemented    | Cannot measure quality            | Implement during initial development |
 
 ---
 
 ## 11.3 Technical Debt Tracking
 
-| Item | Priority | Plan |
-|------|----------|------|
-| Context compaction testing | High | Verify SDK's ~92% compaction with realistic sessions |
-| Large result lifecycle | Medium | Implement TTL or session-scoped cleanup |
-| Subagent coordination | Medium | Load test parallel analysis scenarios |
+| Item                       | Priority | Plan                                                 |
+| -------------------------- | -------- | ---------------------------------------------------- |
+| Context compaction testing | High     | Verify SDK's ~92% compaction with realistic sessions |
+| Large result lifecycle     | Medium   | Implement TTL or session-scoped cleanup              |
+| Subagent coordination      | Medium   | Load test parallel analysis scenarios                |
 
 ---
 
 ## 11.4 Risk Monitoring
 
 **Quarterly Review Items:**
+
 - SDK version compatibility
 - API rate limit changes
 - New ACT releases requiring adapters

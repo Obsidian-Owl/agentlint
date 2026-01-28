@@ -17,3 +17,4 @@ export * from './tool-adapter';
 export * from './streaming';
 export * from './sessions';
 export * from './orchestrator';
+export * from './telemetry-tracker';

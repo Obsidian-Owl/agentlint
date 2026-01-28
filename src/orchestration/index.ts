@@ -1,20 +1,14 @@
 /**
- * EP02: Orchestration Core
+ * Orchestration Core
  *
- * This module wraps the Claude Agent SDK to power agentlint analysis sessions.
- * It provides:
- * - Master loop execution (Orchestrator)
- * - Tool registration and MCP server creation (ToolRegistry)
- * - Streaming output processing (StreamProcessor)
- * - Checkpointing for crash recovery (CheckpointHandler)
- * - Session state persistence (SessionState)
- * - Context workspace management (CognitiveWorkspace)
+ * Provides tool registration, configuration, checkpointing,
+ * context management, and the orchestrator factory.
  *
  * @module orchestration
  */
 
 // =============================================================================
-// Types (T010-T013) - Phase 2 Complete
+// Types
 // =============================================================================
 
 export type {
@@ -50,10 +44,16 @@ export type {
   // Events
   OrchestratorEvents,
   OrchestratorEventHandler,
+  // Permission
+  PermissionResult,
+  // Telemetry
+  IOrchestratorTelemetryClient,
 } from './types';
 
+export { shouldDisplay } from './types';
+
 // =============================================================================
-// Configuration (T017) - Phase 2 Complete
+// Configuration
 // =============================================================================
 
 export {
@@ -66,69 +66,43 @@ export {
   getConfigFilePath,
   configFileExists,
   mergeWithDefaults,
+  MAX_SUBAGENT_DEPTH,
 } from './config';
 
 // =============================================================================
-// Tool Registry (T021-T023) - Phase 3 Complete
+// Tool Registry
 // =============================================================================
 
-export type { IToolRegistry } from './tool-registry';
+export type { IToolRegistry, ToolDefinition } from './tool-registry';
 export { ToolRegistry, createToolRegistry } from './tool-registry';
 
 // =============================================================================
-// Orchestrator (T024-T026) - Phase 3 Complete
+// Orchestrator
 // =============================================================================
 
 export type { IOrchestrator } from './interfaces';
-import { createLegacyOrchestrator } from './orchestrator';
-export { Orchestrator } from './orchestrator';
+
 import { OpencodeOrchestrator } from '../opencode/orchestrator';
 import type { OrchestratorConfig } from './types';
 import type { IToolRegistry } from './tool-registry';
 import type { IOrchestrator } from './interfaces';
 
-/**
- * Create a new Orchestrator.
- * Switches between Legacy and Opencode implementations based on config.
- */
 export function createOrchestrator(
   config: OrchestratorConfig,
   toolRegistry: IToolRegistry
 ): IOrchestrator {
-  if (config.useOpencode) {
-    return new OpencodeOrchestrator(config, toolRegistry);
-  }
-  return createLegacyOrchestrator(config, toolRegistry);
+  return new OpencodeOrchestrator(config, toolRegistry);
 }
 
 // =============================================================================
-// Streaming (T030-T032) - Phase 4 Complete
+// Context Management
 // =============================================================================
 
-export type { IStreamProcessor } from './streaming';
-export {
-  StreamProcessor,
-  createStreamProcessor,
-  filterByVerbosity,
-  shouldDisplay,
-  createStreamChunk,
-} from './streaming';
+export type { ToolResultSummary } from './context';
+export { handleToolResult, isLargeResult, RESULT_SIZE_THRESHOLD } from './context';
 
 // =============================================================================
-// Context Management (T029, T033-T034) - Phase 4 Complete
-// =============================================================================
-
-export type { ToolResultSummary, PreCompactHandler, PreCompactEvent } from './context';
-export {
-  handleToolResult,
-  isLargeResult,
-  createPreCompactHandler,
-  buildPreservedContext,
-  RESULT_SIZE_THRESHOLD,
-} from './context';
-
-// =============================================================================
-// Checkpointing (T038-T040) - Phase 5 Complete
+// Checkpointing
 // =============================================================================
 
 export type { ICheckpointHandler, CheckpointHandlerConfig } from './checkpoint';
@@ -139,54 +113,14 @@ export {
 } from './checkpoint';
 
 // =============================================================================
-// Session State (T044-T046) - Phase 6 Complete
+// Retry Logic
 // =============================================================================
 
-export type { SessionSummary } from './session-state';
-export {
-  saveState,
-  loadState,
-  listSessions,
-  deleteSession,
-  getSessionsDir,
-  getSessionFilePath,
-  buildStateSummary,
-  SESSION_STATE_VERSION,
-} from './session-state';
+export type { RetryConfig, RetryCallback } from './retry';
+export { withRetry } from './retry';
 
 // =============================================================================
-// Cognitive Workspace (T051-T052) - Phase 7 Complete
-// =============================================================================
-
-export {
-  buildCognitiveWorkspace,
-  formatWorkspaceForPrompt,
-  createProgressSummary,
-  compressFindingsToSummary,
-} from './cognitive-workspace';
-
-// =============================================================================
-// Configuration Exports (for subagent depth)
-// =============================================================================
-
-export { MAX_SUBAGENT_DEPTH } from './config';
-
-// =============================================================================
-// Retry Logic (AGE-665) - EP11 Complete
-// =============================================================================
-
-export type { RetryConfig, RetryResult, RetryCallback } from './retry';
-export {
-  withRetry,
-  withRetryResult,
-  isRetryableError,
-  calculateBackoff,
-  DEFAULT_RETRY_CONFIG,
-  RETRYABLE_STATUS_CODES,
-} from './retry';
-
-// =============================================================================
-// Execution Context - EP11 Debug Infrastructure Fix
+// Execution Context
 // =============================================================================
 
 export type { ExecutionContext } from './execution-context';
@@ -198,8 +132,7 @@ export {
 } from './execution-context';
 
 // =============================================================================
-// Human-in-the-Loop - ADR-0021 Conversational Interaction
+// Telemetry Utilities
 // =============================================================================
 
-export type { CanUseToolOptions } from './can-use-tool';
-export { createCanUseToolCallback } from './can-use-tool';
+export { truncateToolOutput, truncateToolInput, extractErrorMessage } from './telemetry-utils';

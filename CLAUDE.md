@@ -98,7 +98,7 @@ Epic identifiers are **NOT appropriate** for permanent code:
 
 ## Agent SDK Design Patterns (CRITICAL)
 
-agentlint is a Claude Agent SDK application. These patterns are **CRITICAL** and **MUST** be followed.
+agentlint is an Opencode SDK application. These patterns are **CRITICAL** and **MUST** be followed.
 
 ### Tool/Agent Boundary (MUST)
 
@@ -179,7 +179,7 @@ The most successful agent implementations use simple, composable patterns—not 
 | Location                          | Content                                      |
 | --------------------------------- | -------------------------------------------- |
 | `docs/architecture/arc42/`        | 12-section Arc42 architecture docs           |
-| `docs/architecture/adr/`          | 18 Architecture Decision Records             |
+| `docs/architecture/adr/`          | 25 Architecture Decision Records             |
 | `docs/planning/epic-catalogue.md` | 12 implementation epics with dependencies    |
 | `docs/requirements/`              | Functional requirements, use cases, personas |
 | `docs/vision/north-star.md`       | Mission, vision, success indicators          |
@@ -188,27 +188,31 @@ The most successful agent implementations use simple, composable patterns—not 
 
 The orchestration layer uses **Opencode SDK** (`@opencode-ai/sdk`) with two module locations:
 
-**New Implementation** (`src/opencode/` - Active):
+**Opencode Integration** (`src/opencode/`):
 
-| Component               | File              | Purpose                                    |
-| ----------------------- | ----------------- | ------------------------------------------ |
-| OpencodeOrchestrator    | `orchestrator.ts` | Main orchestration integrating all modules |
-| OpencodeServerManager   | `server.ts`       | Server lifecycle (start/stop/health)       |
-| AgentlintOpencodeClient | `client.ts`       | SDK client wrapper                         |
-| AgentlintMcpServer      | `mcp-server.ts`   | MCP server exposing 40+ tools              |
-| StreamAdapter           | `streaming.ts`    | SSE → StreamChunk conversion               |
-| HybridSessionManager    | `sessions.ts`     | Opencode + agentlint metadata              |
-| adaptTool               | `tool-adapter.ts` | Tool format conversion                     |
+| Component               | File                   | Purpose                                              |
+| ----------------------- | ---------------------- | ---------------------------------------------------- |
+| OpencodeOrchestrator    | `orchestrator.ts`      | Main orchestration integrating all modules           |
+| OpencodeServerManager   | `server.ts`            | Server lifecycle (start/stop/health)                 |
+| AgentlintOpencodeClient | `client.ts`            | SDK client wrapper                                   |
+| AgentlintMcpServer      | `mcp-server.ts`        | MCP server exposing 40+ tools                        |
+| StreamAdapter           | `streaming.ts`         | SSE → StreamChunk conversion with telemetry metadata |
+| HybridSessionManager    | `sessions.ts`          | Opencode + agentlint metadata                        |
+| adaptTool               | `tool-adapter.ts`      | Tool format conversion                               |
+| TelemetryTracker        | `telemetry-tracker.ts` | Tool/LLM telemetry tracking (FIFO queue correlation) |
 
-**Legacy Implementation** (`src/orchestration/` - Preserved for tests):
+**Shared Infrastructure** (`src/orchestration/`):
 
-| Component         | File               | Purpose (Historical)                         |
-| ----------------- | ------------------ | -------------------------------------------- |
-| Orchestrator      | `orchestrator.ts`  | Old main loop (unused, preserved for tests)  |
-| ToolRegistry      | `tool-registry.ts` | Old tool registration (unused)               |
-| StreamProcessor   | `streaming.ts`     | SDK message → StreamChunk (shared interface) |
-| CheckpointHandler | `checkpoint.ts`    | Crash recovery checkpoints                   |
-| SessionState      | `session-state.ts` | Session persistence to JSON                  |
+| Component         | File                   | Purpose                                    |
+| ----------------- | ---------------------- | ------------------------------------------ |
+| ToolRegistry      | `tool-registry.ts`     | Tool registration and lookup               |
+| Types             | `types.ts`             | StreamChunk, SessionState, Finding, etc.   |
+| Config            | `config.ts`            | Configuration loading with defaults        |
+| CheckpointHandler | `checkpoint.ts`        | Crash recovery checkpoints                 |
+| Retry             | `retry.ts`             | Retry logic with exponential backoff       |
+| TelemetryUtils    | `telemetry-utils.ts`   | Shared truncation + error extraction utils |
+| Context           | `context.ts`           | Large tool result summarization            |
+| ExecutionContext  | `execution-context.ts` | Target directory tracking via AsyncLocal   |
 
 **Key patterns**:
 

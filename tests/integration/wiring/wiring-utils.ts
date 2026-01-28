@@ -236,7 +236,7 @@ export function getEntryPoints(): string[] {
     'src/cli.ts',
     'src/cli/program.ts',
     'src/orchestration/tool-registry.ts',
-    'src/orchestration/orchestrator.ts',
+    'src/opencode/orchestrator.ts',
   ];
 }
 

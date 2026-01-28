@@ -187,7 +187,7 @@ The orchestration layer wraps the **Claude Agent SDK's `query()` function**, whi
 ```
 src/orchestration/
 ├── index.ts                    Public exports
-├── orchestrator.ts             Orchestrator class wrapping SDK query()
+├── orchestrator.ts             Legacy orchestrator class wrapping SDK query()
 ├── tool-registry.ts            ToolRegistry with MCP server creation
 ├── streaming.ts                SDK message → StreamChunk transformation
 ├── checkpoint.ts               Session state persistence + recovery
@@ -196,18 +196,20 @@ src/orchestration/
 ├── context.ts                  Context utilities
 ├── config.ts                   Configuration loading + defaults
 ├── can-use-tool.ts             Human-in-the-loop callback (ADR-0021)
+├── telemetry-utils.ts          Shared truncation + error extraction for telemetry
 └── types.ts                    Type definitions
 ```
 
-| Component                | Responsibility                                                          |
-| ------------------------ | ----------------------------------------------------------------------- |
-| `orchestrator.ts`        | Wraps SDK `query()`, manages session lifecycle, enforces subagent depth |
-| `tool-registry.ts`       | Registers tools, creates MCP server for SDK integration                 |
-| `streaming.ts`           | Transforms `SDKMessage` events to `StreamChunk` with verbosity          |
-| `checkpoint.ts`          | Emits checkpoints on tool completion, findings, phase changes           |
-| `session-state.ts`       | Persists/loads session state to JSON for crash recovery                 |
-| `cognitive-workspace.ts` | Compresses large tool results to fit context window                     |
-| `can-use-tool.ts`        | Human-in-the-loop: tool approval prompts, AskUserQuestion routing       |
+| Component                | Responsibility                                                                               |
+| ------------------------ | -------------------------------------------------------------------------------------------- |
+| `orchestrator.ts`        | Legacy orchestrator wrapping SDK `query()`, session lifecycle                                |
+| `tool-registry.ts`       | Registers tools, creates MCP server for SDK integration                                      |
+| `streaming.ts`           | Transforms `SDKMessage` events to `StreamChunk` with verbosity                               |
+| `checkpoint.ts`          | Emits checkpoints on tool completion, findings, phase changes                                |
+| `session-state.ts`       | Persists/loads session state to JSON for crash recovery                                      |
+| `cognitive-workspace.ts` | Compresses large tool results to fit context window                                          |
+| `can-use-tool.ts`        | Human-in-the-loop: tool approval prompts, AskUserQuestion routing                            |
+| `telemetry-utils.ts`     | Shared telemetry utilities: `truncateToolOutput`, `truncateToolInput`, `extractErrorMessage` |
 
 ### Key Integration Point
 
@@ -225,6 +227,32 @@ for await (const chunk of orchestrator.run(task)) {
 ```
 
 > **Note**: See ADR-0024 for the migration from Claude Agent SDK to Opencode SDK.
+
+### Opencode Module Structure (ADR-0024)
+
+```
+src/opencode/
+├── index.ts                    Public exports
+├── orchestrator.ts             OpencodeOrchestrator (active implementation)
+├── server.ts                   Server lifecycle management (start/stop/health)
+├── client.ts                   SDK client wrapper
+├── mcp-server.ts               MCP server exposing 40+ tools
+├── tool-adapter.ts             Tool format conversion (adaptTool)
+├── streaming.ts                SSE → StreamChunk conversion with telemetry metadata
+├── sessions.ts                 Hybrid session management (Claude + agentlint)
+└── telemetry-tracker.ts        Encapsulated tool/LLM telemetry tracking (FIFO correlation)
+```
+
+| Component              | Responsibility                                                                    |
+| ---------------------- | --------------------------------------------------------------------------------- |
+| `orchestrator.ts`      | Active orchestrator: server lifecycle, streaming, telemetry wiring                |
+| `server.ts`            | Server start/stop with health monitoring                                          |
+| `client.ts`            | SDK client wrapper for prompt and subscribe operations                            |
+| `mcp-server.ts`        | MCP server exposing agentlint tools to the agent                                  |
+| `tool-adapter.ts`      | Converts agentlint tool definitions to Opencode format                            |
+| `streaming.ts`         | Transforms SSE events to `StreamChunk` with telemetry metadata extraction         |
+| `sessions.ts`          | Manages session lifecycle across Claude and agentlint metadata                    |
+| `telemetry-tracker.ts` | Tracks tool executions (FIFO queue) and LLM usage, dispatches to telemetry client |
 
 ---
 

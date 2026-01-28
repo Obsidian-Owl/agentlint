@@ -40,7 +40,7 @@ describe('Quickstart: Tool Registration', () => {
   });
 
   test('all documented tool names are correct', () => {
-    const toolNames = TEMPORAL_TOOLS.map((t) => t.name);
+    const toolNames = TEMPORAL_TOOLS.map((t) => t.name as string);
 
     // Matches quickstart.md Tool Reference section
     expect(toolNames).toContain('store_baseline');

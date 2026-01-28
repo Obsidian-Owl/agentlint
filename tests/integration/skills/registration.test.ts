@@ -72,7 +72,7 @@ describe('Skills Tools Registration', () => {
     it('contains all four skills tools', () => {
       expect(SKILLS_TOOLS).toHaveLength(4);
 
-      const toolNames = SKILLS_TOOLS.map((t) => t.name);
+      const toolNames = SKILLS_TOOLS.map((t) => t.name as string);
       expect(toolNames).toContain('get_skill_inventory');
       expect(toolNames).toContain('index_skill_invocations');
       expect(toolNames).toContain('get_session_summaries');
@@ -135,30 +135,19 @@ describe('Skills Tools Registration', () => {
     });
   });
 
-  describe('MCP Server Integration', () => {
-    it('tools are available via MCP server configuration', () => {
+  describe('Tool Registration Integration', () => {
+    it('tools are available via registry after registration', () => {
       const registry = createToolRegistry();
       registerSkillsTools(registry);
 
-      // Convert registry to MCP server config
-      const mcpConfig = registry.toMcpServer();
-
-      expect(mcpConfig).toBeDefined();
-      expect(mcpConfig.instance).toBeDefined();
-      expect(mcpConfig.name).toBe('agentlint');
+      const registered = registry.list();
+      expect(registered.length).toBeGreaterThan(0);
     });
 
-    it('skills tools included in full MCP server with all tools', () => {
+    it('skills tools included in full registry with all tools', () => {
       const registry = createToolRegistry();
       registerAllTools(registry);
 
-      // Convert to MCP server
-      const mcpConfig = registry.toMcpServer();
-
-      expect(mcpConfig).toBeDefined();
-      expect(mcpConfig.instance).toBeDefined();
-
-      // Verify all registered tools can be listed
       const registered = registry.list();
       expect(registered.length).toBeGreaterThanOrEqual(40);
     });

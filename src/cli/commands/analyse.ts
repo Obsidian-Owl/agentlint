@@ -109,8 +109,6 @@ export interface AnalyseOptions extends GlobalOptions {
   logFile?: string;
   /** Disable file logging for this run */
   noLog?: boolean;
-  /** Use OpencodeOrchestrator (experimental) */
-  opencode?: boolean;
 }
 
 /**
@@ -730,7 +728,6 @@ async function runOrchestratedAnalysis(
     systemPromptAppend: `\nAnalysis target directory: ${directory}`,
     // ADR-0021: Pass nonInteractive for CI/automation mode
     nonInteractive: options.nonInteractive ?? false,
-    useOpencode: options.opencode ?? false,
   };
 
   // Pass telemetry client for direct instrumentation (more reliable than chunk observation)

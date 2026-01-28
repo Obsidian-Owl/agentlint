@@ -109,39 +109,6 @@ describe('Config Tool Registration', () => {
     });
   });
 
-  describe('MCP server generation', () => {
-    it('should generate MCP server config with all tools', () => {
-      registerConfigTools(registry);
-
-      const mcpServer = registry.toMcpServer();
-
-      expect(mcpServer).toBeDefined();
-      expect(mcpServer).toHaveProperty('instance');
-      expect(mcpServer).toHaveProperty('name');
-    });
-
-    it('should cache MCP server config', () => {
-      registerConfigTools(registry);
-
-      const server1 = registry.toMcpServer();
-      const server2 = registry.toMcpServer();
-
-      // Should return the same instance (cached)
-      expect(server1).toBe(server2);
-    });
-
-    it('should invalidate cache on new registration', () => {
-      registry.register(discoverTool);
-      const server1 = registry.toMcpServer();
-
-      registry.register(parseTool);
-      const server2 = registry.toMcpServer();
-
-      // Should return different instances
-      expect(server1).not.toBe(server2);
-    });
-  });
-
   describe('createToolRegistry factory', () => {
     it('should create a new registry instance', () => {
       const reg = createToolRegistry();
@@ -157,9 +124,6 @@ describe('Config Tool Registration', () => {
 
       const tools = reg.list();
       expect(tools.length).toBeGreaterThan(0);
-
-      const mcpServer = reg.toMcpServer();
-      expect(mcpServer).toBeDefined();
     });
   });
 
@@ -180,19 +144,14 @@ describe('Config Tool Registration', () => {
 
   describe('integration with orchestration', () => {
     it('should be usable with Orchestrator pattern', () => {
-      // Create registry and register tools
       const reg = createToolRegistry();
       registerAllTools(reg);
 
-      // Get MCP server for SDK
-      const mcpServer = reg.toMcpServer();
+      const tools = reg.list();
+      expect(tools.length).toBeGreaterThan(0);
 
-      // Verify it has the expected structure for SDK integration
-      expect(mcpServer).toHaveProperty('instance');
-      expect(mcpServer).toHaveProperty('name');
-
-      // This would be passed to query() options as:
-      // mcpServers: [mcpServer]
+      const firstTool = reg.get(tools[0]!);
+      expect(firstTool).toBeDefined();
     });
   });
 });
