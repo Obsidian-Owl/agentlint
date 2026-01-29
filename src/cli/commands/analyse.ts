@@ -789,8 +789,14 @@ async function runOrchestratedAnalysis(
         }
       },
       onExit: async () => {
+        // Stop the SSE stream and server - don't rely on handleInterrupt
+        // because interrupted flag check would cause early return
+        try {
+          await orchestrator.interrupt();
+        } catch {
+          // Interrupt failure is non-fatal during exit
+        }
         interrupted = true;
-        await handleInterrupt();
         if (conversationManager) {
           await conversationManager.saveSession();
         }

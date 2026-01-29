@@ -431,7 +431,16 @@ function InnerApp({
                 // Wait for cleanup to complete before exiting
                 // onExit may be async (saves session, stops orchestrator)
                 const exitPromise = Promise.resolve(onExit?.());
-                void exitPromise.then(() => exit()).catch(() => exit());
+                void exitPromise
+                  .then(() => {
+                    exit();
+                    // Fallback: force exit if Ink's exit doesn't work
+                    setTimeout(() => process.exit(0), 100);
+                  })
+                  .catch(() => {
+                    exit();
+                    setTimeout(() => process.exit(1), 100);
+                  });
               }}
               onCancel={() => setShowQuitDialog(false)}
             />
