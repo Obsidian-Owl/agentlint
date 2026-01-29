@@ -111,12 +111,11 @@ export class ConversationManager {
         currentContext: this.currentContext,
       });
 
-      // Always use the full conversational prompt - don't skip to bare "analyze" mode
-      const fullPrompt = `${systemPrompt}\n\n${userPrompt}`;
-
+      // Pass system prompt separately to avoid it appearing in output
+      // The orchestrator sends it via body.system in the SDK request
       let responseContent = '';
 
-      for await (const chunk of this.orchestrator.run(fullPrompt)) {
+      for await (const chunk of this.orchestrator.run(userPrompt, { systemPrompt })) {
         this.tuiRenderer.renderChunk(chunk);
 
         if (chunk.type === 'text') {

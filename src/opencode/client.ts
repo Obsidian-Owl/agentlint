@@ -4,11 +4,22 @@ export interface OpencodeClientConfig {
   baseUrl?: string;
 }
 
+export interface PromptOptions {
+  /** The user message content */
+  message: string;
+  /** Optional system prompt (sent via body.system, not shown to user) */
+  systemPrompt?: string;
+}
+
 export interface IOpencodeClient {
   connect(): Promise<void>;
   createSession(options: { title: string }): Promise<{ id: string }>;
   prompt(sessionId: string, message: string): Promise<string>;
-  promptAsync(sessionId: string, message: string): Promise<void>;
+  promptAsync(
+    sessionId: string,
+    message: string,
+    options?: { systemPrompt?: string }
+  ): Promise<void>;
   subscribe(): AsyncIterable<unknown>;
   subscribeEager(): Promise<AsyncIterable<unknown>>;
   isConnected(): boolean;
@@ -98,19 +109,38 @@ export class AgentlintOpencodeClient implements IOpencodeClient {
    * Send a prompt asynchronously without blocking.
    * Returns immediately after sending the message.
    * Events are delivered via the subscribe() SSE stream.
+   *
+   * @param sessionId - The session ID to send the prompt to
+   * @param message - The user message content
+   * @param options - Optional settings including systemPrompt
    */
-  async promptAsync(sessionId: string, message: string): Promise<void> {
+  async promptAsync(
+    sessionId: string,
+    message: string,
+    options?: { systemPrompt?: string }
+  ): Promise<void> {
     this.ensureConnected();
 
     if (!this.client) {
       throw new Error('Client is not initialized');
     }
 
+    // Build the request body with optional system prompt
+    const body: {
+      parts: Array<{ type: 'text'; text: string }>;
+      system?: string;
+    } = {
+      parts: [{ type: 'text' as const, text: message }],
+    };
+
+    // Add system prompt if provided (SDK uses body.system)
+    if (options?.systemPrompt) {
+      body.system = options.systemPrompt;
+    }
+
     const result = await this.client.session.promptAsync({
       path: { id: sessionId },
-      body: {
-        parts: [{ type: 'text', text: message }],
-      },
+      body,
     });
 
     if (result.error) {

@@ -86,30 +86,14 @@ Be thorough but concise. Quality over quantity - consolidate similar findings.`,
 };
 
 /**
- * Analysis prompt specification v1.0.0
- *
- * This is a dynamic PromptSpec that requires AnalysisContext at render time.
- * The context includes directory, scan results, options, and pre-loaded recommendations.
+ * Build analysis content with system and user parts separated.
+ * System content contains persona, workflow instructions, and behavioral guidance.
+ * User content contains the actual task context (directory, configs, recommendations).
  */
-export const analysisPromptV1: PromptSpec<AnalysisContext> = {
-  id: 'analysis/main',
-  version: ANALYSIS_PROMPT_VERSION,
-  createdAt: '2026-01-26T00:00:00Z',
-  description: 'Main analysis workflow prompt with DETECT→TRACE→UNDERSTAND→RECONCILE→RECOMMEND',
-  tags: ['analysis', 'workflow', 'recommendations'],
-
-  render(ctx: AnalysisContext): PromptMessage[] {
-    const content = buildAnalysisContent(ctx, ANALYSIS_SECTIONS);
-    return [
-      {
-        role: 'user',
-        content,
-      },
-    ];
-  },
-};
-
-function buildAnalysisContent(ctx: AnalysisContext, sections: AnalysisPromptSections): string {
+function buildSeparatedAnalysisContent(
+  ctx: AnalysisContext,
+  sections: AnalysisPromptSections
+): { systemContent: string; userContent: string } {
   const { directory, scanResult, options, existingRecsContext } = ctx;
 
   const configList = formatConfigList(directory, scanResult);
@@ -122,24 +106,17 @@ function buildAnalysisContent(ctx: AnalysisContext, sections: AnalysisPromptSect
 
   const personaBlock = buildMinimalPersonaBlock();
 
-  return `
+  // System content: instructions, persona, workflow - not shown to user
+  const systemContent = `
 ${sections.intro}
 
 ${personaBlock}
 
-Directory: ${directory}
-
-${configList}
-
 ${focusInstructions}
-
-${existingRecsContext}
 
 ${recProtocol}
 
 ${interactiveInstructions}
-
-${subagentGuidance}
 
 ${outputGuidance}
 
@@ -151,6 +128,23 @@ ${sections.outputRequirements}
 
 <!-- Prompt Version: ${ANALYSIS_PROMPT_VERSION} -->
 `.trim();
+
+  // User content: actual task context - the data being analyzed
+  const userContent = `
+## Analysis Task
+
+Analyze the following project:
+
+Directory: ${directory}
+
+${configList}
+
+${existingRecsContext}
+
+${subagentGuidance}
+`.trim();
+
+  return { systemContent, userContent };
 }
 
 function formatConfigList(directory: string, scanResult: AnalysisContext['scanResult']): string {
@@ -469,3 +463,34 @@ ${previousFindings.map((f) => `- ${f}`).join('\n')}
 Continue from where you left off. Do not repeat analysis already performed.
 `.trim();
 }
+
+/**
+ * Analysis prompt specification v1.0.0
+ *
+ * This is a dynamic PromptSpec that requires AnalysisContext at render time.
+ * The context includes directory, scan results, options, and pre-loaded recommendations.
+ *
+ * Returns both system and user messages to properly separate instructions from context.
+ * The system message is sent via body.system in the SDK to avoid appearing in output.
+ */
+export const analysisPromptV1: PromptSpec<AnalysisContext> = {
+  id: 'analysis/main',
+  version: ANALYSIS_PROMPT_VERSION,
+  createdAt: '2026-01-26T00:00:00Z',
+  description: 'Main analysis workflow prompt with DETECT→TRACE→UNDERSTAND→RECONCILE→RECOMMEND',
+  tags: ['analysis', 'workflow', 'recommendations'],
+
+  render(ctx: AnalysisContext): PromptMessage[] {
+    const { systemContent, userContent } = buildSeparatedAnalysisContent(ctx, ANALYSIS_SECTIONS);
+    return [
+      {
+        role: 'system',
+        content: systemContent,
+      },
+      {
+        role: 'user',
+        content: userContent,
+      },
+    ];
+  },
+};

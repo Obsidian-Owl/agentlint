@@ -32,10 +32,14 @@ export interface IOrchestrator {
 
   /**
    * Execute an analysis task
-   * @param task - The task description/prompt
+   * @param task - The task description/prompt (user message)
+   * @param options - Optional settings including systemPrompt
    * @returns AsyncGenerator yielding StreamChunks
    */
-  run(task: string): AsyncGenerator<StreamChunk, void, unknown>;
+  run(
+    task: string,
+    options?: { systemPrompt?: string }
+  ): AsyncGenerator<StreamChunk, void, unknown>;
 
   /**
    * Resume a previous session

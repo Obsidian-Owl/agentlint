@@ -85,14 +85,20 @@ export class OpencodeOrchestrator implements IOrchestrator {
     return this.config.depth;
   }
 
-  public async *run(task: string): AsyncGenerator<StreamChunk, void, unknown> {
+  public async *run(
+    task: string,
+    options?: { systemPrompt?: string }
+  ): AsyncGenerator<StreamChunk, void, unknown> {
     if (this._isActive) {
       throw new OrchestrationError(
         'Cannot start a new run while another is in progress. Call interrupt() first.'
       );
     }
     this._isActive = true;
-    this.logger.debug('Starting run', { taskLength: task.length });
+    this.logger.debug('Starting run', {
+      taskLength: task.length,
+      hasSystemPrompt: !!options?.systemPrompt,
+    });
 
     try {
       await withRetry(
@@ -149,7 +155,11 @@ export class OpencodeOrchestrator implements IOrchestrator {
 
         // Send prompt asynchronously (doesn't block, returns immediately)
         // Events will be captured by the SSE connection we just established
-        await this.client.promptAsync(session.sessionId, task);
+        // System prompt (if provided) is sent via body.system to avoid appearing in output
+        const promptOptions = options?.systemPrompt
+          ? { systemPrompt: options.systemPrompt }
+          : undefined;
+        await this.client.promptAsync(session.sessionId, task, promptOptions);
         this.logger.debug('Prompt sent (async)');
 
         // Now iterate over events - this establishes the SSE connection

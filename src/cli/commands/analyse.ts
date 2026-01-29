@@ -690,7 +690,8 @@ async function runOrchestratedAnalysis(
   registerAllTools(registry);
 
   // Build the analysis prompt (async to load existing recommendations context)
-  const prompt = await buildAnalysisPrompt(directory, scanResult, {
+  // Returns separate system and user prompts to avoid system prompt appearing in output
+  const { systemPrompt, userPrompt } = await buildAnalysisPrompt(directory, scanResult, {
     ...options,
     sessionId: telemetrySessionId,
   });
@@ -814,7 +815,8 @@ async function runOrchestratedAnalysis(
     // This ensures create_recommendation stores files in the target project, not cwd
     return await runWithExecutionContext({ targetDirectory: directory }, async () => {
       // Run the orchestrator and stream output
-      for await (const chunk of orchestrator.run(prompt)) {
+      // System prompt is sent via body.system to avoid appearing in output
+      for await (const chunk of orchestrator.run(userPrompt, { systemPrompt })) {
         // Check for interruption
         if (interrupted) {
           break;

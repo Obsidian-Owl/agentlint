@@ -107,7 +107,6 @@ async function generateLlmGreeting(context: WelcomeContext): Promise<string> {
 
   const systemPrompt = getWelcomeSystemPrompt();
   const userPrompt = getWelcomeUserPrompt(context);
-  const fullPrompt = `${systemPrompt}\n\n${userPrompt}`;
 
   let greeting = '';
   let timedOut = false;
@@ -117,7 +116,8 @@ async function generateLlmGreeting(context: WelcomeContext): Promise<string> {
   }, 5000);
 
   try {
-    for await (const chunk of orchestrator.run(fullPrompt)) {
+    // Pass system prompt separately to avoid it appearing in output
+    for await (const chunk of orchestrator.run(userPrompt, { systemPrompt })) {
       if (timedOut) {
         break;
       }
