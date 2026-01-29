@@ -51,7 +51,7 @@ export {
 } from './content-capture';
 export type { ContentCaptureConfig, ToolCallContent } from './content-capture';
 
-// Orchestrator instrumentation (Phase 3.5 - T025a-c, T025f-g)
+// Orchestrator instrumentation (Phase 3.5 - T025a-c, T025f-g, Phase 5 - T039)
 export {
   extractCacheTokens,
   extractRequestParams,
@@ -61,6 +61,9 @@ export {
   applyCacheTokens,
   applyRequestParams,
   applyResponseDetails,
+  instrumentSession,
+  instrumentToolCall,
+  instrumentLLMCall,
 } from './instrumentation/orchestrator';
 export type {
   CacheTokens,
@@ -68,6 +71,9 @@ export type {
   LLMResponseDetails,
   FindingEventData,
   RecommendationEventData,
+  InstrumentSessionOptions,
+  InstrumentToolOptions,
+  InstrumentLLMOptions,
 } from './instrumentation/orchestrator';
 
 // Local exporter (Phase 4 - T029)

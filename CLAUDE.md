@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 agentlint is a local-first CLI tool for continuous improvement of AI-assisted development workflows. It traces issues to their origins and provides preventive recommendations that compound value over time. Unlike traditional linters, agentlint analyzes the AI development system itself—configuration quality, session effectiveness, and workflow optimization.
 
-**Status**: EP11 Complete (Quality & Security implemented)
+**Status**: EP22 Complete (Unified Observability implemented)
 
 **Stack**: TypeScript + Bun, Opencode SDK (@opencode-ai/sdk), Zod validation, SQLite
 
@@ -15,6 +15,7 @@ agentlint is a local-first CLI tool for continuous improvement of AI-assisted de
 - EP01: Project Setup (CI/CD, TypeScript config, test framework)
 - EP02: Orchestration Core (Opencode SDK wrapper, streaming, checkpoints, session management)
 - EP11: Quality & Security (debug infrastructure, session recording, evaluation framework, outcome tracking)
+- EP22: Unified Observability (trace correlation, GenAI span hierarchy, local JSONL export)
 
 ## Constitution
 
@@ -400,6 +401,60 @@ Tracks recommendation effectiveness for continuous improvement:
   }
 }
 ```
+
+## Observability Module (EP22)
+
+The `src/observability/` module provides unified tracing with OpenTelemetry GenAI semantic conventions:
+
+### Core Components
+
+| Component            | File                   | Purpose                                      |
+| -------------------- | ---------------------- | -------------------------------------------- |
+| TraceContextProvider | `trace-context.ts`     | AsyncLocalStorage-based trace propagation    |
+| TracingSpanFactory   | `span-factory.ts`      | GenAI-convention span creation               |
+| LocalSpanExporter    | `exporters/local-exporter.ts` | NDJSON file export with rotation      |
+| Content Capture      | `content-capture.ts`   | Opt-in tool argument/result capture          |
+
+### Trace Context
+
+```typescript
+import { traceContextProvider, generateTraceId } from './observability';
+
+// All async code within run() shares the same trace context
+const traceId = generateTraceId();
+await traceContextProvider.run(async () => {
+  // Logs and spans automatically include trace_id
+  await orchestrator.run(prompt);
+});
+```
+
+### Span Hierarchy
+
+Session → Tool → LLM spans are created automatically:
+
+```typescript
+import { instrumentSession, instrumentToolCall, instrumentLLMCall } from './observability';
+
+await instrumentSession({ sessionId, target }, async (sessionSpan) => {
+  await instrumentToolCall({ toolName: 'read_file', input }, async (toolSpan) => {
+    // Tool execution
+  });
+  await instrumentLLMCall({ model, tokens }, async (llmSpan) => {
+    // LLM API call
+  });
+});
+```
+
+### Local Export
+
+Spans are written to `~/.agentlint/logs/traces-{date}.ndjson` with automatic rotation at 10MB.
+
+### Environment Variables
+
+| Variable                    | Purpose                              |
+| --------------------------- | ------------------------------------ |
+| `AGENTLINT_CAPTURE_CONTENT` | Enable tool input/output capture     |
+| `AGENTLINT_CAPTURE_MAX_LENGTH` | Max content length (default: 5000) |
 
 ## PromptKit Module (ADR-0022)
 
