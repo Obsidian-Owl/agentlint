@@ -40,3 +40,36 @@ export type {
   LLMSpanOptions,
   StreamSpanOptions,
 } from './span-factory';
+
+// Content capture (Phase 3.5 - T025d, T025e)
+export {
+  isContentCaptureEnabled,
+  getContentCaptureConfig,
+  sanitizeContent,
+  generateToolCallId,
+  captureToolCallContent,
+} from './content-capture';
+export type { ContentCaptureConfig, ToolCallContent } from './content-capture';
+
+// Orchestrator instrumentation (Phase 3.5 - T025a-c, T025f-g)
+export {
+  extractCacheTokens,
+  extractRequestParams,
+  extractResponseDetails,
+  emitFindingEvent,
+  emitRecommendationEvent,
+  applyCacheTokens,
+  applyRequestParams,
+  applyResponseDetails,
+} from './instrumentation/orchestrator';
+export type {
+  CacheTokens,
+  LLMRequestParams,
+  LLMResponseDetails,
+  FindingEventData,
+  RecommendationEventData,
+} from './instrumentation/orchestrator';
+
+// Local exporter (Phase 4 - T029)
+export { LocalSpanExporter, createLocalExporter } from './exporters/local-exporter';
+export type { LocalExporterConfig, ExportableSpan } from './exporters/local-exporter';

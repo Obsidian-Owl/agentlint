@@ -10,6 +10,7 @@
 
 import type { IOrchestratorTelemetryClient } from '../orchestration/types';
 import type { INamespacedLogger } from '../debug/types';
+import type { GenAIProvider } from '../observability/types';
 import {
   truncateToolOutput,
   truncateToolInput,
@@ -17,6 +18,7 @@ import {
 } from '../orchestration/telemetry-utils';
 import { redact } from '../debug/redaction';
 import { MAX_PENDING_TOOLS, TOOL_TRACKING_TTL_MS } from '../telemetry/constants';
+import { traceContextProvider } from '../observability/trace-context';
 
 // =============================================================================
 // Constants
@@ -40,15 +42,79 @@ export interface TelemetryTrackerConfig {
 export interface LLMUsageData {
   inputTokens: number;
   outputTokens: number;
+  reasoningTokens?: number;
   cacheReadTokens?: number;
   cacheWriteTokens?: number;
   cost?: number;
   finishReason?: string;
+  providerID?: string;
+}
+
+/** Tool metadata extracted from SDK */
+export interface ToolMetadata {
+  metadata?: Record<string, unknown>;
+  title?: string;
+  attachmentCount?: number;
+}
+
+/** Session path context from SDK */
+export interface SessionPathContext {
+  workingDirectory?: string;
+  projectRoot?: string;
+}
+
+/** Enhanced error information from SDK */
+export interface ErrorDetails {
+  statusCode?: number;
+  isRetryable?: boolean;
+  category: 'auth' | 'api' | 'rate_limit' | 'timeout' | 'unknown';
+}
+
+/** Session-level totals */
+export interface SessionTotals {
+  totalCostUSD: number;
+  totalInputTokens: number;
+  totalOutputTokens: number;
+  totalReasoningTokens: number;
+}
+
+/**
+ * Extended tool tracking options with additional properties
+ * beyond the base IOrchestratorTelemetryClient interface.
+ */
+interface ExtendedToolOptions extends NonNullable<
+  Parameters<NonNullable<IOrchestratorTelemetryClient['trackToolEx']>>[1]
+> {
+  traceId?: string;
+  spanId?: string;
+  parentSpanId?: string;
+  toolMetadata?: Record<string, unknown>;
+  toolTitle?: string;
+  attachmentCount?: number;
+  errorStatusCode?: number;
+  errorIsRetryable?: boolean;
+  errorCategory?: ErrorDetails['category'];
+}
+
+/**
+ * Extended LLM tracking options with additional properties
+ * beyond the base IOrchestratorTelemetryClient interface.
+ */
+interface ExtendedLLMOptions extends NonNullable<
+  Parameters<NonNullable<IOrchestratorTelemetryClient['trackLLMEx']>>[1]
+> {
+  traceId?: string;
+  spanId?: string;
+  parentSpanId?: string;
+  reasoningTokens?: number;
+  workingDirectory?: string;
+  projectRoot?: string;
 }
 
 interface PendingTool {
   startTime: number;
   input?: Record<string, unknown>;
+  metadata?: ToolMetadata;
 }
 
 // =============================================================================
@@ -73,6 +139,17 @@ export class TelemetryTracker {
   private turnCount = 0;
   private turnStartTime: number | undefined;
 
+  // Session-level totals tracking
+  private sessionTotals: SessionTotals = {
+    totalCostUSD: 0,
+    totalInputTokens: 0,
+    totalOutputTokens: 0,
+    totalReasoningTokens: 0,
+  };
+
+  // Session path context
+  private sessionPath: SessionPathContext = {};
+
   constructor(config: TelemetryTrackerConfig) {
     this.telemetryClient = config.telemetryClient;
     this.sessionId = config.sessionId;
@@ -89,7 +166,7 @@ export class TelemetryTracker {
    * Record start of a tool execution.
    * Stores start time and truncated input for later correlation.
    */
-  onToolStart(toolName: string, input?: Record<string, unknown>): void {
+  onToolStart(toolName: string, input?: Record<string, unknown>, metadata?: ToolMetadata): void {
     this.toolCleanupCounter++;
     if (this.toolCleanupCounter % CLEANUP_INTERVAL === 0) {
       this.cleanupOrphanedEntries();
@@ -111,6 +188,10 @@ export class TelemetryTracker {
       pending.input = truncateToolInput(redactedInput);
     }
 
+    if (metadata) {
+      pending.metadata = metadata;
+    }
+
     // Add to FIFO queue for this tool name
     const queue = this.pendingTools.get(toolName) ?? [];
     queue.push(pending);
@@ -123,7 +204,12 @@ export class TelemetryTracker {
    * Record completion of a tool execution.
    * Correlates with the earliest pending start for this tool name (FIFO).
    */
-  onToolComplete(toolName: string, output?: unknown, isError?: boolean): void {
+  onToolComplete(
+    toolName: string,
+    output?: unknown,
+    isError?: boolean,
+    errorDetails?: ErrorDetails
+  ): void {
     const endTime = Date.now();
     const queue = this.pendingTools.get(toolName);
     const pending = queue?.shift(); // FIFO: take earliest
@@ -144,7 +230,7 @@ export class TelemetryTracker {
     const truncatedOutput = truncateToolOutput(redactedOutput, 5000);
 
     // Build trackToolEx options with exactOptionalPropertyTypes compliance
-    const options: Parameters<NonNullable<IOrchestratorTelemetryClient['trackToolEx']>>[1] = {
+    const options: ExtendedToolOptions = {
       tool: toolName,
       durationMs,
       success,
@@ -173,6 +259,40 @@ export class TelemetryTracker {
       }
     }
 
+    // T032: Add trace context to telemetry events
+    const traceContext = traceContextProvider.getContext();
+    if (traceContext) {
+      options.traceId = traceContext.traceId;
+      options.spanId = traceContext.spanId;
+      if (traceContext.parentSpanId) {
+        options.parentSpanId = traceContext.parentSpanId;
+      }
+    }
+
+    // T025n: Add tool metadata if available
+    if (pending.metadata) {
+      if (pending.metadata.metadata !== undefined) {
+        options.toolMetadata = pending.metadata.metadata;
+      }
+      if (pending.metadata.title !== undefined) {
+        options.toolTitle = pending.metadata.title;
+      }
+      if (pending.metadata.attachmentCount !== undefined) {
+        options.attachmentCount = pending.metadata.attachmentCount;
+      }
+    }
+
+    // T025q: Add error enrichment
+    if (isError && errorDetails) {
+      if (errorDetails.statusCode !== undefined) {
+        options.errorStatusCode = errorDetails.statusCode;
+      }
+      if (errorDetails.isRetryable !== undefined) {
+        options.errorIsRetryable = errorDetails.isRetryable;
+      }
+      options.errorCategory = errorDetails.category;
+    }
+
     this.telemetryClient.trackToolEx?.(this.sessionId, options);
 
     this.logger.debug('Tool tracked', {
@@ -190,7 +310,7 @@ export class TelemetryTracker {
       this.turnStartTime !== undefined ? Date.now() - this.turnStartTime : undefined;
 
     // Build trackLLMEx options with exactOptionalPropertyTypes compliance
-    const options: Parameters<NonNullable<IOrchestratorTelemetryClient['trackLLMEx']>>[1] = {
+    const options: ExtendedLLMOptions = {
       model: this.model,
       inputTokens: data.inputTokens,
       outputTokens: data.outputTokens,
@@ -216,14 +336,48 @@ export class TelemetryTracker {
       options.cacheCreationTokens = data.cacheWriteTokens;
     }
 
-    // Always set provider for agentlint
-    options.provider = 'anthropic';
+    // T025j, T025k: Track reasoning tokens
+    if (data.reasoningTokens !== undefined) {
+      options.reasoningTokens = data.reasoningTokens;
+    }
+
+    // T025i: Extract provider from SDK instead of hardcoding
+    options.provider = this.mapProviderID(data.providerID);
+
+    // T032: Add trace context to telemetry events
+    const traceContext = traceContextProvider.getContext();
+    if (traceContext) {
+      options.traceId = traceContext.traceId;
+      options.spanId = traceContext.spanId;
+      if (traceContext.parentSpanId) {
+        options.parentSpanId = traceContext.parentSpanId;
+      }
+    }
+
+    // T025o: Add session path context if available
+    if (this.sessionPath.workingDirectory !== undefined) {
+      options.workingDirectory = this.sessionPath.workingDirectory;
+    }
+    if (this.sessionPath.projectRoot !== undefined) {
+      options.projectRoot = this.sessionPath.projectRoot;
+    }
 
     this.telemetryClient.trackLLMEx?.(this.sessionId, options);
+
+    // T025p: Update session totals
+    this.sessionTotals.totalInputTokens += data.inputTokens;
+    this.sessionTotals.totalOutputTokens += data.outputTokens;
+    if (data.reasoningTokens) {
+      this.sessionTotals.totalReasoningTokens += data.reasoningTokens;
+    }
+    if (data.cost) {
+      this.sessionTotals.totalCostUSD += data.cost;
+    }
 
     this.logger.debug('LLM usage tracked', {
       inputTokens: data.inputTokens,
       outputTokens: data.outputTokens,
+      reasoningTokens: data.reasoningTokens,
       latencyMs,
     });
   }
@@ -235,6 +389,133 @@ export class TelemetryTracker {
     this.turnCount++;
     this.turnStartTime = Date.now();
     this.logger.debug('Turn started', { turnCount: this.turnCount });
+  }
+
+  /**
+   * Update session path context (working directory and project root).
+   * T025o: Extract from SDK AssistantMessage.path
+   */
+  updateSessionPath(pathContext: SessionPathContext): void {
+    if (pathContext.workingDirectory) {
+      this.sessionPath.workingDirectory = pathContext.workingDirectory;
+    }
+    if (pathContext.projectRoot) {
+      this.sessionPath.projectRoot = pathContext.projectRoot;
+    }
+  }
+
+  /**
+   * Get session totals accumulated during the session.
+   * T025p: Report at session end
+   */
+  getSessionTotals(): Readonly<SessionTotals> {
+    return { ...this.sessionTotals };
+  }
+
+  /**
+   * Map SDK providerID to GenAIProvider type.
+   * T025i: Extract provider from SDK instead of hardcoding 'anthropic'
+   */
+  private mapProviderID(providerID?: string): GenAIProvider {
+    if (!providerID) {
+      return 'unknown';
+    }
+
+    const normalized = providerID.toLowerCase();
+
+    // Direct matches
+    const directMatches: Record<string, GenAIProvider> = {
+      anthropic: 'anthropic',
+      openai: 'openai',
+      google: 'google',
+      bedrock: 'bedrock',
+      azure: 'azure',
+      groq: 'groq',
+      openrouter: 'openrouter',
+      ollama: 'ollama',
+      deepseek: 'deepseek',
+      xai: 'xai',
+      together: 'together',
+      github: 'github',
+    };
+
+    const match = directMatches[normalized];
+    if (match) {
+      return match;
+    }
+
+    // Partial matches for common variations
+    if (normalized.includes('anthropic')) return 'anthropic';
+    if (normalized.includes('openai')) return 'openai';
+    if (normalized.includes('google') || normalized.includes('gemini')) return 'google';
+    if (normalized.includes('bedrock')) return 'bedrock';
+    if (normalized.includes('azure')) return 'azure';
+    if (normalized.includes('groq')) return 'groq';
+    if (normalized.includes('openrouter')) return 'openrouter';
+    if (normalized.includes('ollama')) return 'ollama';
+    if (normalized.includes('deepseek')) return 'deepseek';
+    if (normalized.includes('xai') || normalized.includes('grok')) return 'xai';
+    if (normalized.includes('together')) return 'together';
+    if (normalized.includes('github')) return 'github';
+
+    // Unknown provider - log for visibility
+    this.logger.debug('Unknown provider ID', { providerID });
+    return 'custom';
+  }
+
+  /**
+   * Categorize error based on SDK error details.
+   * T025q: Error enrichment
+   */
+  categorizeError(error: unknown): ErrorDetails {
+    // Type guard for SDK ApiError with message
+    const isApiError = (
+      err: unknown
+    ): err is { statusCode?: number; isRetryable?: boolean; message?: string } => {
+      return (
+        typeof err === 'object' &&
+        err !== null &&
+        ('statusCode' in err || 'isRetryable' in err || 'message' in err)
+      );
+    };
+
+    if (!isApiError(error)) {
+      return { category: 'unknown' };
+    }
+
+    const statusCode = error.statusCode;
+    const isRetryable = error.isRetryable;
+
+    // Categorize based on status code
+    let category: ErrorDetails['category'] = 'unknown';
+
+    if (statusCode !== undefined) {
+      if (statusCode === 401 || statusCode === 403) {
+        category = 'auth';
+      } else if (statusCode === 429) {
+        category = 'rate_limit';
+      } else if (statusCode >= 500) {
+        category = 'api';
+      } else if (statusCode >= 400) {
+        category = 'api';
+      }
+    }
+
+    // Timeout detection (SDK might not set statusCode)
+    if (statusCode === undefined && error.message?.toLowerCase().includes('timeout')) {
+      category = 'timeout';
+    }
+
+    // Build result with exactOptionalPropertyTypes compliance
+    const result: ErrorDetails = { category };
+    if (statusCode !== undefined) {
+      result.statusCode = statusCode;
+    }
+    if (isRetryable !== undefined) {
+      result.isRetryable = isRetryable;
+    }
+
+    return result;
   }
 
   // ===========================================================================
