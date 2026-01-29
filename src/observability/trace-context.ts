@@ -8,6 +8,15 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
 import type { TraceContext, SpanOptions, ActiveSpan, SpanEvent } from './types';
 import { generateTraceId, generateSpanId } from './trace-id';
+import type { ExportableSpan } from './exporters/local-exporter';
+
+/**
+ * SpanExporter interface for exporting completed spans.
+ * Implementation examples: LocalSpanExporter (JSONL), OtlpExporter (OTLP/HTTP).
+ */
+export interface SpanExporter {
+  export(spans: ExportableSpan[]): void;
+}
 
 // Global storage for trace context
 const traceStorage = new AsyncLocalStorage<TraceContext>();
@@ -32,6 +41,18 @@ const traceStorage = new AsyncLocalStorage<TraceContext>();
  * ```
  */
 export class TraceContextProvider {
+  private exporter?: SpanExporter;
+
+  /**
+   * Register a span exporter for automatic span export.
+   * When registered, completed spans are automatically exported.
+   *
+   * @param exporter - SpanExporter implementation
+   */
+  registerExporter(exporter: SpanExporter): void {
+    this.exporter = exporter;
+  }
+
   /**
    * Run a function with a new trace context.
    * Creates a new trace ID and root span.
@@ -109,8 +130,55 @@ export class TraceContextProvider {
       },
     };
 
-    // Run function with child context
-    return traceStorage.run(childContext, () => fn(span));
+    // Run function with child context and export span if exporter is registered
+    try {
+      const result = await traceStorage.run(childContext, () => fn(span));
+
+      // Export completed span if exporter is registered
+      if (this.exporter) {
+        const endTime = Date.now();
+        const exportableSpan: ExportableSpan = {
+          traceId: childContext.traceId,
+          spanId: newSpanId,
+          ...(parentSpanId ? { parentSpanId } : {}),
+          name: options.name,
+          kind: 'internal',
+          startTime,
+          endTime,
+          durationMs: endTime - startTime,
+          status: { code: 'ok' },
+          attributes,
+          events,
+        };
+        this.exporter.export([exportableSpan]);
+      }
+
+      return result;
+    } catch (error) {
+      // Export span with error status if exporter is registered
+      if (this.exporter) {
+        const endTime = Date.now();
+        const exportableSpan: ExportableSpan = {
+          traceId: childContext.traceId,
+          spanId: newSpanId,
+          ...(parentSpanId ? { parentSpanId } : {}),
+          name: options.name,
+          kind: 'internal',
+          startTime,
+          endTime,
+          durationMs: endTime - startTime,
+          status: {
+            code: 'error',
+            message: error instanceof Error ? error.message : String(error),
+          },
+          attributes,
+          events,
+        };
+        this.exporter.export([exportableSpan]);
+      }
+
+      throw error;
+    }
   }
 
   /**

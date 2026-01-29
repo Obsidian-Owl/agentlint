@@ -25,7 +25,12 @@ export { DEFAULT_OBSERVABILITY_CONFIG } from './config';
 export { generateTraceId, generateSpanId, formatTraceparent, parseTraceparent } from './trace-id';
 
 // Trace context provider
-export { TraceContextProvider, traceContextProvider, traceStorage } from './trace-context';
+export {
+  TraceContextProvider,
+  traceContextProvider,
+  traceStorage,
+  type SpanExporter,
+} from './trace-context';
 
 // Span factory
 export {
