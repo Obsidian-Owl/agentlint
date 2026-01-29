@@ -427,7 +427,12 @@ function InnerApp({
         {showQuitDialog && (
           <DialogOverlay title="Confirm Quit">
             <QuitDialog
-              onConfirm={() => void Promise.resolve(onExit?.()).finally(() => exit())}
+              onConfirm={() => {
+                // Wait for cleanup to complete before exiting
+                // onExit may be async (saves session, stops orchestrator)
+                const exitPromise = Promise.resolve(onExit?.());
+                void exitPromise.then(() => exit()).catch(() => exit());
+              }}
               onCancel={() => setShowQuitDialog(false)}
             />
           </DialogOverlay>

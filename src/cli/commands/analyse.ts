@@ -1048,8 +1048,8 @@ async function runOrchestratedAnalysis(
     // Clean up interrupt handler
     process.removeListener('SIGINT', handleInterrupt);
 
-    // Exit cleanly after TUI stops (prevents hanging after 'q' press)
-    process.exit(0);
+    // Note: Don't force process.exit(0) here - let normal control flow return
+    // The TUI renderer stop() and exit() callbacks handle process termination
   }
 }
 

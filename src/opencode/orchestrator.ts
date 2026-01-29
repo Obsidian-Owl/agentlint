@@ -37,6 +37,8 @@ export class OpencodeOrchestrator implements IOrchestrator {
   private readonly streamAdapter: StreamAdapter;
   private readonly logger: INamespacedLogger;
   private readonly telemetryTracker: TelemetryTracker | null;
+  /** Abort controller for the current stream - allows interrupt() to cancel the SSE connection */
+  private streamAbortController: AbortController | null = null;
 
   constructor(config: OrchestratorConfig, toolRegistry: IToolRegistry) {
     this.config = loadConfig(config);
@@ -132,10 +134,11 @@ export class OpencodeOrchestrator implements IOrchestrator {
 
       this.telemetryTracker?.onTurnStart();
 
-      const controller = new AbortController();
+      // Use instance abort controller so interrupt()/dispose() can cancel the stream
+      this.streamAbortController = new AbortController();
       const timeoutId = setTimeout(() => {
         this.logger.warn('Stream timeout reached', { timeoutMs: STREAM_TIMEOUT_MS });
-        controller.abort();
+        this.streamAbortController?.abort();
       }, STREAM_TIMEOUT_MS);
 
       try {
@@ -152,8 +155,8 @@ export class OpencodeOrchestrator implements IOrchestrator {
         // Now iterate over events - this establishes the SSE connection
         // and processes events as they arrive
         for await (const chunk of this.streamAdapter.adaptStream(events)) {
-          if (controller.signal.aborted) {
-            this.logger.debug('Stream aborted due to timeout');
+          if (this.streamAbortController?.signal.aborted) {
+            this.logger.debug('Stream aborted');
             break;
           }
           yield chunk;
@@ -163,6 +166,7 @@ export class OpencodeOrchestrator implements IOrchestrator {
         }
       } finally {
         clearTimeout(timeoutId);
+        this.streamAbortController = null;
       }
 
       this.logger.debug('Stream complete');
@@ -197,10 +201,15 @@ export class OpencodeOrchestrator implements IOrchestrator {
   // eslint-disable-next-line @typescript-eslint/require-await
   public async interrupt(): Promise<void> {
     this._isActive = false;
+    // Abort the SSE stream if active
+    this.streamAbortController?.abort();
     this.sessionManager?.clearAll();
   }
 
   public dispose(): void {
+    // Abort any active stream first
+    this.streamAbortController?.abort();
+    this.streamAbortController = null;
     this.sessionManager?.clearAll();
     if (this.server.isRunning()) {
       try {
