@@ -190,7 +190,7 @@ function InnerApp({
         if (currentDialog) return;
         if (showQuitDialog) return;
 
-        if (input === 'q') {
+        if (input.toLowerCase() === 'q') {
           setShowQuitDialog(true);
           return;
         }
@@ -232,7 +232,7 @@ function InnerApp({
   const { statusBar } = state;
 
   return (
-    <Box flexDirection="column" height="100%">
+    <Box flexDirection="column">
       {/* Header */}
       <Box borderStyle="single" borderColor="gray" paddingX={1} justifyContent="space-between">
         <Text bold color="cyan">

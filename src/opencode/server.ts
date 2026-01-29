@@ -165,6 +165,7 @@ export class OpencodeServerManager implements IServerManager {
       timeout: this.config.timeout,
       config: {
         agent: buildOpencodeAgents() as Record<string, AgentConfig>,
+        mcp: {}, // Explicitly empty - don't load target repo's MCP config
       },
     });
 

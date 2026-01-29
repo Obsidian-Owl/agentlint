@@ -97,10 +97,10 @@ describe('StreamAdapter', () => {
     it('should handle multiple events in sequence', async () => {
       const adapter = new StreamAdapter();
       const events: OpencodeEvent[] = [
-        { type: 'message.part.updated', properties: { text: 'First' } },
+        { type: 'message.part.updated', properties: { part: { text: 'First' } } },
         { type: 'tool.call.started', properties: { name: 'tool1' } },
         { type: 'tool.call.completed', properties: { name: 'tool1' } },
-        { type: 'message.part.updated', properties: { text: 'Second' } },
+        { type: 'message.part.updated', properties: { part: { text: 'Second' } } },
       ];
 
       const chunks = [];
@@ -217,6 +217,96 @@ describe('StreamAdapter', () => {
     });
   });
 
+  describe('delta tracking (streaming duplicate fix)', () => {
+    it('should calculate deltas when SDK sends accumulated text in each event', async () => {
+      const adapter = new StreamAdapter();
+      // Simulate real Opencode SDK behavior - each event has FULL accumulated text
+      const events: OpencodeEvent[] = [
+        { type: 'message.part.updated', properties: { part: { id: 'part1', text: 'Hello' } } },
+        {
+          type: 'message.part.updated',
+          properties: { part: { id: 'part1', text: 'Hello world' } },
+        },
+        {
+          type: 'message.part.updated',
+          properties: { part: { id: 'part1', text: 'Hello world!' } },
+        },
+      ];
+
+      const chunks = [];
+      for await (const chunk of adapter.adaptStream(createMockEventStream(events))) {
+        chunks.push(chunk);
+      }
+
+      expect(chunks).toHaveLength(3);
+      expect(chunks[0]?.content).toBe('Hello'); // First chunk: full text
+      expect(chunks[1]?.content).toBe(' world'); // Second chunk: only delta
+      expect(chunks[2]?.content).toBe('!'); // Third chunk: only delta
+    });
+
+    it('should handle multiple parts with separate state tracking', async () => {
+      const adapter = new StreamAdapter();
+      const events: OpencodeEvent[] = [
+        { type: 'message.part.updated', properties: { part: { id: 'part1', text: 'First' } } },
+        { type: 'message.part.updated', properties: { part: { id: 'part2', text: 'Second' } } },
+        { type: 'message.part.updated', properties: { part: { id: 'part1', text: 'First part' } } },
+        {
+          type: 'message.part.updated',
+          properties: { part: { id: 'part2', text: 'Second part' } },
+        },
+      ];
+
+      const chunks = [];
+      for await (const chunk of adapter.adaptStream(createMockEventStream(events))) {
+        chunks.push(chunk);
+      }
+
+      expect(chunks).toHaveLength(4);
+      expect(chunks[0]?.content).toBe('First');
+      expect(chunks[1]?.content).toBe('Second');
+      expect(chunks[2]?.content).toBe(' part'); // Delta for part1
+      expect(chunks[3]?.content).toBe(' part'); // Delta for part2
+    });
+
+    it('should handle duplicate events (no new content)', async () => {
+      const adapter = new StreamAdapter();
+      const events: OpencodeEvent[] = [
+        { type: 'message.part.updated', properties: { part: { id: 'part1', text: 'Hello' } } },
+        { type: 'message.part.updated', properties: { part: { id: 'part1', text: 'Hello' } } }, // Duplicate
+        {
+          type: 'message.part.updated',
+          properties: { part: { id: 'part1', text: 'Hello world' } },
+        },
+      ];
+
+      const chunks = [];
+      for await (const chunk of adapter.adaptStream(createMockEventStream(events))) {
+        chunks.push(chunk);
+      }
+
+      expect(chunks).toHaveLength(2); // Duplicate filtered out
+      expect(chunks[0]?.content).toBe('Hello');
+      expect(chunks[1]?.content).toBe(' world');
+    });
+
+    it('should use default part ID when no ID provided', async () => {
+      const adapter = new StreamAdapter();
+      const events: OpencodeEvent[] = [
+        { type: 'message.part.updated', properties: { part: { text: 'First' } } }, // No ID
+        { type: 'message.part.updated', properties: { part: { text: 'First chunk' } } }, // No ID
+      ];
+
+      const chunks = [];
+      for await (const chunk of adapter.adaptStream(createMockEventStream(events))) {
+        chunks.push(chunk);
+      }
+
+      expect(chunks).toHaveLength(2);
+      expect(chunks[0]?.content).toBe('First');
+      expect(chunks[1]?.content).toBe(' chunk');
+    });
+  });
+
   describe('edge cases', () => {
     it('should propagate isError in tool result metadata', async () => {
       const adapter = new StreamAdapter();
@@ -328,28 +418,25 @@ describe('StreamAdapter', () => {
         chunks.push(chunk);
       }
 
-      // message.part.updated with null data → extractText returns ''
-      expect(chunks[0]?.type).toBe('text');
-      expect(chunks[0]?.content).toBe('');
-
+      // message.part.updated with null data → extractText returns '', delta is empty, filtered out
       // tool.call.started with null data → extractToolName returns 'unknown'
-      expect(chunks[1]?.type).toBe('tool_start');
-      expect(chunks[1]?.content).toContain('unknown');
+      expect(chunks[0]?.type).toBe('tool_start');
+      expect(chunks[0]?.content).toContain('unknown');
 
       // tool.call.completed with null data → extractToolName returns 'unknown'
-      expect(chunks[2]?.type).toBe('tool_result');
-      expect(chunks[2]?.content).toContain('unknown');
+      expect(chunks[1]?.type).toBe('tool_result');
+      expect(chunks[1]?.content).toContain('unknown');
 
       // status.updated with null data → extractStatus returns 'status update'
-      expect(chunks[3]?.type).toBe('status');
-      expect(chunks[3]?.content).toBe('status update');
+      expect(chunks[2]?.type).toBe('status');
+      expect(chunks[2]?.content).toBe('status update');
 
       // message.updated with null data → filtered out (isMessageEventData returns false)
       // session.error with null data → 'Unknown session error'
-      expect(chunks[4]?.type).toBe('error');
-      expect(chunks[4]?.content).toBe('Unknown session error');
+      expect(chunks[3]?.type).toBe('error');
+      expect(chunks[3]?.content).toBe('Unknown session error');
 
-      expect(chunks).toHaveLength(5);
+      expect(chunks).toHaveLength(4);
     });
 
     it('should handle non-string text values', async () => {
@@ -361,9 +448,8 @@ describe('StreamAdapter', () => {
         chunks.push(chunk);
       }
 
-      expect(chunks).toHaveLength(1);
-      expect(chunks[0]?.type).toBe('text');
-      expect(chunks[0]?.content).toBe('');
+      // Non-string text → extractText returns '', delta is empty, filtered out
+      expect(chunks).toHaveLength(0);
     });
 
     it('should handle non-string status values', async () => {

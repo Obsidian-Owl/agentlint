@@ -23,6 +23,13 @@ export interface OpencodeEvent {
 }
 
 export class StreamAdapter {
+  /**
+   * Track accumulated text per part ID to calculate deltas.
+   * The Opencode SDK sends COMPLETE accumulated text in each event,
+   * not incremental deltas.
+   */
+  private partTextState: Map<string, string> = new Map();
+
   async *adaptStream(events: AsyncIterable<OpencodeEvent>): AsyncIterable<StreamChunk> {
     for await (const event of events) {
       const chunk = this.convertEvent(event);
@@ -53,14 +60,43 @@ export class StreamAdapter {
     }
   }
 
-  private handleTextEvent(event: OpencodeEvent, timestamp: string): StreamChunk {
-    const text = extractText(event.properties);
+  private handleTextEvent(event: OpencodeEvent, timestamp: string): StreamChunk | null {
+    // Extract part ID and full accumulated text
+    const partId = this.extractPartId(event.properties) ?? 'default';
+    const fullText = extractText(event.properties);
+    const previousText = this.partTextState.get(partId) ?? '';
+
+    // Calculate delta - only the NEW text
+    const delta = fullText.startsWith(previousText)
+      ? fullText.slice(previousText.length)
+      : fullText;
+
+    // Update state
+    this.partTextState.set(partId, fullText);
+
+    // Skip if no new content
+    if (!delta) return null;
+
     return {
       type: 'text',
       level: 'normal' as VerbosityLevel,
-      content: text,
+      content: delta,
       timestamp,
     };
+  }
+
+  /**
+   * Extract part ID from event properties for tracking text state.
+   * SDK structure: { part: { id?: string } }
+   */
+  private extractPartId(data: unknown): string | null {
+    if (typeof data !== 'object' || data === null) return null;
+    const obj = data as Record<string, unknown>;
+    if (obj.part && typeof obj.part === 'object') {
+      const part = obj.part as Record<string, unknown>;
+      return typeof part.id === 'string' ? part.id : null;
+    }
+    return null;
   }
 
   private handleToolStartEvent(event: OpencodeEvent, timestamp: string): StreamChunk {
