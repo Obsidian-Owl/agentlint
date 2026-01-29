@@ -21,7 +21,7 @@ export interface IOpencodeClient {
     options?: { systemPrompt?: string }
   ): Promise<void>;
   subscribe(): AsyncIterable<unknown>;
-  subscribeEager(): Promise<AsyncIterable<unknown>>;
+  subscribeEager(options?: { directory?: string }): Promise<AsyncIterable<unknown>>;
   isConnected(): boolean;
 }
 
@@ -168,15 +168,20 @@ export class AgentlintOpencodeClient implements IOpencodeClient {
    * Establish SSE connection and return the event stream.
    * Unlike subscribe(), this eagerly connects and returns the stream object.
    * Use this when you need to ensure connection before sending a prompt.
+   *
+   * @param options - Optional configuration including directory scope
+   * @param options.directory - Directory to scope events to (defaults to SDK's default)
    */
-  async subscribeEager(): Promise<AsyncIterable<unknown>> {
+  async subscribeEager(options?: { directory?: string }): Promise<AsyncIterable<unknown>> {
     this.ensureConnected();
 
     if (!this.client) {
       throw new Error('Client is not initialized');
     }
 
-    const events = await this.client.event.subscribe();
+    // Only pass query if directory is provided (exactOptionalPropertyTypes compliance)
+    const subscribeOptions = options?.directory ? { query: { directory: options.directory } } : {};
+    const events = await this.client.event.subscribe(subscribeOptions);
     return events.stream;
   }
 
