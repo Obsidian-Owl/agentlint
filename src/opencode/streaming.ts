@@ -31,12 +31,22 @@ export class StreamAdapter {
   private partTextState: Map<string, string> = new Map();
 
   async *adaptStream(events: AsyncIterable<OpencodeEvent>): AsyncIterable<StreamChunk> {
+    console.error('[SSE DEBUG] Starting to iterate event stream');
+    let eventCount = 0;
     for await (const event of events) {
+      eventCount++;
+      console.error(`[SSE DEBUG] Received event #${eventCount}: type=${event.type}`);
       const chunk = this.convertEvent(event);
       if (chunk) {
+        console.error(
+          `[SSE DEBUG] Yielding chunk: type=${chunk.type}, content length=${chunk.content.length}`
+        );
         yield chunk;
+      } else {
+        console.error(`[SSE DEBUG] Event converted to null, skipping`);
       }
     }
+    console.error(`[SSE DEBUG] Stream iteration complete, total events: ${eventCount}`);
   }
 
   private convertEvent(event: OpencodeEvent): StreamChunk | null {

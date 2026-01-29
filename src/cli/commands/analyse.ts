@@ -753,31 +753,31 @@ async function runOrchestratedAnalysis(
 
   // Set up interrupt handler
   let interrupted = false;
-  const handleInterrupt = (): void => {
+  const handleInterrupt = async (): Promise<void> => {
     if (!interrupted) {
       interrupted = true;
-      orchestrator
-        .interrupt()
-        .then(() => {
-          renderer.renderChunk({
-            type: 'status',
-            level: 'normal',
-            content: 'Analysis interrupted by user',
-            timestamp: new Date().toISOString(),
-          });
-        })
-        .catch((error) => {
-          // Interrupt failed - log but continue shutdown
-          console.error(
-            'Failed to interrupt orchestrator:',
-            error instanceof Error ? error.message : error
-          );
+      try {
+        await orchestrator.interrupt();
+        renderer.renderChunk({
+          type: 'status',
+          level: 'normal',
+          content: 'Analysis interrupted by user',
+          timestamp: new Date().toISOString(),
         });
+      } catch (error) {
+        // Interrupt failed - log but continue shutdown
+        console.error(
+          'Failed to interrupt orchestrator:',
+          error instanceof Error ? error.message : error
+        );
+      }
     }
   };
 
   // Bind interrupt handler
-  process.on('SIGINT', handleInterrupt);
+  process.on('SIGINT', () => {
+    void handleInterrupt();
+  });
 
   // Start TUI renderer and welcome flow if present (for Ink mode)
   let conversationManager: ConversationManager | undefined;
@@ -790,10 +790,12 @@ async function runOrchestratedAnalysis(
       },
       onExit: async () => {
         interrupted = true;
-        handleInterrupt();
+        await handleInterrupt();
         if (conversationManager) {
           await conversationManager.saveSession();
         }
+        // CRITICAL: Stop the server before exiting
+        orchestrator.dispose();
       },
     });
 
@@ -1047,8 +1049,8 @@ async function runOrchestratedAnalysis(
     }
     // Stop TUI renderer if present
     tuiRenderer?.stop();
-    // Clean up interrupt handler
-    process.removeListener('SIGINT', handleInterrupt);
+    // Clean up interrupt handler (reference to the wrapper function)
+    process.removeAllListeners('SIGINT');
 
     // Note: Don't force process.exit(0) here - let normal control flow return
     // The TUI renderer stop() and exit() callbacks handle process termination

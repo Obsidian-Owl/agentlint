@@ -151,19 +151,30 @@ export class OpencodeOrchestrator implements IOrchestrator {
         // CRITICAL: Start iterating the SSE stream BEFORE sending prompt
         // The SDK's subscribe returns a generator that only starts when iterated
         // Pass cwd to scope events to this project directory
+        this.logger.debug('About to call subscribeEager', { directory: this.config.cwd });
+        console.error(
+          '[ORCHESTRATOR DEBUG] Calling subscribeEager with directory:',
+          this.config.cwd
+        );
+
         const eventStream = (await this.client.subscribeEager({
           directory: this.config.cwd,
         })) as AsyncIterable<OpencodeEvent>;
         this.logger.debug('SSE subscription created', { directory: this.config.cwd });
+        console.error('[ORCHESTRATOR DEBUG] subscribeEager returned, creating adaptedStream');
 
         // Create an async iterator from the adapted stream
         const adaptedStream = this.streamAdapter.adaptStream(eventStream);
         const iterator = adaptedStream[Symbol.asyncIterator]();
+        console.error(
+          '[ORCHESTRATOR DEBUG] Created iterator, calling next() to start HTTP request'
+        );
 
         // Start the iteration (this makes the HTTP request) before sending prompt
         // Use a promise that we'll resolve after sending the prompt
         const firstEventPromise = iterator.next();
         this.logger.debug('SSE iteration started (HTTP request sent)');
+        console.error('[ORCHESTRATOR DEBUG] Called iterator.next(), sending prompt...');
 
         // Now send the prompt - events will be captured by the active SSE connection
         // System prompt (if provided) is sent via body.system to avoid appearing in output
@@ -172,16 +183,20 @@ export class OpencodeOrchestrator implements IOrchestrator {
           : undefined;
         await this.client.promptAsync(session.sessionId, task, promptOptions);
         this.logger.debug('Prompt sent (async)');
+        console.error('[ORCHESTRATOR DEBUG] Prompt sent, waiting for first event...');
 
         // Process events using the manual iterator
         let result = await firstEventPromise;
+        console.error('[ORCHESTRATOR DEBUG] Got first event result, done=', result.done);
         while (!result.done) {
           if (this.streamAbortController?.signal.aborted) {
             this.logger.debug('Stream aborted');
+            console.error('[ORCHESTRATOR DEBUG] Stream aborted by AbortController');
             break;
           }
 
           const chunk = result.value;
+          console.error('[ORCHESTRATOR DEBUG] Processing chunk:', chunk.type);
           yield chunk;
 
           // Forward telemetry-relevant chunks to tracker
@@ -189,8 +204,10 @@ export class OpencodeOrchestrator implements IOrchestrator {
 
           // Get next event
           result = await iterator.next();
+          console.error('[ORCHESTRATOR DEBUG] Got next event result, done=', result.done);
         }
         this.logger.debug('SSE stream completed');
+        console.error('[ORCHESTRATOR DEBUG] SSE stream completed');
       } finally {
         clearTimeout(timeoutId);
         this.streamAbortController = null;

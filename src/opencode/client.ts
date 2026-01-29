@@ -179,9 +179,12 @@ export class AgentlintOpencodeClient implements IOpencodeClient {
       throw new Error('Client is not initialized');
     }
 
+    console.error('[CLIENT DEBUG] subscribeEager called with options:', options);
     // Only pass query if directory is provided (exactOptionalPropertyTypes compliance)
     const subscribeOptions = options?.directory ? { query: { directory: options.directory } } : {};
+    console.error('[CLIENT DEBUG] Calling event.subscribe with:', subscribeOptions);
     const events = await this.client.event.subscribe(subscribeOptions);
+    console.error('[CLIENT DEBUG] event.subscribe returned, returning stream');
     return events.stream;
   }
 
