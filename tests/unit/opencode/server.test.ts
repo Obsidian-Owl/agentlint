@@ -249,7 +249,11 @@ describe('OpencodeServerManager', () => {
       const testDir = join(tmpdir(), `agentlint-test-${Date.now()}`);
       const lockDir = join(testDir, '.agentlint');
       mkdirSync(lockDir, { recursive: true });
-      writeFileSync(join(lockDir, '.server-port'), '4096', 'utf-8');
+      writeFileSync(
+        join(lockDir, '.server-port'),
+        JSON.stringify({ port: 4096, pid: process.pid }),
+        'utf-8'
+      );
 
       try {
         const server = new OpencodeServerManager({ port: 4096 }, testDir);
@@ -305,7 +309,11 @@ describe('OpencodeServerManager', () => {
       const testDir = join(tmpdir(), `agentlint-test-${Date.now()}`);
       const lockDir = join(testDir, '.agentlint');
       mkdirSync(lockDir, { recursive: true });
-      writeFileSync(join(lockDir, '.server-port'), '9999', 'utf-8'); // Different port
+      writeFileSync(
+        join(lockDir, '.server-port'),
+        JSON.stringify({ port: 9999, pid: process.pid }),
+        'utf-8'
+      ); // Different port
 
       try {
         const server = new OpencodeServerManager({ port: 4096 }, testDir);

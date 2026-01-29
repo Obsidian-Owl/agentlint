@@ -41,27 +41,37 @@ function getServerLockPath(cwd: string): string {
 }
 
 /**
- * Write the server port to the lockfile.
+ * Write the server port and PID to the lockfile.
  */
-function writeServerLock(cwd: string, port: number): void {
+function writeServerLock(cwd: string, port: number, pid: number): void {
   const lockPath = getServerLockPath(cwd);
   mkdirSync(dirname(lockPath), { recursive: true });
-  writeFileSync(lockPath, String(port), 'utf-8');
+  writeFileSync(lockPath, JSON.stringify({ port, pid }), 'utf-8');
 }
 
 /**
- * Read the server port from the lockfile.
+ * Read the server port and PID from the lockfile.
  * Returns null if the lockfile doesn't exist or can't be read.
  */
-function readServerLock(cwd: string): number | null {
+function readServerLock(cwd: string): { port: number; pid: number } | null {
   const lockPath = getServerLockPath(cwd);
   if (!existsSync(lockPath)) {
     return null;
   }
   try {
     const content = readFileSync(lockPath, 'utf-8').trim();
-    const port = parseInt(content, 10);
-    return isNaN(port) ? null : port;
+    const parsed = JSON.parse(content) as unknown;
+    if (
+      typeof parsed === 'object' &&
+      parsed !== null &&
+      'port' in parsed &&
+      'pid' in parsed &&
+      typeof parsed.port === 'number' &&
+      typeof parsed.pid === 'number'
+    ) {
+      return { port: parsed.port, pid: parsed.pid };
+    }
+    return null;
   } catch {
     return null;
   }
@@ -76,6 +86,32 @@ function clearServerLock(cwd: string): void {
     unlinkSync(lockPath);
   } catch {
     // Ignore errors when clearing lockfile
+  }
+}
+
+/**
+ * Try to kill an orphaned server process.
+ * Returns true if the process was killed or doesn't exist.
+ */
+function tryKillOrphanedServer(cwd: string): boolean {
+  const lock = readServerLock(cwd);
+  if (!lock) {
+    return false;
+  }
+
+  try {
+    // Check if process exists before attempting to kill
+    process.kill(lock.pid, 0); // Signal 0 tests for existence without actually killing
+    // If we reach here, process exists - now kill it
+    process.kill(lock.pid, 'SIGTERM');
+    // Clear the lockfile immediately
+    clearServerLock(cwd);
+    return true;
+  } catch {
+    // Process doesn't exist or can't be killed
+    // Either way, clear the lockfile
+    clearServerLock(cwd);
+    return false;
   }
 }
 
@@ -140,18 +176,43 @@ export class OpencodeServerManager implements IServerManager {
     }
 
     // Check if port is available before binding
-    const portCheck = await this.checkPortAvailable();
+    let portCheck = await this.checkPortAvailable();
     if (!portCheck.available) {
       if (portCheck.isAgentlint && !portCheck.healthy) {
+        // Try to clean up orphaned server
+        this.logger.debug('Attempting to clean up orphaned agentlint server', {
+          port: this.config.port,
+        });
+
+        const killed = tryKillOrphanedServer(this.cwd);
+        if (killed) {
+          // Wait briefly for the port to be released
+          await new Promise((resolve) => setTimeout(resolve, 200));
+
+          // Retry the port check once
+          portCheck = await this.checkPortAvailable();
+          if (!portCheck.available) {
+            throw new Error(
+              `Port ${this.config.port} is still occupied after cleanup. ` +
+                `Please manually stop the process and try again.`
+            );
+          }
+          // Port is now available, continue startup
+          this.logger.info('Successfully cleaned up orphaned server', {
+            port: this.config.port,
+          });
+        } else {
+          throw new Error(
+            `Port ${this.config.port} is occupied by an unhealthy agentlint server. ` +
+              `Cleanup failed. Please stop the existing process before starting a new one.`
+          );
+        }
+      } else {
         throw new Error(
-          `Port ${this.config.port} is occupied by an unhealthy agentlint server. ` +
-            `Please stop the existing process before starting a new one.`
+          `Port ${this.config.port} is already in use by another process. ` +
+            `Please stop the conflicting process or use a different port.`
         );
       }
-      throw new Error(
-        `Port ${this.config.port} is already in use by another process. ` +
-          `Please stop the conflicting process or use a different port.`
-      );
     }
 
     this.logger.debug('Starting new Opencode server', {
@@ -171,8 +232,8 @@ export class OpencodeServerManager implements IServerManager {
 
     this.running = true;
 
-    // Write lockfile to mark this as an agentlint server
-    writeServerLock(this.cwd, this.config.port);
+    // Write lockfile to mark this as an agentlint server with PID
+    writeServerLock(this.cwd, this.config.port, process.pid);
 
     this.logger.info('Opencode server started', { url: this.server.url });
   }
@@ -231,14 +292,15 @@ export class OpencodeServerManager implements IServerManager {
           // Check if this is our agentlint server by verifying:
           // 1. It has the session endpoint (Opencode server)
           // 2. The lockfile exists and matches this port
-          const lockPort = readServerLock(this.cwd);
-          const isAgentlint = hasSessionEndpoint && lockPort === this.config.port;
+          const lock = readServerLock(this.cwd);
+          const isAgentlint = hasSessionEndpoint && lock?.port === this.config.port;
 
           this.logger.debug('Port check: service responding', {
             port: this.config.port,
             status: response.status,
             hasSessionEndpoint,
-            lockPort,
+            lockPort: lock?.port,
+            lockPid: lock?.pid,
             isAgentlint,
           });
 
