@@ -151,12 +151,10 @@ export class OpencodeOrchestrator implements IOrchestrator {
         // CRITICAL: Start iterating the SSE stream BEFORE sending prompt
         // The SDK's subscribe returns a generator that only starts when iterated
         // Pass cwd to scope events to this project directory
-        this.logger.debug('About to call subscribeEager', { directory: this.config.cwd });
-
-        const eventStream = (await this.client.subscribeEager({
-          directory: this.config.cwd,
-        })) as AsyncIterable<OpencodeEvent>;
-        this.logger.debug('SSE subscription created', { directory: this.config.cwd });
+        // NOTE: Don't pass directory filter - it was filtering out message events
+        // because sessions aren't associated with directories in the SDK
+        const eventStream = (await this.client.subscribeEager()) as AsyncIterable<OpencodeEvent>;
+        this.logger.debug('SSE subscription created (no directory filter)');
 
         // Create an async iterator from the adapted stream
         const adaptedStream = this.streamAdapter.adaptStream(eventStream);
