@@ -14,7 +14,6 @@ import {
   buildFollowUpPrompt,
   createUserMessage,
   createAssistantMessage,
-  isFollowUpQuestion,
   interpretNumericChoice,
 } from '../../tui/welcome/conversation';
 import {
@@ -95,7 +94,6 @@ export class ConversationManager {
       this.session = addMessageToSession(this.session, userMessage);
     }
 
-    const isFollowUp = isFollowUpQuestion(trimmed, this.currentContext);
     let processedInput = trimmed;
 
     if (this.currentContext.pendingOptions.length > 0) {
@@ -113,9 +111,8 @@ export class ConversationManager {
         currentContext: this.currentContext,
       });
 
-      const fullPrompt = isFollowUp
-        ? `${systemPrompt}\n\n${userPrompt}`
-        : `Analyze and respond to: ${processedInput}`;
+      // Always use the full conversational prompt - don't skip to bare "analyze" mode
+      const fullPrompt = `${systemPrompt}\n\n${userPrompt}`;
 
       let responseContent = '';
 
