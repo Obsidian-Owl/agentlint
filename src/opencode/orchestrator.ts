@@ -148,13 +148,21 @@ export class OpencodeOrchestrator implements IOrchestrator {
       }, STREAM_TIMEOUT_MS);
 
       try {
-        // CRITICAL: Establish SSE connection BEFORE sending prompt
-        // subscribeEager() awaits the connection, unlike subscribe() which is lazy
-        const events = (await this.client.subscribeEager()) as AsyncIterable<OpencodeEvent>;
-        this.logger.debug('SSE connection established');
+        // CRITICAL: Start iterating the SSE stream BEFORE sending prompt
+        // The SDK's subscribe returns a generator that only starts when iterated
+        const eventStream = (await this.client.subscribeEager()) as AsyncIterable<OpencodeEvent>;
+        this.logger.debug('SSE subscription created');
 
-        // Send prompt asynchronously (doesn't block, returns immediately)
-        // Events will be captured by the SSE connection we just established
+        // Create an async iterator from the adapted stream
+        const adaptedStream = this.streamAdapter.adaptStream(eventStream);
+        const iterator = adaptedStream[Symbol.asyncIterator]();
+
+        // Start the iteration (this makes the HTTP request) before sending prompt
+        // Use a promise that we'll resolve after sending the prompt
+        const firstEventPromise = iterator.next();
+        this.logger.debug('SSE iteration started (HTTP request sent)');
+
+        // Now send the prompt - events will be captured by the active SSE connection
         // System prompt (if provided) is sent via body.system to avoid appearing in output
         const promptOptions = options?.systemPrompt
           ? { systemPrompt: options.systemPrompt }
@@ -162,18 +170,24 @@ export class OpencodeOrchestrator implements IOrchestrator {
         await this.client.promptAsync(session.sessionId, task, promptOptions);
         this.logger.debug('Prompt sent (async)');
 
-        // Now iterate over events - this establishes the SSE connection
-        // and processes events as they arrive
-        for await (const chunk of this.streamAdapter.adaptStream(events)) {
+        // Process events using the manual iterator
+        let result = await firstEventPromise;
+        while (!result.done) {
           if (this.streamAbortController?.signal.aborted) {
             this.logger.debug('Stream aborted');
             break;
           }
+
+          const chunk = result.value;
           yield chunk;
 
           // Forward telemetry-relevant chunks to tracker
           this.forwardToTelemetry(chunk);
+
+          // Get next event
+          result = await iterator.next();
         }
+        this.logger.debug('SSE stream completed');
       } finally {
         clearTimeout(timeoutId);
         this.streamAbortController = null;
