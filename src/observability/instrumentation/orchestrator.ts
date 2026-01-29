@@ -4,11 +4,13 @@
  * Utilities for capturing LLM span attributes, cache tokens, hyperparameters,
  * and analysis events (findings/recommendations).
  *
- * Tasks: T025a, T025b, T025c, T025f, T025g
+ * High-level instrumentation hooks for session, tool, and LLM span creation.
+ *
+ * Tasks: T025a, T025b, T025c, T025f, T025g, T039, T040
  */
 
-import type { ActiveSpan } from '../types';
-import { GenAIAttributes } from '../span-factory';
+import type { ActiveSpan, GenAIProvider } from '../types';
+import { GenAIAttributes, spanFactory } from '../span-factory';
 
 /** Cache token data from Anthropic responses */
 export interface CacheTokens {
@@ -229,4 +231,189 @@ export function applyResponseDetails(span: ActiveSpan, details: LLMResponseDetai
   if (details.tokensPerSecond !== undefined) {
     span.setAttribute('gen_ai.response.tokens_per_second', details.tokensPerSecond);
   }
+}
+
+// =============================================================================
+// High-Level Instrumentation Hooks (T039)
+// =============================================================================
+
+/**
+ * Instrumentation hook options for session span creation.
+ */
+export interface InstrumentSessionOptions {
+  sessionId: string;
+  target: string;
+  provider?: GenAIProvider;
+  command?: string;
+}
+
+/**
+ * Instrumentation hook options for tool span creation.
+ */
+export interface InstrumentToolOptions {
+  toolName: string;
+  callId?: string;
+  input?: Record<string, unknown>;
+}
+
+/**
+ * Instrumentation hook options for LLM span creation.
+ */
+export interface InstrumentLLMOptions {
+  model: string;
+  provider?: GenAIProvider;
+  temperature?: number;
+  maxTokens?: number;
+  tokens?: {
+    input: number;
+    output: number;
+  };
+}
+
+/**
+ * Create a session span (root span for an agentlint session).
+ * T039: High-level hook that uses existing spanFactory and traceContextProvider.
+ *
+ * @param options - Session configuration
+ * @param fn - Function to run within the session span
+ * @returns Result of the function
+ *
+ * @example
+ * ```typescript
+ * await instrumentSession(
+ *   { sessionId: 'abc123', target: '/path/to/project' },
+ *   async (span) => {
+ *     // Session work here
+ *     span.addEvent('session.started');
+ *   }
+ * );
+ * ```
+ */
+export async function instrumentSession<T>(
+  options: InstrumentSessionOptions,
+  fn: (span: ActiveSpan) => T | Promise<T>
+): Promise<T> {
+  // Build span options with exactOptionalPropertyTypes compliance
+  const spanOptions: {
+    sessionId: string;
+    target?: string;
+    provider?: GenAIProvider;
+    command?: string;
+  } = {
+    sessionId: options.sessionId,
+  };
+
+  if (options.target !== undefined) {
+    spanOptions.target = options.target;
+  }
+  if (options.provider !== undefined) {
+    spanOptions.provider = options.provider;
+  }
+  if (options.command !== undefined) {
+    spanOptions.command = options.command;
+  }
+
+  return spanFactory.createSessionSpan(spanOptions, fn);
+}
+
+/**
+ * Create a tool span (child span for tool execution).
+ * T039: High-level hook that uses existing spanFactory and traceContextProvider.
+ *
+ * @param options - Tool configuration
+ * @param fn - Function to run within the tool span
+ * @returns Result of the function
+ *
+ * @example
+ * ```typescript
+ * await instrumentToolCall(
+ *   { toolName: 'read_file', input: { path: '/foo/bar.ts' } },
+ *   async (span) => {
+ *     const content = await readFile('/foo/bar.ts');
+ *     span.addEvent('file.read', { size: content.length });
+ *     return content;
+ *   }
+ * );
+ * ```
+ */
+export async function instrumentToolCall<T>(
+  options: InstrumentToolOptions,
+  fn: (span: ActiveSpan) => T | Promise<T>
+): Promise<T> {
+  // Build span options with exactOptionalPropertyTypes compliance
+  const spanOptions: {
+    toolName: string;
+    callId?: string;
+    input?: Record<string, unknown>;
+  } = {
+    toolName: options.toolName,
+  };
+
+  if (options.callId !== undefined) {
+    spanOptions.callId = options.callId;
+  }
+  if (options.input !== undefined) {
+    spanOptions.input = options.input;
+  }
+
+  return spanFactory.createToolSpan(spanOptions, fn);
+}
+
+/**
+ * Create an LLM span (child span for LLM API call).
+ * T039: High-level hook that uses existing spanFactory and traceContextProvider.
+ *
+ * @param options - LLM configuration
+ * @param fn - Function to run within the LLM span
+ * @returns Result of the function
+ *
+ * @example
+ * ```typescript
+ * await instrumentLLMCall(
+ *   {
+ *     model: 'claude-sonnet-4',
+ *     provider: 'anthropic',
+ *     tokens: { input: 1000, output: 500 }
+ *   },
+ *   async (span) => {
+ *     const response = await callLLM(prompt);
+ *     span.setAttribute('gen_ai.usage.input_tokens', 1000);
+ *     span.setAttribute('gen_ai.usage.output_tokens', 500);
+ *     return response;
+ *   }
+ * );
+ * ```
+ */
+export async function instrumentLLMCall<T>(
+  options: InstrumentLLMOptions,
+  fn: (span: ActiveSpan) => T | Promise<T>
+): Promise<T> {
+  // Build span options with exactOptionalPropertyTypes compliance
+  const spanOptions: {
+    model: string;
+    provider?: GenAIProvider;
+    temperature?: number;
+    maxTokens?: number;
+  } = {
+    model: options.model,
+  };
+
+  if (options.provider !== undefined) {
+    spanOptions.provider = options.provider;
+  }
+  if (options.temperature !== undefined) {
+    spanOptions.temperature = options.temperature;
+  }
+  if (options.maxTokens !== undefined) {
+    spanOptions.maxTokens = options.maxTokens;
+  }
+
+  return spanFactory.createLLMSpan(spanOptions, async (span) => {
+    // If tokens are provided upfront, add them as attributes
+    if (options.tokens) {
+      span.setAttribute(GenAIAttributes.USAGE_INPUT_TOKENS, options.tokens.input);
+      span.setAttribute(GenAIAttributes.USAGE_OUTPUT_TOKENS, options.tokens.output);
+    }
+    return fn(span);
+  });
 }
