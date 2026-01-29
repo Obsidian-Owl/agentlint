@@ -99,6 +99,12 @@ export interface LogEntry {
 
   /** Duration in ms (for timed operations) */
   durationMs?: number;
+
+  /** W3C trace ID for correlation (optional for backward compat) */
+  trace_id?: string;
+
+  /** Span ID within the trace (optional) */
+  span_id?: string;
 }
 
 // =============================================================================

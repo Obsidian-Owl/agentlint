@@ -16,14 +16,14 @@ import {
   extractErrorMessage,
 } from '../orchestration/telemetry-utils';
 import { redact } from '../debug/redaction';
+import { MAX_PENDING_TOOLS, TOOL_TRACKING_TTL_MS } from '../telemetry/constants';
 
 // =============================================================================
 // Constants
 // =============================================================================
 
-const MAX_PENDING_TOOLS = 100;
-const TOOL_TRACKING_TTL_MS = 5 * 60 * 1000; // 5 minutes
-const CLEANUP_INTERVAL = 10; // Clean up every N onToolStart calls
+// Clean up every N onToolStart calls (local to this module)
+const CLEANUP_INTERVAL = 10;
 
 // =============================================================================
 // Types

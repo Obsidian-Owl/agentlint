@@ -57,6 +57,15 @@ export const DEBUG_NAMESPACES = {
 
   /** Recommendation advisor */
   ADVISOR: 'agentlint:advisor',
+
+  /** Streaming adapter and SSE events */
+  STREAMING: 'agentlint:streaming',
+
+  /** Terminal User Interface */
+  TUI: 'agentlint:tui',
+
+  /** Unified observability system */
+  OBSERVABILITY: 'agentlint:observability',
 } as const;
 
 /**

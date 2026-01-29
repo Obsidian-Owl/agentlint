@@ -13,6 +13,10 @@
  */
 
 import { redact } from '../debug/redaction';
+import type { SessionStartData } from './types';
+
+// Re-export SessionStartData for backward compatibility
+export type { SessionStartData };
 
 // =============================================================================
 // Event Types
@@ -39,16 +43,7 @@ export type TelemetryEventType =
 // Event Data Types (Type-Safe Per Event)
 // =============================================================================
 
-/**
- * Data for session.start event.
- */
-export interface SessionStartData {
-  command: 'analyse' | 'scan' | 'compare' | 'validate' | 'trace';
-  hasConfig: boolean;
-  projectType?: string;
-  /** Project/directory name for human-readable session naming */
-  directory?: string;
-}
+// SessionStartData is imported from ./types.ts (canonical location)
 
 /**
  * Data for session.end event.
@@ -234,6 +229,12 @@ export interface TelemetryEvent {
   sequence: number;
   /** Parent event ID for trace hierarchy */
   parentEventId?: string;
+  /** W3C trace ID for correlation */
+  traceId?: string;
+  /** Current span ID */
+  spanId?: string;
+  /** Parent span ID for hierarchy */
+  parentSpanId?: string;
   /** Event-specific data */
   data: Record<string, unknown>;
   /** Event metadata */

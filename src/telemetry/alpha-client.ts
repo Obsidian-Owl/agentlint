@@ -23,6 +23,13 @@ import type {
   TrackPromptOptions,
 } from './index';
 import { type TelemetryEvent, createTelemetryEvent, getTelemetryMeta } from './events';
+import { createDebugLogger, DEBUG_NAMESPACES } from '../debug';
+import { FLUSH_INTERVAL_MS, MAX_BUFFER_SIZE, REQUEST_TIMEOUT_MS } from './constants';
+
+// Create module-level logger
+const logger = createDebugLogger({
+  namespaces: [DEBUG_NAMESPACES.ORCHESTRATION],
+});
 
 // =============================================================================
 // Constants
@@ -34,15 +41,6 @@ import { type TelemetryEvent, createTelemetryEvent, getTelemetryMeta } from './e
  */
 const PROXY_ENDPOINT =
   process.env['AGENTLINT_TELEMETRY_ENDPOINT'] ?? 'https://agentlint.vercel.app/api/events';
-
-/** Flush interval in milliseconds (10 seconds) */
-const FLUSH_INTERVAL_MS = 10_000;
-
-/** Maximum events to buffer before forcing flush */
-const MAX_BUFFER_SIZE = 100;
-
-/** Request timeout in milliseconds */
-const REQUEST_TIMEOUT_MS = 5_000;
 
 // =============================================================================
 // Error Classification
@@ -704,7 +702,7 @@ export class AlphaTelemetryClient implements ITelemetryClient {
    */
   private logWarning(message: string): void {
     if (process.env['AGENTLINT_TELEMETRY_DEBUG'] === '1') {
-      console.error(`[telemetry] ${message}`);
+      logger.warn(DEBUG_NAMESPACES.ORCHESTRATION, `[telemetry] ${message}`);
     }
   }
 }
