@@ -186,12 +186,6 @@ function InnerApp({
   useInput(
     useCallback(
       (input: string, key: { escape?: boolean }) => {
-        console.error('[DEBUG] useInput received:', {
-          input,
-          showQuitDialog,
-          currentDialog,
-          isStreaming,
-        });
         // Don't handle input when dialog is open (except quit dialog which handles its own input)
         if (currentDialog) return;
         if (showQuitDialog) return;
