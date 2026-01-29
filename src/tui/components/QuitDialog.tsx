@@ -27,7 +27,9 @@ export function QuitDialog({ onConfirm, onCancel }: QuitDialogProps): React.Reac
   const [selectedNo, setSelectedNo] = useState(true);
 
   useInput((input, key) => {
+    console.error('[QUIT DEBUG] QuitDialog received input:', input, 'key:', key);
     if (input.toLowerCase() === 'y') {
+      console.error('[QUIT DEBUG] Calling onConfirm()');
       onConfirm();
       return;
     }

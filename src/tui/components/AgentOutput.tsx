@@ -143,6 +143,11 @@ function groupConsecutiveTextChunks(chunks: StreamChunk[]): ChunkGroup[] {
  * ```
  */
 export function AgentOutput({ chunks, isStreaming }: AgentOutputProps): React.ReactElement {
+  // Debug: log chunk count on every render
+  console.error(
+    `[RENDER DEBUG] AgentOutput rendering with ${chunks.length} chunks, isStreaming=${isStreaming}`
+  );
+
   const chunkPhases = useMemo(() => {
     return chunks.map((chunk, index) => {
       if (chunk.type === 'tool_start') {

@@ -206,7 +206,9 @@ export class InkRenderer implements ITuiRenderer {
    * Render a stream chunk.
    */
   renderChunk(chunk: StreamChunk): void {
-    this.chunks.push(chunk);
+    // CRITICAL: Create new array reference for React to detect changes
+    // Array mutation (push) doesn't trigger React re-renders
+    this.chunks = [...this.chunks, chunk];
     this.isStreaming = true;
 
     // Track phase changes
