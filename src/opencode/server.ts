@@ -1,8 +1,83 @@
 import { createOpencodeServer } from '@opencode-ai/sdk';
 import type { AgentConfig } from '@opencode-ai/sdk';
+import { existsSync, writeFileSync, readFileSync, unlinkSync, mkdirSync } from 'node:fs';
+import { join, dirname } from 'node:path';
 import { buildOpencodeAgents } from '../act/index.js';
 import { createDebugLogger } from '../debug/logger.js';
 import { DEBUG_NAMESPACES } from '../debug/namespaces.js';
+
+/**
+ * Simple hash function for consistent port generation.
+ * Converts a string to a 32-bit integer hash.
+ */
+function hashString(str: string): number {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return Math.abs(hash);
+}
+
+/**
+ * Generate a deterministic port number for a project directory.
+ * Uses IANA dynamic/private port range (49152-65535).
+ * Same project path always returns same port.
+ */
+export function getProjectPort(projectPath: string): number {
+  const PORT_MIN = 49152;
+  const PORT_MAX = 65535;
+  const range = PORT_MAX - PORT_MIN;
+  const hash = hashString(projectPath);
+  return PORT_MIN + (hash % range);
+}
+
+/**
+ * Get the path to the server lockfile for a project directory.
+ */
+function getServerLockPath(cwd: string): string {
+  return join(cwd, '.agentlint', '.server-port');
+}
+
+/**
+ * Write the server port to the lockfile.
+ */
+function writeServerLock(cwd: string, port: number): void {
+  const lockPath = getServerLockPath(cwd);
+  mkdirSync(dirname(lockPath), { recursive: true });
+  writeFileSync(lockPath, String(port), 'utf-8');
+}
+
+/**
+ * Read the server port from the lockfile.
+ * Returns null if the lockfile doesn't exist or can't be read.
+ */
+function readServerLock(cwd: string): number | null {
+  const lockPath = getServerLockPath(cwd);
+  if (!existsSync(lockPath)) {
+    return null;
+  }
+  try {
+    const content = readFileSync(lockPath, 'utf-8').trim();
+    const port = parseInt(content, 10);
+    return isNaN(port) ? null : port;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Clear the server lockfile.
+ */
+function clearServerLock(cwd: string): void {
+  const lockPath = getServerLockPath(cwd);
+  try {
+    unlinkSync(lockPath);
+  } catch {
+    // Ignore errors when clearing lockfile
+  }
+}
 
 export interface OpencodeServerConfig {
   port?: number;
@@ -26,15 +101,17 @@ export interface IServerManager {
 
 export class OpencodeServerManager implements IServerManager {
   private readonly config: Required<OpencodeServerConfig>;
+  private readonly cwd: string;
   private server: { url: string; close(): void } | null = null;
   private running = false;
   private readonly logger = createDebugLogger({
     namespaces: [DEBUG_NAMESPACES.SERVER],
   }).child(DEBUG_NAMESPACES.SERVER);
 
-  constructor(config: OpencodeServerConfig = {}) {
+  constructor(config: OpencodeServerConfig = {}, cwd: string = process.cwd()) {
+    this.cwd = cwd;
     this.config = {
-      port: config.port ?? 4096,
+      port: config.port ?? getProjectPort(cwd),
       hostname: config.hostname ?? '127.0.0.1',
       timeout: config.timeout ?? 5000,
     };
@@ -92,6 +169,10 @@ export class OpencodeServerManager implements IServerManager {
     });
 
     this.running = true;
+
+    // Write lockfile to mark this as an agentlint server
+    writeServerLock(this.cwd, this.config.port);
+
     this.logger.info('Opencode server started', { url: this.server.url });
   }
 
@@ -103,6 +184,10 @@ export class OpencodeServerManager implements IServerManager {
     const serverToClose = this.server;
     this.server = null;
     this.running = false;
+
+    // Clear lockfile
+    clearServerLock(this.cwd);
+
     try {
       serverToClose.close();
     } catch {
@@ -140,11 +225,19 @@ export class OpencodeServerManager implements IServerManager {
         try {
           const body = await response.json();
           // Opencode SDK /session endpoint returns an array of sessions
-          const isAgentlint = Boolean(body && Array.isArray(body));
+          const hasSessionEndpoint = Boolean(body && Array.isArray(body));
+
+          // Check if this is our agentlint server by verifying:
+          // 1. It has the session endpoint (Opencode server)
+          // 2. The lockfile exists and matches this port
+          const lockPort = readServerLock(this.cwd);
+          const isAgentlint = hasSessionEndpoint && lockPort === this.config.port;
 
           this.logger.debug('Port check: service responding', {
             port: this.config.port,
             status: response.status,
+            hasSessionEndpoint,
+            lockPort,
             isAgentlint,
           });
 

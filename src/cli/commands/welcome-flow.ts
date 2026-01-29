@@ -12,11 +12,19 @@
 import type { ITuiRenderer, LoadingStep } from '../../tui/types';
 import type { LoadingStepId, WelcomeContext } from '../../tui/welcome/types';
 import { loadWelcomeContext } from '../../tui/welcome/context-loader';
-import { formatContextSummary, generateMenuOptions } from '../../tui/welcome/welcome-prompt';
+import {
+  formatContextSummary,
+  generateMenuOptions,
+  getWelcomeSystemPrompt,
+  getWelcomeUserPrompt,
+} from '../../tui/welcome/welcome-prompt';
+import { OpencodeOrchestrator } from '../../opencode/orchestrator.js';
+import { createToolRegistry } from '../../orchestration/tool-registry.js';
 
 export interface WelcomeFlowOptions {
   projectPath?: string;
   gitTimeout?: number;
+  useLlmGreeting?: boolean; // Opt-in: use LLM for greeting (default: false)
 }
 
 export interface WelcomeFlowResult {
@@ -65,7 +73,18 @@ export async function runWelcomeFlow(
     status: 'Ready',
   });
 
-  const welcomeMessage = formatContextSummary(context);
+  let welcomeMessage: string;
+
+  if (options.useLlmGreeting) {
+    try {
+      welcomeMessage = await generateLlmGreeting(context);
+    } catch {
+      // Fallback to static greeting on any error
+      welcomeMessage = formatContextSummary(context);
+    }
+  } else {
+    welcomeMessage = formatContextSummary(context);
+  }
   const menuOptions = generateMenuOptions(context);
 
   tuiRenderer.setWelcomeMenu(menuOptions);
@@ -77,4 +96,44 @@ export async function runWelcomeFlow(
   });
 
   return { context, welcomeMessage };
+}
+
+async function generateLlmGreeting(context: WelcomeContext): Promise<string> {
+  const toolRegistry = createToolRegistry();
+  const orchestrator = new OpencodeOrchestrator(
+    { cwd: context.projectPath ?? process.cwd() },
+    toolRegistry
+  );
+
+  const systemPrompt = getWelcomeSystemPrompt();
+  const userPrompt = getWelcomeUserPrompt(context);
+  const fullPrompt = `${systemPrompt}\n\n${userPrompt}`;
+
+  let greeting = '';
+  let timedOut = false;
+
+  const timeoutId = setTimeout(() => {
+    timedOut = true;
+  }, 5000);
+
+  try {
+    for await (const chunk of orchestrator.run(fullPrompt)) {
+      if (timedOut) {
+        break;
+      }
+      if (chunk.type === 'text') {
+        greeting += chunk.content;
+      }
+    }
+
+    if (timedOut) {
+      throw new Error('Greeting timeout');
+    }
+
+    return greeting.trim() || formatContextSummary(context);
+  } finally {
+    clearTimeout(timeoutId);
+    // CRITICAL: Always dispose orchestrator to prevent port conflicts
+    orchestrator.dispose();
+  }
 }

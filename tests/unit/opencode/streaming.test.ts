@@ -12,7 +12,10 @@ describe('StreamAdapter', () => {
     it('should convert text events to StreamChunks', async () => {
       const adapter = new StreamAdapter();
       const events: OpencodeEvent[] = [
-        { type: 'message.part.updated', data: { text: 'Hello world' } },
+        {
+          type: 'message.part.updated',
+          properties: { part: { type: 'text', text: 'Hello world' } },
+        },
       ];
 
       const chunks = [];
@@ -29,7 +32,7 @@ describe('StreamAdapter', () => {
     it('should convert tool start events', async () => {
       const adapter = new StreamAdapter();
       const events: OpencodeEvent[] = [
-        { type: 'tool.call.started', data: { name: 'analyze_config' } },
+        { type: 'tool.call.started', properties: { name: 'analyze_config' } },
       ];
 
       const chunks = [];
@@ -46,7 +49,7 @@ describe('StreamAdapter', () => {
     it('should convert tool result events', async () => {
       const adapter = new StreamAdapter();
       const events: OpencodeEvent[] = [
-        { type: 'tool.call.completed', data: { name: 'analyze_config' } },
+        { type: 'tool.call.completed', properties: { name: 'analyze_config' } },
       ];
 
       const chunks = [];
@@ -61,7 +64,9 @@ describe('StreamAdapter', () => {
 
     it('should convert status events', async () => {
       const adapter = new StreamAdapter();
-      const events: OpencodeEvent[] = [{ type: 'status.updated', data: { status: 'thinking' } }];
+      const events: OpencodeEvent[] = [
+        { type: 'status.updated', properties: { status: 'thinking' } },
+      ];
 
       const chunks = [];
       for await (const chunk of adapter.adaptStream(createMockEventStream(events))) {
@@ -76,8 +81,8 @@ describe('StreamAdapter', () => {
     it('should skip unknown event types', async () => {
       const adapter = new StreamAdapter();
       const events: OpencodeEvent[] = [
-        { type: 'unknown.event', data: {} },
-        { type: 'message.part.updated', data: { text: 'visible' } },
+        { type: 'unknown.event', properties: {} },
+        { type: 'message.part.updated', properties: { part: { type: 'text', text: 'visible' } } },
       ];
 
       const chunks = [];
@@ -92,10 +97,10 @@ describe('StreamAdapter', () => {
     it('should handle multiple events in sequence', async () => {
       const adapter = new StreamAdapter();
       const events: OpencodeEvent[] = [
-        { type: 'message.part.updated', data: { text: 'First' } },
-        { type: 'tool.call.started', data: { name: 'tool1' } },
-        { type: 'tool.call.completed', data: { name: 'tool1' } },
-        { type: 'message.part.updated', data: { text: 'Second' } },
+        { type: 'message.part.updated', properties: { text: 'First' } },
+        { type: 'tool.call.started', properties: { name: 'tool1' } },
+        { type: 'tool.call.completed', properties: { name: 'tool1' } },
+        { type: 'message.part.updated', properties: { text: 'Second' } },
       ];
 
       const chunks = [];
@@ -115,7 +120,7 @@ describe('StreamAdapter', () => {
       const events: OpencodeEvent[] = [
         {
           type: 'message.updated',
-          data: {
+          properties: {
             tokens: { input: 100, output: 50, reasoning: 10, cache: { read: 20, write: 5 } },
             cost: 0.003,
             finish: 'end_turn',
@@ -142,7 +147,7 @@ describe('StreamAdapter', () => {
 
     it('should skip message.updated events with no telemetry data', async () => {
       const adapter = new StreamAdapter();
-      const events: OpencodeEvent[] = [{ type: 'message.updated', data: {} }];
+      const events: OpencodeEvent[] = [{ type: 'message.updated', properties: {} }];
 
       const chunks = [];
       for await (const chunk of adapter.adaptStream(createMockEventStream(events))) {
@@ -155,7 +160,7 @@ describe('StreamAdapter', () => {
     it('should convert session.error events', async () => {
       const adapter = new StreamAdapter();
       const events: OpencodeEvent[] = [
-        { type: 'session.error', data: { message: 'Rate limit exceeded', code: 429 } },
+        { type: 'session.error', properties: { message: 'Rate limit exceeded', code: 429 } },
       ];
 
       const chunks = [];
@@ -190,7 +195,7 @@ describe('StreamAdapter', () => {
       const events: OpencodeEvent[] = [
         {
           type: 'tool.call.completed',
-          data: {
+          properties: {
             name: 'analyze_config',
             time: { start: 1000, end: 2000 },
             output: { result: 'ok' },
@@ -218,7 +223,7 @@ describe('StreamAdapter', () => {
       const events: OpencodeEvent[] = [
         {
           type: 'tool.call.completed',
-          data: { name: 'broken_tool', output: 'fail', isError: true },
+          properties: { name: 'broken_tool', output: 'fail', isError: true },
         },
       ];
 
@@ -237,7 +242,7 @@ describe('StreamAdapter', () => {
       const events: OpencodeEvent[] = [
         {
           type: 'message.updated',
-          data: { tokens: { input: 10, output: 5 } },
+          properties: { tokens: { input: 10, output: 5 } },
         },
       ];
 
@@ -258,7 +263,7 @@ describe('StreamAdapter', () => {
       const events: OpencodeEvent[] = [
         {
           type: 'message.updated',
-          data: { cost: 0.001 },
+          properties: { cost: 0.001 },
         },
       ];
 
@@ -279,7 +284,7 @@ describe('StreamAdapter', () => {
       const events: OpencodeEvent[] = [
         {
           type: 'message.updated',
-          data: { finish: 'stop' },
+          properties: { finish: 'stop' },
         },
       ];
 
@@ -310,12 +315,12 @@ describe('StreamAdapter', () => {
     it('should handle null data gracefully for all event types', async () => {
       const adapter = new StreamAdapter();
       const events: OpencodeEvent[] = [
-        { type: 'message.part.updated', data: null },
-        { type: 'tool.call.started', data: null },
-        { type: 'tool.call.completed', data: null },
-        { type: 'status.updated', data: null },
-        { type: 'message.updated', data: null },
-        { type: 'session.error', data: null },
+        { type: 'message.part.updated', properties: null },
+        { type: 'tool.call.started', properties: null },
+        { type: 'tool.call.completed', properties: null },
+        { type: 'status.updated', properties: null },
+        { type: 'message.updated', properties: null },
+        { type: 'session.error', properties: null },
       ];
 
       const chunks = [];
@@ -349,7 +354,7 @@ describe('StreamAdapter', () => {
 
     it('should handle non-string text values', async () => {
       const adapter = new StreamAdapter();
-      const events: OpencodeEvent[] = [{ type: 'message.part.updated', data: { text: 42 } }];
+      const events: OpencodeEvent[] = [{ type: 'message.part.updated', properties: { text: 42 } }];
 
       const chunks = [];
       for await (const chunk of adapter.adaptStream(createMockEventStream(events))) {
@@ -363,7 +368,7 @@ describe('StreamAdapter', () => {
 
     it('should handle non-string status values', async () => {
       const adapter = new StreamAdapter();
-      const events: OpencodeEvent[] = [{ type: 'status.updated', data: { status: 123 } }];
+      const events: OpencodeEvent[] = [{ type: 'status.updated', properties: { status: 123 } }];
 
       const chunks = [];
       for await (const chunk of adapter.adaptStream(createMockEventStream(events))) {

@@ -8,12 +8,7 @@
 
 import type { IOrchestrator } from '../orchestration/interfaces';
 import type { IToolRegistry } from '../orchestration/tool-registry';
-import type {
-  OrchestratorConfig,
-  SessionState,
-  StreamChunk,
-  VerbosityLevel,
-} from '../orchestration/types';
+import type { OrchestratorConfig, SessionState, StreamChunk } from '../orchestration/types';
 import type { INamespacedLogger } from '../debug/types';
 import { loadConfig, type ResolvedOrchestratorConfig } from '../orchestration/config';
 import { withRetry } from '../orchestration/retry';
@@ -37,8 +32,8 @@ export class OpencodeOrchestrator implements IOrchestrator {
   private _isActive = false;
   private _currentSessionId: string | null = null;
   private readonly server: OpencodeServerManager;
-  private readonly client: AgentlintOpencodeClient;
-  private readonly sessionManager: HybridSessionManager;
+  private client: AgentlintOpencodeClient | null = null;
+  private sessionManager: HybridSessionManager | null = null;
   private readonly streamAdapter: StreamAdapter;
   private readonly logger: INamespacedLogger;
   private readonly telemetryTracker: TelemetryTracker | null;
@@ -46,9 +41,9 @@ export class OpencodeOrchestrator implements IOrchestrator {
   constructor(config: OrchestratorConfig, toolRegistry: IToolRegistry) {
     this.config = loadConfig(config);
     this.toolRegistry = toolRegistry;
-    this.server = new OpencodeServerManager({ port: 4096 });
-    this.client = new AgentlintOpencodeClient({ baseUrl: 'http://localhost:4096' });
-    this.sessionManager = new HybridSessionManager(this.client);
+    // Server uses project-specific port derived from cwd (no hardcoded port!)
+    this.server = new OpencodeServerManager({}, this.config.cwd);
+    // Client is initialized lazily after server.start() to get the actual port
     this.streamAdapter = new StreamAdapter();
     this.logger = getDefaultLogger().child(DEBUG_NAMESPACES.ORCHESTRATION);
 
@@ -105,11 +100,20 @@ export class OpencodeOrchestrator implements IOrchestrator {
           this.logger.warn('Server start retry', { attempt, delayMs: delay, error: error.message });
         }
       );
-      this.logger.debug('Server started');
-      yield this.createChunk('status', 'normal', 'Server started');
+      this.logger.debug('Server started', { port: this.server.getPort() });
+
+      // Initialize client with the server's actual port (project-specific)
+      // Only create new instances if not already set (allows test injection)
+      if (!this.client) {
+        const serverUrl = this.server.getUrl();
+        this.client = new AgentlintOpencodeClient({ baseUrl: serverUrl });
+      }
+      if (!this.sessionManager) {
+        this.sessionManager = new HybridSessionManager(this.client);
+      }
 
       await withRetry(
-        () => this.client.connect(),
+        () => this.client!.connect(),
         { maxRetries: 3 },
         (attempt, delay, error) => {
           this.logger.warn('Client connect retry', {
@@ -126,8 +130,6 @@ export class OpencodeOrchestrator implements IOrchestrator {
       this._sessionState = this.createInitialState(task, session.sessionId);
       this.logger.debug('Session started', { sessionId: session.sessionId });
 
-      await this.client.prompt(session.sessionId, task);
-
       this.telemetryTracker?.onTurnStart();
 
       const controller = new AbortController();
@@ -137,7 +139,18 @@ export class OpencodeOrchestrator implements IOrchestrator {
       }, STREAM_TIMEOUT_MS);
 
       try {
-        const events = this.client.subscribe() as AsyncIterable<OpencodeEvent>;
+        // CRITICAL: Establish SSE connection BEFORE sending prompt
+        // subscribeEager() awaits the connection, unlike subscribe() which is lazy
+        const events = (await this.client.subscribeEager()) as AsyncIterable<OpencodeEvent>;
+        this.logger.debug('SSE connection established');
+
+        // Send prompt asynchronously (doesn't block, returns immediately)
+        // Events will be captured by the SSE connection we just established
+        await this.client.promptAsync(session.sessionId, task);
+        this.logger.debug('Prompt sent (async)');
+
+        // Now iterate over events - this establishes the SSE connection
+        // and processes events as they arrive
         for await (const chunk of this.streamAdapter.adaptStream(events)) {
           if (controller.signal.aborted) {
             this.logger.debug('Stream aborted due to timeout');
@@ -163,7 +176,7 @@ export class OpencodeOrchestrator implements IOrchestrator {
         });
       }
       // Clean up session to prevent memory leak
-      if (this._currentSessionId) {
+      if (this._currentSessionId && this.sessionManager) {
         this.sessionManager.clearSession(this._currentSessionId);
         this._currentSessionId = null;
       }
@@ -184,11 +197,11 @@ export class OpencodeOrchestrator implements IOrchestrator {
   // eslint-disable-next-line @typescript-eslint/require-await
   public async interrupt(): Promise<void> {
     this._isActive = false;
-    this.sessionManager.clearAll();
+    this.sessionManager?.clearAll();
   }
 
   public dispose(): void {
-    this.sessionManager.clearAll();
+    this.sessionManager?.clearAll();
     if (this.server.isRunning()) {
       try {
         this.server.stop();
@@ -292,23 +305,5 @@ export class OpencodeOrchestrator implements IOrchestrator {
         agentType: 'claude-code',
       },
     };
-  }
-
-  private createChunk(
-    type: StreamChunk['type'],
-    level: VerbosityLevel,
-    content: string,
-    metadata?: Record<string, unknown>
-  ): StreamChunk {
-    const chunk: StreamChunk = {
-      type,
-      level,
-      content,
-      timestamp: new Date().toISOString(),
-    };
-    if (metadata) {
-      chunk.metadata = metadata;
-    }
-    return chunk;
   }
 }

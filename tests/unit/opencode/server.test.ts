@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'bun:test';
-import { OpencodeServerManager } from '../../../src/opencode/server';
+import { OpencodeServerManager, getProjectPort } from '../../../src/opencode/server';
+import { mkdirSync, writeFileSync, rmSync } from 'node:fs';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 
 /** Centralizes `as unknown as` casts — a private field rename only breaks this one spot. */
 interface ServerInternals {
@@ -14,12 +17,35 @@ function getInternals(server: OpencodeServerManager): ServerInternals {
   return server as unknown as ServerInternals;
 }
 
+describe('getProjectPort', () => {
+  it('should generate port in valid range', () => {
+    const port = getProjectPort('/some/project/path');
+    expect(port).toBeGreaterThanOrEqual(49152);
+    expect(port).toBeLessThanOrEqual(65535);
+  });
+
+  it('should be deterministic for same path', () => {
+    const path = '/my/project';
+    const port1 = getProjectPort(path);
+    const port2 = getProjectPort(path);
+    expect(port1).toBe(port2);
+  });
+
+  it('should generate different ports for different paths', () => {
+    const port1 = getProjectPort('/project/one');
+    const port2 = getProjectPort('/project/two');
+    expect(port1).not.toBe(port2);
+  });
+});
+
 describe('OpencodeServerManager', () => {
   describe('configuration', () => {
     it('should use default config values', () => {
-      const server = new OpencodeServerManager();
+      const testCwd = '/test/project';
+      const expectedPort = getProjectPort(testCwd);
+      const server = new OpencodeServerManager({}, testCwd);
       const internals = getInternals(server);
-      expect(internals.config.port).toBe(4096);
+      expect(internals.config.port).toBe(expectedPort);
       expect(internals.config.hostname).toBe('127.0.0.1');
       expect(internals.config.timeout).toBe(5000);
     });
@@ -41,9 +67,11 @@ describe('OpencodeServerManager', () => {
     });
 
     it('should accept empty config object', () => {
-      const server = new OpencodeServerManager({});
+      const testCwd = '/test/project';
+      const expectedPort = getProjectPort(testCwd);
+      const server = new OpencodeServerManager({}, testCwd);
       const internals = getInternals(server);
-      expect(internals.config.port).toBe(4096);
+      expect(internals.config.port).toBe(expectedPort);
       expect(internals.config.hostname).toBe('127.0.0.1');
       expect(internals.config.timeout).toBe(5000);
     });
@@ -216,22 +244,89 @@ describe('OpencodeServerManager', () => {
       expect(result.isAgentlint).toBe(false);
     });
 
-    it('should detect healthy agentlint server', async () => {
-      const server = new OpencodeServerManager({ port: 4096 });
-      const internals = getInternals(server);
+    it('should detect healthy agentlint server when lockfile matches', async () => {
+      // Create a temp directory with a lockfile
+      const testDir = join(tmpdir(), `agentlint-test-${Date.now()}`);
+      const lockDir = join(testDir, '.agentlint');
+      mkdirSync(lockDir, { recursive: true });
+      writeFileSync(join(lockDir, '.server-port'), '4096', 'utf-8');
 
-      // Mock fetch to return healthy agentlint response (array of sessions)
-      global.fetch = (() =>
-        Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve([]),
-        } as Response)) as unknown as typeof fetch;
+      try {
+        const server = new OpencodeServerManager({ port: 4096 }, testDir);
+        const internals = getInternals(server);
 
-      const result = await internals.checkPortAvailable();
+        // Mock fetch to return healthy agentlint response (array of sessions)
+        global.fetch = (() =>
+          Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve([]),
+          } as Response)) as unknown as typeof fetch;
 
-      expect(result.available).toBe(false);
-      expect(result.healthy).toBe(true);
-      expect(result.isAgentlint).toBe(true);
+        const result = await internals.checkPortAvailable();
+
+        expect(result.available).toBe(false);
+        expect(result.healthy).toBe(true);
+        expect(result.isAgentlint).toBe(true);
+      } finally {
+        // Cleanup
+        rmSync(testDir, { recursive: true, force: true });
+      }
+    });
+
+    it('should not identify as agentlint when lockfile is missing', async () => {
+      // Use temp directory without lockfile
+      const testDir = join(tmpdir(), `agentlint-test-${Date.now()}`);
+      mkdirSync(testDir, { recursive: true });
+
+      try {
+        const server = new OpencodeServerManager({ port: 4096 }, testDir);
+        const internals = getInternals(server);
+
+        // Mock fetch to return healthy opencode response (array of sessions)
+        global.fetch = (() =>
+          Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve([]),
+          } as Response)) as unknown as typeof fetch;
+
+        const result = await internals.checkPortAvailable();
+
+        expect(result.available).toBe(false);
+        expect(result.healthy).toBe(true);
+        // Without lockfile, can't confirm it's our agentlint server
+        expect(result.isAgentlint).toBe(false);
+      } finally {
+        rmSync(testDir, { recursive: true, force: true });
+      }
+    });
+
+    it('should not identify as agentlint when lockfile port mismatches', async () => {
+      // Create a temp directory with a lockfile for a different port
+      const testDir = join(tmpdir(), `agentlint-test-${Date.now()}`);
+      const lockDir = join(testDir, '.agentlint');
+      mkdirSync(lockDir, { recursive: true });
+      writeFileSync(join(lockDir, '.server-port'), '9999', 'utf-8'); // Different port
+
+      try {
+        const server = new OpencodeServerManager({ port: 4096 }, testDir);
+        const internals = getInternals(server);
+
+        // Mock fetch to return healthy opencode response
+        global.fetch = (() =>
+          Promise.resolve({
+            ok: true,
+            json: () => Promise.resolve([]),
+          } as Response)) as unknown as typeof fetch;
+
+        const result = await internals.checkPortAvailable();
+
+        expect(result.available).toBe(false);
+        expect(result.healthy).toBe(true);
+        // Lockfile exists but port doesn't match
+        expect(result.isAgentlint).toBe(false);
+      } finally {
+        rmSync(testDir, { recursive: true, force: true });
+      }
     });
 
     it('should detect non-agentlint service', async () => {

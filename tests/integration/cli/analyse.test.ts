@@ -38,12 +38,14 @@ describe('analyse command integration', () => {
 
     test('accepts directory argument', async () => {
       await writeFile(join(testDir, 'CLAUDE.md'), '# Test');
-      // This might fail without API key, but should at least parse arguments
-      const proc = Bun.spawn(['bun', 'run', 'src/cli.ts', 'analyse', '-d', testDir, '--json'], {
-        stdout: 'pipe',
-        stderr: 'pipe',
-        env: { ...process.env, ANTHROPIC_API_KEY: '', OPENAI_API_KEY: '' },
-      });
+      // Use --dry-run to avoid needing API key and hanging
+      const proc = Bun.spawn(
+        ['bun', 'run', 'src/cli.ts', 'analyse', '-d', testDir, '--json', '--dry-run'],
+        {
+          stdout: 'pipe',
+          stderr: 'pipe',
+        }
+      );
       await proc.exited;
       // Command should be recognized even if it fails for other reasons
       const stderr = await new Response(proc.stderr).text();
@@ -83,12 +85,22 @@ describe('analyse command integration', () => {
     test('accepts --config-only flag', async () => {
       await writeFile(join(testDir, 'CLAUDE.md'), '# Test');
 
+      // Use --dry-run to avoid needing API key and hanging
       const proc = Bun.spawn(
-        ['bun', 'run', 'src/cli.ts', 'analyse', '-d', testDir, '--config-only', '--json'],
+        [
+          'bun',
+          'run',
+          'src/cli.ts',
+          'analyse',
+          '-d',
+          testDir,
+          '--config-only',
+          '--json',
+          '--dry-run',
+        ],
         {
           stdout: 'pipe',
           stderr: 'pipe',
-          env: { ...process.env, ANTHROPIC_API_KEY: '', OPENAI_API_KEY: '' },
         }
       );
       await proc.exited;
@@ -107,12 +119,22 @@ describe('analyse command integration', () => {
     test('accepts --sessions-only flag', async () => {
       await writeFile(join(testDir, 'CLAUDE.md'), '# Test');
 
+      // Use --dry-run to avoid needing API key and hanging
       const proc = Bun.spawn(
-        ['bun', 'run', 'src/cli.ts', 'analyse', '-d', testDir, '--sessions-only', '--json'],
+        [
+          'bun',
+          'run',
+          'src/cli.ts',
+          'analyse',
+          '-d',
+          testDir,
+          '--sessions-only',
+          '--json',
+          '--dry-run',
+        ],
         {
           stdout: 'pipe',
           stderr: 'pipe',
-          env: { ...process.env, ANTHROPIC_API_KEY: '', OPENAI_API_KEY: '' },
         }
       );
       await proc.exited;

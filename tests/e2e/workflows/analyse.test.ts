@@ -14,6 +14,7 @@ import { writeFileSync } from 'fs';
 import { join } from 'path';
 import { createTestFixture, runCLI, parseJSONOutput } from '../helpers';
 import type { TestFixture } from '../helpers';
+import { hasLiveProvider } from '../../lib/require-provider';
 
 // =============================================================================
 // Types
@@ -214,10 +215,9 @@ describe('E2E: Analyse Workflow (Live)', () => {
   });
 
   test('requires LLM provider', () => {
-    const hasProvider = process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY;
     expect(
-      hasProvider,
-      'No LLM provider configured - live tests require ANTHROPIC_API_KEY or OPENAI_API_KEY'
+      hasLiveProvider(),
+      'No LLM provider configured - run "opencode auth" or set ANTHROPIC_API_KEY/OPENAI_API_KEY'
     ).toBeTruthy();
   });
 

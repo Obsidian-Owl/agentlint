@@ -25,6 +25,7 @@ import type {
 import type { WelcomeMenuOption } from '../welcome/welcome-prompt';
 import type { AgentWorkState, AgentPhase } from '../state/agent-state';
 import type { StreamChunk, Finding } from '../../orchestration/types';
+import { DebugLogger } from '../../debug/logger.js';
 
 // =============================================================================
 // Helper Functions
@@ -78,7 +79,7 @@ export class InkRenderer implements ITuiRenderer {
   private instance: Instance | null = null;
   private chunks: StreamChunk[] = [];
   private findings: Finding[] = [];
-  private currentPhase: AnalysisPhase = 'scanning';
+  private currentPhase: AnalysisPhase = 'idle';
   private isStreaming = false;
   private pendingPermission: PermissionRequest | null = null;
   private pendingQuestions: QuestionRequest | null = null;
@@ -109,6 +110,9 @@ export class InkRenderer implements ITuiRenderer {
     if (props.onInput) this.onInputCallback = props.onInput;
     if (props.onExit) this.onExitCallback = props.onExit;
     if (props.onStart) this.onStartCallback = props.onStart;
+
+    // Suppress console debug logs during TUI operation
+    DebugLogger.setTuiActive(true);
 
     this.instance = render(React.createElement(App, this.buildAppProps(props.initialState)));
   }
@@ -183,6 +187,9 @@ export class InkRenderer implements ITuiRenderer {
    * Stop the TUI.
    */
   stop(): void {
+    // Re-enable console debug logs
+    DebugLogger.setTuiActive(false);
+
     if (this.instance) {
       this.instance.unmount();
       this.instance = null;
@@ -262,6 +269,17 @@ export class InkRenderer implements ITuiRenderer {
       helpHint: getContextualHelpText(this.agentState.phase),
     };
 
+    // Derive analysis phase from agent activity
+    if (chunk.type === 'tool_start' || chunk.type === 'tool_result') {
+      if (this.currentPhase === 'idle') {
+        this.currentPhase = 'scanning'; // Active work in progress
+      }
+    } else if (chunk.type === 'text' && this.currentPhase === 'idle') {
+      this.currentPhase = 'scanning'; // Active work in progress
+    } else if (chunk.type === 'error') {
+      // Error chunks don't change phase - let completion handle it
+    }
+
     this.rerender();
   }
 
@@ -270,7 +288,9 @@ export class InkRenderer implements ITuiRenderer {
    */
   renderComplete(_result: unknown): void {
     this.isStreaming = false;
-    this.currentPhase = 'presenting';
+    this.currentPhase = 'presenting'; // Use 'presenting' as completion state per AnalysisPhase type
+    const durationMs = Date.now() - this.sessionStartTime;
+    this.agentState = { phase: 'complete', durationMs };
     this.rerender();
   }
 

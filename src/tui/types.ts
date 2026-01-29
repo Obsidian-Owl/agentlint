@@ -483,6 +483,8 @@ export interface InputFieldProps {
   disabled?: boolean;
   /** Placeholder text */
   placeholder?: string;
+  /** Placeholder when disabled */
+  disabledPlaceholder?: string;
 }
 
 /**

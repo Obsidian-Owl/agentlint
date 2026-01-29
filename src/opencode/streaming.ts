@@ -19,7 +19,7 @@ import {
 
 export interface OpencodeEvent {
   type: string;
-  data?: unknown;
+  properties?: unknown;
 }
 
 export class StreamAdapter {
@@ -54,7 +54,7 @@ export class StreamAdapter {
   }
 
   private handleTextEvent(event: OpencodeEvent, timestamp: string): StreamChunk {
-    const text = extractText(event.data);
+    const text = extractText(event.properties);
     return {
       type: 'text',
       level: 'normal' as VerbosityLevel,
@@ -64,19 +64,20 @@ export class StreamAdapter {
   }
 
   private handleToolStartEvent(event: OpencodeEvent, timestamp: string): StreamChunk {
-    const toolName = extractToolName(event.data);
+    const props = event.properties;
+    const toolName = extractToolName(props);
     const metadata: Record<string, unknown> = {};
 
-    if (isToolEventData(event.data)) {
-      metadata.name = event.data.name;
-      if (event.data.input !== undefined) {
-        metadata.input = event.data.input;
+    if (isToolEventData(props)) {
+      metadata.name = props.name;
+      if (props.input !== undefined) {
+        metadata.input = props.input;
       }
-      if (event.data.output !== undefined) {
-        metadata.output = event.data.output;
+      if (props.output !== undefined) {
+        metadata.output = props.output;
       }
-      if (event.data.isError !== undefined) {
-        metadata.isError = event.data.isError;
+      if (props.isError !== undefined) {
+        metadata.isError = props.isError;
       }
     }
 
@@ -90,19 +91,20 @@ export class StreamAdapter {
   }
 
   private handleToolResultEvent(event: OpencodeEvent, timestamp: string): StreamChunk {
-    const toolName = extractToolName(event.data);
+    const props = event.properties;
+    const toolName = extractToolName(props);
     const metadata: Record<string, unknown> = {};
 
-    if (isToolEventData(event.data)) {
-      metadata.name = event.data.name;
-      if (event.data.input !== undefined) {
-        metadata.input = event.data.input;
+    if (isToolEventData(props)) {
+      metadata.name = props.name;
+      if (props.input !== undefined) {
+        metadata.input = props.input;
       }
-      if (event.data.output !== undefined) {
-        metadata.output = event.data.output;
+      if (props.output !== undefined) {
+        metadata.output = props.output;
       }
-      if (event.data.isError !== undefined) {
-        metadata.isError = event.data.isError;
+      if (props.isError !== undefined) {
+        metadata.isError = props.isError;
       }
     }
 
@@ -116,7 +118,7 @@ export class StreamAdapter {
   }
 
   private handleStatusEvent(event: OpencodeEvent, timestamp: string): StreamChunk {
-    const status = extractStatus(event.data);
+    const status = extractStatus(event.properties);
     return {
       type: 'status',
       level: 'normal' as VerbosityLevel,
@@ -126,20 +128,20 @@ export class StreamAdapter {
   }
 
   private handleMessageUpdatedEvent(event: OpencodeEvent, timestamp: string): StreamChunk | null {
-    if (!isMessageEventData(event.data)) return null;
+    if (!isMessageEventData(event.properties)) return null;
 
     const metadata: Record<string, unknown> = {};
 
-    if (event.data.tokens) {
-      metadata.tokens = event.data.tokens;
+    if (event.properties.tokens) {
+      metadata.tokens = event.properties.tokens;
     }
 
-    if (typeof event.data.cost === 'number') {
-      metadata.cost = event.data.cost;
+    if (typeof event.properties.cost === 'number') {
+      metadata.cost = event.properties.cost;
     }
 
-    if (typeof event.data.finish === 'string') {
-      metadata.finish = event.data.finish;
+    if (typeof event.properties.finish === 'string') {
+      metadata.finish = event.properties.finish;
     }
 
     if (Object.keys(metadata).length === 0) return null;
@@ -155,8 +157,8 @@ export class StreamAdapter {
 
   private handleSessionErrorEvent(event: OpencodeEvent, timestamp: string): StreamChunk {
     const errorMessage =
-      isErrorEventData(event.data) && typeof event.data.message === 'string'
-        ? event.data.message
+      isErrorEventData(event.properties) && typeof event.properties.message === 'string'
+        ? event.properties.message
         : 'Unknown session error';
 
     const chunk: StreamChunk = {
@@ -166,10 +168,10 @@ export class StreamAdapter {
       timestamp,
     };
 
-    if (isErrorEventData(event.data)) {
+    if (isErrorEventData(event.properties)) {
       chunk.metadata = {};
-      if (typeof event.data.message === 'string') {
-        chunk.metadata.message = event.data.message;
+      if (typeof event.properties.message === 'string') {
+        chunk.metadata.message = event.properties.message;
       }
     }
 

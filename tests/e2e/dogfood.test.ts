@@ -15,6 +15,7 @@ import { describe, test, expect, beforeAll } from 'bun:test';
 import { resolve } from 'path';
 import { existsSync } from 'fs';
 import { runCLI, parseJSONOutput } from './helpers';
+import { hasLiveProvider } from '../lib/require-provider';
 
 // =============================================================================
 // Types
@@ -134,10 +135,9 @@ describe('Dogfood: Full Analysis (Live)', () => {
   }, 180000);
 
   test('requires LLM provider', () => {
-    const hasProvider = process.env.ANTHROPIC_API_KEY || process.env.OPENAI_API_KEY;
     expect(
-      hasProvider,
-      'No LLM provider configured - live tests require ANTHROPIC_API_KEY or OPENAI_API_KEY'
+      hasLiveProvider(),
+      'No LLM provider configured - run "opencode auth" or set ANTHROPIC_API_KEY/OPENAI_API_KEY'
     ).toBeTruthy();
   });
 

@@ -17,13 +17,24 @@ function createMockToolRegistry(): IToolRegistry {
 }
 
 interface OrchestratorInternals {
-  server: { start: () => Promise<void>; stop: () => void };
+  server: {
+    start: () => Promise<void>;
+    stop: () => void;
+    getUrl: () => string;
+    getPort: () => number;
+  };
   client: {
     connect: () => Promise<void>;
     prompt: () => Promise<string>;
+    promptAsync: () => Promise<void>;
     subscribe: () => AsyncIterable<unknown>;
-  };
-  sessionManager: { startSession: (task: string) => Promise<{ sessionId: string }> };
+    subscribeEager: () => Promise<AsyncIterable<unknown>>;
+  } | null;
+  sessionManager: {
+    startSession: (task: string) => Promise<{ sessionId: string }>;
+    clearSession: (sessionId: string) => void;
+    clearAll: () => void;
+  } | null;
   streamAdapter: { adaptStream: (events: AsyncIterable<unknown>) => AsyncIterable<StreamChunk> };
 }
 
@@ -37,6 +48,27 @@ async function collectChunks(gen: AsyncGenerator<StreamChunk>): Promise<StreamCh
     chunks.push(chunk);
   }
   return chunks;
+}
+
+/** Set up mocks for a successful run, initializing client and sessionManager since they start as null */
+function setupMocks(internals: OrchestratorInternals, sessionId = 'ses-1'): void {
+  internals.server.start = () => Promise.resolve();
+  internals.server.stop = () => {};
+  internals.server.getUrl = () => 'http://127.0.0.1:50000';
+  internals.server.getPort = () => 50000;
+
+  internals.client = {
+    connect: () => Promise.resolve(),
+    prompt: () => Promise.resolve(''),
+    promptAsync: () => Promise.resolve(),
+    subscribe: async function* () {},
+    subscribeEager: () => Promise.resolve((async function* () {})()),
+  };
+  internals.sessionManager = {
+    startSession: () => Promise.resolve({ sessionId }),
+    clearSession: () => {},
+    clearAll: () => {},
+  };
 }
 
 describe('OpencodeOrchestrator integration', () => {
@@ -53,9 +85,22 @@ describe('OpencodeOrchestrator integration', () => {
     const stopMock = mock(() => {});
     internals.server.start = () => Promise.resolve();
     internals.server.stop = stopMock;
-    internals.client.connect = () => Promise.resolve();
-    internals.client.prompt = () => Promise.resolve('');
-    internals.sessionManager.startSession = () => Promise.resolve({ sessionId: 'ses-integ-1' });
+    internals.server.getUrl = () => 'http://127.0.0.1:50000';
+    internals.server.getPort = () => 50000;
+
+    // Initialize client and sessionManager since they start as null
+    internals.client = {
+      connect: () => Promise.resolve(),
+      prompt: () => Promise.resolve(''),
+      promptAsync: () => Promise.resolve(),
+      subscribe: async function* () {},
+      subscribeEager: () => Promise.resolve((async function* () {})()),
+    };
+    internals.sessionManager = {
+      startSession: () => Promise.resolve({ sessionId: 'ses-integ-1' }),
+      clearSession: () => {},
+      clearAll: () => {},
+    };
 
     internals.streamAdapter.adaptStream = async function* () {
       yield {
@@ -90,19 +135,15 @@ describe('OpencodeOrchestrator integration', () => {
     const chunks = await collectChunks(orchestrator.run('Analyze my configs'));
     expect(orchestrator.isActive).toBe(false);
 
-    // First chunk is "Server started" status from orchestrator
-    expect(chunks[0]?.type).toBe('status');
-    expect(chunks[0]?.content).toBe('Server started');
+    // Verify streamed chunks
+    expect(chunks[0]?.type).toBe('text');
+    expect(chunks[0]?.content).toBe('Analysis beginning');
+    expect(chunks[1]?.type).toBe('tool_start');
+    expect(chunks[2]?.type).toBe('tool_result');
+    expect(chunks[3]?.type).toBe('text');
+    expect(chunks[3]?.content).toBe('Analysis complete');
 
-    // Then our streamed chunks
-    expect(chunks[1]?.type).toBe('text');
-    expect(chunks[1]?.content).toBe('Analysis beginning');
-    expect(chunks[2]?.type).toBe('tool_start');
-    expect(chunks[3]?.type).toBe('tool_result');
-    expect(chunks[4]?.type).toBe('text');
-    expect(chunks[4]?.content).toBe('Analysis complete');
-
-    expect(chunks.length).toBe(5);
+    expect(chunks.length).toBe(4);
     expect(stopMock).toHaveBeenCalledTimes(1);
   });
 
@@ -110,11 +151,7 @@ describe('OpencodeOrchestrator integration', () => {
     const orchestrator = new OpencodeOrchestrator({}, registry);
     const internals = getInternals(orchestrator);
 
-    internals.server.start = () => Promise.resolve();
-    internals.server.stop = () => {};
-    internals.client.connect = () => Promise.resolve();
-    internals.client.prompt = () => Promise.resolve('');
-    internals.sessionManager.startSession = () => Promise.resolve({ sessionId: 'ses-state-1' });
+    setupMocks(internals, 'ses-state-1');
     internals.streamAdapter.adaptStream = async function* () {};
 
     expect(orchestrator.sessionState).toBeNull();
@@ -128,11 +165,8 @@ describe('OpencodeOrchestrator integration', () => {
     const internals = getInternals(orchestrator);
 
     const stopMock = mock(() => {});
-    internals.server.start = () => Promise.resolve();
+    setupMocks(internals, 'ses-err-1');
     internals.server.stop = stopMock;
-    internals.client.connect = () => Promise.resolve();
-    internals.client.prompt = () => Promise.resolve('');
-    internals.sessionManager.startSession = () => Promise.resolve({ sessionId: 'ses-err-1' });
 
     internals.streamAdapter.adaptStream = async function* () {
       yield {
@@ -153,11 +187,7 @@ describe('OpencodeOrchestrator integration', () => {
     const orchestrator = new OpencodeOrchestrator({}, registry);
     const internals = getInternals(orchestrator);
 
-    internals.server.start = () => Promise.resolve();
-    internals.server.stop = () => {};
-    internals.client.connect = () => Promise.resolve();
-    internals.client.prompt = () => Promise.resolve('');
-    internals.sessionManager.startSession = () => Promise.resolve({ sessionId: 'ses-int-1' });
+    setupMocks(internals, 'ses-int-1');
 
     // Create a stream that yields one chunk then waits forever
     let resolveWait: (() => void) | undefined;
@@ -174,11 +204,8 @@ describe('OpencodeOrchestrator integration', () => {
     };
 
     const gen = orchestrator.run('test');
-    const first = await gen.next(); // "Server started"
-    expect(first.value?.content).toBe('Server started');
-
-    const second = await gen.next(); // "started"
-    expect(second.value?.content).toBe('started');
+    const first = await gen.next(); // First yielded chunk: "started"
+    expect(first.value?.content).toBe('started');
 
     expect(orchestrator.isActive).toBe(true);
     await orchestrator.interrupt();

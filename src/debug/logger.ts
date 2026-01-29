@@ -87,6 +87,23 @@ export const DEFAULT_DEBUG_CONFIG: DebugConfig = {
 export class DebugLogger implements IDebugLogger {
   private config: DebugConfig;
 
+  /**
+   * Process-global flag indicating TUI is active.
+   * When true, console output is suppressed (file logging continues).
+   *
+   * NOTE: This is process-global state. Test isolation should use
+   * beforeEach/afterEach to reset: DebugLogger.setTuiActive(false)
+   */
+  private static tuiActive = false;
+
+  public static setTuiActive(active: boolean): void {
+    DebugLogger.tuiActive = active;
+  }
+
+  public static isTuiActive(): boolean {
+    return DebugLogger.tuiActive;
+  }
+
   constructor(config: Partial<DebugConfig> = {}) {
     // Merge with defaults and check environment
     const envNamespaces = parseDebugEnv(process.env.DEBUG);
@@ -265,6 +282,11 @@ export class DebugLogger implements IDebugLogger {
   }
 
   private outputToConsole(entry: LogEntry, format: 'pretty' | 'json'): void {
+    // Suppress console output when TUI is active (log to file only)
+    if (DebugLogger.tuiActive) {
+      return;
+    }
+
     // Use stderr for debug output to avoid polluting stdout (AGE-663)
     if (format === 'json') {
       console.error(JSON.stringify(entry));

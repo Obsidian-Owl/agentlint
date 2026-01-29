@@ -8,7 +8,9 @@ export interface IOpencodeClient {
   connect(): Promise<void>;
   createSession(options: { title: string }): Promise<{ id: string }>;
   prompt(sessionId: string, message: string): Promise<string>;
+  promptAsync(sessionId: string, message: string): Promise<void>;
   subscribe(): AsyncIterable<unknown>;
+  subscribeEager(): Promise<AsyncIterable<unknown>>;
   isConnected(): boolean;
 }
 
@@ -92,6 +94,32 @@ export class AgentlintOpencodeClient implements IOpencodeClient {
     return textParts.map((p: MessagePart) => p.text ?? '').join('\n');
   }
 
+  /**
+   * Send a prompt asynchronously without blocking.
+   * Returns immediately after sending the message.
+   * Events are delivered via the subscribe() SSE stream.
+   */
+  async promptAsync(sessionId: string, message: string): Promise<void> {
+    this.ensureConnected();
+
+    if (!this.client) {
+      throw new Error('Client is not initialized');
+    }
+
+    const result = await this.client.session.promptAsync({
+      path: { id: sessionId },
+      body: {
+        parts: [{ type: 'text', text: message }],
+      },
+    });
+
+    if (result.error) {
+      const errorMsg: string =
+        'message' in result.error ? String(result.error.message) : JSON.stringify(result.error);
+      throw new Error(`Prompt async failed: ${errorMsg}`);
+    }
+  }
+
   async *subscribe(): AsyncIterable<unknown> {
     this.ensureConnected();
 
@@ -104,6 +132,22 @@ export class AgentlintOpencodeClient implements IOpencodeClient {
     for await (const event of events.stream) {
       yield event;
     }
+  }
+
+  /**
+   * Establish SSE connection and return the event stream.
+   * Unlike subscribe(), this eagerly connects and returns the stream object.
+   * Use this when you need to ensure connection before sending a prompt.
+   */
+  async subscribeEager(): Promise<AsyncIterable<unknown>> {
+    this.ensureConnected();
+
+    if (!this.client) {
+      throw new Error('Client is not initialized');
+    }
+
+    const events = await this.client.event.subscribe();
+    return events.stream;
   }
 
   isConnected(): boolean {

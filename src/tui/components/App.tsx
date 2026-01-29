@@ -387,6 +387,7 @@ function InnerApp({
           onSubmit={handleInputSubmit}
           disabled={isStreaming}
           placeholder="Type your question or press q to quit..."
+          disabledPlaceholder="Agent is working, please wait..."
         />
 
         {/* Permission Dialog */}

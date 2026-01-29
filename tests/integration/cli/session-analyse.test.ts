@@ -111,26 +111,8 @@ describe('agentlint analyse --session', () => {
     });
   });
 
-  describe('Session Analysis Invocation', () => {
-    it('should fail gracefully without provider credentials', () => {
-      // Run without any provider credentials
-      const result = spawnSync('bun', ['run', 'src/cli.ts', 'analyse', '--session', 'test-123'], {
-        encoding: 'utf-8',
-        cwd: process.cwd(),
-        env: {
-          ...process.env,
-          ANTHROPIC_API_KEY: '',
-          OPENAI_API_KEY: '',
-        },
-      });
-
-      // Should fail — either ProviderAuthError or server startup failure
-      expect(result.status).toBe(1);
-    });
-
-    // Note: Full session analysis tests with API key are in live tests
-    // These unit/integration tests verify the CLI infrastructure works
-  });
+  // Note: Live session analysis tests that require Opencode Auth
+  // are in tests/e2e/ and require RUN_LIVE_TESTS=1
 
   describe('AnalyseOptions Interface', () => {
     it('should include session option in types', async () => {
