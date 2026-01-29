@@ -79,6 +79,9 @@ import { buildSessionAnalystAgent } from '../../sessions/subagent';
 import { buildQueryPrompt } from '../../sessions/tools/spawn-session-analyst';
 import type { SessionAnalysisContext } from '../../sessions/subagent/types';
 
+// EP22 Observability imports
+import { traceContextProvider, generateTraceId } from '../../observability';
+
 // Welcome flow and conversation mode imports
 import { runWelcomeFlow } from './welcome-flow';
 import { ConversationManager } from './conversation-manager';
@@ -819,198 +822,210 @@ async function runOrchestratedAnalysis(
   }
 
   try {
-    // Run the orchestrator with execution context so tools know the target directory
-    // This ensures create_recommendation stores files in the target project, not cwd
-    return await runWithExecutionContext({ targetDirectory: directory }, async () => {
-      // Run the orchestrator and stream output
-      // System prompt is sent via body.system to avoid appearing in output
-      for await (const chunk of orchestrator.run(userPrompt, { systemPrompt })) {
-        // Check for interruption
-        if (interrupted) {
-          break;
-        }
+    // EP22: Generate trace ID and initialize trace context
+    const traceId = generateTraceId();
+    logger.info(
+      DEBUG_NAMESPACES.ORCHESTRATION,
+      `[TRACE] Session started with trace_id: ${traceId}`
+    );
 
-        // Debug logging for chunk flow - helps diagnose rendering issues (AGE-671, AGE-682)
-        // Enabled via --verbose flag, respects --debug-level: minimal|normal|verbose
-        if (options.verbose) {
-          const debugLevel = options.debugLevel ?? 'normal';
+    // Run the orchestrator with trace context and execution context
+    // Trace context enables distributed tracing across async operations
+    // Execution context ensures tools know the target directory
+    return await traceContextProvider.run(async () => {
+      return await runWithExecutionContext({ targetDirectory: directory }, async () => {
+        // Run the orchestrator and stream output
+        // System prompt is sent via body.system to avoid appearing in output
+        for await (const chunk of orchestrator.run(userPrompt, { systemPrompt })) {
+          // Check for interruption
+          if (interrupted) {
+            break;
+          }
 
-          // Determine if this chunk should be shown based on debug level
-          let shouldLog = true;
-          if (debugLevel === 'minimal') {
-            // Only show errors, tool calls, phase changes
-            shouldLog = ['error', 'tool_start', 'tool_result', 'phase_change'].includes(chunk.type);
-          } else if (debugLevel === 'normal') {
-            // Show everything except small text chunks (under 10 chars)
-            if (chunk.type === 'text' && chunk.content.length < 10) {
-              shouldLog = false;
+          // Debug logging for chunk flow - helps diagnose rendering issues (AGE-671, AGE-682)
+          // Enabled via --verbose flag, respects --debug-level: minimal|normal|verbose
+          if (options.verbose) {
+            const debugLevel = options.debugLevel ?? 'normal';
+
+            // Determine if this chunk should be shown based on debug level
+            let shouldLog = true;
+            if (debugLevel === 'minimal') {
+              // Only show errors, tool calls, phase changes
+              shouldLog = ['error', 'tool_start', 'tool_result', 'phase_change'].includes(
+                chunk.type
+              );
+            } else if (debugLevel === 'normal') {
+              // Show everything except small text chunks (under 10 chars)
+              if (chunk.type === 'text' && chunk.content.length < 10) {
+                shouldLog = false;
+              }
+            }
+            // verbose: show everything (no filtering)
+
+            if (shouldLog) {
+              // Build debug line with content preview for text chunks
+              let debugLine = `[CHUNK] type=${chunk.type} level=${chunk.level}`;
+              const toolNameValue = chunk.metadata?.toolName;
+              if (typeof toolNameValue === 'string') {
+                debugLine += ` tool=${toolNameValue}`;
+              }
+              // Show content preview for text chunks (escape special chars for readability)
+              if (chunk.type === 'text' && chunk.content) {
+                const preview = chunk.content
+                  .slice(0, 30)
+                  .replace(/\n/g, '\\n')
+                  .replace(/\r/g, '\\r')
+                  .replace(/\t/g, '\\t');
+                debugLine += ` content="${preview}${chunk.content.length > 30 ? '...' : ''}"`;
+              }
+              console.error(debugLine);
             }
           }
-          // verbose: show everything (no filtering)
 
-          if (shouldLog) {
-            // Build debug line with content preview for text chunks
-            let debugLine = `[CHUNK] type=${chunk.type} level=${chunk.level}`;
-            const toolNameValue = chunk.metadata?.toolName;
-            if (typeof toolNameValue === 'string') {
-              debugLine += ` tool=${toolNameValue}`;
-            }
-            // Show content preview for text chunks (escape special chars for readability)
-            if (chunk.type === 'text' && chunk.content) {
-              const preview = chunk.content
-                .slice(0, 30)
-                .replace(/\n/g, '\\n')
-                .replace(/\r/g, '\\r')
-                .replace(/\t/g, '\\t');
-              debugLine += ` content="${preview}${chunk.content.length > 30 ? '...' : ''}"`;
-            }
-            console.error(debugLine);
-          }
-        }
-
-        // Filter by verbosity and render
-        if (shouldDisplay(chunk.level, verbosity)) {
-          renderer.renderChunk(chunk);
-        }
-
-        // Track tool calls for session recording
-        // Note: Telemetry tracking is now handled directly by the Orchestrator
-        // for more reliable timing and hierarchy (see orchestrator.ts processMessage)
-        if (chunk.type === 'tool_result') {
-          const toolName = chunk.metadata?.toolName;
-          // DEBUG: Log tool_result chunks to diagnose telemetry
-          if (process.env['AGENTLINT_TELEMETRY_DEBUG'] === '1') {
-            console.error(
-              `[DEBUG] tool_result: toolName=${String(toolName)}, metadata keys=${Object.keys(chunk.metadata ?? {}).join(',')}`
-            );
+          // Filter by verbosity and render
+          if (shouldDisplay(chunk.level, verbosity)) {
+            renderer.renderChunk(chunk);
           }
 
-          // Track for session recording (if enabled)
-          if (recordingState && typeof toolName === 'string') {
-            recordingState.toolHistory.push({
-              tool: toolName,
-              arguments: (chunk.metadata?.arguments as Record<string, unknown>) ?? {},
-              resultSummary: chunk.content.slice(0, 500),
-              timestamp: chunk.timestamp,
-              durationMs: (chunk.metadata?.durationMs as number) ?? 0,
-            });
-            recordingState.metrics.toolCalls++;
-
-            // Record checkpoint on tool completion
-            await recordCheckpointIfActive(recordingState, 'tool_complete');
-          }
-          // Note: telemetry.trackTool removed - orchestrator handles this directly
-        }
-
-        // Track LLM calls for session recording
-        if (chunk.type === 'text' && recordingState) {
-          // Update phase based on content hints
-          if (recordingState.phase === 'init' && recordingState.metrics.toolCalls > 0) {
-            recordingState.phase = 'analyze';
-            await recordCheckpointIfActive(recordingState, 'phase_transition');
-          }
-        }
-
-        // Collect findings from chunks
-        if (chunk.type === 'finding') {
-          const finding = convertChunkToFinding(chunk);
-          if (finding) {
-            findings.push(finding);
-            renderer.renderFinding(finding);
-
-            // Track finding for session recording
-            if (recordingState) {
-              recordingState.findings.push({
-                id: finding.id,
-                type: finding.type,
-                location: {
-                  file: finding.location?.file ?? 'unknown',
-                  line: finding.location?.line ?? 0,
-                },
-                summary: finding.title,
-              });
-              await recordCheckpointIfActive(recordingState, 'finding');
-            }
-
-            // Track finding for telemetry (privacy-safe: type and severity only)
-            if (telemetry.isEnabled()) {
-              telemetry.trackFinding(
-                telemetrySessionId,
-                finding.type ?? 'unknown',
-                (finding.severity as 'info' | 'warning' | 'error' | 'critical') ?? 'info'
+          // Track tool calls for session recording
+          // Note: Telemetry tracking is now handled directly by the Orchestrator
+          // for more reliable timing and hierarchy (see orchestrator.ts processMessage)
+          if (chunk.type === 'tool_result') {
+            const toolName = chunk.metadata?.toolName;
+            // DEBUG: Log tool_result chunks to diagnose telemetry
+            if (process.env['AGENTLINT_TELEMETRY_DEBUG'] === '1') {
+              console.error(
+                `[DEBUG] tool_result: toolName=${String(toolName)}, metadata keys=${Object.keys(chunk.metadata ?? {}).join(',')}`
               );
             }
+
+            // Track for session recording (if enabled)
+            if (recordingState && typeof toolName === 'string') {
+              recordingState.toolHistory.push({
+                tool: toolName,
+                arguments: (chunk.metadata?.arguments as Record<string, unknown>) ?? {},
+                resultSummary: chunk.content.slice(0, 500),
+                timestamp: chunk.timestamp,
+                durationMs: (chunk.metadata?.durationMs as number) ?? 0,
+              });
+              recordingState.metrics.toolCalls++;
+
+              // Record checkpoint on tool completion
+              await recordCheckpointIfActive(recordingState, 'tool_complete');
+            }
+            // Note: telemetry.trackTool removed - orchestrator handles this directly
+          }
+
+          // Track LLM calls for session recording
+          if (chunk.type === 'text' && recordingState) {
+            // Update phase based on content hints
+            if (recordingState.phase === 'init' && recordingState.metrics.toolCalls > 0) {
+              recordingState.phase = 'analyze';
+              await recordCheckpointIfActive(recordingState, 'phase_transition');
+            }
+          }
+
+          // Collect findings from chunks
+          if (chunk.type === 'finding') {
+            const finding = convertChunkToFinding(chunk);
+            if (finding) {
+              findings.push(finding);
+              renderer.renderFinding(finding);
+
+              // Track finding for session recording
+              if (recordingState) {
+                recordingState.findings.push({
+                  id: finding.id,
+                  type: finding.type,
+                  location: {
+                    file: finding.location?.file ?? 'unknown',
+                    line: finding.location?.line ?? 0,
+                  },
+                  summary: finding.title,
+                });
+                await recordCheckpointIfActive(recordingState, 'finding');
+              }
+
+              // Track finding for telemetry (privacy-safe: type and severity only)
+              if (telemetry.isEnabled()) {
+                telemetry.trackFinding(
+                  telemetrySessionId,
+                  finding.type ?? 'unknown',
+                  (finding.severity as 'info' | 'warning' | 'error' | 'critical') ?? 'info'
+                );
+              }
+            }
+          }
+
+          // Handle human-in-the-loop questions
+          // Note: Interactive question answering is now handled via TuiPermissionHandler
+          // when the AskUserQuestion tool is used. The chunk is informational only.
+          if (chunk.type === 'user_question') {
+            if (options.nonInteractive && !options.quiet) {
+              console.log('\n[Non-interactive mode: Questions answered automatically]');
+            }
+          }
+
+          // Track token usage from status chunks (session completion has totals)
+          // Note: Telemetry LLM tracking is now handled directly by the Orchestrator
+          // for accurate per-turn tracking with timing (see orchestrator.ts processMessage)
+          if (chunk.type === 'status' && chunk.metadata?.inputTokens !== undefined) {
+            const inputTokens = chunk.metadata.inputTokens as number;
+            const outputTokens = (chunk.metadata.outputTokens as number) ?? 0;
+
+            // Update session recording metrics (track input/output separately for telemetry)
+            if (recordingState) {
+              recordingState.metrics.tokensUsed += inputTokens + outputTokens;
+              recordingState.metrics.inputTokens += inputTokens;
+              recordingState.metrics.outputTokens += outputTokens;
+              recordingState.metrics.llmCalls++;
+            }
+            // Note: telemetry.trackLLM removed - orchestrator handles this directly
           }
         }
 
-        // Handle human-in-the-loop questions
-        // Note: Interactive question answering is now handled via TuiPermissionHandler
-        // when the AskUserQuestion tool is used. The chunk is informational only.
-        if (chunk.type === 'user_question') {
-          if (options.nonInteractive && !options.quiet) {
-            console.log('\n[Non-interactive mode: Questions answered automatically]');
-          }
+        // AGE-679: Removed stored rec rendering - it duplicated streaming output.
+        // The agent's streaming shows findings as they're discovered. Loading stored
+        // recommendations and re-rendering them was redundant and overwhelming.
+        // Findings array already contains chunk findings from streaming above.
+
+        // Record final checkpoint
+        if (recordingState) {
+          recordingState.phase = 'complete';
+          await recordCheckpointIfActive(recordingState, 'session_end');
         }
 
-        // Track token usage from status chunks (session completion has totals)
-        // Note: Telemetry LLM tracking is now handled directly by the Orchestrator
-        // for accurate per-turn tracking with timing (see orchestrator.ts processMessage)
-        if (chunk.type === 'status' && chunk.metadata?.inputTokens !== undefined) {
-          const inputTokens = chunk.metadata.inputTokens as number;
-          const outputTokens = (chunk.metadata.outputTokens as number) ?? 0;
+        // Build and output final result
+        const result = buildAnalyseResult(directory, scanResult, findings, startTime);
 
-          // Update session recording metrics (track input/output separately for telemetry)
-          if (recordingState) {
-            recordingState.metrics.tokensUsed += inputTokens + outputTokens;
-            recordingState.metrics.inputTokens += inputTokens;
-            recordingState.metrics.outputTokens += outputTokens;
-            recordingState.metrics.llmCalls++;
-          }
-          // Note: telemetry.trackLLM removed - orchestrator handles this directly
+        // AGE-684: Count recommendations from storage for accurate summary
+        const recCounts = await countRecommendations(directory, startTime);
+        result.summary.sessionFindings = recCounts.sessionFindings;
+        result.summary.totalOpen = recCounts.totalOpen;
+
+        // Record telemetry session end (success case)
+        if (telemetry.isEnabled()) {
+          telemetry.sessionEnd(telemetrySessionId, {
+            durationMs: Date.now() - startTime,
+            toolCallCount: recordingState?.metrics.toolCalls ?? 0,
+            findingCount: findings.length,
+            recommendationCount: recCounts.sessionFindings ?? 0,
+            totalInputTokens: recordingState?.metrics.inputTokens ?? 0,
+            totalOutputTokens: recordingState?.metrics.outputTokens ?? 0,
+            success: true,
+            interrupted,
+          });
         }
-      }
 
-      // AGE-679: Removed stored rec rendering - it duplicated streaming output.
-      // The agent's streaming shows findings as they're discovered. Loading stored
-      // recommendations and re-rendering them was redundant and overwhelming.
-      // Findings array already contains chunk findings from streaming above.
+        renderer.renderComplete(result);
+        renderer.flush();
 
-      // Record final checkpoint
-      if (recordingState) {
-        recordingState.phase = 'complete';
-        await recordCheckpointIfActive(recordingState, 'session_end');
-      }
+        if (tuiRenderer) {
+          tuiRenderer.setTuiState('presenting');
+        }
 
-      // Build and output final result
-      const result = buildAnalyseResult(directory, scanResult, findings, startTime);
-
-      // AGE-684: Count recommendations from storage for accurate summary
-      const recCounts = await countRecommendations(directory, startTime);
-      result.summary.sessionFindings = recCounts.sessionFindings;
-      result.summary.totalOpen = recCounts.totalOpen;
-
-      // Record telemetry session end (success case)
-      if (telemetry.isEnabled()) {
-        telemetry.sessionEnd(telemetrySessionId, {
-          durationMs: Date.now() - startTime,
-          toolCallCount: recordingState?.metrics.toolCalls ?? 0,
-          findingCount: findings.length,
-          recommendationCount: recCounts.sessionFindings ?? 0,
-          totalInputTokens: recordingState?.metrics.inputTokens ?? 0,
-          totalOutputTokens: recordingState?.metrics.outputTokens ?? 0,
-          success: true,
-          interrupted,
-        });
-      }
-
-      renderer.renderComplete(result);
-      renderer.flush();
-
-      if (tuiRenderer) {
-        tuiRenderer.setTuiState('presenting');
-      }
-
-      return result;
+        return result;
+      });
     });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
@@ -1367,6 +1382,13 @@ async function runSessionAnalysis(
   process.on('SIGINT', handleInterrupt);
 
   try {
+    // EP22: Generate trace ID and initialize trace context
+    const traceId = generateTraceId();
+    logger.info(
+      DEBUG_NAMESPACES.ORCHESTRATION,
+      `Session analysis started with trace_id: ${traceId}`
+    );
+
     // Header
     if (outputMode !== 'json' && !options.quiet) {
       console.log('\n=== Session Analysis ===');
@@ -1374,23 +1396,26 @@ async function runSessionAnalysis(
       console.log(`Focus: comprehensive\n`);
     }
 
-    // Run the orchestrator with session-focused prompt
-    for await (const chunk of orchestrator.run(queryPrompt)) {
-      if (interrupted) break;
+    // Run the orchestrator with trace context
+    return await traceContextProvider.run(async () => {
+      // Run the orchestrator with session-focused prompt
+      for await (const chunk of orchestrator.run(queryPrompt)) {
+        if (interrupted) break;
 
-      if (shouldDisplay(chunk.level, verbosity)) {
-        renderer.renderChunk(chunk);
+        if (shouldDisplay(chunk.level, verbosity)) {
+          renderer.renderChunk(chunk);
+        }
       }
-    }
 
-    renderer.flush();
+      renderer.flush();
 
-    const durationMs = Date.now() - startTime;
-    if (outputMode !== 'json' && !options.quiet) {
-      console.log(`\nSession analysis completed in ${(durationMs / 1000).toFixed(1)}s`);
-    }
+      const durationMs = Date.now() - startTime;
+      if (outputMode !== 'json' && !options.quiet) {
+        console.log(`\nSession analysis completed in ${(durationMs / 1000).toFixed(1)}s`);
+      }
 
-    return 0;
+      return 0;
+    });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
     renderer.renderError(error instanceof Error ? error : new Error(errorMessage));

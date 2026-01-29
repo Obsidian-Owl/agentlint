@@ -25,6 +25,7 @@ import type {
 import { type TelemetryEvent, createTelemetryEvent, getTelemetryMeta } from './events';
 import { createDebugLogger, DEBUG_NAMESPACES } from '../debug';
 import { FLUSH_INTERVAL_MS, MAX_BUFFER_SIZE, REQUEST_TIMEOUT_MS } from './constants';
+import { traceContextProvider } from '../observability/trace-context';
 
 // Create module-level logger
 const logger = createDebugLogger({
@@ -280,6 +281,12 @@ export class AlphaTelemetryClient implements ITelemetryClient {
   record(event: TelemetryEvent): void {
     if (!this.enabled) {
       return;
+    }
+
+    // Inject trace context for correlation
+    const traceContext = traceContextProvider.getContext();
+    if (traceContext?.traceId) {
+      event.traceId = traceContext.traceId;
     }
 
     this.buffer.push(event);
