@@ -7,6 +7,7 @@
  * @module opencode/streaming
  */
 
+import * as crypto from 'node:crypto';
 import type { StreamChunk, VerbosityLevel } from '../orchestration/types';
 import {
   isToolEventData,
@@ -58,7 +59,7 @@ export class StreamAdapter {
   }
 
   async *adaptStream(events: AsyncIterable<OpencodeEvent>): AsyncIterable<StreamChunk> {
-    const streamId = `stream-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+    const streamId = `stream-${Date.now()}-${crypto.randomUUID().slice(0, 7)}`;
     const context = traceContextProvider.getContext();
 
     if (!context) {

@@ -198,7 +198,7 @@ function checkRateLimit(ip: string): boolean {
  * Format: req-{timestamp_base36}-{random}
  */
 function generateRequestId(): string {
-  return `req-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  return `req-${Date.now().toString(36)}-${crypto.randomUUID().slice(0, 6)}`;
 }
 
 // =============================================================================

@@ -3,6 +3,7 @@
  * Bridges telemetry events to OTLP spans.
  */
 
+import * as crypto from 'node:crypto';
 import type { TelemetryConfig } from '../persistence/types';
 import type {
   ITelemetryClient,
@@ -316,13 +317,13 @@ export class OtelTelemetryClient implements ITelemetryClient {
   // =========================================================================
 
   private generateTraceId(): string {
-    // Generate 32 hex chars
-    return Array.from({ length: 32 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+    // Generate 32 hex chars (16 random bytes)
+    return crypto.randomBytes(16).toString('hex');
   }
 
   private generateSpanId(): string {
-    // Generate 16 hex chars
-    return Array.from({ length: 16 }, () => Math.floor(Math.random() * 16).toString(16)).join('');
+    // Generate 16 hex chars (8 random bytes)
+    return crypto.randomBytes(8).toString('hex');
   }
 
   private flattenData(data: Record<string, unknown>): Record<string, string | number | boolean> {
