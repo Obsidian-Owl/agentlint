@@ -103,6 +103,59 @@ function createMockTelemetryClient(enabled = true) {
   };
 }
 
+/** Create a minimal StreamChunk with defaults for type and level. */
+function createChunk(
+  content: string,
+  type: StreamChunk['type'] = 'text',
+  level: StreamChunk['level'] = 'normal',
+  metadata?: Record<string, unknown>
+): StreamChunk {
+  return {
+    type,
+    level,
+    content,
+    timestamp: new Date().toISOString(),
+    ...(metadata ? { metadata } : {}),
+  };
+}
+
+/** Mock streamAdapter.adaptStream to yield chunks then hang indefinitely. */
+function setupStreamAdapterWithHang(internals: OrchestratorInternals, chunks: StreamChunk[]): void {
+  internals.streamAdapter.adaptStream = async function* () {
+    for (const chunk of chunks) {
+      yield chunk;
+    }
+    await new Promise(() => {}); // Hang indefinitely
+  };
+}
+
+/** Start a run and consume first chunk, verifying isActive becomes true. */
+async function startRunAndConsume(
+  orchestrator: OpencodeOrchestrator,
+  task: string
+): Promise<AsyncGenerator<StreamChunk>> {
+  const gen = orchestrator.run(task);
+  const firstChunk = await gen.next();
+  expect(firstChunk.done).toBe(false);
+  expect(orchestrator.isActive).toBe(true);
+  return gen;
+}
+
+/** Setup orchestrator internals for dispose tests with common mocks. */
+function setupDisposeTest(
+  internals: OrchestratorInternals,
+  opts: { isRunning: boolean; clearAllMock?: ReturnType<typeof mock> } = { isRunning: false }
+): { stopMock: ReturnType<typeof mock>; clearAllMock: ReturnType<typeof mock> } {
+  const stopMock = mock(() => {});
+  const clearAllMock = opts.clearAllMock ?? mock(() => {});
+
+  internals.sessionManager = createMockSessionManager(clearAllMock);
+  internals.server.isRunning = () => opts.isRunning;
+  internals.server.stop = stopMock;
+
+  return { stopMock, clearAllMock };
+}
+
 function setupServerFailure(
   internals: OrchestratorInternals,
   error: Error
@@ -172,26 +225,14 @@ describe('OpencodeOrchestrator', () => {
       const orchestrator = new OpencodeOrchestrator({}, registry);
       const internals = getInternals(orchestrator);
       setupSuccessfulRun(internals);
+      setupStreamAdapterWithHang(internals, [createChunk('First chunk')]);
 
-      internals.streamAdapter.adaptStream = async function* () {
-        yield {
-          type: 'text' as const,
-          level: 'normal' as const,
-          content: 'First chunk',
-          timestamp: new Date().toISOString(),
-        };
-        await new Promise(() => {});
-      };
-
-      const gen = orchestrator.run('first task');
-      const firstChunk = await gen.next();
-      expect(firstChunk.done).toBe(false);
-      expect(orchestrator.isActive).toBe(true);
+      const gen = await startRunAndConsume(orchestrator, 'first task');
 
       const secondGen = orchestrator.run('second task');
       await expect(secondGen.next()).rejects.toThrow(OrchestrationError);
 
-      await gen.return();
+      await gen.return(undefined);
       expect(orchestrator.isActive).toBe(false);
     });
   });
@@ -232,20 +273,14 @@ describe('OpencodeOrchestrator', () => {
       setupSuccessfulRun(internals);
 
       internals.streamAdapter.adaptStream = async function* () {
-        yield {
-          type: 'tool_start' as const,
-          level: 'verbose' as const,
-          content: 'Calling tool: test_tool',
-          timestamp: new Date().toISOString(),
-          metadata: { name: 'test_tool', input: { key: 'value' } },
-        };
-        yield {
-          type: 'tool_result' as const,
-          level: 'verbose' as const,
-          content: 'Tool completed: test_tool',
-          timestamp: new Date().toISOString(),
-          metadata: { name: 'test_tool', output: { result: 'ok' } },
-        };
+        yield createChunk('Calling tool: test_tool', 'tool_start', 'verbose', {
+          name: 'test_tool',
+          input: { key: 'value' },
+        });
+        yield createChunk('Tool completed: test_tool', 'tool_result', 'verbose', {
+          name: 'test_tool',
+          output: { result: 'ok' },
+        });
       };
 
       const chunks = await collectChunks(orchestrator.run('test'));
@@ -266,22 +301,9 @@ describe('OpencodeOrchestrator', () => {
       const orchestrator = new OpencodeOrchestrator({}, registry);
       const internals = getInternals(orchestrator);
       setupSuccessfulRun(internals);
+      setupStreamAdapterWithHang(internals, [createChunk('Processing')]);
 
-      // Inject a chunk to ensure the stream isn't immediately empty
-      internals.streamAdapter.adaptStream = async function* () {
-        yield {
-          type: 'text' as const,
-          level: 'normal' as const,
-          content: 'Processing',
-          timestamp: new Date().toISOString(),
-        };
-        await new Promise(() => {});
-      };
-
-      // Start a run to set isActive = true
-      const gen = orchestrator.run('test');
-      await gen.next(); // consume first chunk
-      expect(orchestrator.isActive).toBe(true);
+      await startRunAndConsume(orchestrator, 'test');
 
       await orchestrator.interrupt();
       expect(orchestrator.isActive).toBe(false);
@@ -315,9 +337,7 @@ describe('OpencodeOrchestrator', () => {
     it('should clear all sessions', () => {
       const orchestrator = new OpencodeOrchestrator({}, registry);
       const internals = getInternals(orchestrator);
-      const clearAllMock = mock(() => {});
-      internals.sessionManager = createMockSessionManager(clearAllMock);
-      internals.server.isRunning = () => false;
+      const { clearAllMock } = setupDisposeTest(internals);
 
       orchestrator.dispose();
 
@@ -327,10 +347,7 @@ describe('OpencodeOrchestrator', () => {
     it('should stop server if running', () => {
       const orchestrator = new OpencodeOrchestrator({}, registry);
       const internals = getInternals(orchestrator);
-      const stopMock = mock(() => {});
-      internals.sessionManager = createMockSessionManager();
-      internals.server.isRunning = () => true;
-      internals.server.stop = stopMock;
+      const { stopMock } = setupDisposeTest(internals, { isRunning: true });
 
       orchestrator.dispose();
 
@@ -340,10 +357,7 @@ describe('OpencodeOrchestrator', () => {
     it('should not stop server if not running', () => {
       const orchestrator = new OpencodeOrchestrator({}, registry);
       const internals = getInternals(orchestrator);
-      const stopMock = mock(() => {});
-      internals.sessionManager = createMockSessionManager();
-      internals.server.isRunning = () => false;
-      internals.server.stop = stopMock;
+      const { stopMock } = setupDisposeTest(internals);
 
       orchestrator.dispose();
 
@@ -353,8 +367,7 @@ describe('OpencodeOrchestrator', () => {
     it('should reset state', () => {
       const orchestrator = new OpencodeOrchestrator({}, registry);
       const internals = getInternals(orchestrator);
-      internals.sessionManager = createMockSessionManager();
-      internals.server.isRunning = () => false;
+      setupDisposeTest(internals);
       internals._isActive = true;
       internals._sessionState = { id: 'test' };
       internals._currentSessionId = 'ses-123';
@@ -369,9 +382,7 @@ describe('OpencodeOrchestrator', () => {
     it('should be idempotent (safe to call multiple times)', () => {
       const orchestrator = new OpencodeOrchestrator({}, registry);
       const internals = getInternals(orchestrator);
-      const clearAllMock = mock(() => {});
-      internals.sessionManager = createMockSessionManager(clearAllMock);
-      internals.server.isRunning = () => false;
+      const { clearAllMock } = setupDisposeTest(internals);
 
       orchestrator.dispose();
       orchestrator.dispose();
@@ -383,8 +394,7 @@ describe('OpencodeOrchestrator', () => {
     it('should not throw if server.stop() fails', () => {
       const orchestrator = new OpencodeOrchestrator({}, registry);
       const internals = getInternals(orchestrator);
-      internals.sessionManager = createMockSessionManager();
-      internals.server.isRunning = () => true;
+      setupDisposeTest(internals, { isRunning: true });
       internals.server.stop = () => {
         throw new Error('stop failed');
       };

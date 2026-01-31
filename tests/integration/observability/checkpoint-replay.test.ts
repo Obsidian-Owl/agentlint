@@ -61,6 +61,93 @@ function createTestCheckpoint(
   };
 }
 
+/**
+ * Records a checkpoint with trace context within a trace run.
+ * Returns the trace context that was used.
+ */
+async function recordCheckpointWithTrace(
+  recorder: ReturnType<typeof createSessionRecorder>,
+  sessionId: string
+): Promise<{ traceId: string; spanId: string }> {
+  let capturedTraceId = '';
+  let capturedSpanId = '';
+
+  await traceContextProvider.run(async () => {
+    const context = traceContextProvider.getContext();
+    capturedTraceId = context!.traceId;
+    capturedSpanId = context!.spanId;
+
+    recorder.startRecording(sessionId);
+
+    const checkpoint = createTestCheckpoint(sessionId, {
+      traceId: capturedTraceId,
+      spanId: capturedSpanId,
+    });
+
+    await recorder.recordCheckpoint(checkpoint);
+    recorder.stopRecording();
+  });
+
+  return { traceId: capturedTraceId, spanId: capturedSpanId };
+}
+
+/**
+ * Creates a replay span with optional parent linkage.
+ * Returns the created span for further assertions.
+ */
+async function createReplaySpan(
+  name: string,
+  replayContext: Awaited<
+    ReturnType<ReturnType<typeof createSessionReplayer>['replayWithTraceCorrelation']>
+  >,
+  attributes: Record<string, string | number> = {}
+): Promise<void> {
+  await traceContextProvider.withSpan(
+    {
+      name,
+      ...(replayContext.originalCheckpointSpanId && {
+        parentSpanId: replayContext.originalCheckpointSpanId,
+      }),
+    },
+    async (span) => {
+      if (replayContext.originalTraceId) {
+        span.setAttribute('original_trace_id', replayContext.originalTraceId);
+      }
+      span.setAttribute('session_id', replayContext.sessionId);
+
+      for (const [key, value] of Object.entries(attributes)) {
+        span.setAttribute(key, value);
+      }
+
+      span.addEvent('replay_started');
+    }
+  );
+}
+
+/**
+ * Asserts that replay spans have correct parent linkage.
+ */
+function assertReplaySpansLinked(
+  exporter: TestSpanExporter,
+  spanNamePattern: string | RegExp,
+  expectedParentSpanId: string,
+  expectedTraceId: string,
+  expectedCount: number
+): void {
+  const filter =
+    typeof spanNamePattern === 'string'
+      ? (s: ExportableSpan) => s.name === spanNamePattern
+      : (s: ExportableSpan) => spanNamePattern.test(s.name);
+
+  const spans = exporter.spans.filter(filter);
+  expect(spans).toHaveLength(expectedCount);
+
+  for (const span of spans) {
+    expect(span.parentSpanId).toBe(expectedParentSpanId);
+    expect(span.attributes.original_trace_id).toBe(expectedTraceId);
+  }
+}
+
 describe('Checkpoint Replay Trace Integration', () => {
   let tempDir: string;
   let originalTraceId: string;
@@ -81,28 +168,14 @@ describe('Checkpoint Replay Trace Integration', () => {
   it('should record checkpoint with trace context', async () => {
     const recorder = createSessionRecorder({ storageDir: tempDir });
 
-    await traceContextProvider.run(async () => {
-      const context = traceContextProvider.getContext();
-      expect(context).toBeDefined();
+    const { traceId, spanId } = await recordCheckpointWithTrace(recorder, 'test-session');
+    originalTraceId = traceId;
+    originalSpanId = spanId;
 
-      originalTraceId = context!.traceId;
-      originalSpanId = context!.spanId;
-
-      recorder.startRecording('test-session');
-
-      const checkpoint = createTestCheckpoint('test-session', {
-        traceId: originalTraceId,
-        spanId: originalSpanId,
-      });
-
-      await recorder.recordCheckpoint(checkpoint);
-      recorder.stopRecording();
-
-      // Verify checkpoint was saved
-      const checkpoints = await recorder.getCheckpoints('test-session');
-      expect(checkpoints).toHaveLength(1);
-      expect(checkpoints[0]?.workspaceState?.traceContext).toBeDefined();
-    });
+    // Verify checkpoint was saved
+    const checkpoints = await recorder.getCheckpoints('test-session');
+    expect(checkpoints).toHaveLength(1);
+    expect(checkpoints[0]?.workspaceState?.traceContext).toBeDefined();
   });
 
   it('should replay session with trace correlation', async () => {
@@ -110,21 +183,9 @@ describe('Checkpoint Replay Trace Integration', () => {
     const replayer = createSessionReplayer(recorder);
 
     // First, create a checkpoint with trace context
-    await traceContextProvider.run(async () => {
-      const context = traceContextProvider.getContext();
-      originalTraceId = context!.traceId;
-      originalSpanId = context!.spanId;
-
-      recorder.startRecording('replay-session');
-
-      const checkpoint = createTestCheckpoint('replay-session', {
-        traceId: originalTraceId,
-        spanId: originalSpanId,
-      });
-
-      await recorder.recordCheckpoint(checkpoint);
-      recorder.stopRecording();
-    });
+    const { traceId, spanId } = await recordCheckpointWithTrace(recorder, 'replay-session');
+    originalTraceId = traceId;
+    originalSpanId = spanId;
 
     // Now replay with trace correlation
     const replayContext = await replayer.replayWithTraceCorrelation('replay-session');
@@ -139,44 +200,22 @@ describe('Checkpoint Replay Trace Integration', () => {
     const replayer = createSessionReplayer(recorder);
 
     // Create checkpoint with trace
-    await traceContextProvider.run(async () => {
-      const context = traceContextProvider.getContext();
-      originalTraceId = context!.traceId;
-      originalSpanId = context!.spanId;
-
-      recorder.startRecording('linked-session');
-
-      const checkpoint = createTestCheckpoint('linked-session', {
-        traceId: originalTraceId,
-        spanId: originalSpanId,
-      });
-
-      await recorder.recordCheckpoint(checkpoint);
-      recorder.stopRecording();
-    });
+    const { traceId, spanId } = await recordCheckpointWithTrace(recorder, 'linked-session');
+    originalTraceId = traceId;
+    originalSpanId = spanId;
 
     // Replay and create child span
     const replayContext = await replayer.replayWithTraceCorrelation('linked-session');
-
-    await traceContextProvider.withSpan(
-      {
-        name: 'replay-resumed-analysis',
-        ...(replayContext.originalCheckpointSpanId && {
-          parentSpanId: replayContext.originalCheckpointSpanId,
-        }),
-      },
-      async (span) => {
-        span.setAttribute('original_trace_id', replayContext.originalTraceId!);
-        span.setAttribute('session_id', replayContext.sessionId);
-        span.addEvent('replay_started');
-      }
-    );
+    await createReplaySpan('replay-resumed-analysis', replayContext);
 
     // Verify child span was created with correct parent
-    const replaySpans = testExporter.spans.filter((s) => s.name === 'replay-resumed-analysis');
-    expect(replaySpans).toHaveLength(1);
-    expect(replaySpans[0]?.parentSpanId).toBe(originalSpanId);
-    expect(replaySpans[0]?.attributes.original_trace_id).toBe(originalTraceId);
+    assertReplaySpansLinked(
+      testExporter,
+      'replay-resumed-analysis',
+      originalSpanId,
+      originalTraceId,
+      1
+    );
   });
 
   it('should handle replay of session without trace context', async () => {
@@ -233,47 +272,17 @@ describe('Checkpoint Replay Trace Integration', () => {
     const replayer = createSessionReplayer(recorder);
 
     // Create initial checkpoint with trace
-    await traceContextProvider.run(async () => {
-      const context = traceContextProvider.getContext();
-      originalTraceId = context!.traceId;
-      originalSpanId = context!.spanId;
-
-      recorder.startRecording('multi-replay-session');
-
-      const checkpoint = createTestCheckpoint('multi-replay-session', {
-        traceId: originalTraceId,
-        spanId: originalSpanId,
-      });
-
-      await recorder.recordCheckpoint(checkpoint);
-      recorder.stopRecording();
-    });
+    const { traceId, spanId } = await recordCheckpointWithTrace(recorder, 'multi-replay-session');
+    originalTraceId = traceId;
+    originalSpanId = spanId;
 
     // Replay multiple times
+    const replayContext = await replayer.replayWithTraceCorrelation('multi-replay-session');
     for (let i = 0; i < 3; i++) {
-      const replayContext = await replayer.replayWithTraceCorrelation('multi-replay-session');
-
-      await traceContextProvider.withSpan(
-        {
-          name: `replay-operation-${i}`,
-          ...(replayContext.originalCheckpointSpanId && {
-            parentSpanId: replayContext.originalCheckpointSpanId,
-          }),
-        },
-        async (span) => {
-          span.setAttribute('replay_iteration', i);
-          span.setAttribute('original_trace_id', replayContext.originalTraceId!);
-        }
-      );
+      await createReplaySpan(`replay-operation-${i}`, replayContext, { replay_iteration: i });
     }
 
     // Verify all replay operations linked to original
-    const replaySpans = testExporter.spans.filter((s) => s.name.startsWith('replay-operation-'));
-    expect(replaySpans).toHaveLength(3);
-
-    for (const span of replaySpans) {
-      expect(span.parentSpanId).toBe(originalSpanId);
-      expect(span.attributes.original_trace_id).toBe(originalTraceId);
-    }
+    assertReplaySpansLinked(testExporter, /^replay-operation-/, originalSpanId, originalTraceId, 3);
   });
 });

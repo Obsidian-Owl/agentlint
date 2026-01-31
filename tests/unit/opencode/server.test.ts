@@ -17,6 +17,123 @@ function getInternals(server: OpencodeServerManager): ServerInternals {
   return server as unknown as ServerInternals;
 }
 
+// ============================================================================
+// Test Helpers
+// ============================================================================
+
+/** Simulates a running server with given URL */
+function simulateRunningServer(server: OpencodeServerManager, url = 'http://localhost:4096') {
+  const internals = getInternals(server);
+  internals.running = true;
+  internals.server = { url, close: () => {} };
+}
+
+/** Expects config to match provided values */
+function expectConfig(
+  server: OpencodeServerManager,
+  expected: { port: number; hostname: string; timeout: number }
+) {
+  const internals = getInternals(server);
+  expect(internals.config.port).toBe(expected.port);
+  expect(internals.config.hostname).toBe(expected.hostname);
+  expect(internals.config.timeout).toBe(expected.timeout);
+}
+
+/** Expects port availability check result to match */
+function expectPortCheck(
+  result: { available: boolean; healthy: boolean; isAgentlint: boolean },
+  expected: { available: boolean; healthy: boolean; isAgentlint: boolean }
+) {
+  expect(result.available).toBe(expected.available);
+  expect(result.healthy).toBe(expected.healthy);
+  expect(result.isAgentlint).toBe(expected.isAgentlint);
+}
+
+/** Mocks checkPortAvailable to return specific state */
+function mockPortAvailable(
+  server: OpencodeServerManager,
+  state: { available: boolean; healthy: boolean; isAgentlint: boolean }
+) {
+  const internals = getInternals(server);
+  internals.checkPortAvailable = () => Promise.resolve(state);
+}
+
+/** Mocks tryReuseExistingServer to return specific result */
+function mockServerReuse(server: OpencodeServerManager, canReuse: boolean) {
+  const internals = getInternals(server);
+  internals.tryReuseExistingServer = () => Promise.resolve(canReuse);
+}
+
+/** Mocks fetch to simulate connection refused */
+function mockFetchConnectionRefused() {
+  global.fetch = (() => Promise.reject(new Error('Connection refused'))) as unknown as typeof fetch;
+}
+
+/** Mocks fetch to return healthy Opencode response (array) */
+function mockFetchHealthyOpencode() {
+  global.fetch = (() =>
+    Promise.resolve({
+      ok: true,
+      json: () => Promise.resolve([]),
+    } as Response)) as unknown as typeof fetch;
+}
+
+/** Mocks fetch to return non-agentlint response (object) */
+function mockFetchNonAgentlint() {
+  global.fetch = (() =>
+    Promise.resolve({
+      ok: true,
+      json: () => Promise.resolve({ status: 'different' }),
+    } as Response)) as unknown as typeof fetch;
+}
+
+/** Mocks fetch to return error status */
+function mockFetchError(status = 500) {
+  global.fetch = (() =>
+    Promise.resolve({
+      ok: false,
+      status,
+    } as Response)) as unknown as typeof fetch;
+}
+
+/** Mocks fetch to return non-JSON response */
+function mockFetchNonJson() {
+  global.fetch = (() =>
+    Promise.resolve({
+      ok: true,
+      json: () => Promise.reject(new Error('Not JSON')),
+    } as Response)) as unknown as typeof fetch;
+}
+
+interface TempDirCleanup {
+  dir: string;
+  cleanup: () => void;
+}
+
+/** Creates temp directory with optional lockfile */
+function createTempDir(options?: { lockfilePort?: number; lockfilePid?: number }): TempDirCleanup {
+  const testDir = join(tmpdir(), `agentlint-test-${Date.now()}`);
+  mkdirSync(testDir, { recursive: true });
+
+  if (options?.lockfilePort !== undefined) {
+    const lockDir = join(testDir, '.agentlint');
+    mkdirSync(lockDir, { recursive: true });
+    writeFileSync(
+      join(lockDir, '.server-port'),
+      JSON.stringify({
+        port: options.lockfilePort,
+        pid: options.lockfilePid ?? process.pid,
+      }),
+      'utf-8'
+    );
+  }
+
+  return {
+    dir: testDir,
+    cleanup: () => rmSync(testDir, { recursive: true, force: true }),
+  };
+}
+
 describe('getProjectPort', () => {
   it('should generate port in valid range', () => {
     const port = getProjectPort('/some/project/path');
@@ -44,36 +161,24 @@ describe('OpencodeServerManager', () => {
       const testCwd = '/test/project';
       const expectedPort = getProjectPort(testCwd);
       const server = new OpencodeServerManager({}, testCwd);
-      const internals = getInternals(server);
-      expect(internals.config.port).toBe(expectedPort);
-      expect(internals.config.hostname).toBe('127.0.0.1');
-      expect(internals.config.timeout).toBe(5000);
+      expectConfig(server, { port: expectedPort, hostname: '127.0.0.1', timeout: 5000 });
     });
 
     it('should use provided config values', () => {
       const server = new OpencodeServerManager({ port: 8080, hostname: '0.0.0.0', timeout: 10000 });
-      const internals = getInternals(server);
-      expect(internals.config.port).toBe(8080);
-      expect(internals.config.hostname).toBe('0.0.0.0');
-      expect(internals.config.timeout).toBe(10000);
+      expectConfig(server, { port: 8080, hostname: '0.0.0.0', timeout: 10000 });
     });
 
     it('should accept partial config and use defaults for missing values', () => {
       const server = new OpencodeServerManager({ port: 9999 });
-      const internals = getInternals(server);
-      expect(internals.config.port).toBe(9999);
-      expect(internals.config.hostname).toBe('127.0.0.1');
-      expect(internals.config.timeout).toBe(5000);
+      expectConfig(server, { port: 9999, hostname: '127.0.0.1', timeout: 5000 });
     });
 
     it('should accept empty config object', () => {
       const testCwd = '/test/project';
       const expectedPort = getProjectPort(testCwd);
       const server = new OpencodeServerManager({}, testCwd);
-      const internals = getInternals(server);
-      expect(internals.config.port).toBe(expectedPort);
-      expect(internals.config.hostname).toBe('127.0.0.1');
-      expect(internals.config.timeout).toBe(5000);
+      expectConfig(server, { port: expectedPort, hostname: '127.0.0.1', timeout: 5000 });
     });
   });
 
@@ -100,11 +205,7 @@ describe('OpencodeServerManager', () => {
 
     it('should be idempotent when starting an already-running server', async () => {
       const server = new OpencodeServerManager();
-      const internals = getInternals(server);
-
-      // Simulate server already running
-      internals.running = true;
-      internals.server = { url: 'http://localhost:4096', close: () => {} };
+      simulateRunningServer(server);
 
       // start() is now idempotent - it doesn't throw when already running
       await expect(server.start()).resolves.toBeUndefined();
@@ -112,33 +213,21 @@ describe('OpencodeServerManager', () => {
 
     it('should return true for isRunning when server is started', () => {
       const server = new OpencodeServerManager();
-      const internals = getInternals(server);
-
-      // Simulate server started
-      internals.running = true;
-      internals.server = { url: 'http://localhost:4096', close: () => {} };
+      simulateRunningServer(server);
 
       expect(server.isRunning()).toBe(true);
     });
 
     it('should return server URL when running', () => {
       const server = new OpencodeServerManager();
-      const internals = getInternals(server);
-
-      // Simulate server started
-      internals.running = true;
-      internals.server = { url: 'http://localhost:4096', close: () => {} };
+      simulateRunningServer(server);
 
       expect(server.getUrl()).toBe('http://localhost:4096');
     });
 
     it('should parse port from server URL when running', () => {
       const server = new OpencodeServerManager();
-      const internals = getInternals(server);
-
-      // Simulate server started with custom port
-      internals.running = true;
-      internals.server = { url: 'http://localhost:8080', close: () => {} };
+      simulateRunningServer(server, 'http://localhost:8080');
 
       expect(server.getPort()).toBe(8080);
     });
@@ -146,10 +235,7 @@ describe('OpencodeServerManager', () => {
     it('should set running to false after stop is called', () => {
       const server = new OpencodeServerManager();
       const internals = getInternals(server);
-
-      // Simulate server started
-      internals.running = true;
-      internals.server = { url: 'http://localhost:4096', close: () => {} };
+      simulateRunningServer(server);
 
       server.stop();
 
@@ -159,11 +245,7 @@ describe('OpencodeServerManager', () => {
 
     it('should be idempotent when stop is called multiple times', () => {
       const server = new OpencodeServerManager();
-      const internals = getInternals(server);
-
-      // Simulate server started
-      internals.running = true;
-      internals.server = { url: 'http://localhost:4096', close: () => {} };
+      simulateRunningServer(server);
 
       server.stop();
       expect(() => server.stop()).not.toThrow();
@@ -172,30 +254,21 @@ describe('OpencodeServerManager', () => {
 
     it('should throw error when port is occupied by non-agentlint process', async () => {
       const server = new OpencodeServerManager({ port: 3000 });
-      const internals = getInternals(server);
-
-      internals.checkPortAvailable = () =>
-        Promise.resolve({ available: false, healthy: false, isAgentlint: false });
+      mockPortAvailable(server, { available: false, healthy: false, isAgentlint: false });
 
       await expect(server.start()).rejects.toThrow('already in use by another process');
     });
 
     it('should throw error when port is occupied by unhealthy agentlint server', async () => {
       const server = new OpencodeServerManager({ port: 3000 });
-      const internals = getInternals(server);
-
-      internals.checkPortAvailable = () =>
-        Promise.resolve({ available: false, healthy: false, isAgentlint: true });
+      mockPortAvailable(server, { available: false, healthy: false, isAgentlint: true });
 
       await expect(server.start()).rejects.toThrow('unhealthy agentlint server');
     });
 
     it('should reuse existing healthy agentlint server', async () => {
       const server = new OpencodeServerManager({ port: 4096 });
-      const internals = getInternals(server);
-
-      // Mock tryReuseExistingServer to return true
-      internals.tryReuseExistingServer = () => Promise.resolve(true);
+      mockServerReuse(server, true);
 
       await server.start();
 
@@ -205,12 +278,8 @@ describe('OpencodeServerManager', () => {
 
     it('should not reuse unhealthy server', async () => {
       const server = new OpencodeServerManager({ port: 4096 });
-      const internals = getInternals(server);
-
-      // Mock to simulate unhealthy server on port
-      internals.tryReuseExistingServer = () => Promise.resolve(false);
-      internals.checkPortAvailable = () =>
-        Promise.resolve({ available: false, healthy: false, isAgentlint: true });
+      mockServerReuse(server, false);
+      mockPortAvailable(server, { available: false, healthy: false, isAgentlint: true });
 
       await expect(server.start()).rejects.toThrow('unhealthy agentlint server');
     });
@@ -222,8 +291,7 @@ describe('OpencodeServerManager', () => {
       expect(internals.running).toBe(false);
       expect(internals.server).toBeNull();
 
-      internals.checkPortAvailable = () =>
-        Promise.resolve({ available: true, healthy: false, isAgentlint: false });
+      mockPortAvailable(server, { available: true, healthy: false, isAgentlint: false });
 
       expect(server.isRunning()).toBe(false);
     });
@@ -234,107 +302,61 @@ describe('OpencodeServerManager', () => {
       const server = new OpencodeServerManager({ port: 4096 });
       const internals = getInternals(server);
 
-      // Mock fetch to throw (connection refused)
-      global.fetch = (() =>
-        Promise.reject(new Error('Connection refused'))) as unknown as typeof fetch;
+      mockFetchConnectionRefused();
 
       const result = await internals.checkPortAvailable();
-
-      expect(result.available).toBe(true);
-      expect(result.healthy).toBe(false);
-      expect(result.isAgentlint).toBe(false);
+      expectPortCheck(result, { available: true, healthy: false, isAgentlint: false });
     });
 
     it('should detect healthy agentlint server when lockfile matches', async () => {
-      // Create a temp directory with a lockfile
-      const testDir = join(tmpdir(), `agentlint-test-${Date.now()}`);
-      const lockDir = join(testDir, '.agentlint');
-      mkdirSync(lockDir, { recursive: true });
-      writeFileSync(
-        join(lockDir, '.server-port'),
-        JSON.stringify({ port: 4096, pid: process.pid }),
-        'utf-8'
-      );
+      const { dir, cleanup } = createTempDir({ lockfilePort: 4096 });
 
       try {
-        const server = new OpencodeServerManager({ port: 4096 }, testDir);
+        const server = new OpencodeServerManager({ port: 4096 }, dir);
         const internals = getInternals(server);
 
-        // Mock fetch to return healthy agentlint response (array of sessions)
-        global.fetch = (() =>
-          Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve([]),
-          } as Response)) as unknown as typeof fetch;
+        mockFetchHealthyOpencode();
 
         const result = await internals.checkPortAvailable();
-
-        expect(result.available).toBe(false);
-        expect(result.healthy).toBe(true);
-        expect(result.isAgentlint).toBe(true);
+        expectPortCheck(result, { available: false, healthy: true, isAgentlint: true });
       } finally {
-        // Cleanup
-        rmSync(testDir, { recursive: true, force: true });
+        cleanup();
       }
     });
 
     it('should identify as agentlint when Opencode session endpoint detected (lockfile optional)', async () => {
-      // Use temp directory without lockfile
-      const testDir = join(tmpdir(), `agentlint-test-${Date.now()}`);
-      mkdirSync(testDir, { recursive: true });
+      const { dir, cleanup } = createTempDir();
 
       try {
-        const server = new OpencodeServerManager({ port: 4096 }, testDir);
+        const server = new OpencodeServerManager({ port: 4096 }, dir);
         const internals = getInternals(server);
 
-        // Mock fetch to return healthy opencode response (array of sessions)
-        global.fetch = (() =>
-          Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve([]),
-          } as Response)) as unknown as typeof fetch;
+        mockFetchHealthyOpencode();
 
         const result = await internals.checkPortAvailable();
 
-        expect(result.available).toBe(false);
-        expect(result.healthy).toBe(true);
         // Any Opencode server is considered agentlint (lockfile is optional)
-        expect(result.isAgentlint).toBe(true);
+        expectPortCheck(result, { available: false, healthy: true, isAgentlint: true });
       } finally {
-        rmSync(testDir, { recursive: true, force: true });
+        cleanup();
       }
     });
 
     it('should identify as agentlint even when lockfile port mismatches', async () => {
-      // Create a temp directory with a lockfile for a different port
-      const testDir = join(tmpdir(), `agentlint-test-${Date.now()}`);
-      const lockDir = join(testDir, '.agentlint');
-      mkdirSync(lockDir, { recursive: true });
-      writeFileSync(
-        join(lockDir, '.server-port'),
-        JSON.stringify({ port: 9999, pid: process.pid }),
-        'utf-8'
-      ); // Different port
+      const { dir, cleanup } = createTempDir({ lockfilePort: 9999 });
 
       try {
-        const server = new OpencodeServerManager({ port: 4096 }, testDir);
+        const server = new OpencodeServerManager({ port: 4096 }, dir);
         const internals = getInternals(server);
 
-        // Mock fetch to return healthy opencode response
-        global.fetch = (() =>
-          Promise.resolve({
-            ok: true,
-            json: () => Promise.resolve([]),
-          } as Response)) as unknown as typeof fetch;
+        mockFetchHealthyOpencode();
 
         const result = await internals.checkPortAvailable();
 
-        expect(result.available).toBe(false);
-        expect(result.healthy).toBe(true);
         // Any Opencode server is considered agentlint, regardless of lockfile
-        expect(result.isAgentlint).toBe(true);
+        expectPortCheck(result, { available: false, healthy: true, isAgentlint: true });
       } finally {
-        rmSync(testDir, { recursive: true, force: true });
+        cleanup();
       }
     });
 
@@ -342,54 +364,30 @@ describe('OpencodeServerManager', () => {
       const server = new OpencodeServerManager({ port: 4096 });
       const internals = getInternals(server);
 
-      // Mock fetch to return non-agentlint response (not an array)
-      global.fetch = (() =>
-        Promise.resolve({
-          ok: true,
-          json: () => Promise.resolve({ status: 'different' }),
-        } as Response)) as unknown as typeof fetch;
+      mockFetchNonAgentlint();
 
       const result = await internals.checkPortAvailable();
-
-      expect(result.available).toBe(false);
-      expect(result.healthy).toBe(true);
-      expect(result.isAgentlint).toBe(false);
+      expectPortCheck(result, { available: false, healthy: true, isAgentlint: false });
     });
 
     it('should detect unhealthy service', async () => {
       const server = new OpencodeServerManager({ port: 4096 });
       const internals = getInternals(server);
 
-      // Mock fetch to return error status
-      global.fetch = (() =>
-        Promise.resolve({
-          ok: false,
-          status: 500,
-        } as Response)) as unknown as typeof fetch;
+      mockFetchError();
 
       const result = await internals.checkPortAvailable();
-
-      expect(result.available).toBe(false);
-      expect(result.healthy).toBe(false);
-      expect(result.isAgentlint).toBe(false);
+      expectPortCheck(result, { available: false, healthy: false, isAgentlint: false });
     });
 
     it('should handle non-JSON response', async () => {
       const server = new OpencodeServerManager({ port: 4096 });
       const internals = getInternals(server);
 
-      // Mock fetch to return non-JSON response
-      global.fetch = (() =>
-        Promise.resolve({
-          ok: true,
-          json: () => Promise.reject(new Error('Not JSON')),
-        } as Response)) as unknown as typeof fetch;
+      mockFetchNonJson();
 
       const result = await internals.checkPortAvailable();
-
-      expect(result.available).toBe(false);
-      expect(result.healthy).toBe(false);
-      expect(result.isAgentlint).toBe(false);
+      expectPortCheck(result, { available: false, healthy: false, isAgentlint: false });
     });
   });
 
@@ -398,12 +396,9 @@ describe('OpencodeServerManager', () => {
       const server = new OpencodeServerManager({ port: 4096 });
       const internals = getInternals(server);
 
-      // Mock healthy agentlint server
-      internals.checkPortAvailable = () =>
-        Promise.resolve({ available: false, healthy: true, isAgentlint: true });
+      mockPortAvailable(server, { available: false, healthy: true, isAgentlint: true });
 
       const canReuse = await internals.tryReuseExistingServer();
-
       expect(canReuse).toBe(true);
     });
 
@@ -411,12 +406,9 @@ describe('OpencodeServerManager', () => {
       const server = new OpencodeServerManager({ port: 4096 });
       const internals = getInternals(server);
 
-      // Mock available port
-      internals.checkPortAvailable = () =>
-        Promise.resolve({ available: true, healthy: false, isAgentlint: false });
+      mockPortAvailable(server, { available: true, healthy: false, isAgentlint: false });
 
       const canReuse = await internals.tryReuseExistingServer();
-
       expect(canReuse).toBe(false);
     });
 
@@ -424,12 +416,9 @@ describe('OpencodeServerManager', () => {
       const server = new OpencodeServerManager({ port: 4096 });
       const internals = getInternals(server);
 
-      // Mock unhealthy server
-      internals.checkPortAvailable = () =>
-        Promise.resolve({ available: false, healthy: false, isAgentlint: true });
+      mockPortAvailable(server, { available: false, healthy: false, isAgentlint: true });
 
       const canReuse = await internals.tryReuseExistingServer();
-
       expect(canReuse).toBe(false);
     });
 
@@ -437,12 +426,9 @@ describe('OpencodeServerManager', () => {
       const server = new OpencodeServerManager({ port: 4096 });
       const internals = getInternals(server);
 
-      // Mock non-agentlint server
-      internals.checkPortAvailable = () =>
-        Promise.resolve({ available: false, healthy: true, isAgentlint: false });
+      mockPortAvailable(server, { available: false, healthy: true, isAgentlint: false });
 
       const canReuse = await internals.tryReuseExistingServer();
-
       expect(canReuse).toBe(false);
     });
   });
