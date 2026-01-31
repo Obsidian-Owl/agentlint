@@ -12,11 +12,13 @@ import type { ExportableSpan } from '../../../src/observability/exporters/local-
 
 describe('LocalSpanExporter', () => {
   let testDir: string;
+  let defaultLocationCleanup: string | null = null;
 
   beforeEach(() => {
     // Create unique test directory for each test
     testDir = join(tmpdir(), `agentlint-test-${Date.now()}-${Math.random().toString(36).slice(2)}`);
     mkdirSync(testDir, { recursive: true });
+    defaultLocationCleanup = null;
   });
 
   afterEach(() => {
@@ -24,24 +26,33 @@ describe('LocalSpanExporter', () => {
     if (existsSync(testDir)) {
       rmSync(testDir, { recursive: true, force: true });
     }
+    // Clean up default location file if created
+    if (defaultLocationCleanup && existsSync(defaultLocationCleanup)) {
+      rmSync(defaultLocationCleanup, { force: true });
+    }
   });
 
   /**
    * Helper: Create a sample span
    */
   function createSpan(name: string, overrides?: Partial<ExportableSpan>): ExportableSpan {
-    return {
+    const now = Date.now();
+    const defaults = {
       traceId: '0123456789abcdef0123456789abcdef',
       spanId: '0123456789abcdef',
       name,
-      kind: 'internal',
-      startTime: Date.now(),
-      endTime: Date.now() + 100,
-      durationMs: 100,
-      status: { code: 'ok' },
+      kind: 'internal' as const,
+      startTime: now,
+      endTime: now + 100,
+      status: { code: 'ok' as const },
       attributes: {},
       events: [],
-      ...overrides,
+    };
+    const merged = { ...defaults, ...overrides };
+    // Calculate durationMs from final startTime and endTime
+    return {
+      ...merged,
+      durationMs: merged.endTime - merged.startTime,
     };
   }
 
@@ -129,8 +140,8 @@ describe('LocalSpanExporter', () => {
       expect(filePath).toContain('.agentlint/logs');
       expect(filePath).toContain('traces-');
 
-      // Clean up default location
-      rmSync(filePath, { force: true });
+      // Track for cleanup in afterEach (ensures cleanup even if test fails)
+      defaultLocationCleanup = filePath;
     });
   });
 
@@ -414,6 +425,140 @@ describe('LocalSpanExporter', () => {
 
       const writtenSpans = readNDJSON(exporter.getCurrentFilePath());
       expect(writtenSpans[0]!.attributes).toEqual(span.attributes);
+    });
+
+    it('should handle very large attribute values', () => {
+      const exporter = new LocalSpanExporter({
+        outputDir: testDir,
+        filePrefix: 'test-traces',
+      });
+
+      const span = createSpan('test-span', {
+        attributes: {
+          largeValue: 'x'.repeat(10000),
+        },
+      });
+
+      expect(() => {
+        exporter.export([span]);
+      }).not.toThrow();
+
+      const writtenSpans = readNDJSON(exporter.getCurrentFilePath());
+      expect(writtenSpans[0]!.attributes.largeValue).toHaveLength(10000);
+    });
+
+    it('should handle empty attributes and events', () => {
+      const exporter = new LocalSpanExporter({
+        outputDir: testDir,
+        filePrefix: 'test-traces',
+      });
+
+      const span = createSpan('test-span', {
+        attributes: {},
+        events: [],
+      });
+
+      exporter.export([span]);
+
+      const writtenSpans = readNDJSON(exporter.getCurrentFilePath());
+      expect(writtenSpans[0]!.attributes).toEqual({});
+      expect(writtenSpans[0]!.events).toEqual([]);
+    });
+
+    it('should handle null-like values in attributes', () => {
+      const exporter = new LocalSpanExporter({
+        outputDir: testDir,
+        filePrefix: 'test-traces',
+      });
+
+      const span = createSpan('test-span', {
+        attributes: {
+          emptyString: '',
+          zero: 0,
+          falseValue: false,
+        },
+      });
+
+      exporter.export([span]);
+
+      const writtenSpans = readNDJSON(exporter.getCurrentFilePath());
+      expect(writtenSpans[0]!.attributes).toEqual({
+        emptyString: '',
+        zero: 0,
+        falseValue: false,
+      });
+    });
+
+    it('should preserve timestamp precision', () => {
+      const exporter = new LocalSpanExporter({
+        outputDir: testDir,
+        filePrefix: 'test-traces',
+      });
+
+      const now = Date.now();
+      const span = createSpan('test-span', {
+        startTime: now,
+        endTime: now + 123,
+      });
+
+      exporter.export([span]);
+
+      const writtenSpans = readNDJSON(exporter.getCurrentFilePath());
+      expect(writtenSpans[0]!.startTime).toBe(now);
+      expect(writtenSpans[0]!.endTime).toBe(now + 123);
+      expect(writtenSpans[0]!.durationMs).toBe(123);
+    });
+  });
+
+  describe('Concurrent export', () => {
+    it('should handle concurrent exports safely', () => {
+      const exporter = new LocalSpanExporter({
+        outputDir: testDir,
+        filePrefix: 'test-traces',
+      });
+
+      // Export multiple spans concurrently (synchronous, but rapid succession)
+      const spans = Array.from({ length: 10 }, (_, i) => createSpan(`span-${i}`));
+
+      spans.forEach((span) => {
+        exporter.export([span]);
+      });
+
+      const writtenSpans = readNDJSON(exporter.getCurrentFilePath());
+      expect(writtenSpans).toHaveLength(10);
+
+      // Verify all spans are present and in order
+      writtenSpans.forEach((span, i) => {
+        expect(span.name).toBe(`span-${i}`);
+      });
+    });
+  });
+
+  describe('Error conditions', () => {
+    it('should handle write to read-only directory gracefully', () => {
+      // Note: This test is platform-dependent and may behave differently
+      // Skip on platforms where permission control is unreliable
+      if (process.platform === 'win32') {
+        return;
+      }
+
+      const readOnlyDir = join(testDir, 'readonly');
+      mkdirSync(readOnlyDir, { mode: 0o444 }); // Read-only
+
+      // Constructor should succeed even if directory is read-only
+      // (file write will fail, but that's handled by appendFileSync)
+      const exporter = new LocalSpanExporter({
+        outputDir: readOnlyDir,
+        filePrefix: 'test-traces',
+      });
+
+      // This will throw due to permissions, which is expected behavior
+      expect(() => {
+        exporter.export([createSpan('span-1')]);
+      }).toThrow();
+
+      // Clean up - restore write permission before deletion
+      rmSync(readOnlyDir, { recursive: true, force: true });
     });
   });
 });

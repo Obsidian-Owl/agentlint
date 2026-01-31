@@ -14,7 +14,6 @@ import type { LoadingStepId, WelcomeContext } from '../../tui/welcome/types';
 import { loadWelcomeContext } from '../../tui/welcome/context-loader';
 import {
   formatContextSummary,
-  generateMenuOptions,
   getWelcomeSystemPrompt,
   getWelcomeUserPrompt,
 } from '../../tui/welcome/welcome-prompt';
@@ -85,9 +84,9 @@ export async function runWelcomeFlow(
   } else {
     welcomeMessage = formatContextSummary(context);
   }
-  const menuOptions = generateMenuOptions(context);
-
-  tuiRenderer.setWelcomeMenu(menuOptions);
+  // Menu options are now presented by the agent via AskUserQuestion tool
+  // Don't set menu - agent will present options via questions
+  // tuiRenderer.setWelcomeMenu(menuOptions);
   tuiRenderer.setTuiState('welcome');
   tuiRenderer.addConversationMessage({
     role: 'assistant',

@@ -43,6 +43,7 @@ export function InputField({
   disabled = false,
   placeholder = '',
   disabledPlaceholder = 'Agent is working, please wait...',
+  queuedInput,
 }: InputFieldProps): React.ReactElement {
   useInput(
     (input, key) => {
@@ -96,16 +97,23 @@ export function InputField({
   const displayPlaceholder = disabled ? disabledPlaceholder : placeholder;
 
   return (
-    <Box>
-      <Text color="green" bold>
-        {'\u276F '}
-      </Text>
-      {showPlaceholder && displayPlaceholder.length > 0 ? (
-        <Text dimColor>{displayPlaceholder}</Text>
-      ) : (
-        <Text>{value}</Text>
+    <Box flexDirection="column">
+      {queuedInput && (
+        <Box marginBottom={0}>
+          <Text dimColor>[Queued: {queuedInput}]</Text>
+        </Box>
       )}
-      {!disabled && <Text color="green">{'_'}</Text>}
+      <Box>
+        <Text color="green" bold>
+          {'\u276F '}
+        </Text>
+        {showPlaceholder && displayPlaceholder.length > 0 ? (
+          <Text dimColor>{displayPlaceholder}</Text>
+        ) : (
+          <Text>{value}</Text>
+        )}
+        {!disabled && <Text color="green">{'_'}</Text>}
+      </Box>
     </Box>
   );
 }

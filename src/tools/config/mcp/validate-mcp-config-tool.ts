@@ -10,7 +10,7 @@
 import { z } from 'zod';
 import { adaptTool } from '../../../opencode/tool-adapter';
 import { readFile } from 'fs/promises';
-import { parseMcpConfig } from './parser';
+import { parseMcpConfig, extractServers } from './parser';
 import { validateSchema, validateServerSchema } from './validators/schema';
 import { validatePath } from './validators/path';
 import { validateEnv } from './validators/env';
@@ -18,6 +18,7 @@ import { validateTransport } from './validators/transport';
 import { validatePatterns } from './validators/patterns';
 import type { McpValidationIssue, McpFormat, Position, McpAct } from './types';
 import { basename, dirname } from 'path';
+import type { Node } from 'jsonc-parser';
 
 // =============================================================================
 // Types
@@ -132,7 +133,7 @@ export async function validateMcpConfig(
       servers.push(serverName);
 
       // Get server position
-      const serverPosition = getServerPosition(tree, content, serverName, detectedFormat);
+      const serverPosition = getServerPosition(tree, content, serverName, detectedFormat, config);
 
       // Server schema validation
       const serverSchemaIssues = validateServerSchema(
@@ -339,13 +340,22 @@ function getServerConfigs(
  * Get position for a server in the config tree.
  */
 function getServerPosition(
-  _tree: unknown,
-  _content: string,
-  _serverName: string,
-  _format: McpFormat
+  tree: Node,
+  content: string,
+  serverName: string,
+  _format: McpFormat,
+  config: Record<string, unknown>
 ): Position {
-  // TODO: Implement actual position lookup from tree
-  // For now, return default position
+  // Use extractServers to get position information
+  const servers = extractServers(content, tree, config);
+
+  // Find the server by name
+  const server = servers.find((s: { name: string; position: Position }) => s.name === serverName);
+  if (server) {
+    return server.position;
+  }
+
+  // Fallback to default position if not found
   return {
     start: { line: 1, column: 1 },
     end: { line: 1, column: 1 },

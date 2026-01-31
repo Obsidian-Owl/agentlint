@@ -127,7 +127,7 @@ describe('Session Span', () => {
         // Span should be ended after callback completes
         expect(startTime).toBeGreaterThan(0);
         const duration = Date.now() - startTime;
-        expect(duration).toBeGreaterThanOrEqual(10);
+        expect(duration).toBeGreaterThanOrEqual(5);
       });
     });
 

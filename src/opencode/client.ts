@@ -1,4 +1,4 @@
-import { createOpencodeClient, type OpencodeClient as SDKClient } from '@opencode-ai/sdk';
+import { createOpencodeClient, type OpencodeClient as SDKClient } from '@opencode-ai/sdk/v2';
 
 export interface OpencodeClientConfig {
   baseUrl?: string;
@@ -22,6 +22,7 @@ export interface IOpencodeClient {
   ): Promise<void>;
   subscribe(): AsyncIterable<unknown>;
   subscribeEager(options?: { directory?: string }): Promise<AsyncIterable<unknown>>;
+  replyToQuestion(requestId: string, answers: string[][]): Promise<void>;
   isConnected(): boolean;
 }
 
@@ -67,8 +68,9 @@ export class AgentlintOpencodeClient implements IOpencodeClient {
       throw new Error('Client is not initialized');
     }
 
+    // v2 API: parameters directly, not wrapped in body
     const result = await this.client.session.create({
-      body: { title: options.title },
+      title: options.title,
     });
 
     if (result.error) {
@@ -87,11 +89,10 @@ export class AgentlintOpencodeClient implements IOpencodeClient {
       throw new Error('Client is not initialized');
     }
 
+    // v2 API: sessionID parameter, parts directly
     const result = await this.client.session.prompt({
-      path: { id: sessionId },
-      body: {
-        parts: [{ type: 'text', text: message }],
-      },
+      sessionID: sessionId,
+      parts: [{ type: 'text', text: message }],
     });
 
     if (result.error) {
@@ -125,23 +126,22 @@ export class AgentlintOpencodeClient implements IOpencodeClient {
       throw new Error('Client is not initialized');
     }
 
-    // Build the request body with optional system prompt
-    const body: {
+    // v2 API: parameters directly, not wrapped in body
+    const params: {
+      sessionID: string;
       parts: Array<{ type: 'text'; text: string }>;
       system?: string;
     } = {
+      sessionID: sessionId,
       parts: [{ type: 'text' as const, text: message }],
     };
 
-    // Add system prompt if provided (SDK uses body.system)
+    // Add system prompt if provided
     if (options?.systemPrompt) {
-      body.system = options.systemPrompt;
+      params.system = options.systemPrompt;
     }
 
-    const result = await this.client.session.promptAsync({
-      path: { id: sessionId },
-      body,
-    });
+    const result = await this.client.session.promptAsync(params);
 
     if (result.error) {
       const errorMsg: string =
@@ -179,10 +179,36 @@ export class AgentlintOpencodeClient implements IOpencodeClient {
       throw new Error('Client is not initialized');
     }
 
-    // Only pass query if directory is provided (exactOptionalPropertyTypes compliance)
-    const subscribeOptions = options?.directory ? { query: { directory: options.directory } } : {};
+    // v2 API: directory parameter directly (not wrapped in query)
+    const subscribeOptions = options?.directory ? { directory: options.directory } : undefined;
     const events = await this.client.event.subscribe(subscribeOptions);
     return events.stream;
+  }
+
+  /**
+   * Reply to a question request from the agent.
+   *
+   * @param requestId - The question request ID from the question.asked event
+   * @param answers - Array of answers, each answer is an array of selected option labels
+   */
+  async replyToQuestion(requestId: string, answers: string[][]): Promise<void> {
+    this.ensureConnected();
+
+    if (!this.client) {
+      throw new Error('Client is not initialized');
+    }
+
+    // v2 SDK has native question API
+    const result = await this.client.question.reply({
+      requestID: requestId,
+      answers,
+    });
+
+    if (result.error) {
+      const errorMsg: string =
+        'message' in result.error ? String(result.error.message) : JSON.stringify(result.error);
+      throw new Error(`Question reply failed: ${errorMsg}`);
+    }
   }
 
   isConnected(): boolean {

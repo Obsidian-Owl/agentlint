@@ -41,7 +41,7 @@ const traceStorage = new AsyncLocalStorage<TraceContext>();
  * ```
  */
 export class TraceContextProvider {
-  private exporter?: SpanExporter;
+  private exporter: SpanExporter | undefined;
 
   /**
    * Register a span exporter for automatic span export.
@@ -51,6 +51,14 @@ export class TraceContextProvider {
    */
   registerExporter(exporter: SpanExporter): void {
     this.exporter = exporter;
+  }
+
+  /**
+   * Clear the registered exporter.
+   * Primarily used for testing to reset state between tests.
+   */
+  clearExporter(): void {
+    this.exporter = undefined;
   }
 
   /**
@@ -142,7 +150,7 @@ export class TraceContextProvider {
           spanId: newSpanId,
           ...(parentSpanId ? { parentSpanId } : {}),
           name: options.name,
-          kind: 'internal',
+          kind: options.kind ?? 'internal',
           startTime,
           endTime,
           durationMs: endTime - startTime,
@@ -163,7 +171,7 @@ export class TraceContextProvider {
           spanId: newSpanId,
           ...(parentSpanId ? { parentSpanId } : {}),
           name: options.name,
-          kind: 'internal',
+          kind: options.kind ?? 'internal',
           startTime,
           endTime,
           durationMs: endTime - startTime,

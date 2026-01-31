@@ -12,7 +12,6 @@ export {
   getWelcomeSystemPrompt,
   getWelcomeUserPrompt,
   formatContextSummary,
-  generateMenuOptions,
   formatMenuSubtitle,
 } from './welcome-prompt';
 export type { WelcomeMenuOption } from './welcome-prompt';

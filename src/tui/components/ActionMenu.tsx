@@ -21,7 +21,7 @@ export interface MenuOption {
 }
 
 export interface ActionMenuProps {
-  title: string;
+  title?: string;
   subtitle?: string;
   options: MenuOption[];
   onSelect: (action: string) => void;
@@ -38,7 +38,7 @@ export function ActionMenu({
   subtitle,
   options,
   onSelect,
-  hint = 'Or type a question...',
+  hint = 'Press a number to select...',
   disabled = false,
 }: ActionMenuProps): React.ReactElement {
   useInput(
@@ -52,13 +52,19 @@ export function ActionMenu({
   );
 
   return (
-    <Box flexDirection="column" borderStyle="round" borderColor="cyan" paddingX={2} paddingY={1}>
-      <Text bold color="cyan">
-        {title}
-      </Text>
-      {subtitle && <Text dimColor>{subtitle}</Text>}
+    <Box flexDirection="column" borderStyle="single" borderColor="gray" paddingX={2} paddingY={1}>
+      {title && (
+        <Box marginBottom={1}>
+          <Text bold>{title}</Text>
+        </Box>
+      )}
+      {subtitle && (
+        <Box marginBottom={1}>
+          <Text dimColor>{subtitle}</Text>
+        </Box>
+      )}
 
-      <Box marginY={1} flexDirection="column">
+      <Box flexDirection="column">
         {options.map((opt) => (
           <Box key={opt.key}>
             <Text color="yellow">[{opt.key}]</Text>
@@ -68,9 +74,11 @@ export function ActionMenu({
       </Box>
 
       {hint && (
-        <Text dimColor italic>
-          {hint}
-        </Text>
+        <Box marginTop={1}>
+          <Text dimColor italic>
+            {hint}
+          </Text>
+        </Box>
       )}
     </Box>
   );

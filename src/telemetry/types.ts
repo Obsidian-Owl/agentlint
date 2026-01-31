@@ -36,6 +36,10 @@ export interface SessionMetrics {
   totalOutputTokens?: number;
   success: boolean;
   interrupted?: boolean;
+  /** EP23: Number of context compressions during session */
+  compressionCount?: number;
+  /** EP23: Total retry attempts across all operations */
+  retryCount?: number;
 }
 
 // =============================================================================
@@ -58,6 +62,18 @@ export interface TrackToolOptions {
   toolOutput?: unknown;
   /** Error message if tool failed */
   errorMessage?: string;
+  /** Full tool arguments as JSON string (opt-in via AGENTLINT_CAPTURE_CONTENT) */
+  toolInputJson?: string;
+  /** Full tool result as JSON string (opt-in via AGENTLINT_CAPTURE_CONTENT) */
+  toolOutputJson?: string;
+  /** Error category for classification */
+  errorCategory?: 'auth' | 'api' | 'rate_limit' | 'timeout' | 'unknown';
+  /** Sanitized stack trace (secrets redacted) */
+  errorStack?: string;
+  /** Whether the error is retryable */
+  errorIsRetryable?: boolean;
+  /** Tool call ID from SDK (if available) */
+  callId?: string;
 }
 
 /**
@@ -85,6 +101,14 @@ export interface TrackLLMOptions {
   cacheReadTokens?: number;
   /** Cache creation tokens (prompt caching) */
   cacheCreationTokens?: number;
+  /** Full prompt messages as JSON string (opt-in via AGENTLINT_CAPTURE_CONTENT) */
+  promptContent?: string;
+  /** Full completion text (opt-in via AGENTLINT_CAPTURE_CONTENT) */
+  completionContent?: string;
+  /** System prompt/instructions (opt-in via AGENTLINT_CAPTURE_CONTENT) */
+  systemInstructions?: string;
+  /** Extended thinking tokens (Anthropic Claude 3.5+) */
+  reasoningTokens?: number;
 }
 
 /**
@@ -97,6 +121,25 @@ export interface TrackPromptOptions {
   usageContext: string;
   messageCount: number;
   contentLength: number;
+}
+
+// =============================================================================
+// Recommendation Tracking (TEL-001)
+// =============================================================================
+
+/**
+ * Recommendation outcome event for telemetry (TEL-001).
+ * Tracks whether users accept or reject recommendations.
+ */
+export interface RecommendationOutcomeEvent {
+  /** Unique identifier for the recommendation */
+  recommendationId: string;
+  /** Whether the recommendation was accepted */
+  accepted: boolean;
+  /** Optional reason for rejection or additional context */
+  reason?: string;
+  /** ISO-8601 timestamp of decision */
+  timestamp: string;
 }
 
 // =============================================================================
@@ -155,6 +198,9 @@ export interface ITelemetryClient {
 
   /** Track prompt usage for A/B testing and version correlation */
   trackPrompt?(sessionId: string, options: TrackPromptOptions): void;
+
+  /** Track recommendation acceptance/rejection (TEL-001) */
+  trackRecommendationOutcome?(sessionId: string, event: RecommendationOutcomeEvent): void;
 
   /** Track an error (type only) */
   trackError(sessionId: string, errorType: string, errorCode?: string): void;

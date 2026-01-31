@@ -12,6 +12,7 @@ import * as path from 'node:path';
 import * as os from 'node:os';
 import type { OrchestratorConfig, AgentlintGlobalConfig, VerbosityLevel } from './types';
 import { redact } from '../debug/redaction';
+import { formatErrorForDisplay } from '../tui/errors';
 
 // =============================================================================
 // Constants
@@ -108,7 +109,11 @@ const DEFAULT_ALLOWED_TOOLS: string[] = [
 export type ResolvedOrchestratorConfig = Required<
   Omit<
     OrchestratorConfig,
-    'canUseTool' | 'telemetryClient' | 'telemetrySessionId' | 'telemetryParentEventId'
+    | 'canUseTool'
+    | 'telemetryClient'
+    | 'telemetrySessionId'
+    | 'telemetryParentEventId'
+    | 'spanExporter'
   >
 > & {
   canUseTool?: Pick<Required<OrchestratorConfig>, 'canUseTool'>['canUseTool'];
@@ -121,6 +126,7 @@ export type ResolvedOrchestratorConfig = Required<
     Required<OrchestratorConfig>,
     'telemetryParentEventId'
   >['telemetryParentEventId'];
+  spanExporter?: Pick<Required<OrchestratorConfig>, 'spanExporter'>['spanExporter'];
 };
 
 export function getDefaultConfig(): ResolvedOrchestratorConfig {
@@ -205,13 +211,16 @@ function loadConfigFile(): AgentlintGlobalConfig | null {
 
     // Basic validation
     if (!isValidGlobalConfig(parsed)) {
-      console.warn(`Warning: Invalid config file at ${redact(CONFIG_FILE)}, using defaults`);
+      console.warn(
+        `Warning: Config file has invalid format\n  → Check ${redact(CONFIG_FILE)} or run 'agentlint init --force'`
+      );
       return null;
     }
 
     return parsed;
-  } catch {
-    console.warn(`Warning: Failed to load config file at ${redact(CONFIG_FILE)}, using defaults`);
+  } catch (error) {
+    const friendlyError = formatErrorForDisplay(error, 'loading config');
+    console.warn(`Warning: ${friendlyError}`);
     return null;
   }
 }

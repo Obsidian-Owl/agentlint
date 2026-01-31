@@ -25,6 +25,7 @@
 import type { TelemetryConfig, TelemetryMode } from '../persistence/types';
 import { DEFAULT_TELEMETRY_CONFIG } from '../persistence/types';
 import { AlphaTelemetryClient } from './alpha-client';
+import { OtelTelemetryClient } from './otel-client';
 import { createDebugLogger, DEBUG_NAMESPACES } from '../debug';
 import type {
   ITelemetryClient,
@@ -118,7 +119,9 @@ export function getTelemetryConfig(): TelemetryConfig {
 
   // For OTEL mode, check for endpoint
   if (envMode === 'otel') {
-    const endpoint = process.env['OTEL_EXPORTER_OTLP_ENDPOINT'];
+    // Prefer AGENTLINT_OTLP_ENDPOINT, fall back to standard OTEL_EXPORTER_OTLP_ENDPOINT
+    const endpoint =
+      process.env['AGENTLINT_OTLP_ENDPOINT'] ?? process.env['OTEL_EXPORTER_OTLP_ENDPOINT'];
     if (endpoint) {
       config.endpoint = endpoint;
     }
@@ -281,12 +284,8 @@ export function createTelemetryClient(config?: TelemetryConfig): ITelemetryClien
       return new AlphaTelemetryClient();
 
     case 'otel':
-      // OTEL mode not yet implemented - fall back to no-op with warning
-      logger.warn(
-        DEBUG_NAMESPACES.ORCHESTRATION,
-        '[telemetry] OTEL mode not yet implemented, telemetry disabled'
-      );
-      return new NoOpTelemetryClient();
+      // EP22 US-005: OTLP remote export
+      return new OtelTelemetryClient();
 
     case 'disabled':
     default:

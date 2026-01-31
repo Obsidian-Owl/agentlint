@@ -257,23 +257,6 @@ export interface CompletenessAnalysis {
 }
 
 /**
- * @deprecated Use QualityAssessment directly - dimensions are no longer scored.
- * Kept for backwards compatibility during transition.
- */
-export interface QualityDimensions {
-  /** @deprecated Structure is now in StructureAnalysis */
-  structure: number;
-  /** @deprecated Size is now in SizeAnalysis */
-  size: number;
-  /** @deprecated Completeness is now in CompletenessAnalysis */
-  completeness: number;
-  /** @deprecated Specificity scoring removed per ADR-0019 */
-  specificity: number;
-  /** @deprecated Penalty scoring removed per ADR-0019 */
-  antiPatternPenalty: number;
-}
-
-/**
  * A quality problem detected in configuration.
  */
 export interface QualityIssue {

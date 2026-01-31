@@ -155,7 +155,11 @@ export class OpencodeServerManager implements IServerManager {
 
   async start(): Promise<void> {
     if (this.running) {
-      throw new Error('Server is already running');
+      // Already running - just return (idempotent)
+      this.logger.debug('Server already running, reusing existing instance', {
+        port: this.config.port,
+      });
+      return;
     }
 
     // Check if we can reuse an existing healthy server
@@ -220,14 +224,30 @@ export class OpencodeServerManager implements IServerManager {
       hostname: this.config.hostname,
     });
 
+    // Disable ALL Claude Code compatibility features from ~/.claude/
+    // This prevents oh-my-claudecode hooks, global CLAUDE.md, skills, and other
+    // global instructions from leaking into agentlint sessions.
+    // Agentlint provides its own prompts and does not use Claude Code conventions.
+    // See: https://opencode.ai/docs/rules/
+    process.env.OPENCODE_DISABLE_CLAUDE_CODE = '1'; // Disables all .claude support (hooks, prompts, skills)
+
+    // Build isolated config - agentlint should NOT pick up user's ACT configurations
+    const isolatedConfig = {
+      agent: buildOpencodeAgents() as Record<string, AgentConfig>,
+      mcp: {}, // Explicitly empty - don't load target repo's MCP config
+      plugin: [], // Don't load global plugins (oh-my-claudecode, etc.)
+      instructions: [], // Don't load CLAUDE.md/AGENTS.md from target or global paths
+    };
+
+    // Set environment variable with highest precedence in Opencode's config loading order
+    // This ensures our isolated config takes priority over all file-based configs
+    process.env.OPENCODE_CONFIG_CONTENT = JSON.stringify(isolatedConfig);
+
     this.server = await createOpencodeServer({
       port: this.config.port,
       hostname: this.config.hostname,
       timeout: this.config.timeout,
-      config: {
-        agent: buildOpencodeAgents() as Record<string, AgentConfig>,
-        mcp: {}, // Explicitly empty - don't load target repo's MCP config
-      },
+      config: isolatedConfig,
     });
 
     this.running = true;
@@ -289,11 +309,13 @@ export class OpencodeServerManager implements IServerManager {
           // Opencode SDK /session endpoint returns an array of sessions
           const hasSessionEndpoint = Boolean(body && Array.isArray(body));
 
-          // Check if this is our agentlint server by verifying:
-          // 1. It has the session endpoint (Opencode server)
-          // 2. The lockfile exists and matches this port
+          // Check if this is an Opencode server we can use:
+          // If it has the session endpoint, it's an Opencode server (regardless of lockfile)
+          // We can reuse any healthy Opencode server on our expected port
           const lock = readServerLock(this.cwd);
-          const isAgentlint = hasSessionEndpoint && lock?.port === this.config.port;
+          // Consider it "ours" if it's an Opencode server - lockfile is optional
+          // This handles orphaned servers that lost their lockfile
+          const isAgentlint = hasSessionEndpoint;
 
           this.logger.debug('Port check: service responding', {
             port: this.config.port,

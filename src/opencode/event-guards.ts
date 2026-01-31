@@ -161,3 +161,13 @@ export function extractStatus(data: unknown): string {
   }
   return 'status update';
 }
+
+/**
+ * Extract part type from text event data
+ * SDK structure: { part: { type: "text" | "reasoning" | ... } }
+ */
+export function extractPartType(data: unknown): string | null {
+  if (!isTextEventData(data)) return null;
+  const partType = data.part?.type;
+  return typeof partType === 'string' ? partType : null;
+}

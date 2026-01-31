@@ -254,6 +254,33 @@ src/opencode/
 | `sessions.ts`          | Manages session lifecycle across Claude and agentlint metadata                    |
 | `telemetry-tracker.ts` | Tracks tool executions (FIFO queue) and LLM usage, dispatches to telemetry client |
 
+#### Observability Integration (EP22)
+
+The orchestration layer integrates with the observability module for session span export:
+
+| Component | Location | Purpose |
+|-----------|----------|---------|
+| SpanExporter | `src/observability/trace-context.ts` | Interface for span export |
+| LocalSpanExporter | `src/observability/exporters/local-exporter.ts` | NDJSON file export |
+| OtlpExporter | `src/observability/exporters/otlp-exporter.ts` | OTLP/HTTP remote export |
+
+**Configuration:**
+
+```typescript
+import { LocalSpanExporter } from './observability/exporters/local-exporter';
+
+const exporter = new LocalSpanExporter();
+const orchestrator = new OpencodeOrchestrator({
+  ...config,
+  spanExporter: exporter, // Optional: enables session span export
+}, toolRegistry);
+```
+
+When `spanExporter` is provided, the orchestrator exports session spans capturing:
+- Session lifecycle (start, complete, error)
+- Streaming statistics (chunk count, duration)
+- Task metadata (truncated for privacy)
+
 ---
 
 ## Level 2: Tool Layer

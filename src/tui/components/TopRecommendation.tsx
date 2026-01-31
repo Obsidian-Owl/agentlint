@@ -7,6 +7,12 @@ export interface TopRecommendationData {
   becauseClause: string;
   recurrenceCount?: number;
   priority: 'high' | 'medium' | 'low';
+  /** 1-line preview of what change will be made */
+  actionPreview?: string;
+  /** Where the change will be applied */
+  target?: string;
+  /** Expected impact if available */
+  expectedImpact?: string;
 }
 
 export interface TopRecommendationProps {
@@ -51,29 +57,64 @@ export function TopRecommendation({
   const priorityColor = getPriorityColor(recommendation.priority);
 
   return (
-    <Box flexDirection="column" borderStyle="round" borderColor="cyan" paddingX={2} paddingY={1}>
-      <Box>
-        <Text dimColor>Top recommendation: </Text>
+    <Box flexDirection="column" borderStyle="double" borderColor="cyan" paddingX={3} paddingY={2}>
+      <Box marginBottom={1}>
+        <Text bold color="cyan" dimColor>
+          TOP RECOMMENDATION{' '}
+        </Text>
         <Text color={priorityColor} bold>
           [{recommendation.priority.toUpperCase()}]
         </Text>
-      </Box>
-
-      <Box marginTop={1}>
-        <Text bold color="white">
-          &quot;{recommendation.title}&quot;
-        </Text>
-      </Box>
-
-      <Box marginTop={1} flexDirection="column">
-        <Text dimColor>Because: </Text>
-        <Text color="cyan">{recommendation.becauseClause}</Text>
         {recommendation.recurrenceCount && recommendation.recurrenceCount > 1 && (
-          <Text dimColor>(Pattern detected {recommendation.recurrenceCount} times)</Text>
+          <Text dimColor>
+            {' '}
+            {'\u2022'} Pattern {recommendation.recurrenceCount}x
+          </Text>
         )}
       </Box>
 
-      <Box marginTop={1}>
+      <Box marginY={1}>
+        <Text bold color="white" wrap="wrap">
+          {recommendation.title}
+        </Text>
+      </Box>
+
+      <Box marginY={1} flexDirection="column">
+        <Text color="cyan" wrap="wrap">
+          {recommendation.becauseClause}
+        </Text>
+      </Box>
+
+      {(recommendation.actionPreview || recommendation.target || recommendation.expectedImpact) && (
+        <Box
+          marginY={1}
+          flexDirection="column"
+          borderStyle="single"
+          borderColor="gray"
+          paddingX={1}
+        >
+          {recommendation.actionPreview && (
+            <Box>
+              <Text dimColor>Change: </Text>
+              <Text color="white">{recommendation.actionPreview}</Text>
+            </Box>
+          )}
+          {recommendation.target && (
+            <Box>
+              <Text dimColor>Target: </Text>
+              <Text color="yellow">{recommendation.target}</Text>
+            </Box>
+          )}
+          {recommendation.expectedImpact && (
+            <Box>
+              <Text dimColor>Impact: </Text>
+              <Text color="green">{recommendation.expectedImpact}</Text>
+            </Box>
+          )}
+        </Box>
+      )}
+
+      <Box marginTop={1} borderStyle="single" borderColor="gray" paddingX={1}>
         <Text dimColor>
           [Enter] Apply {'\u2022'} [d] Dismiss {'\u2022'} [?] Details
         </Text>

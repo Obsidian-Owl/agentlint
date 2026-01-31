@@ -14,8 +14,11 @@ agentlint is a local-first CLI tool for continuous improvement of AI-assisted de
 
 - EP01: Project Setup (CI/CD, TypeScript config, test framework)
 - EP02: Orchestration Core (Opencode SDK wrapper, streaming, checkpoints, session management)
+- EP06: Session Analysis Tools (session discovery, metrics extraction, FTS5 search)
+- EP07: Causal Tracing Engine (evidence collection, causal chain reasoning, origin linking)
 - EP11: Quality & Security (debug infrastructure, session recording, evaluation framework, outcome tracking)
-- EP22: Unified Observability (trace correlation, GenAI span hierarchy, local JSONL export)
+- EP14: Skills Effectiveness Analysis (skills invocation tracking, discovery analysis, improvement suggestions)
+- EP22: Unified Observability (trace correlation, GenAI span hierarchy, local JSONL export, OTLP support)
 
 ## Constitution
 
@@ -404,57 +407,177 @@ Tracks recommendation effectiveness for continuous improvement:
 
 ## Observability Module (EP22)
 
-The `src/observability/` module provides unified tracing with OpenTelemetry GenAI semantic conventions:
+The `src/observability/` module provides unified tracing with OpenTelemetry GenAI semantic conventions, enabling comprehensive visibility into agent execution without compromising privacy:
 
 ### Core Components
 
-| Component            | File                   | Purpose                                      |
-| -------------------- | ---------------------- | -------------------------------------------- |
-| TraceContextProvider | `trace-context.ts`     | AsyncLocalStorage-based trace propagation    |
-| TracingSpanFactory   | `span-factory.ts`      | GenAI-convention span creation               |
-| LocalSpanExporter    | `exporters/local-exporter.ts` | NDJSON file export with rotation      |
-| Content Capture      | `content-capture.ts`   | Opt-in tool argument/result capture          |
+| Component            | File                          | Purpose                                          |
+| -------------------- | ----------------------------- | ------------------------------------------------ |
+| TraceContextProvider | `trace-context.ts`            | AsyncLocalStorage-based trace context propagation |
+| TracingSpanFactory   | `span-factory.ts`             | Creates spans with GenAI semantic conventions     |
+| LocalSpanExporter    | `exporters/local-exporter.ts` | Exports spans to NDJSON files with rotation       |
+| OtlpExporter         | `exporters/otlp-exporter.ts`  | Exports spans to OTLP endpoints with sanitization |
+| ContentCapture       | `content-capture.ts`          | Opt-in tool argument/result capture              |
+| Consent Manager      | `consent.ts`                  | Manages telemetry consent per Constitution I     |
 
-### Trace Context
+### Trace Context Provider
+
+Automatic trace context propagation using Node.js `AsyncLocalStorage`:
 
 ```typescript
 import { traceContextProvider, generateTraceId } from './observability';
 
-// All async code within run() shares the same trace context
+// Create new trace ID and run with trace context
 const traceId = generateTraceId();
 await traceContextProvider.run(async () => {
-  // Logs and spans automatically include trace_id
-  await orchestrator.run(prompt);
+  // All nested operations automatically propagate trace context
+  const ctx = traceContextProvider.getContext();
+  console.log('Trace ID:', ctx?.traceId);
+
+  // Nested async operations receive child context automatically
+  await someAsyncOperation();
 });
 ```
 
-### Span Hierarchy
+**Key features**:
+- No explicit context passing required — propagates through async call chains
+- Parent-child span relationships maintained automatically
+- Trace context available at any depth via `traceContextProvider.getContext()`
 
-Session → Tool → LLM spans are created automatically:
+### Span Factory
+
+Creates spans with OpenTelemetry GenAI semantic conventions:
 
 ```typescript
-import { instrumentSession, instrumentToolCall, instrumentLLMCall } from './observability';
+import { spanFactory } from './observability';
 
-await instrumentSession({ sessionId, target }, async (sessionSpan) => {
-  await instrumentToolCall({ toolName: 'read_file', input }, async (toolSpan) => {
-    // Tool execution
+// Instrumentation helpers create properly-structured spans
+await instrumentSession({ sessionId, target, command }, async (sessionSpan) => {
+  // sessionSpan automatically has GenAI semantic attributes set
+
+  await instrumentToolCall({ toolName, input, toolCallId }, async (toolSpan) => {
+    // Tool spans track name, input/output, success/failure
   });
-  await instrumentLLMCall({ model, tokens }, async (llmSpan) => {
-    // LLM API call
+
+  await instrumentLLMCall({ model, temperature, maxTokens }, async (llmSpan) => {
+    // LLM spans track model, tokens (input/output/cache), latency, cost
   });
 });
 ```
 
-### Local Export
+**Semantic conventions**:
+- **Session spans**: Command, target directory, duration, status
+- **Tool spans**: Tool name, call ID, input (sanitized), output (sanitized), duration, success/failure
+- **LLM spans**: Model, temperature, max tokens, input/output/cache tokens, latency, cost
 
-Spans are written to `~/.agentlint/logs/traces-{date}.ndjson` with automatic rotation at 10MB.
+See `GenAIAttributes` and `AgentlintAttributes` for complete attribute listings.
 
-### Environment Variables
+### Local Span Export
 
-| Variable                    | Purpose                              |
-| --------------------------- | ------------------------------------ |
-| `AGENTLINT_CAPTURE_CONTENT` | Enable tool input/output capture     |
-| `AGENTLINT_CAPTURE_MAX_LENGTH` | Max content length (default: 5000) |
+Spans are automatically exported to local NDJSON files:
+
+**Location**: `~/.agentlint/logs/traces-{YYYY-MM-DD}.ndjson`
+
+**Features**:
+- NDJSON format (one JSON object per line) for streaming consumption
+- Automatic file rotation at 10MB (configurable)
+- Runs on agent's machine only — data never leaves without consent
+- Each span includes:
+  - W3C trace ID (32 hex chars) and span ID (16 hex chars)
+  - Parent span ID for hierarchy
+  - Start/end times and duration
+  - Status (ok/error) with error messages
+  - Semantic convention attributes
+  - Span events (milestones, checkpoints)
+
+**Configuration**:
+```typescript
+import { LocalSpanExporter, createLocalExporter } from './observability';
+
+const exporter = createLocalExporter({
+  outputDir: '~/.agentlint/logs',      // Override default
+  maxFileSizeMB: 10,                    // Rotation threshold
+  filePrefix: 'traces',                 // File name prefix
+});
+
+traceContextProvider.registerExporter(exporter);
+```
+
+### OTLP Remote Export
+
+Optional OpenTelemetry Protocol (OTLP/HTTP) export for users who opt in:
+
+```typescript
+import { OtlpExporter } from './observability';
+
+const otlpExporter = new OtlpExporter({
+  endpoint: 'http://localhost:4318/v1/traces',  // OTLP endpoint
+  timeoutMs: 10000,                             // Request timeout
+  headers: { 'Authorization': 'Bearer token' }, // Custom headers
+});
+
+traceContextProvider.registerExporter(otlpExporter);
+```
+
+**Data sanitization for OTLP**:
+- All span attributes are scanned for sensitive patterns (prompts, completions, file contents, API keys)
+- Matching attributes are redacted with labels: `[REDACTED:PROMPT]`, `[REDACTED:COMPLETION]`, etc.
+- File paths and user content are never exported
+- Follows Constitution Principle I (Local-First, opt-in only)
+
+**Environment variables**:
+
+| Variable                      | Purpose                              | Example |
+| ----------------------------- | ------------------------------------ | ------- |
+| `AGENTLINT_TELEMETRY`         | Enable telemetry (`otel` for OTLP)  | `otel`  |
+| `AGENTLINT_OTLP_ENDPOINT`     | OTLP endpoint URL                    | `http://localhost:4318/v1/traces` |
+| `OTEL_EXPORTER_OTLP_ENDPOINT` | Fallback OTLP endpoint (standard OTel var) | `http://localhost:4318` |
+
+### Content Capture (Opt-In)
+
+Optionally capture tool arguments and results for debugging (disabled by default):
+
+```typescript
+import {
+  isContentCaptureEnabled,
+  captureToolCallContent,
+  generateToolCallId,
+} from './observability';
+
+if (isContentCaptureEnabled()) {
+  const callId = generateToolCallId();
+  await captureToolCallContent({
+    toolName: 'read_file',
+    callId,
+    input: { path: '/some/file.ts' },
+    result: { content: '...' }, // Only captured if enabled
+  });
+}
+```
+
+**Configuration**:
+
+| Environment Variable        | Purpose                      | Default |
+| --------------------------- | ---------------------------- | ------- |
+| `AGENTLINT_CAPTURE_CONTENT` | Enable content capture       | false   |
+| `AGENTLINT_CAPTURE_MAX_LENGTH` | Max content length per capture | 5000 |
+
+Content capture respects user privacy and Constitution Principle I — disabled by default, no data transmitted without consent.
+
+### Integration with Existing Telemetry
+
+The observability module is designed to work alongside (and eventually replace) the existing telemetry system:
+
+- **Backward compatible**: Existing `IOrchestratorTelemetryClient` still works
+- **Complementary**: Traces provide execution hierarchy; telemetry client provides analytics
+- **Future path**: As traces mature, they'll subsume telemetry data collection
+- **No breaking changes**: Existing code using telemetry client continues unchanged
+
+**Connection points**:
+- `src/opencode/streaming.ts` — Emits stream phase events as trace events
+- `src/opencode/telemetry-tracker.ts` — Tool/LLM tracking creates corresponding spans
+- `src/debug/logger.ts` — Logs include trace ID when active
+- `src/orchestration/checkpoint.ts` — Checkpoints include trace context
 
 ## PromptKit Module (ADR-0022)
 

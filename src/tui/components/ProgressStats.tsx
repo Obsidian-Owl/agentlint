@@ -1,5 +1,5 @@
-import React from 'react';
-import { Box, Text } from 'ink';
+import React, { useState } from 'react';
+import { Box, Text, useInput } from 'ink';
 
 export interface ProgressStatsData {
   period: string;
@@ -17,12 +17,25 @@ export interface ProgressStatsData {
 export interface ProgressStatsProps {
   stats: ProgressStatsData;
   minimumFeedbackRequired?: number;
+  defaultExpanded?: boolean;
 }
 
 export function ProgressStats({
   stats,
   minimumFeedbackRequired = 5,
+  defaultExpanded = false,
 }: ProgressStatsProps): React.ReactElement | null {
+  const [expanded, setExpanded] = useState(defaultExpanded);
+
+  useInput(
+    (input) => {
+      if (input === 'p' || input === 'P') {
+        setExpanded(!expanded);
+      }
+    },
+    { isActive: true }
+  );
+
   if (stats.totalFeedback < minimumFeedbackRequired) {
     return null;
   }
@@ -30,11 +43,36 @@ export function ProgressStats({
   const helpfulPercent =
     stats.totalFeedback > 0 ? Math.round((stats.helpfulCount / stats.totalFeedback) * 100) : 0;
 
+  // Compact single-line view
+  if (!expanded) {
+    return (
+      <Box paddingX={1}>
+        <Text dimColor>Progress ({stats.period}): </Text>
+        <Text color="cyan">{stats.recommendationsApplied} applied</Text>
+        <Text dimColor> {'\u2022'} </Text>
+        <Text color={helpfulPercent >= 70 ? 'green' : helpfulPercent >= 50 ? 'yellow' : 'red'}>
+          {helpfulPercent}% helpful
+        </Text>
+        {stats.improvementPercent !== undefined && (
+          <>
+            <Text dimColor> {'\u2022'} </Text>
+            <Text color="green">{stats.improvementPercent}% improvement</Text>
+          </>
+        )}
+        <Text dimColor> [p] expand</Text>
+      </Box>
+    );
+  }
+
+  // Expanded detailed view
   return (
-    <Box flexDirection="column" borderStyle="round" borderColor="green" paddingX={2} paddingY={1}>
-      <Text bold color="green">
-        Your progress ({stats.period}):
-      </Text>
+    <Box flexDirection="column" borderStyle="single" borderColor="green" paddingX={2} paddingY={1}>
+      <Box>
+        <Text bold color="green">
+          Your progress ({stats.period})
+        </Text>
+        <Text dimColor> [p] collapse</Text>
+      </Box>
 
       <Box marginTop={1} flexDirection="column">
         <Box>

@@ -126,6 +126,8 @@ ${toolInstructions}
 
 ${sections.outputRequirements}
 
+${subagentGuidance}
+
 <!-- Prompt Version: ${ANALYSIS_PROMPT_VERSION} -->
 `.trim();
 
@@ -140,8 +142,6 @@ Directory: ${directory}
 ${configList}
 
 ${existingRecsContext}
-
-${subagentGuidance}
 `.trim();
 
   return { systemContent, userContent };

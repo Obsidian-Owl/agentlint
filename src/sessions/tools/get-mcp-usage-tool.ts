@@ -17,6 +17,7 @@ import type { SessionEntry } from '../../tools/sessions/types';
 import type { GetMcpUsageOutput } from '../types';
 import { extractMcpCalls, aggregateMcpUsage } from '../extraction/mcp-calls';
 import { parseSessionLine } from '../../tools/sessions/parser';
+import { resolveSessionIdentifier } from './session-resolver';
 
 // =============================================================================
 // Types
@@ -158,11 +159,11 @@ export async function getMcpUsage(input: GetMcpUsageInput): Promise<GetMcpUsageR
  * Input schema for get_mcp_usage tool.
  */
 const getMcpUsageInputSchema = {
-  sessionId: z.string().describe('The session UUID to analyze'),
-  filePath: z
+  sessionIdentifier: z
     .string()
-    .optional()
-    .describe('Direct path to session JSONL file (alternative to sessionId lookup)'),
+    .describe(
+      'Session identifier: file path, session UUID (e.g., "session-abc123..."), or numeric ID'
+    ),
   serverName: z
     .string()
     .optional()
@@ -267,16 +268,28 @@ Filter options:
 - \`serverName\`: Focus on specific MCP server (e.g., "linear", "github")`,
   schema: getMcpUsageInputSchema,
   handler: async (args: unknown) => {
-    const typedArgs = args as { filePath?: string; sessionId?: string; serverName?: string };
+    const typedArgs = args as { sessionIdentifier?: string; serverName?: string };
     try {
-      // For now, require direct file path
-      // TODO: Add session ID lookup via database
-      if (!typedArgs.filePath) {
+      if (!typedArgs.sessionIdentifier) {
         return {
           content: [
             {
               type: 'text' as const,
-              text: 'Error: filePath is required. Session ID lookup not yet implemented.',
+              text: 'Error: sessionIdentifier is required.',
+            },
+          ],
+          isError: true,
+        };
+      }
+
+      // Resolve session identifier to file path
+      const resolved = resolveSessionIdentifier(typedArgs.sessionIdentifier);
+      if (!resolved.success || !resolved.filePath) {
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: `Error resolving session: ${resolved.error ?? 'Unknown error'}`,
             },
           ],
           isError: true,
@@ -285,7 +298,7 @@ Filter options:
 
       // Build input conditionally to satisfy exactOptionalPropertyTypes
       const input: GetMcpUsageInput = {
-        filePath: typedArgs.filePath,
+        filePath: resolved.filePath,
       };
       if (typedArgs.serverName !== undefined) {
         input.serverName = typedArgs.serverName;

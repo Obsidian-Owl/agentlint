@@ -23,6 +23,10 @@ import { SessionResumeError, OrchestrationError } from '../errors/orchestration'
 import { isToolEventData, isMessageEventData } from './event-guards';
 import { instrumentLLMCall } from '../observability/instrumentation/orchestrator';
 import type { GenAIProvider } from '../observability/types';
+import { generateTraceId, generateSpanId } from '../observability/trace-id';
+import { traceContextProvider } from '../observability/trace-context';
+import type { SpanExporter } from '../observability/trace-context';
+import type { ExportableSpan } from '../observability/exporters/local-exporter';
 
 /** Default timeout for event stream iteration (5 minutes) */
 const STREAM_TIMEOUT_MS = 300_000;
@@ -41,6 +45,8 @@ export class OpencodeOrchestrator implements IOrchestrator {
   private readonly telemetryTracker: TelemetryTracker | null;
   /** Abort controller for the current stream - allows interrupt() to cancel the SSE connection */
   private streamAbortController: AbortController | null = null;
+  /** Optional span exporter for session span instrumentation (EP22 T040) */
+  private readonly spanExporter: SpanExporter | null;
 
   constructor(config: OrchestratorConfig, toolRegistry: IToolRegistry) {
     this.config = loadConfig(config);
@@ -73,6 +79,9 @@ export class OpencodeOrchestrator implements IOrchestrator {
     } else {
       this.telemetryTracker = null;
     }
+
+    // Initialize span exporter for session span instrumentation (EP22 T040)
+    this.spanExporter = config.spanExporter ?? null;
   }
 
   get sessionState(): SessionState | null {
@@ -85,6 +94,14 @@ export class OpencodeOrchestrator implements IOrchestrator {
 
   get depth(): number {
     return this.config.depth;
+  }
+
+  /**
+   * Get the underlying client for direct API calls (e.g., question replies).
+   * Returns null if the client hasn't been initialized yet (before server starts).
+   */
+  getClient(): AgentlintOpencodeClient | null {
+    return this.client;
   }
 
   public async *run(
@@ -144,21 +161,15 @@ export class OpencodeOrchestrator implements IOrchestrator {
       // Use an async generator inside the span to yield chunks
       yield* this.runInSessionSpan(session.sessionId, task, options);
     } finally {
-      try {
-        this.server.stop();
-        this.logger.debug('Server stopped');
-      } catch (stopError) {
-        this.logger.warn('Server stop failed', {
-          error: stopError instanceof Error ? stopError.message : String(stopError),
-        });
-      }
+      // Don't stop server here - keep it running for subsequent runs (conversations)
+      // Server is stopped in dispose() when the orchestrator is done
       // Clean up session to prevent memory leak
       if (this._currentSessionId && this.sessionManager) {
         this.sessionManager.clearSession(this._currentSessionId);
         this._currentSessionId = null;
       }
       this._isActive = false;
-      this.logger.debug('Cleanup complete');
+      this.logger.debug('Run cleanup complete (server kept running for reuse)');
     }
   }
 
@@ -166,19 +177,31 @@ export class OpencodeOrchestrator implements IOrchestrator {
    * Run the streaming session within a session span.
    * T040: Session span integration with OpencodeOrchestrator.
    *
-   * Note: We can't use the standard instrumentSession wrapper here because
-   * it expects a Promise, but we need to yield chunks as they arrive (streaming).
-   * Instead, we manually create the session context and yield within it.
+   * Uses manual span management for async generators, as documented in
+   * OpenTelemetry JS issue #2951: standard span wrappers expect Promises,
+   * not AsyncGenerators, and AsyncLocalStorage context doesn't propagate
+   * across generator yields (Node.js limitation).
+   *
+   * Pattern: Create span at start, track events during streaming,
+   * export span in finally block with success/error status.
    */
   private async *runInSessionSpan(
     sessionId: string,
     task: string,
     options?: { systemPrompt?: string }
   ): AsyncGenerator<StreamChunk, void, unknown> {
-    // Note: Session span instrumentation is currently not applied due to
-    // async generator limitations. Future enhancement could use a background
-    // task to create the span and propagate context to the generator.
-    // For now, we keep the original streaming behavior.
+    // EP22 T040: Manual session span instrumentation for async generators
+    // Check if there's an existing trace context to link to
+    const existingContext = traceContextProvider.getContext();
+    const traceId = existingContext?.traceId ?? generateTraceId();
+    const spanId = generateSpanId();
+    const parentSpanId = existingContext?.spanId; // Link to parent if exists
+    const startTime = Date.now();
+    const events: Array<{ name: string; timestamp: number; attributes?: Record<string, unknown> }> =
+      [];
+    let chunkCount = 0;
+    let status: 'ok' | 'error' = 'ok';
+    let errorMessage: string | undefined;
 
     this.telemetryTracker?.onTurnStart();
 
@@ -190,6 +213,8 @@ export class OpencodeOrchestrator implements IOrchestrator {
     }, STREAM_TIMEOUT_MS);
 
     try {
+      events.push({ name: 'session.start', timestamp: Date.now() });
+
       // CRITICAL: Start iterating the SSE stream BEFORE sending prompt
       // The SDK's subscribe returns a generator that only starts when iterated
       // Pass cwd to scope events to this project directory
@@ -214,16 +239,19 @@ export class OpencodeOrchestrator implements IOrchestrator {
         : undefined;
       await this.client!.promptAsync(sessionId, task, promptOptions);
       this.logger.debug('Prompt sent (async)');
+      events.push({ name: 'prompt.sent', timestamp: Date.now() });
 
       // Process events using the manual iterator
       let result = await firstEventPromise;
       while (!result.done) {
         if (this.streamAbortController?.signal.aborted) {
           this.logger.debug('Stream aborted');
+          events.push({ name: 'stream.aborted', timestamp: Date.now() });
           break;
         }
 
         const chunk = result.value;
+        chunkCount++;
         yield chunk;
 
         // Forward telemetry-relevant chunks to tracker
@@ -234,9 +262,54 @@ export class OpencodeOrchestrator implements IOrchestrator {
         result = await iterator.next();
       }
       this.logger.debug('SSE stream completed');
+      events.push({ name: 'stream.complete', timestamp: Date.now(), attributes: { chunkCount } });
+    } catch (error) {
+      // Capture error for span status
+      status = 'error';
+      errorMessage = error instanceof Error ? error.message : String(error);
+      events.push({
+        name: 'session.error',
+        timestamp: Date.now(),
+        attributes: { error: errorMessage },
+      });
+      throw error;
     } finally {
       clearTimeout(timeoutId);
       this.streamAbortController = null;
+
+      // EP22 T040: Export session span if exporter is configured
+      if (this.spanExporter) {
+        const endTime = Date.now();
+        const sessionSpan: ExportableSpan = {
+          traceId,
+          spanId,
+          ...(parentSpanId && { parentSpanId }), // Include parent link if available
+          name: 'session',
+          kind: 'server',
+          startTime,
+          endTime,
+          durationMs: endTime - startTime,
+          status: {
+            code: status,
+            ...(errorMessage && { message: errorMessage }),
+          },
+          attributes: {
+            'session.id': sessionId,
+            'session.model': this.config.model,
+            'session.chunk_count': chunkCount,
+            'task.length': task.length,
+            // Truncate task to avoid large attribute values
+            'task.preview': task.length > 100 ? task.substring(0, 100) + '...' : task,
+          },
+          events,
+        };
+        this.spanExporter.export([sessionSpan]);
+        this.logger.debug('Session span exported', {
+          traceId,
+          spanId,
+          durationMs: endTime - startTime,
+        });
+      }
     }
 
     this.logger.debug('Stream complete');

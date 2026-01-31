@@ -69,6 +69,13 @@ export function formatError(error: unknown): string {
   return `Error: ${String(error)}`;
 }
 
+/**
+ * Type guard for NetworkError
+ */
+export function isNetworkError(error: unknown): error is NetworkError {
+  return error instanceof NetworkError;
+}
+
 // =============================================================================
 // Orchestration Errors (EP02)
 // =============================================================================

@@ -321,6 +321,8 @@ export class AlphaTelemetryClient implements ITelemetryClient {
     const eventData: Record<string, unknown> = {
       command: data?.command ?? 'analyse',
       hasConfig: data?.hasConfig ?? false,
+      'gen_ai.agent.id': 'agentlint-cli',
+      'gen_ai.agent.name': 'agentlint',
     };
     if (data?.projectType !== undefined) {
       eventData.projectType = data.projectType;
@@ -358,23 +360,30 @@ export class AlphaTelemetryClient implements ITelemetryClient {
     const endTime = Date.now();
     const startTime = this.sessionStartTimes.get(sessionId) ?? endTime - metrics.durationMs;
 
+    // Build event data with optional EP23 metrics
+    const eventData: Record<string, unknown> = {
+      durationMs: metrics.durationMs,
+      toolCallCount: metrics.toolCallCount,
+      findingCount: metrics.findingCount,
+      recommendationCount: metrics.recommendationCount ?? 0,
+      totalInputTokens: metrics.totalInputTokens ?? 0,
+      totalOutputTokens: metrics.totalOutputTokens ?? 0,
+      success: metrics.success,
+      interrupted: metrics.interrupted ?? false,
+    };
+    // EP23: Include compression and retry counts if provided
+    if (metrics.compressionCount !== undefined) {
+      eventData.compressionCount = metrics.compressionCount;
+    }
+    if (metrics.retryCount !== undefined) {
+      eventData.retryCount = metrics.retryCount;
+    }
+
     this.record(
-      createTelemetryEvent(
-        'session.end',
-        sessionId,
-        this.sequence++,
-        {
-          durationMs: metrics.durationMs,
-          toolCallCount: metrics.toolCallCount,
-          findingCount: metrics.findingCount,
-          recommendationCount: metrics.recommendationCount ?? 0,
-          totalInputTokens: metrics.totalInputTokens ?? 0,
-          totalOutputTokens: metrics.totalOutputTokens ?? 0,
-          success: metrics.success,
-          interrupted: metrics.interrupted ?? false,
-        },
-        { startTime, endTime }
-      )
+      createTelemetryEvent('session.end', sessionId, this.sequence++, eventData, {
+        startTime,
+        endTime,
+      })
     );
 
     // Cleanup session tracking
@@ -430,6 +439,26 @@ export class AlphaTelemetryClient implements ITelemetryClient {
     // Include error message if tool failed
     if (options.errorMessage !== undefined) {
       eventData.errorMessage = options.errorMessage;
+    }
+
+    // Include content fields for rich telemetry (EP23)
+    if (options.toolInputJson !== undefined) {
+      eventData.toolInputJson = options.toolInputJson;
+    }
+    if (options.toolOutputJson !== undefined) {
+      eventData.toolOutputJson = options.toolOutputJson;
+    }
+    if (options.callId !== undefined) {
+      eventData.callId = options.callId;
+    }
+    if (options.errorCategory !== undefined) {
+      eventData.errorCategory = options.errorCategory;
+    }
+    if (options.errorStack !== undefined) {
+      eventData.errorStack = options.errorStack;
+    }
+    if (options.errorIsRetryable !== undefined) {
+      eventData.errorIsRetryable = options.errorIsRetryable;
     }
 
     this.record(
@@ -537,6 +566,19 @@ export class AlphaTelemetryClient implements ITelemetryClient {
     }
     if (options.cacheCreationTokens !== undefined) {
       eventData.cacheCreationTokens = options.cacheCreationTokens;
+    }
+    // Content fields for rich telemetry
+    if (options.promptContent !== undefined) {
+      eventData.promptContent = options.promptContent;
+    }
+    if (options.completionContent !== undefined) {
+      eventData.completionContent = options.completionContent;
+    }
+    if (options.systemInstructions !== undefined) {
+      eventData.systemInstructions = options.systemInstructions;
+    }
+    if (options.reasoningTokens !== undefined) {
+      eventData.reasoningTokens = options.reasoningTokens;
     }
 
     // Build options object, only including parentEventId if defined

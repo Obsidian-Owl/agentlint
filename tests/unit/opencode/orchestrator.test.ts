@@ -106,7 +106,7 @@ describe('OpencodeOrchestrator', () => {
       expect(orchestrator.isActive).toBe(false);
     });
 
-    it('should call server.stop() in finally block on error', async () => {
+    it('should not call server.stop() in finally block on error (server persists)', async () => {
       const orchestrator = new OpencodeOrchestrator({}, registry);
       const internals = getInternals(orchestrator);
 
@@ -115,7 +115,8 @@ describe('OpencodeOrchestrator', () => {
       internals.server.stop = stopMock;
 
       await expect(collectChunks(orchestrator.run('test'))).rejects.toThrow();
-      expect(stopMock).toHaveBeenCalledTimes(1);
+      // Server is NOT stopped in finally block - it persists for subsequent runs
+      expect(stopMock).toHaveBeenCalledTimes(0);
     });
 
     it('should not throw if server.stop() fails during cleanup', async () => {

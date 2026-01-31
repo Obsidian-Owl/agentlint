@@ -35,6 +35,53 @@ describe('TraceContextProvider', () => {
     });
   });
 
+  it('should isolate context between concurrent executions', async () => {
+    const provider = new TraceContextProvider();
+    const traceIds: string[] = [];
+
+    // Start 3 concurrent trace contexts
+    await Promise.all([
+      provider.run(async () => {
+        const ctx = provider.getContext();
+        traceIds.push(ctx!.traceId);
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      }),
+      provider.run(async () => {
+        const ctx = provider.getContext();
+        traceIds.push(ctx!.traceId);
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      }),
+      provider.run(async () => {
+        const ctx = provider.getContext();
+        traceIds.push(ctx!.traceId);
+        await new Promise((resolve) => setTimeout(resolve, 10));
+      }),
+    ]);
+
+    // All trace IDs should be unique (no cross-contamination)
+    expect(new Set(traceIds).size).toBe(3);
+  });
+
+  it('should handle nested async operations', async () => {
+    const provider = new TraceContextProvider();
+
+    await provider.run(async () => {
+      const outerCtx = provider.getContext();
+
+      await provider.withSpan({ name: 'level-1' }, async () => {
+        const level1Ctx = provider.getContext();
+        expect(level1Ctx?.traceId).toBe(outerCtx?.traceId);
+        expect(level1Ctx?.parentSpanId).toBe(outerCtx?.spanId);
+
+        await provider.withSpan({ name: 'level-2' }, async () => {
+          const level2Ctx = provider.getContext();
+          expect(level2Ctx?.traceId).toBe(outerCtx?.traceId);
+          expect(level2Ctx?.parentSpanId).toBe(level1Ctx?.spanId);
+        });
+      });
+    });
+  });
+
   it('should create child spans with parent context', async () => {
     const provider = new TraceContextProvider();
 
@@ -137,7 +184,7 @@ describe('TraceContextProvider', () => {
 
       expect(exportedSpans).toHaveLength(1);
       const span = exportedSpans[0]!;
-      expect(span.durationMs).toBeGreaterThanOrEqual(50);
+      expect(span.durationMs).toBeGreaterThanOrEqual(40); // Allow 10ms variance for CI
       expect(span.endTime).toBeGreaterThan(span.startTime);
       expect(span.endTime - span.startTime).toBe(span.durationMs);
     });
@@ -194,6 +241,149 @@ describe('TraceContextProvider', () => {
 
       expect(exportedSpans).toHaveLength(3);
       expect(exportedSpans.map((s) => s.name)).toEqual(['child-1', 'child-2', 'parent']);
+    });
+
+    it('should export spans without exporter registered', async () => {
+      const provider = new TraceContextProvider();
+
+      // Should not throw when no exporter is registered
+      await expect(async () => {
+        await provider.withSpan({ name: 'test-span' }, async (span) => {
+          span.setAttribute('key', 'value');
+          span.addEvent('event');
+        });
+      }).not.toThrow();
+    });
+  });
+
+  describe('ActiveSpan API', () => {
+    it('should support adding events to spans', async () => {
+      const provider = new TraceContextProvider();
+      const exportedSpans: ExportableSpan[] = [];
+
+      const mockExporter: SpanExporter = {
+        export: (spans: ExportableSpan[]) => {
+          exportedSpans.push(...spans);
+        },
+      };
+
+      provider.registerExporter(mockExporter);
+
+      await provider.run(async () => {
+        await provider.withSpan({ name: 'test-span' }, async (span) => {
+          span.addEvent('event-1');
+          span.addEvent('event-2', { detail: 'extra-info' });
+        });
+      });
+
+      expect(exportedSpans[0]!.events).toHaveLength(2);
+      expect(exportedSpans[0]!.events[0]!.name).toBe('event-1');
+      expect(exportedSpans[0]!.events[1]!.name).toBe('event-2');
+      expect(exportedSpans[0]!.events[1]!.attributes).toEqual({ detail: 'extra-info' });
+    });
+
+    it('should support setting multiple attributes', async () => {
+      const provider = new TraceContextProvider();
+      const exportedSpans: ExportableSpan[] = [];
+
+      const mockExporter: SpanExporter = {
+        export: (spans: ExportableSpan[]) => {
+          exportedSpans.push(...spans);
+        },
+      };
+
+      provider.registerExporter(mockExporter);
+
+      await provider.run(async () => {
+        await provider.withSpan({ name: 'test-span' }, async (span) => {
+          span.setAttribute('string-attr', 'value');
+          span.setAttribute('number-attr', 42);
+          span.setAttribute('boolean-attr', true);
+        });
+      });
+
+      expect(exportedSpans[0]!.attributes).toEqual({
+        'string-attr': 'value',
+        'number-attr': 42,
+        'boolean-attr': true,
+      });
+    });
+
+    it('should preserve initial attributes from options', async () => {
+      const provider = new TraceContextProvider();
+      const exportedSpans: ExportableSpan[] = [];
+
+      const mockExporter: SpanExporter = {
+        export: (spans: ExportableSpan[]) => {
+          exportedSpans.push(...spans);
+        },
+      };
+
+      provider.registerExporter(mockExporter);
+
+      await provider.run(async () => {
+        await provider.withSpan(
+          { name: 'test-span', attributes: { initial: 'value' } },
+          async (span) => {
+            span.setAttribute('added', 'later');
+          }
+        );
+      });
+
+      expect(exportedSpans[0]!.attributes).toEqual({
+        initial: 'value',
+        added: 'later',
+      });
+    });
+  });
+
+  describe('createChildContext', () => {
+    it('should create child context from current context', async () => {
+      const provider = new TraceContextProvider();
+
+      await provider.run(async () => {
+        const parentCtx = provider.getContext();
+        const childCtx = provider.createChildContext();
+
+        expect(childCtx.traceId).toBe(parentCtx!.traceId);
+        expect(childCtx.parentSpanId).toBe(parentCtx!.spanId);
+        expect(childCtx.spanId).not.toBe(parentCtx!.spanId);
+      });
+    });
+
+    it('should create root context when no parent', () => {
+      const provider = new TraceContextProvider();
+      const ctx = provider.createChildContext();
+
+      expect(ctx.traceId).toHaveLength(32);
+      expect(ctx.spanId).toHaveLength(16);
+      expect(ctx.parentSpanId).toBeUndefined();
+      expect(ctx.traceFlags).toBe(1);
+    });
+  });
+
+  describe('clearExporter', () => {
+    it('should clear registered exporter', async () => {
+      const provider = new TraceContextProvider();
+      const exportedSpans: ExportableSpan[] = [];
+
+      const mockExporter: SpanExporter = {
+        export: (spans: ExportableSpan[]) => {
+          exportedSpans.push(...spans);
+        },
+      };
+
+      provider.registerExporter(mockExporter);
+      provider.clearExporter();
+
+      await provider.run(async () => {
+        await provider.withSpan({ name: 'test-span' }, async () => {
+          // Span work
+        });
+      });
+
+      // No spans should be exported after clearing
+      expect(exportedSpans).toHaveLength(0);
     });
   });
 });

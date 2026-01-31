@@ -144,7 +144,8 @@ describe('OpencodeOrchestrator integration', () => {
     expect(chunks[3]?.content).toBe('Analysis complete');
 
     expect(chunks.length).toBe(4);
-    expect(stopMock).toHaveBeenCalledTimes(1);
+    // Server is NOT stopped after successful run - it persists for subsequent runs
+    expect(stopMock).toHaveBeenCalledTimes(0);
   });
 
   it('should set session state during run', async () => {
@@ -180,7 +181,8 @@ describe('OpencodeOrchestrator integration', () => {
 
     await expect(collectChunks(orchestrator.run('test'))).rejects.toThrow('Stream interrupted');
     expect(orchestrator.isActive).toBe(false);
-    expect(stopMock).toHaveBeenCalledTimes(1);
+    // Server is NOT stopped on error - it persists for subsequent runs
+    expect(stopMock).toHaveBeenCalledTimes(0);
   });
 
   it('should handle interrupt during active run', async () => {

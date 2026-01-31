@@ -258,6 +258,20 @@ export const BUILTIN_REDACTION_PATTERNS: RedactionPattern[] = [
     type: 'huggingface_token',
   },
 
+  // HoneyHive API Keys (hh_)
+  {
+    pattern: /\b(hh_[a-zA-Z0-9]{32,})\b/g,
+    replacement: '[REDACTED:HONEYHIVE_KEY]',
+    type: 'honeyhive_key',
+  },
+
+  // Linear API Keys (lin_api_)
+  {
+    pattern: /\b(lin_api_[a-zA-Z0-9]{32,})\b/g,
+    replacement: '[REDACTED:LINEAR_KEY]',
+    type: 'linear_key',
+  },
+
   // =========================================================================
   // Payment & Financial Services
   // =========================================================================

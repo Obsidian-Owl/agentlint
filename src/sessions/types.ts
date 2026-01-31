@@ -32,6 +32,17 @@ export type QualitySignalType = 'test' | 'build' | 'lint';
  */
 export type AnalysisFocus = 'narrative' | 'flow' | 'quality' | 'comprehensive';
 
+/**
+ * Session outcome categorization (TEL-004).
+ * Tracks final status of session for continuous improvement analysis.
+ */
+export type SessionOutcomeType =
+  | 'completed_successfully'
+  | 'completed_with_errors'
+  | 'abandoned'
+  | 'crashed'
+  | 'timeout';
+
 // =============================================================================
 // Session Timeline Types
 // =============================================================================

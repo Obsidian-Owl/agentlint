@@ -155,8 +155,294 @@ Modes:
 | VIII. Conventional       | ✅         | Follows standard proxy pattern; truncation conventions shared         |
 | IX. Agent-Aware          | N/A        |                                                                       |
 
+## EP22 Implementation: Unified Observability (v2 - 2026-01-28)
+
+The initial version of this ADR (2025-10-XX) described a HoneyHive-based telemetry system using a Vercel proxy. EP22 implemented a **second-generation observability architecture** that replaces this with a modern OpenTelemetry-based approach while maintaining Constitution compliance.
+
+### What Changed
+
+**From**: Custom telemetry client → Vercel proxy → HoneyHive API
+
+**To**: Unified OpenTelemetry traces with local NDJSON export + optional OTLP remote export
+
+### Key Differences
+
+| Aspect | Original (HoneyHive) | EP22 (OpenTelemetry) |
+|--------|---------------------|----------------------|
+| **Architecture** | CLI → Vercel proxy → HoneyHive | CLI → LocalSpanExporter + OtlpExporter |
+| **Local storage** | Buffered in memory | NDJSON files with rotation |
+| **Remote export** | Via Vercel (secrets server-side) | OTLP/HTTP with data sanitization |
+| **Span hierarchy** | Flat event tracking | Full Session → Tool → LLM hierarchy |
+| **Semantic conventions** | Custom schema | OpenTelemetry GenAI conventions |
+| **Trace correlation** | Event IDs | W3C trace IDs + parent span IDs |
+| **Context propagation** | Explicit passing | AsyncLocalStorage (automatic) |
+| **Privacy sanitization** | At proxy | Span exporter level |
+
+### Architecture
+
+```
+┌─────────────────────────────┐
+│  agentlint CLI              │
+│                             │
+│  TraceContextProvider       │  ← Root trace context (W3C trace ID)
+│  (AsyncLocalStorage)        │
+│         │                   │
+│         ▼                   │
+│  Instrumentation Points:    │
+│  • Session span             │  ← Parent-child hierarchy
+│  • Tool span                │     maintained via context
+│  • LLM span                 │
+│         │                   │
+└─────────┼───────────────────┘
+          │
+          ├─────────────────────────────────────┐
+          │                                     │
+          ▼                                     ▼
+  ┌─────────────────────┐         ┌──────────────────────┐
+  │ LocalSpanExporter   │         │ OtlpExporter         │
+  │                     │         │ (opt-in)             │
+  │ ~/.agentlint/logs/  │         │                      │
+  │ traces-{date}.ndjson│         │ • Sanitizes attrs    │
+  │                     │         │ • Redacts prompts    │
+  │ • Rotation at 10MB  │         │ • Removes file paths │
+  │ • NDJSON format     │         │                      │
+  └─────────────────────┘         └──────────────┬───────┘
+                                                  │
+                                                  ▼
+                                        ┌──────────────────┐
+                                        │ OTLP Endpoint    │
+                                        │ (user-provided)  │
+                                        │                  │
+                                        │ • Jaeger         │
+                                        │ • DataDog        │
+                                        │ • New Relic      │
+                                        │ • Custom         │
+                                        └──────────────────┘
+```
+
+### Trace Context Integration
+
+Trace context flows through the entire execution using Node.js `AsyncLocalStorage`:
+
+```
+┌──────────────────────────────────────────────────────┐
+│  traceContextProvider.run(async () => {              │
+│    // Trace ID: abc123... (W3C standard)             │
+│    // Span ID: root0001                              │
+│                                                      │
+│    await instrumentSession({...}, async (span) => {  │
+│      // Span ID: sess0001, parentSpanId: root0001   │
+│      // Trace ID: abc123... (inherited)              │
+│                                                      │
+│      await toolRegistry.call('read_file', {...}, async (span) => {
+│        // Span ID: tool0001, parentSpanId: sess0001 │
+│        // Trace ID: abc123... (inherited)            │
+│        await orchestrator.query({...}, async (span) => {
+│          // Span ID: llm0001, parentSpanId: tool0001 │
+│          // Trace ID: abc123... (inherited)          │
+│        });                                           │
+│      });                                             │
+│    });                                               │
+│  });                                                 │
+└──────────────────────────────────────────────────────┘
+```
+
+No explicit context passing required — `AsyncLocalStorage` propagates it through the call chain.
+
+### Span Hierarchy
+
+**Session spans** (top-level):
+- Attributes:
+  - `session.id` - Unique session identifier
+  - `session.model` - Claude model used (e.g., claude-sonnet-4-20250514)
+  - `session.chunk_count` - Total streaming chunks received
+  - `task.length` - Character length of user task
+  - `task.preview` - First 100 characters of task (truncated for privacy)
+- Events:
+  - `session.start` - Session initialization
+  - `prompt.sent` - User prompt transmitted to API
+  - `stream.complete` - Streaming finished successfully (includes chunkCount attribute)
+  - `stream.aborted` - Stream interrupted by user or timeout
+  - `session.error` - Exception occurred (includes error message attribute)
+- Duration: entire streaming phase from generator start to finally block
+- Status: `ok` on success, `error` with message on failure
+
+**Tool spans** (children of session):
+- Attributes: tool name, call ID, input size, output size, success/failure
+- Events: start, completion, error (if failed)
+- Duration: tool execution time
+
+**LLM spans** (children of tool or session):
+- Attributes: model, temperature, max_tokens, input/output/cache tokens, latency, estimated cost
+- Events: request start, streaming chunks, completion
+- Duration: API call + streaming time
+
+**Stream spans** (children of session):
+- Attributes: chunk count, streaming duration, token counts
+- Events: chunk received milestones
+- Duration: entire streaming phase
+
+### Session Span Semantic Conventions
+
+Session spans follow OpenTelemetry GenAI semantic conventions with agentlint-specific extensions.
+
+**Attribute Naming**:
+
+- `session.id` — Unique session identifier (UUID v4)
+- `session.model` — Claude model identifier (e.g., `claude-sonnet-4-20250514`)
+- `session.chunk_count` — Total streaming chunks received during analysis
+- `task.length` — Character length of complete user task input
+- `task.preview` — First 100 characters of user task (truncated for privacy)
+
+**Event Naming** (past tense verb convention):
+
+- `session.start` — Session initialization, emitted before first prompt transmission
+- `prompt.sent` — User prompt successfully transmitted to Claude API
+- `stream.complete` — Streaming finished successfully; includes final `chunkCount` attribute
+- `stream.aborted` — Stream interrupted by user, timeout, or network failure
+- `session.error` — Exception occurred; includes `error.message` attribute (capped at 500 chars)
+
+**Rationale**:
+
+- Follows OpenTelemetry semantic conventions where applicable (prefixes for attribute namespacing)
+- Uses `session.` prefix for session-level metadata (standard in GenAI conventions)
+- Uses `task.` prefix for user input metadata (distinct from `gen_ai.` which covers prompts)
+- Event names use past tense (`.start`, `.complete`) to indicate state changes
+- Attribute values are never truncated at capture time; truncation happens at export (OTLP layer)
+
+### OTLP Exporter Sanitization
+
+When exporting to OTLP endpoints, all sensitive attributes are redacted:
+
+**Patterns redacted**:
+- `gen_ai.prompt.user` / `gen_ai.prompt.system` → `[REDACTED:PROMPT]`
+- `gen_ai.completion` → `[REDACTED:COMPLETION]`
+- `tool.arguments.content` (file contents) → `[REDACTED:FILE_CONTENT]`
+- `tool.result` (tool outputs) → `[REDACTED:TOOL_OUTPUT]`
+- Anything matching API key / secret patterns → `[REDACTED:SECRET]`
+
+**Non-sensitive attributes preserved**:
+- Model names, temperatures, token counts
+- Tool names and execution times
+- Success/failure status
+- Error messages (capped at 500 chars, file paths stripped)
+
+### Configuration
+
+**Environment variables** (opt-in):
+
+```bash
+# Enable OTLP export
+export AGENTLINT_TELEMETRY=otel
+export AGENTLINT_OTLP_ENDPOINT=http://localhost:4318/v1/traces
+
+# OR use standard OTel fallback
+export OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318
+
+# Configure content capture (debugging only)
+export AGENTLINT_CAPTURE_CONTENT=true
+export AGENTLINT_CAPTURE_MAX_LENGTH=5000
+```
+
+**Programmatic configuration**:
+
+```typescript
+import { ObservabilityConfig, DEFAULT_OBSERVABILITY_CONFIG } from './observability';
+
+const config: ObservabilityConfig = {
+  ...DEFAULT_OBSERVABILITY_CONFIG,
+  otlpEnabled: true,
+  otlpEndpoint: 'http://localhost:4318/v1/traces',
+  localLogging: true,  // Also write local NDJSON
+  sampleRate: 1.0,     // Capture all traces
+};
+```
+
+### Data Comparison
+
+| Data Category | Original System | EP22 (Local) | EP22 (OTLP) |
+|---|---|---|---|
+| Tool execution (name, duration, success) | Sent to HoneyHive | Local NDJSON | Exported (sanitized) |
+| LLM tokens (input/output/cache) | Sent to HoneyHive | Local NDJSON | Exported (no content) |
+| Session metadata | Sent to HoneyHive | Local NDJSON | Exported (no file paths) |
+| File paths | Classified only | Not included | Not included |
+| Prompts/completions | Truncated, sent to HoneyHive | Not captured | Redacted |
+| Tool arguments/results | Truncated, sent to HoneyHive | Opt-in only | Redacted if captured |
+
+### Advantages Over Original
+
+1. **No external dependency** — Vercel proxy eliminated, no deployment needed
+2. **Stronger privacy** — Sanitization at export layer, local files not transmitted
+3. **Better structure** — Full trace hierarchy (session → tool → LLM) vs flat events
+4. **Flexibility** — Users can route to any OTLP backend (Jaeger, DataDog, Grafana, custom)
+5. **Standards** — Uses OpenTelemetry conventions, not custom schema
+6. **Observability flexibility** — Local NDJSON useful even without remote export
+7. **Trace correlation** — W3C standard trace IDs enable cross-system correlation
+
+### Backward Compatibility
+
+- Existing `IOrchestratorTelemetryClient` code still works (legacy telemetry path)
+- Traces and telemetry run in parallel during transition period
+- No breaking changes to public APIs
+- Telemetry client will eventually be removed in a future major version
+
+### Implementation Details
+
+**Modules**:
+- `src/observability/trace-context.ts` — AsyncLocalStorage provider
+- `src/observability/span-factory.ts` — Span creation with semantic conventions
+- `src/observability/exporters/local-exporter.ts` — NDJSON file export
+- `src/observability/exporters/otlp-exporter.ts` — OTLP/HTTP export with sanitization
+- `src/observability/content-capture.ts` — Optional content capture for debugging
+- `src/observability/consent.ts` — Telemetry consent management
+- `src/observability/instrumentation/orchestrator.ts` — Orchestrator integration points
+
+**Integration points**:
+- `src/opencode/orchestrator.ts` — Wraps tool calls and LLM queries in spans
+- `src/opencode/streaming.ts` — Emits streaming phase events
+- `src/opencode/telemetry-tracker.ts` — Creates telemetry spans
+
+### Known Limitations
+
+**Async Generator Span Management**
+
+Standard OpenTelemetry span wrappers (like `withSpan()`) expect functions that return Promises. However, `OpencodeOrchestrator.runInSessionSpan()` is an async generator that yields streaming chunks over time. Due to a Node.js/V8 limitation (see [OpenTelemetry JS issue #2951](https://github.com/open-telemetry/opentelemetry-js/issues/2951) and [nodejs/node#42237](https://github.com/nodejs/node/issues/42237)), AsyncLocalStorage context does not propagate across generator yields.
+
+**Approved Workaround Pattern:**
+
+For async generators, use manual span lifecycle management:
+
+1. Generate `traceId` and `spanId` at generator start using `generateTraceId()` and `generateSpanId()`
+2. Track events and attributes during iteration
+3. Export the span in the `finally` block with aggregated data
+
+```typescript
+async *runInSessionSpan(): AsyncGenerator<StreamChunk> {
+  const traceId = generateTraceId();
+  const spanId = generateSpanId();
+  const startTime = Date.now();
+  const events: SpanEvent[] = [];
+  let status: 'ok' | 'error' = 'ok';
+
+  try {
+    events.push({ name: 'session.start', timestamp: Date.now() });
+    // ... yield chunks ...
+  } catch (error) {
+    status = 'error';
+    throw error;
+  } finally {
+    if (this.spanExporter) {
+      this.spanExporter.export([{ traceId, spanId, startTime, ... }]);
+    }
+  }
+}
+```
+
+This pattern ensures spans are properly exported even when generators are interrupted or error.
+
 ## Related
 
-- [ADR-0024](0024-opencode-sdk-migration.md) — Opencode SDK migration (telemetry was a gap)
-- [ADR-0019](0019-tool-agent-boundary-temporal.md) — Tool/agent boundary (telemetry is data, not judgment)
+- [ADR-0024](0024-opencode-sdk-migration.md) — Opencode SDK migration (EP22 unified with tracing)
+- [ADR-0019](0019-tool-agent-boundary-temporal.md) — Tool/agent boundary (traces are data, not judgment)
 - [Arc42 §8.6](../arc42/08-crosscutting-concepts.md) — Logging & Observability section
+- [CLAUDE.md § Observability Module](../../CLAUDE.md#observability-module-ep22) — Implementation guide

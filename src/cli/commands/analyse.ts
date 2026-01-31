@@ -643,6 +643,18 @@ async function runOrchestratedAnalysis(
   // Initialize telemetry (opt-in only, disabled by default)
   const telemetry = getTelemetryClient();
   const telemetrySessionId = recordingState?.sessionId ?? generateSessionId();
+
+  // EP22 US-005 T057: Show consent message on first opt-in
+  if (telemetry.isEnabled() && telemetry.mode === 'otel') {
+    const { showOtlpConsentIfNeeded } = await import('../../observability/consent');
+    showOtlpConsentIfNeeded();
+  }
+
+  // EP22: Initialize local span exporter for trace persistence
+  const { createLocalExporter } = await import('../../observability');
+  const spanExporter = createLocalExporter();
+  traceContextProvider.registerExporter(spanExporter);
+
   if (telemetry.isEnabled()) {
     // Detect project type from scan results for context
     const hasConfig = scanResult.configs.length > 0;

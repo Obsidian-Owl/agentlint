@@ -282,6 +282,7 @@ export interface AppState {
 
   // Buffers
   inputBuffer: string;
+  queuedInput: string | null;
   streamBuffer: StreamChunk[];
 
   // Data
@@ -325,6 +326,8 @@ export type AppMessage =
   | { type: 'SET_PAUSED'; payload: { isPaused: boolean } }
   | { type: 'UPDATE_INPUT_BUFFER'; payload: { input: string } }
   | { type: 'CLEAR_INPUT_BUFFER' }
+  | { type: 'QUEUE_INPUT'; payload: { input: string } }
+  | { type: 'FLUSH_QUEUED_INPUT' }
   | { type: 'ADD_EXPLORATION_STEP'; payload: { step: ExplorationStep } }
   | { type: 'POP_EXPLORATION' }
   | { type: 'ADD_FINDING'; payload: { finding: Finding } }
@@ -398,6 +401,7 @@ export function createInitialState(): AppState {
     conversationHistory: [],
     welcomeMenuOptions: [],
     inputBuffer: '',
+    queuedInput: null,
     streamBuffer: [],
     findings: [],
     recommendations: [],
@@ -457,6 +461,21 @@ export interface AppProps {
   onQuestionAnswers?: (answers: Record<string, string>) => void;
   /** Callback when welcome menu option is selected */
   onMenuSelect?: (action: string) => void;
+  /** Callback when recommendation action is taken (TEL-001) */
+  onRecommendationAction?: (
+    recommendationId: string,
+    action: 'accept' | 'dismiss' | 'defer'
+  ) => void;
+  /** TUI state from InkRenderer (source of truth for state) */
+  tuiState?: AppState['tuiState'];
+  /** Welcome menu options from InkRenderer */
+  welcomeMenuOptions?: AppState['welcomeMenuOptions'];
+  /** Loading steps from InkRenderer */
+  loadingSteps?: AppState['loadingSteps'];
+  /** Conversation history from InkRenderer */
+  conversationHistory?: AppState['conversationHistory'];
+  /** Status bar from InkRenderer */
+  statusBar?: AppState['statusBar'];
 }
 
 /**
@@ -485,6 +504,8 @@ export interface InputFieldProps {
   placeholder?: string;
   /** Placeholder when disabled */
   disabledPlaceholder?: string;
+  /** Queued input waiting to be sent after agent completes */
+  queuedInput?: string | null;
 }
 
 /**

@@ -71,4 +71,11 @@ export interface IOrchestrator {
    * @returns Config with incremented depth
    */
   getSubagentConfig(): OrchestratorConfig;
+
+  /**
+   * Get the underlying client for direct API calls (e.g., question replies).
+   * Optional - only available on implementations that have a client.
+   * @returns Client instance or null if not available
+   */
+  getClient?(): { replyToQuestion(requestId: string, answers: string[][]): Promise<void> } | null;
 }

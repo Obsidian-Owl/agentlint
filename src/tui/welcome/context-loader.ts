@@ -19,6 +19,7 @@ import type {
   LoadingStepId,
 } from './types';
 import { getGitSummary } from './git-summary';
+import { getErrorSummary } from '../errors';
 
 // Persistence imports
 import { getLatestBaseline } from '../../persistence/baselines/storage';
@@ -106,7 +107,7 @@ function loadConfigContext(onProgress: LoadingProgressCallback): ConfigResult {
 
     return { isFirstRun, modelName };
   } catch (error) {
-    onProgress('config', 'error', String(error));
+    onProgress('config', 'error', getErrorSummary(error));
     return { isFirstRun: true, modelName: 'claude-sonnet-4-20250514' };
   }
 }
@@ -133,7 +134,7 @@ async function loadBaselineContext(onProgress: LoadingProgressCallback): Promise
 
     return { daysSince };
   } catch (error) {
-    onProgress('baseline', 'error', String(error));
+    onProgress('baseline', 'error', getErrorSummary(error));
     return { daysSince: null };
   }
 }
@@ -155,7 +156,7 @@ async function loadRecommendationsContext(
 
     return { count };
   } catch (error) {
-    onProgress('recommendations', 'error', String(error));
+    onProgress('recommendations', 'error', getErrorSummary(error));
     return { count: 0 };
   }
 }
@@ -185,7 +186,7 @@ async function loadGitContext(
 
     return { summary };
   } catch (error) {
-    onProgress('git', 'error', String(error));
+    onProgress('git', 'error', getErrorSummary(error));
     return { summary: null };
   }
 }
@@ -216,7 +217,7 @@ async function loadSessionContext(onProgress: LoadingProgressCallback): Promise<
 
     return { session };
   } catch (error) {
-    onProgress('session', 'error', String(error));
+    onProgress('session', 'error', getErrorSummary(error));
     return { session: null };
   }
 }

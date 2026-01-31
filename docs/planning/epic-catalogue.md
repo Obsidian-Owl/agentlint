@@ -10,7 +10,8 @@ agentlint enables continuous improvement of AI-assisted development workflows th
 **Strategic Pivot (Jan 2026):** From "config linting" to "effectiveness measurement" - measuring whether Skills, Agents, and practices are actually working.
 
 **Total Epics**: 19 (18 active + 1 deferred)
-**Phase 1 Complete**: EP01, EP02, EP06, EP07, EP08, EP09, EP10, EP11, EP14
+**Phase 1 Complete**: EP01, EP02, EP06, EP07, EP11 (5 of 8 core epics)
+**Phase 2 Complete**: EP14, EP22 (2 of 8 strategic epics)
 **Phase 2 Duration**: ~16 weeks (with parallelization)
 **Critical Path**: EP15 → EP17 (P1/P0 epics)
 **Consolidated**: EP16 (Symptom Patterns), EP18 (Subagent Delegation) absorbed into EP15 (Session Intelligence)
@@ -47,8 +48,10 @@ agentlint enables continuous improvement of AI-assisted development workflows th
 | EP19     | MCP Config Validation                    | Business    | P2       | S    | Planned              |
 | EP20     | User Customization System                | Business    | P1       | L    | Planned              |
 | EP21     | Learning Improvements                    | Integration | P1       | L    | Planned              |
+| EP22     | Unified Observability Architecture       | Enabler     | P1       | M    | Complete             |
 
 **Note**: EP15 (Session Intelligence) consolidates EP16 and EP18. MCP runtime analysis moved to EP15; EP19 is now static config validation only.
+**Note**: EP22 (Unified Observability) has been completed with local NDJSON export and OTLP support. Unifies local debug logging with HoneyHive telemetry via OpenTelemetry.
 
 ## Dependency Matrix
 

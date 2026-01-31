@@ -98,7 +98,7 @@ describe('OpencodeServerManager', () => {
       expect(() => server.getUrl()).toThrow('not running');
     });
 
-    it('should throw when starting an already-running server', async () => {
+    it('should be idempotent when starting an already-running server', async () => {
       const server = new OpencodeServerManager();
       const internals = getInternals(server);
 
@@ -106,7 +106,8 @@ describe('OpencodeServerManager', () => {
       internals.running = true;
       internals.server = { url: 'http://localhost:4096', close: () => {} };
 
-      await expect(server.start()).rejects.toThrow('already running');
+      // start() is now idempotent - it doesn't throw when already running
+      await expect(server.start()).resolves.toBeUndefined();
     });
 
     it('should return true for isRunning when server is started', () => {
@@ -277,7 +278,7 @@ describe('OpencodeServerManager', () => {
       }
     });
 
-    it('should not identify as agentlint when lockfile is missing', async () => {
+    it('should identify as agentlint when Opencode session endpoint detected (lockfile optional)', async () => {
       // Use temp directory without lockfile
       const testDir = join(tmpdir(), `agentlint-test-${Date.now()}`);
       mkdirSync(testDir, { recursive: true });
@@ -297,14 +298,14 @@ describe('OpencodeServerManager', () => {
 
         expect(result.available).toBe(false);
         expect(result.healthy).toBe(true);
-        // Without lockfile, can't confirm it's our agentlint server
-        expect(result.isAgentlint).toBe(false);
+        // Any Opencode server is considered agentlint (lockfile is optional)
+        expect(result.isAgentlint).toBe(true);
       } finally {
         rmSync(testDir, { recursive: true, force: true });
       }
     });
 
-    it('should not identify as agentlint when lockfile port mismatches', async () => {
+    it('should identify as agentlint even when lockfile port mismatches', async () => {
       // Create a temp directory with a lockfile for a different port
       const testDir = join(tmpdir(), `agentlint-test-${Date.now()}`);
       const lockDir = join(testDir, '.agentlint');
@@ -330,8 +331,8 @@ describe('OpencodeServerManager', () => {
 
         expect(result.available).toBe(false);
         expect(result.healthy).toBe(true);
-        // Lockfile exists but port doesn't match
-        expect(result.isAgentlint).toBe(false);
+        // Any Opencode server is considered agentlint, regardless of lockfile
+        expect(result.isAgentlint).toBe(true);
       } finally {
         rmSync(testDir, { recursive: true, force: true });
       }

@@ -405,6 +405,68 @@ agentlint uses an **indirect telemetry architecture** — a custom Vercel proxy 
 - `SecretRedactor` sanitizes all logged data
 - User content never transmitted (enforced by sanitization layer)
 
+### Session Span Export Flow
+
+Session tracing is managed through `OpencodeOrchestrator.runInSessionSpan()`, which provides manual span lifecycle control for structured observability:
+
+```
+┌────────────────────────────┐
+│  OpencodeOrchestrator      │
+│                            │
+│  runInSessionSpan()        │
+│  (manual span lifecycle)   │
+│           │                │
+│           │ on completion  │
+│           ▼                │
+│  spanExporter.export([])   │
+└────────────┬───────────────┘
+             │
+             ▼
+┌────────────────────────────┐     ┌────────────────────────────┐
+│  LocalSpanExporter         │     │  OtlpExporter              │
+│                            │     │  (opt-in)                  │
+│  ~/.agentlint/logs/        │     │                            │
+│  traces-{date}.ndjson      │     │  OTLP/HTTP endpoint        │
+└────────────────────────────┘     └────────────────────────────┘
+```
+
+**Key characteristics**:
+
+- **Lifecycle**: Spans are created when `runInSessionSpan()` enters and exported when it exits (via `finally` block)
+- **Resilience**: Span export occurs even on error or interruption; errors in export do not interrupt analysis
+- **Local Storage**: All spans written to `.agentlint/logs/traces-{YYYY-MM-DD}.ndjson` by default
+- **Optional Remote**: `OtlpExporter` can be configured (via ADR-0025) to forward spans to external observability systems
+- **Structured Data**: Spans follow OpenTelemetry format for compatibility with standard observability tools
+
+**Location in code**: `src/opencode/sessions.ts` — `HybridSessionManager.runInSessionSpan()`
+
+### SpanExporter Registration Pattern
+
+Session spans are exported via a **singleton `traceContextProvider`** that coordinates across all modules:
+
+```typescript
+import { traceContextProvider } from './observability/trace-context';
+
+// Register an exporter on the singleton at CLI startup
+traceContextProvider.registerExporter(new LocalSpanExporter());
+
+// All spans created via withSpan() or manual export use this exporter
+// Spans automatically exported on completion via runInSessionSpan()
+```
+
+**Why singleton matters**:
+
+- **AsyncLocalStorage Requirement**: AsyncLocalStorage requires a single instance for context propagation across async boundaries
+- **Module Coordination**: TUI, orchestrator, and streaming modules all share the same trace context via the singleton
+- **Test Isolation**: Tests must call `clearExporter()` between test runs to prevent span leakage
+
+**Integration flow**:
+
+1. CLI startup registers exporter on singleton (default: `LocalSpanExporter`)
+2. Orchestrator wraps operations in `runInSessionSpan()` span context
+3. Tools and LLM calls automatically tracked within span context
+4. Spans automatically exported to registered exporter on completion
+
 ### Default Logging Behavior
 
 Following Claude Code / OpenCode patterns, agentlint logs **everything by default**:

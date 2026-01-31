@@ -104,6 +104,9 @@ export const sampleTopRecommendation: TopRecommendationData = {
     'You frequently encounter map/filter/reduce suggestions but have no documented preference',
   recurrenceCount: 4,
   priority: 'high',
+  actionPreview: 'Add section documenting preference for .map()/.filter() over loops',
+  target: 'CLAUDE.md',
+  expectedImpact: 'Reduce repetitive suggestions by ~30%',
 };
 
 export const sampleProgressStats: ProgressStatsData = {

@@ -21,6 +21,7 @@ import type {
 import type { StreamChunk } from '../../orchestration/types';
 import type { WelcomeMenuOption } from '../welcome/welcome-prompt';
 import type { AgentWorkState } from '../state/agent-state';
+import { formatErrorForDisplay } from '../errors';
 
 // =============================================================================
 // Types
@@ -113,9 +114,14 @@ export class HeadlessRenderer implements ITuiRenderer {
         }
         break;
 
-      case 'error':
-        console.error(`[error] ${chunk.content}`);
+      case 'error': {
+        // Format error to be user-friendly
+        const errorMessage = chunk.metadata?.error
+          ? formatErrorForDisplay(chunk.metadata.error, 'operation')
+          : chunk.content;
+        console.error(`[error] ${errorMessage}`);
         break;
+      }
 
       case 'finding':
         console.log(`[finding] ${chunk.content}`);
@@ -243,6 +249,7 @@ export class HeadlessRenderer implements ITuiRenderer {
     const rl = readline.createInterface({
       input: process.stdin,
       output: process.stdout,
+      terminal: false,
     });
 
     try {
