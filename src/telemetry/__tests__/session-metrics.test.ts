@@ -13,28 +13,38 @@ import { AlphaTelemetryClient } from '../alpha-client';
 import type { TelemetryEvent } from '../events';
 import type { TelemetryConfig } from '../../persistence/types';
 
+/**
+ * Creates a test client with event recording capability.
+ * Extracted to reduce duplication across test suites.
+ */
+function createTestClient(): { client: AlphaTelemetryClient; recordedEvents: TelemetryEvent[] } {
+  const client = new AlphaTelemetryClient();
+  const recordedEvents: TelemetryEvent[] = [];
+
+  // Mock the record method to capture events
+  const originalRecord = client.record.bind(client);
+  client.record = (event: TelemetryEvent): void => {
+    recordedEvents.push(event);
+    originalRecord(event);
+  };
+
+  // Initialize with alpha mode enabled
+  const config: TelemetryConfig = {
+    enabled: true,
+    mode: 'alpha',
+    redactContent: true,
+  };
+  void client.init(config);
+
+  return { client, recordedEvents };
+}
+
 describe('Agent Identity (T030)', () => {
   let client: AlphaTelemetryClient;
   let recordedEvents: TelemetryEvent[];
 
   beforeEach(() => {
-    client = new AlphaTelemetryClient();
-    recordedEvents = [];
-
-    // Mock the record method to capture events
-    const originalRecord = client.record.bind(client);
-    client.record = (event: TelemetryEvent): void => {
-      recordedEvents.push(event);
-      originalRecord(event);
-    };
-
-    // Initialize with alpha mode enabled
-    const config: TelemetryConfig = {
-      enabled: true,
-      mode: 'alpha',
-      redactContent: true,
-    };
-    void client.init(config);
+    ({ client, recordedEvents } = createTestClient());
   });
 
   it('should include gen_ai.agent.id in session.start event', () => {
@@ -92,23 +102,7 @@ describe('Session-End Metrics (T031)', () => {
   let recordedEvents: TelemetryEvent[];
 
   beforeEach(() => {
-    client = new AlphaTelemetryClient();
-    recordedEvents = [];
-
-    // Mock the record method to capture events
-    const originalRecord = client.record.bind(client);
-    client.record = (event: TelemetryEvent): void => {
-      recordedEvents.push(event);
-      originalRecord(event);
-    };
-
-    // Initialize with alpha mode enabled
-    const config: TelemetryConfig = {
-      enabled: true,
-      mode: 'alpha',
-      redactContent: true,
-    };
-    void client.init(config);
+    ({ client, recordedEvents } = createTestClient());
   });
 
   it('should include compression_count in session.end event', () => {
@@ -296,23 +290,7 @@ describe('Error Enrichment (T032)', () => {
   let recordedEvents: TelemetryEvent[];
 
   beforeEach(() => {
-    client = new AlphaTelemetryClient();
-    recordedEvents = [];
-
-    // Mock the record method to capture events
-    const originalRecord = client.record.bind(client);
-    client.record = (event: TelemetryEvent): void => {
-      recordedEvents.push(event);
-      originalRecord(event);
-    };
-
-    // Initialize with alpha mode enabled
-    const config: TelemetryConfig = {
-      enabled: true,
-      mode: 'alpha',
-      redactContent: true,
-    };
-    void client.init(config);
+    ({ client, recordedEvents } = createTestClient());
   });
 
   it('should include errorCategory in tool error events', () => {

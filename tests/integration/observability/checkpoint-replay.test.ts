@@ -30,6 +30,37 @@ class TestSpanExporter {
   }
 }
 
+/**
+ * Creates a test checkpoint with optional trace context.
+ * Extracted to reduce duplication across tests.
+ */
+function createTestCheckpoint(
+  sessionId: string,
+  traceContext?: { traceId: string; spanId: string }
+): SessionCheckpoint {
+  return {
+    version: '1.0',
+    sessionId,
+    timestamp: new Date().toISOString(),
+    sequence: 1,
+    phase: 'analyze',
+    trigger: 'tool_complete',
+    toolHistory: [],
+    findings: [],
+    metrics: {
+      toolCalls: 1,
+      llmCalls: 0,
+      tokensUsed: 0,
+      inputTokens: 0,
+      outputTokens: 0,
+      elapsedMs: 100,
+    },
+    ...(traceContext && {
+      workspaceState: { traceContext },
+    }),
+  };
+}
+
 describe('Checkpoint Replay Trace Integration', () => {
   let tempDir: string;
   let originalTraceId: string;
@@ -59,31 +90,10 @@ describe('Checkpoint Replay Trace Integration', () => {
 
       recorder.startRecording('test-session');
 
-      const checkpoint: SessionCheckpoint = {
-        version: '1.0',
-        sessionId: 'test-session',
-        timestamp: new Date().toISOString(),
-        sequence: 1,
-        phase: 'analyze',
-        trigger: 'tool_complete',
-        toolHistory: [],
-        findings: [],
-        metrics: {
-          toolCalls: 1,
-          llmCalls: 0,
-          tokensUsed: 0,
-          inputTokens: 0,
-          outputTokens: 0,
-          elapsedMs: 100,
-        },
-        // Simulate checkpoint including trace context
-        workspaceState: {
-          traceContext: {
-            traceId: originalTraceId,
-            spanId: originalSpanId,
-          },
-        },
-      };
+      const checkpoint = createTestCheckpoint('test-session', {
+        traceId: originalTraceId,
+        spanId: originalSpanId,
+      });
 
       await recorder.recordCheckpoint(checkpoint);
       recorder.stopRecording();
@@ -107,30 +117,10 @@ describe('Checkpoint Replay Trace Integration', () => {
 
       recorder.startRecording('replay-session');
 
-      const checkpoint: SessionCheckpoint = {
-        version: '1.0',
-        sessionId: 'replay-session',
-        timestamp: new Date().toISOString(),
-        sequence: 1,
-        phase: 'analyze',
-        trigger: 'tool_complete',
-        toolHistory: [],
-        findings: [],
-        metrics: {
-          toolCalls: 1,
-          llmCalls: 0,
-          tokensUsed: 0,
-          inputTokens: 0,
-          outputTokens: 0,
-          elapsedMs: 100,
-        },
-        workspaceState: {
-          traceContext: {
-            traceId: originalTraceId,
-            spanId: originalSpanId,
-          },
-        },
-      };
+      const checkpoint = createTestCheckpoint('replay-session', {
+        traceId: originalTraceId,
+        spanId: originalSpanId,
+      });
 
       await recorder.recordCheckpoint(checkpoint);
       recorder.stopRecording();
@@ -156,30 +146,10 @@ describe('Checkpoint Replay Trace Integration', () => {
 
       recorder.startRecording('linked-session');
 
-      const checkpoint: SessionCheckpoint = {
-        version: '1.0',
-        sessionId: 'linked-session',
-        timestamp: new Date().toISOString(),
-        sequence: 1,
-        phase: 'analyze',
-        trigger: 'tool_complete',
-        toolHistory: [],
-        findings: [],
-        metrics: {
-          toolCalls: 1,
-          llmCalls: 0,
-          tokensUsed: 0,
-          inputTokens: 0,
-          outputTokens: 0,
-          elapsedMs: 100,
-        },
-        workspaceState: {
-          traceContext: {
-            traceId: originalTraceId,
-            spanId: originalSpanId,
-          },
-        },
-      };
+      const checkpoint = createTestCheckpoint('linked-session', {
+        traceId: originalTraceId,
+        spanId: originalSpanId,
+      });
 
       await recorder.recordCheckpoint(checkpoint);
       recorder.stopRecording();
@@ -216,25 +186,7 @@ describe('Checkpoint Replay Trace Integration', () => {
     // Create checkpoint WITHOUT trace context (legacy format)
     recorder.startRecording('legacy-session');
 
-    const checkpoint: SessionCheckpoint = {
-      version: '1.0',
-      sessionId: 'legacy-session',
-      timestamp: new Date().toISOString(),
-      sequence: 1,
-      phase: 'analyze',
-      trigger: 'tool_complete',
-      toolHistory: [],
-      findings: [],
-      metrics: {
-        toolCalls: 1,
-        llmCalls: 0,
-        tokensUsed: 0,
-        inputTokens: 0,
-        outputTokens: 0,
-        elapsedMs: 100,
-      },
-      // No workspaceState.traceContext
-    };
+    const checkpoint = createTestCheckpoint('legacy-session'); // No trace context
 
     await recorder.recordCheckpoint(checkpoint);
     recorder.stopRecording();
@@ -255,24 +207,7 @@ describe('Checkpoint Replay Trace Integration', () => {
     // Create legacy checkpoint
     recorder.startRecording('new-trace-session');
 
-    const checkpoint: SessionCheckpoint = {
-      version: '1.0',
-      sessionId: 'new-trace-session',
-      timestamp: new Date().toISOString(),
-      sequence: 1,
-      phase: 'analyze',
-      trigger: 'tool_complete',
-      toolHistory: [],
-      findings: [],
-      metrics: {
-        toolCalls: 1,
-        llmCalls: 0,
-        tokensUsed: 0,
-        inputTokens: 0,
-        outputTokens: 0,
-        elapsedMs: 100,
-      },
-    };
+    const checkpoint = createTestCheckpoint('new-trace-session'); // No trace context
 
     await recorder.recordCheckpoint(checkpoint);
     recorder.stopRecording();
@@ -305,30 +240,10 @@ describe('Checkpoint Replay Trace Integration', () => {
 
       recorder.startRecording('multi-replay-session');
 
-      const checkpoint: SessionCheckpoint = {
-        version: '1.0',
-        sessionId: 'multi-replay-session',
-        timestamp: new Date().toISOString(),
-        sequence: 1,
-        phase: 'analyze',
-        trigger: 'tool_complete',
-        toolHistory: [],
-        findings: [],
-        metrics: {
-          toolCalls: 1,
-          llmCalls: 0,
-          tokensUsed: 0,
-          inputTokens: 0,
-          outputTokens: 0,
-          elapsedMs: 100,
-        },
-        workspaceState: {
-          traceContext: {
-            traceId: originalTraceId,
-            spanId: originalSpanId,
-          },
-        },
-      };
+      const checkpoint = createTestCheckpoint('multi-replay-session', {
+        traceId: originalTraceId,
+        spanId: originalSpanId,
+      });
 
       await recorder.recordCheckpoint(checkpoint);
       recorder.stopRecording();

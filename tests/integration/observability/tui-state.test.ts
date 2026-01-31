@@ -186,15 +186,11 @@ describe('TUI State Integration', () => {
 
       // requestUserAnswers returns a Promise that never resolves without user input,
       // but calling it should not throw even without trace context.
-      // We wrap in a try-catch rather than expect().not.toThrow() to avoid Promise issues.
-      let didThrow = false;
-      try {
-        // Fire and forget - we don't await this since it would hang
-        void renderer.requestUserAnswers({ questions: [] });
-      } catch {
-        didThrow = true;
-      }
-      expect(didThrow).toBe(false);
+      // Use .catch() to properly handle any async rejection per SonarQube guidelines.
+      renderer.requestUserAnswers({ questions: [] }).catch(() => {
+        // Expected - method may reject without trace context or with empty questions
+      });
+      // If we got here without throwing synchronously, the test passes
     });
   });
 
