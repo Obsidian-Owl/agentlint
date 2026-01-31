@@ -18,9 +18,11 @@ describe('Telemetry Client', () => {
 
   beforeEach(() => {
     resetTelemetryClient();
-    // Clear telemetry env vars
+    // Clear ALL telemetry env vars to prevent test pollution
     delete process.env['AGENTLINT_TELEMETRY'];
     delete process.env['AGENTLINT_TELEMETRY_DEBUG'];
+    delete process.env['AGENTLINT_OTLP_ENDPOINT'];
+    delete process.env['OTEL_EXPORTER_OTLP_ENDPOINT'];
   });
 
   afterEach(() => {
@@ -123,13 +125,13 @@ describe('Telemetry Client', () => {
       expect(client.mode).toBe('alpha');
     });
 
-    test('returns NoOpTelemetryClient for unsupported otel mode', () => {
+    test('creates OtelTelemetryClient when otel mode', () => {
       const client = createTelemetryClient({
         enabled: true,
         mode: 'otel',
         redactContent: true,
       });
-      expect(client.mode).toBe('disabled'); // Falls back to no-op
+      expect(client.mode).toBe('otel'); // EP22 US-005: OTEL mode now supported
     });
   });
 

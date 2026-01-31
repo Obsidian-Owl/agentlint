@@ -150,6 +150,13 @@ export interface SessionCheckpoint {
 
   /** Optional cognitive workspace state */
   workspaceState?: Record<string, unknown>;
+
+  /** Trace context for observability (EP22 T061) */
+  traceContext?: {
+    traceId: string;
+    spanId: string;
+    parentSpanId?: string;
+  };
 }
 
 // =============================================================================

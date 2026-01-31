@@ -105,72 +105,67 @@ export function SessionSummary({
     );
   }
 
-  // Returning user - show session summary
+  // Returning user - show session summary (compact inline format)
   const timeAgo = formatTimeAgo(lastSession.sessionDate);
   const hasChanges =
     (commitsSinceLastSession && commitsSinceLastSession > 0) ||
     (filesChangedSinceLastSession && filesChangedSinceLastSession > 0);
 
   return (
-    <Box flexDirection="column" borderStyle="round" borderColor="cyan" paddingX={2} paddingY={1}>
-      {/* Session info */}
+    <Box flexDirection="column" paddingX={1}>
+      {/* Compact session summary - single line */}
       <Box>
-        <Text dimColor>Last session: </Text>
-        <Text color="white">{timeAgo}</Text>
+        <Text dimColor>Last session {timeAgo}</Text>
         {lastSession.durationMs && (
           <Text dimColor> ({formatDuration(lastSession.durationMs)})</Text>
         )}
-      </Box>
-
-      {/* Findings and recommendations from last session */}
-      <Box>
-        <Text dimColor>Found </Text>
+        <Text dimColor>: </Text>
         <Text color={lastSession.findingsCount > 0 ? 'yellow' : 'green'}>
           {lastSession.findingsCount} issue{lastSession.findingsCount !== 1 ? 's' : ''}
         </Text>
         <Text dimColor> {'\u2022'} </Text>
         <Text color="cyan">
-          {lastSession.recommendationsCreated} recommendation
-          {lastSession.recommendationsCreated !== 1 ? 's' : ''} created
+          {lastSession.recommendationsCreated} rec
+          {lastSession.recommendationsCreated !== 1 ? 's' : ''}
         </Text>
       </Box>
 
-      {/* Changes since last session */}
+      {/* Changes since - compact inline */}
       {hasChanges && (
-        <Box marginTop={1} flexDirection="column">
-          <Text dimColor>Since then:</Text>
+        <Box>
+          <Text dimColor>Since: </Text>
           {commitsSinceLastSession && commitsSinceLastSession > 0 && (
-            <Box marginLeft={2}>
-              <Text dimColor>{'\u2022'} </Text>
-              <Text color="blue">{commitsSinceLastSession}</Text>
-              <Text dimColor> new commit{commitsSinceLastSession !== 1 ? 's' : ''}</Text>
-              {gitSummary && <Text dimColor> on {sanitizeForTerminal(gitSummary.branch)}</Text>}
-            </Box>
+            <>
+              <Text color="blue">
+                {commitsSinceLastSession} commit{commitsSinceLastSession !== 1 ? 's' : ''}
+              </Text>
+              <Text dimColor> {'\u2022'} </Text>
+            </>
           )}
           {filesChangedSinceLastSession && filesChangedSinceLastSession > 0 && (
-            <Box marginLeft={2}>
-              <Text dimColor>{'\u2022'} </Text>
-              <Text color="blue">{filesChangedSinceLastSession}</Text>
-              <Text dimColor> file{filesChangedSinceLastSession !== 1 ? 's' : ''} changed</Text>
-            </Box>
+            <>
+              <Text color="blue">
+                {filesChangedSinceLastSession} file{filesChangedSinceLastSession !== 1 ? 's' : ''}
+              </Text>
+              <Text dimColor> {'\u2022'} </Text>
+            </>
           )}
           {openRecommendations > 0 && (
-            <Box marginLeft={2}>
-              <Text dimColor>{'\u2022'} </Text>
-              <Text color="yellow">{openRecommendations}</Text>
-              <Text dimColor> recommendation{openRecommendations !== 1 ? 's' : ''} still open</Text>
-            </Box>
+            <>
+              <Text color="yellow">{openRecommendations} open</Text>
+            </>
           )}
+          {gitSummary && <Text dimColor> on {sanitizeForTerminal(gitSummary.branch)}</Text>}
         </Box>
       )}
 
-      {/* No changes message */}
+      {/* No changes - just show branch */}
       {!hasChanges && gitSummary && (
-        <Box marginTop={1}>
+        <Box>
           <Text dimColor>
-            On branch <Text color="green">{sanitizeForTerminal(gitSummary.branch)}</Text>
+            On <Text color="green">{sanitizeForTerminal(gitSummary.branch)}</Text>
             {gitSummary.uncommittedChanges > 0 && (
-              <Text dimColor> with {gitSummary.uncommittedChanges} uncommitted changes</Text>
+              <Text dimColor> ({gitSummary.uncommittedChanges} uncommitted)</Text>
             )}
           </Text>
         </Box>

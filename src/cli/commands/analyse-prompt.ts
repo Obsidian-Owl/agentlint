@@ -99,11 +99,18 @@ export interface BuildAnalysisPromptOptions {
   promptVersion?: string;
 }
 
+export interface AnalysisPromptResult {
+  /** System prompt with instructions (sent via body.system, not displayed) */
+  systemPrompt: string;
+  /** User prompt with task context */
+  userPrompt: string;
+}
+
 export async function buildAnalysisPrompt(
   directory: string,
   scanResult: ScanResult,
   options: AnalyseOptions & BuildAnalysisPromptOptions
-): Promise<string> {
+): Promise<AnalysisPromptResult> {
   const existingRecsContext = await buildExistingRecommendationsContext(directory);
 
   const ctx: AnalysisContext = {
@@ -123,7 +130,15 @@ export async function buildAnalysisPrompt(
   }
 
   const messages = resolvePrompt<AnalysisContext>('analysis/main', ctx, resolveOptions);
-  return messages?.[0]?.content ?? '';
+
+  // Extract system and user messages separately
+  const systemMessage = messages?.find((m) => m.role === 'system');
+  const userMessage = messages?.find((m) => m.role === 'user');
+
+  return {
+    systemPrompt: systemMessage?.content ?? '',
+    userPrompt: userMessage?.content ?? '',
+  };
 }
 
 export function buildFocusInstructions(options: AnalyseOptions): string {

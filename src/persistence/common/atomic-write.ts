@@ -7,6 +7,7 @@
  * @module persistence/common/atomic-write
  */
 
+import * as crypto from 'node:crypto';
 import { rename, unlink } from 'node:fs/promises';
 import { existsSync } from 'node:fs';
 import { dirname } from 'node:path';
@@ -256,7 +257,7 @@ export async function atomicWriteJson<T>(
  */
 function generateTempPath(targetPath: string): string {
   const timestamp = Date.now();
-  const random = Math.random().toString(36).slice(2, 8);
+  const random = crypto.randomBytes(3).toString('hex');
   return `${targetPath}.tmp.${timestamp}.${random}`;
 }
 

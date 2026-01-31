@@ -20,6 +20,7 @@
  */
 
 import type { CheckpointEvent, CheckpointTrigger, CheckpointMetadata, SessionState } from './types';
+import { traceContextProvider } from '../observability/trace-context';
 
 // =============================================================================
 // Constants
@@ -220,6 +221,7 @@ export class CheckpointHandler implements ICheckpointHandler {
 
   /**
    * Create a deep copy of session state with checkpoint info updated.
+   * EP22 T061: Include trace context from TraceContextProvider.
    */
   private createStateSnapshot(state: SessionState, timestamp: string): SessionState {
     // Deep clone via JSON serialization
@@ -228,6 +230,16 @@ export class CheckpointHandler implements ICheckpointHandler {
     // Update checkpoint-related fields
     snapshot.lastCheckpointAt = timestamp;
     snapshot.checkpointSequence = this.sequence;
+
+    // EP22 T061: Capture trace context for replay correlation
+    const traceContext = traceContextProvider.getContext();
+    if (traceContext) {
+      snapshot.traceContext = {
+        traceId: traceContext.traceId,
+        spanId: traceContext.spanId,
+        ...(traceContext.parentSpanId && { parentSpanId: traceContext.parentSpanId }),
+      };
+    }
 
     return snapshot;
   }
@@ -562,6 +574,7 @@ export class SessionReplayer implements ISessionReplayer {
 
   /**
    * Restore session state from a checkpoint.
+   * EP22 T062: Logs original trace_id for correlation and prepares for child span creation.
    */
   restoreFromCheckpoint(checkpoint: SessionCheckpoint): ReplayContext {
     const context: ReplayContext = {
@@ -573,6 +586,64 @@ export class SessionReplayer implements ISessionReplayer {
 
     if (checkpoint.workspaceState !== undefined) {
       context.workspaceState = checkpoint.workspaceState;
+    }
+
+    return context;
+  }
+
+  /**
+   * Replay a session with trace correlation.
+   * EP22 T062: Creates child spans linked to original checkpoint trace context.
+   *
+   * @param sessionId - Session ID to replay
+   * @returns Replay context with trace correlation
+   *
+   * @example
+   * ```typescript
+   * const replayer = createSessionReplayer();
+   * const context = await replayer.replayWithTraceCorrelation('session-123');
+   *
+   * // Resume within child span of original checkpoint
+   * await traceContextProvider.withSpan(
+   *   { name: 'replay-session', parentSpanId: context.originalCheckpointSpanId },
+   *   async (span) => {
+   *     span.setAttribute('original_trace_id', context.originalTraceId);
+   *     // ... resume analysis
+   *   }
+   * );
+   * ```
+   */
+  async replayWithTraceCorrelation(
+    sessionId: string
+  ): Promise<ReplayContext & { originalTraceId?: string; originalCheckpointSpanId?: string }> {
+    const latestCheckpoint = await this.recorder.getLatestCheckpoint(sessionId);
+
+    if (!latestCheckpoint) {
+      throw new Error(`No checkpoint found for session: ${sessionId}`);
+    }
+
+    const context = this.restoreFromCheckpoint(latestCheckpoint);
+
+    // EP22 T062: Extract trace context from checkpoint for correlation
+    // Check top-level traceContext field first (new schema)
+    let traceContext = latestCheckpoint.traceContext;
+
+    // Fallback to workspaceState.traceContext for backwards compatibility
+    if (!traceContext && latestCheckpoint.workspaceState?.traceContext) {
+      traceContext = latestCheckpoint.workspaceState.traceContext as {
+        traceId: string;
+        spanId: string;
+        parentSpanId?: string;
+      };
+    }
+
+    if (traceContext) {
+      console.log(`[Replay] Correlating with original trace: ${traceContext.traceId}`);
+      return {
+        ...context,
+        originalTraceId: traceContext.traceId,
+        originalCheckpointSpanId: traceContext.spanId,
+      };
     }
 
     return context;

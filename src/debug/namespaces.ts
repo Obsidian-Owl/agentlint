@@ -46,6 +46,9 @@ export const DEBUG_NAMESPACES = {
   /** Orchestration core */
   ORCHESTRATION: 'agentlint:orchestration',
 
+  /** Server lifecycle and health */
+  SERVER: 'agentlint:server',
+
   /** Causal tracing engine */
   CAUSAL: 'agentlint:causal',
 
@@ -54,6 +57,15 @@ export const DEBUG_NAMESPACES = {
 
   /** Recommendation advisor */
   ADVISOR: 'agentlint:advisor',
+
+  /** Streaming adapter and SSE events */
+  STREAMING: 'agentlint:streaming',
+
+  /** Terminal User Interface */
+  TUI: 'agentlint:tui',
+
+  /** Unified observability system */
+  OBSERVABILITY: 'agentlint:observability',
 } as const;
 
 /**

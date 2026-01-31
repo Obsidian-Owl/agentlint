@@ -10,13 +10,10 @@
 import { access } from 'fs/promises';
 import { constants } from 'fs';
 import { isAbsolute } from 'path';
-import { exec } from 'child_process';
-import { promisify } from 'util';
+import { spawn } from 'child_process';
 
 import type { McpValidationIssue, PathInfo, Position, McpIssueCode } from '../types';
 import { ISSUE_CODE_METADATA, KNOWN_EXECUTABLES } from '../types';
-
-const execAsync = promisify(exec);
 
 // =============================================================================
 // Helper Functions
@@ -162,17 +159,39 @@ export function extractPackageName(command: string, args: string[]): string | un
 }
 
 /**
+ * Validate executable name to prevent command injection.
+ * Only allows alphanumeric characters, dash, underscore, and dot.
+ */
+function isValidExecutableName(name: string): boolean {
+  return /^[a-zA-Z0-9._-]+$/.test(name);
+}
+
+/**
  * Check if an executable exists in PATH.
  */
 export async function checkExecutableInPath(executable: string): Promise<boolean> {
-  try {
-    // Use 'which' on Unix, 'where' on Windows
-    const cmd = process.platform === 'win32' ? `where ${executable}` : `which ${executable}`;
-    await execAsync(cmd);
-    return true;
-  } catch {
+  // Validate executable name to prevent command injection
+  if (!isValidExecutableName(executable)) {
     return false;
   }
+
+  return new Promise((resolve) => {
+    // Use 'which' on Unix, 'where' on Windows
+    const command = process.platform === 'win32' ? 'where' : 'which';
+
+    const child = spawn(command, [executable], {
+      stdio: 'ignore',
+      shell: false, // Explicitly disable shell to prevent injection
+    });
+
+    child.on('close', (code) => {
+      resolve(code === 0);
+    });
+
+    child.on('error', () => {
+      resolve(false);
+    });
+  });
 }
 
 /**

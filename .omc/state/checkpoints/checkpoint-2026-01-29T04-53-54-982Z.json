@@ -1,0 +1,15 @@
+{
+  "created_at": "2026-01-29T04:53:54.981Z",
+  "trigger": "auto",
+  "active_modes": {
+    "ultrawork": {
+      "original_prompt": "We haven't isolated the Opencode server from other running sessions! I just had an opencode session running (in the floe project). You killed it, then the terminal was taken over and started printing what seemed to be system commands (e.g. 35M;A67D; etc etc) Just huge amounts.\n\nHow can we ensure that when we create an opencode server it is isolated from other server that the user may have running for their other opencode use cases? Ultrawork"
+    }
+  },
+  "todo_summary": {
+    "pending": 0,
+    "in_progress": 0,
+    "completed": 0
+  },
+  "wisdom_exported": false
+}

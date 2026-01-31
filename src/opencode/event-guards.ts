@@ -83,9 +83,13 @@ export function isErrorEventData(data: unknown): data is ErrorEventData {
 
 /**
  * Text event data shape (message.part.updated)
+ * SDK structure: { part: { type: "text", text: "..." } }
  */
 export interface TextEventData {
-  text?: unknown;
+  part?: {
+    type?: string;
+    text?: string;
+  };
   [key: string]: unknown;
 }
 
@@ -95,8 +99,11 @@ export interface TextEventData {
 export function isTextEventData(data: unknown): data is TextEventData {
   if (typeof data !== 'object' || data === null) return false;
   const obj = data as Record<string, unknown>;
-  // Text events must have a text field
-  return 'text' in obj;
+  if (obj.part && typeof obj.part === 'object') {
+    const part = obj.part as Record<string, unknown>;
+    return 'text' in part;
+  }
+  return false;
 }
 
 /**
@@ -137,12 +144,12 @@ export function extractToolName(data: unknown): string {
 
 /**
  * Safely extract text content from event data
+ * SDK structure: { part: { text: "..." } }
  */
 export function extractText(data: unknown): string {
-  if (isTextEventData(data) && typeof data.text === 'string') {
-    return data.text;
-  }
-  return '';
+  if (!isTextEventData(data)) return '';
+  const text = data.part?.text;
+  return typeof text === 'string' ? text : '';
 }
 
 /**
@@ -153,4 +160,14 @@ export function extractStatus(data: unknown): string {
     return data.status;
   }
   return 'status update';
+}
+
+/**
+ * Extract part type from text event data
+ * SDK structure: { part: { type: "text" | "reasoning" | ... } }
+ */
+export function extractPartType(data: unknown): string | null {
+  if (!isTextEventData(data)) return null;
+  const partType = data.part?.type;
+  return typeof partType === 'string' ? partType : null;
 }

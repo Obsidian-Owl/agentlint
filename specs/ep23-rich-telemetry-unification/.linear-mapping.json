@@ -1,0 +1,253 @@
+{
+  "epic": "EP23",
+  "name": "Rich Telemetry Unification",
+  "projectId": "b5a2a761-fcb2-4e84-bd60-8442e4c9a667",
+  "projectUrl": "https://linear.app/obsidianowl/project/ep23-rich-telemetry-unification-4d36023db94c",
+  "labelId": "4c4e75d8-0de8-4cf7-88be-8e736436aab1",
+  "teamId": "026f9bb0-5934-4186-b047-155812ae914d",
+  "createdAt": "2026-01-30T22:18:31Z",
+  "tasks": {
+    "T001": {
+      "id": "6d059160-65c5-49f9-82a3-b2edf273f094",
+      "identifier": "AGE-1059",
+      "url": "https://linear.app/obsidianowl/issue/AGE-1059/t001-read-existing-content-capturets-implementation"
+    },
+    "T002": {
+      "id": "2a5c6edd-ff42-47cb-95cf-2bb0ac904759",
+      "identifier": "AGE-1060",
+      "url": "https://linear.app/obsidianowl/issue/AGE-1060/t002-read-existing-telemetry-trackerts-implementation"
+    },
+    "T003": {
+      "id": "380133ee-2fb6-4730-bc5a-3432b2fb2f69",
+      "identifier": "AGE-1061",
+      "url": "https://linear.app/obsidianowl/issue/AGE-1061/t003-verify-content-capture-functions-exported-from-observability"
+    },
+    "T004": {
+      "id": "6ee9ac66-8c7d-4a34-a5a0-d4a61c579a22",
+      "identifier": "AGE-1062",
+      "url": "https://linear.app/obsidianowl/issue/AGE-1062/t004-unit-test-content-capture-enabled-includes-prompt"
+    },
+    "T005": {
+      "id": "9a68025c-123f-4498-85b2-6f985047b041",
+      "identifier": "AGE-1063",
+      "url": "https://linear.app/obsidianowl/issue/AGE-1063/t005-unit-test-content-capture-disabled-excludes-prompt"
+    },
+    "T006": {
+      "id": "11d94bad-fbc7-4e4c-8155-aad1af9b4ce0",
+      "identifier": "AGE-1064",
+      "url": "https://linear.app/obsidianowl/issue/AGE-1064/t006-unit-test-secrets-are-redacted-from-captured-content"
+    },
+    "T007": {
+      "id": "cffcb2db-a116-4d81-b735-a73f19077644",
+      "identifier": "AGE-1065",
+      "url": "https://linear.app/obsidianowl/issue/AGE-1065/t007-unit-test-content-exceeding-max-length-is-truncated"
+    },
+    "T008": {
+      "id": "ed9251a7-ce1d-4270-940e-e29d6b39bd14",
+      "identifier": "AGE-1066",
+      "url": "https://linear.app/obsidianowl/issue/AGE-1066/t008-unit-test-tool-arguments-included-in-toolcall-event"
+    },
+    "T009": {
+      "id": "95d96811-682e-4251-a3bb-b7dc7580c764",
+      "identifier": "AGE-1067",
+      "url": "https://linear.app/obsidianowl/issue/AGE-1067/t009-add-content-fields-to-trackllmoptions"
+    },
+    "T010": {
+      "id": "211591ef-db5a-4eea-aeb9-615a1c107567",
+      "identifier": "AGE-1068",
+      "url": "https://linear.app/obsidianowl/issue/AGE-1068/t010-add-content-fields-to-tracktooloptions"
+    },
+    "T011": {
+      "id": "c87f959d-bff8-46d3-b30f-fffafbe3f066",
+      "identifier": "AGE-1069",
+      "url": "https://linear.app/obsidianowl/issue/AGE-1069/t011-wire-llm-content-capture-in-onllmusage",
+      "blockedBy": ["T009"]
+    },
+    "T012": {
+      "id": "89c38065-a5e9-4c3d-9543-4d7954d6dcaf",
+      "identifier": "AGE-1070",
+      "url": "https://linear.app/obsidianowl/issue/AGE-1070/t012-wire-tool-content-to-tracktoolex",
+      "blockedBy": ["T010"]
+    },
+    "T013": {
+      "id": "7bc5944a-4de1-4f14-ba43-5427c977fc6e",
+      "identifier": "AGE-1071",
+      "url": "https://linear.app/obsidianowl/issue/AGE-1071/t013-include-llm-content-fields-in-alpha-client-event-data",
+      "blockedBy": ["T009"]
+    },
+    "T014": {
+      "id": "09566284-d207-4584-9d2c-ad397a49a9e0",
+      "identifier": "AGE-1072",
+      "url": "https://linear.app/obsidianowl/issue/AGE-1072/t014-verify-tool-content-fields-flow-to-event-data",
+      "blockedBy": ["T010"]
+    },
+    "T015": {
+      "id": "ce487ea8-a3a2-4bdb-9013-56a3157b2314",
+      "identifier": "AGE-1073",
+      "url": "https://linear.app/obsidianowl/issue/AGE-1073/t015-map-promptcontent-to-inputsmessages-in-vercel-proxy"
+    },
+    "T016": {
+      "id": "22366384-e35d-4843-a797-845f81432d61",
+      "identifier": "AGE-1074",
+      "url": "https://linear.app/obsidianowl/issue/AGE-1074/t016-map-completioncontent-to-outputscontent-in-vercel-proxy"
+    },
+    "T017": {
+      "id": "83071ce1-44a3-47f3-ac80-b0ba9e385858",
+      "identifier": "AGE-1075",
+      "url": "https://linear.app/obsidianowl/issue/AGE-1075/t017-map-toolinputjson-to-inputsarguments-in-vercel-proxy"
+    },
+    "T018": {
+      "id": "cc6422ac-723e-4c0a-9d65-f5555cbc86a6",
+      "identifier": "AGE-1076",
+      "url": "https://linear.app/obsidianowl/issue/AGE-1076/t018-map-tooloutputjson-to-outputsresult-in-vercel-proxy"
+    },
+    "T019": {
+      "id": "5e26b7ba-49ab-4584-8415-7df863ea5dbb",
+      "identifier": "AGE-1077",
+      "url": "https://linear.app/obsidianowl/issue/AGE-1077/t019-unit-test-cache-read-tokens-mapped-to-honeyhive"
+    },
+    "T020": {
+      "id": "9e4b3a9d-07cd-4f09-b76b-95b782bb1bd8",
+      "identifier": "AGE-1078",
+      "url": "https://linear.app/obsidianowl/issue/AGE-1078/t020-unit-test-reasoning-tokens-included-in-llm-metrics"
+    },
+    "T021": {
+      "id": "4a8f2dae-0327-4956-99e4-cc80e2f89964",
+      "identifier": "AGE-1079",
+      "url": "https://linear.app/obsidianowl/issue/AGE-1079/t021-unit-test-tool-events-have-llm-turn-as-parent-id"
+    },
+    "T022": {
+      "id": "71c085d3-aedf-44fe-9704-8391d7aac1a6",
+      "identifier": "AGE-1080",
+      "url": "https://linear.app/obsidianowl/issue/AGE-1080/t022-verify-cache-tokens-flow-from-telemetrytracker"
+    },
+    "T023": {
+      "id": "24d8d568-afd5-4144-b1cb-bbd9a6664b50",
+      "identifier": "AGE-1081",
+      "url": "https://linear.app/obsidianowl/issue/AGE-1081/t023-map-cachereadtokens-to-metricscache-read-tokens"
+    },
+    "T024": {
+      "id": "3b9a5683-51ad-4064-bc3e-90d474295c43",
+      "identifier": "AGE-1082",
+      "url": "https://linear.app/obsidianowl/issue/AGE-1082/t024-map-cachecreationtokens-to-metricscache-creation-tokens"
+    },
+    "T025": {
+      "id": "fe680c87-691b-4e0e-96d8-1ccf1d4d7910",
+      "identifier": "AGE-1083",
+      "url": "https://linear.app/obsidianowl/issue/AGE-1083/t025-add-reasoningtokens-to-trackllmoptions"
+    },
+    "T026": {
+      "id": "179fafb1-084f-415d-bcc4-7fa8a30d503d",
+      "identifier": "AGE-1084",
+      "url": "https://linear.app/obsidianowl/issue/AGE-1084/t026-map-reasoningtokens-to-metricsreasoning-tokens"
+    },
+    "T027": {
+      "id": "76a2307c-b0b4-414e-be10-ff5f7ab4e9a9",
+      "identifier": "AGE-1085",
+      "url": "https://linear.app/obsidianowl/issue/AGE-1085/t027-verify-hyperparameters-map-to-honeyhive-config"
+    },
+    "T028": {
+      "id": "2123832d-9cf4-403c-9122-065ae482da23",
+      "identifier": "AGE-1086",
+      "url": "https://linear.app/obsidianowl/issue/AGE-1086/t028-track-current-llm-event-id-for-turn-context"
+    },
+    "T029": {
+      "id": "4652ada3-2916-4fdf-8dfd-581a00f47e33",
+      "identifier": "AGE-1087",
+      "url": "https://linear.app/obsidianowl/issue/AGE-1087/t029-use-llm-event-id-as-parenteventid-for-tool-events",
+      "blockedBy": ["T028"]
+    },
+    "T030": {
+      "id": "d4b88d14-f6f6-4ad9-9559-ef42770880a3",
+      "identifier": "AGE-1088",
+      "url": "https://linear.app/obsidianowl/issue/AGE-1088/t030-unit-test-sessionstart-includes-agent-identity"
+    },
+    "T031": {
+      "id": "1036adbc-dc23-4815-855b-8d29efcb2b16",
+      "identifier": "AGE-1089",
+      "url": "https://linear.app/obsidianowl/issue/AGE-1089/t031-unit-test-sessionend-includes-compression-count"
+    },
+    "T032": {
+      "id": "e019aa02-7371-4a72-ae59-0351c86657d0",
+      "identifier": "AGE-1090",
+      "url": "https://linear.app/obsidianowl/issue/AGE-1090/t032-unit-test-error-events-include-category-and-stack"
+    },
+    "T033": {
+      "id": "9166a21a-0f88-4683-a8a1-2ffab24e2d39",
+      "identifier": "AGE-1091",
+      "url": "https://linear.app/obsidianowl/issue/AGE-1091/t033-add-gen-aiagentid-to-sessionstart-event"
+    },
+    "T034": {
+      "id": "542101d1-5723-4804-a320-e7efcf9e6aca",
+      "identifier": "AGE-1092",
+      "url": "https://linear.app/obsidianowl/issue/AGE-1092/t034-add-gen-aiagentname-to-sessionstart-event"
+    },
+    "T035": {
+      "id": "bc807076-d420-4307-b806-534ca3c23db0",
+      "identifier": "AGE-1093",
+      "url": "https://linear.app/obsidianowl/issue/AGE-1093/t035-map-agent-identity-to-honeyhive-session-config"
+    },
+    "T036": {
+      "id": "1d5f7d2d-a512-4823-8f06-ecadffe4a509",
+      "identifier": "AGE-1094",
+      "url": "https://linear.app/obsidianowl/issue/AGE-1094/t036-include-compression-count-in-sessionend-metrics"
+    },
+    "T037": {
+      "id": "1da2c5ad-b75e-4cb6-9509-555d6365b4fe",
+      "identifier": "AGE-1095",
+      "url": "https://linear.app/obsidianowl/issue/AGE-1095/t037-add-errorstack-to-tracktooloptions"
+    },
+    "T038": {
+      "id": "7668cfc9-d2e1-4725-985f-8251e991af09",
+      "identifier": "AGE-1096",
+      "url": "https://linear.app/obsidianowl/issue/AGE-1096/t038-map-error-enrichment-fields-to-honeyhive-metadata"
+    },
+    "T039": {
+      "id": "fd64eeb5-eb61-4284-a96d-ea985e025ab3",
+      "identifier": "AGE-1097",
+      "url": "https://linear.app/obsidianowl/issue/AGE-1097/t039-add-trace-id-to-honeyhive-event-metadata"
+    },
+    "T040": {
+      "id": "0ce15669-bbde-4ec0-b260-0b6ce9c434e7",
+      "identifier": "AGE-1098",
+      "url": "https://linear.app/obsidianowl/issue/AGE-1098/t040-unit-test-stream-span-created-on-stream-start"
+    },
+    "T041": {
+      "id": "c440496f-0c9a-4ea8-b173-401b776baa63",
+      "identifier": "AGE-1099",
+      "url": "https://linear.app/obsidianowl/issue/AGE-1099/t041-unit-test-first-token-event-recorded-with-timestamp"
+    },
+    "T042": {
+      "id": "da771097-e049-4bfa-bcfe-e17524345599",
+      "identifier": "AGE-1100",
+      "url": "https://linear.app/obsidianowl/issue/AGE-1100/t042-create-stream-span-on-stream-start-in-streamadapter"
+    },
+    "T043": {
+      "id": "55c09004-97a5-40e9-b707-c287afbd14cc",
+      "identifier": "AGE-1101",
+      "url": "https://linear.app/obsidianowl/issue/AGE-1101/t043-record-first-token-span-event-when-first-chunk-received",
+      "blockedBy": ["T042"]
+    },
+    "T044": {
+      "id": "afac3d48-5ab2-4126-abeb-23bdc7f142ad",
+      "identifier": "AGE-1102",
+      "url": "https://linear.app/obsidianowl/issue/AGE-1102/t044-record-stream-complete-event-with-chunk-count",
+      "blockedBy": ["T042"]
+    },
+    "T045": {
+      "id": "c718c64b-2b23-482f-8f11-38cdd738eb46",
+      "identifier": "AGE-1103",
+      "url": "https://linear.app/obsidianowl/issue/AGE-1103/t045-integration-test-e2e-telemetry-flow-with-content-capture"
+    },
+    "T046": {
+      "id": "8effe345-70af-4f8b-8566-8370d73e1141",
+      "identifier": "AGE-1104",
+      "url": "https://linear.app/obsidianowl/issue/AGE-1104/t046-integration-test-privacy-default-when-capture-disabled"
+    },
+    "T047": {
+      "id": "11617ce1-cce7-4fc2-b87b-cb3873ed7795",
+      "identifier": "AGE-1105",
+      "url": "https://linear.app/obsidianowl/issue/AGE-1105/t047-integration-test-vercel-proxy-honeyhive-schema-compliance"
+    }
+  }
+}

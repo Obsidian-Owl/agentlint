@@ -20,45 +20,8 @@ export interface WelcomeMenuOption {
 }
 
 // =============================================================================
-// Menu Option Generator
+// Menu Option Types (kept for type compatibility, agent generates options dynamically)
 // =============================================================================
-
-export function generateMenuOptions(context: WelcomeContext): WelcomeMenuOption[] {
-  const options: WelcomeMenuOption[] = [];
-  let keyNum = 1;
-
-  if (context.incompleteSession) {
-    options.push({
-      key: String(keyNum++),
-      label: 'Resume interrupted session',
-      action: 'resume-session',
-    });
-  }
-
-  if (context.gitSummary?.uncommittedChanges && context.gitSummary.uncommittedChanges > 0) {
-    options.push({
-      key: String(keyNum++),
-      label: 'Analyze current diff',
-      action: 'analyze-diff',
-    });
-  }
-
-  if (context.openRecommendationCount > 0) {
-    options.push({
-      key: String(keyNum++),
-      label: `Review ${context.openRecommendationCount} open recommendations`,
-      action: 'review-recommendations',
-    });
-  }
-
-  options.push({
-    key: String(keyNum++),
-    label: 'Full analysis',
-    action: 'full-analysis',
-  });
-
-  return options;
-}
 
 export function formatMenuSubtitle(context: WelcomeContext): string {
   const parts: string[] = [];
@@ -92,9 +55,35 @@ export function formatMenuSubtitle(context: WelcomeContext): string {
  * Establishes the personality and tone for the welcome agent.
  */
 export function getWelcomeSystemPrompt(): string {
-  return `You are the agentlint welcome assistant. Your job is to greet the user with a brief, personalized welcome message based on their current project state.
+  return `You are the agentlint welcome assistant. Your job is to greet the user briefly and help them choose what to do next.
 
-${buildPersonaBlock()}`;
+${buildPersonaBlock()}
+
+ROLE BOUNDARIES - CRITICAL:
+
+WHAT AGENTLINT DOES:
+- Analyze session logs from past AI coding sessions
+- Identify patterns in tool usage, skill effectiveness, and workflow
+- Recommend configuration and workflow improvements
+- Track recommendation outcomes and continuous improvement
+
+WHAT AGENTLINT DOES NOT DO:
+- Write, modify, or review code
+- Fix lint errors, bugs, or tests
+- Act as a coding assistant
+- Review git diffs or uncommitted changes
+- Debug application logic
+
+IMPORTANT: After your brief greeting (1-2 sentences), you MUST use the AskUserQuestion tool to offer the user choices. Do NOT just list options in text - use the tool so the user can select interactively.
+
+DECISION FREEDOM: You decide what options to present based on the context. Consider:
+- Does the user have session logs to analyze? Offer session analysis.
+- Are there open recommendations? Offer to review them.
+- Is there an interrupted session? Offer to resume.
+- Is this a first run? Offer a full baseline analysis.
+- Is the configuration incomplete? Offer a config health check.
+
+Present 2-4 relevant options based on what you discover in the context. You are NOT limited to a fixed list - adapt to what makes sense for this user's current state.`;
 }
 
 /**
@@ -104,7 +93,7 @@ ${buildPersonaBlock()}`;
  * @returns Prompt string for the LLM
  */
 export function getWelcomeUserPrompt(context: WelcomeContext): string {
-  const parts: string[] = ['Generate a brief welcome message based on this context:'];
+  const parts: string[] = ['## Current Project State', '', 'Context:'];
 
   if (context.isFirstRun) {
     parts.push('- FIRST RUN: User has never run agentlint before');
@@ -144,11 +133,8 @@ export function getWelcomeUserPrompt(context: WelcomeContext): string {
     const session = context.incompleteSession;
     parts.push(`- INCOMPLETE SESSION: Analysis was interrupted in "${session.phase}" phase`);
     parts.push(`  - Found ${session.findingCount} findings before interruption`);
-    parts.push('  - Consider offering to resume');
+    parts.push('  - Offer to resume as an option');
   }
-
-  parts.push('');
-  parts.push('Remember: 2-3 sentences max, dry wit, no fluff.');
 
   return parts.join('\n');
 }

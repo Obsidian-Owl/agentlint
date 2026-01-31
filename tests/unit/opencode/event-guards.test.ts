@@ -92,12 +92,12 @@ describe('event-guards', () => {
   });
 
   describe('isTextEventData', () => {
-    it('should return true for data with text field', () => {
-      const data = { text: 'Hello world' };
+    it('should return true for data with part.text field (SDK format)', () => {
+      const data = { part: { type: 'text', text: 'Hello world' } };
       expect(isTextEventData(data)).toBe(true);
     });
 
-    it('should return false for empty object (requires text field)', () => {
+    it('should return false for empty object (requires part.text field)', () => {
       expect(isTextEventData({})).toBe(false);
     });
 
@@ -175,17 +175,17 @@ describe('event-guards', () => {
   });
 
   describe('extractText', () => {
-    it('should extract text from text event data', () => {
-      const data = { text: 'Hello world' };
+    it('should extract text from SDK event data (part.text)', () => {
+      const data = { part: { type: 'text', text: 'Hello world' } };
       expect(extractText(data)).toBe('Hello world');
     });
 
     it('should return empty string for non-string text', () => {
-      const data = { text: 123 };
+      const data = { part: { text: 123 } };
       expect(extractText(data)).toBe('');
     });
 
-    it('should return empty string for data without text', () => {
+    it('should return empty string for data without part.text', () => {
       const data = { other: 'field' };
       expect(extractText(data)).toBe('');
     });

@@ -220,24 +220,58 @@ function formatTrendLabel(metricName: string, change: MetricChange): string {
 
 /**
  * Extract warning changes between baselines.
+ *
+ * Strategy:
+ * 1. If findings contain low/medium severity items, analyze those by title
+ * 2. Otherwise, fall back to warningCount metric for a summary
  */
 function extractWarningChanges(
   from: Baseline,
   to: Baseline
 ): { warningsAdded: string[]; warningsResolved: string[] } {
-  // In the full implementation, this would analyze findings
-  // For now, return empty arrays as a placeholder
   const warningsAdded: string[] = [];
   const warningsResolved: string[] = [];
 
-  // Compare warning counts as a simple heuristic
-  const fromWarnings = from.metrics.warningCount ?? 0;
-  const toWarnings = to.metrics.warningCount ?? 0;
+  // Extract warnings (low + medium severity findings)
+  const fromWarnings = new Map(
+    from.findings
+      .filter((f) => f.severity === 'low' || f.severity === 'medium')
+      .map((f) => [f.title, f])
+  );
 
-  if (toWarnings > fromWarnings) {
-    warningsAdded.push(`${toWarnings - fromWarnings} new warning(s) detected`);
-  } else if (toWarnings < fromWarnings) {
-    warningsResolved.push(`${fromWarnings - toWarnings} warning(s) resolved`);
+  const toWarnings = new Map(
+    to.findings
+      .filter((f) => f.severity === 'low' || f.severity === 'medium')
+      .map((f) => [f.title, f])
+  );
+
+  // If we have actual findings to analyze, use those
+  if (fromWarnings.size > 0 || toWarnings.size > 0) {
+    // Find added warnings (in 'to' but not in 'from')
+    for (const [title, finding] of toWarnings) {
+      if (!fromWarnings.has(title)) {
+        const location = finding.location ? ` (${finding.location.file})` : '';
+        warningsAdded.push(`${title}${location}`);
+      }
+    }
+
+    // Find resolved warnings (in 'from' but not in 'to')
+    for (const [title, finding] of fromWarnings) {
+      if (!toWarnings.has(title)) {
+        const location = finding.location ? ` (${finding.location.file})` : '';
+        warningsResolved.push(`${title}${location}`);
+      }
+    }
+  } else {
+    // Fall back to warningCount metric for summary
+    const fromWarningCount = from.metrics.warningCount ?? 0;
+    const toWarningCount = to.metrics.warningCount ?? 0;
+
+    if (toWarningCount > fromWarningCount) {
+      warningsAdded.push(`${toWarningCount - fromWarningCount} new warning(s) detected`);
+    } else if (toWarningCount < fromWarningCount) {
+      warningsResolved.push(`${fromWarningCount - toWarningCount} warning(s) resolved`);
+    }
   }
 
   return { warningsAdded, warningsResolved };

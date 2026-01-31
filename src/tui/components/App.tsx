@@ -56,8 +56,17 @@ interface InnerAppProps {
   propsPendingPermission?: { tool: string; description: string; pattern?: string } | null;
   propsPendingQuestions?: UserQuestion[] | null;
   propsViewStack?: DialogType[];
+  propsTuiState?: AppState['tuiState'];
+  propsWelcomeMenuOptions?: AppState['welcomeMenuOptions'];
+  propsLoadingSteps?: AppState['loadingSteps'];
+  propsConversationHistory?: AppState['conversationHistory'];
+  propsStatusBar?: AppState['statusBar'];
   onPermissionDecision?: (decision: PermissionDecision) => void;
   onQuestionAnswers?: (answers: Record<string, string>) => void;
+  onRecommendationAction?: (
+    recommendationId: string,
+    action: 'accept' | 'dismiss' | 'defer'
+  ) => void;
 }
 
 function InnerApp({
@@ -68,8 +77,14 @@ function InnerApp({
   propsPendingPermission,
   propsPendingQuestions,
   propsViewStack,
+  propsTuiState,
+  propsWelcomeMenuOptions,
+  propsLoadingSteps,
+  propsConversationHistory,
+  propsStatusBar,
   onPermissionDecision,
   onQuestionAnswers,
+  onRecommendationAction,
 }: InnerAppProps): React.ReactElement {
   const state = useAppState();
   const dispatch = useAppDispatch();
@@ -82,6 +97,13 @@ function InnerApp({
   const [elapsedMs, setElapsedMs] = useState(0);
 
   const { explorationPath, recommendations } = state;
+
+  // Props override internal state (for controlled rendering from InkRenderer)
+  const tuiState = propsTuiState ?? state.tuiState;
+  const welcomeMenuOptions = propsWelcomeMenuOptions ?? state.welcomeMenuOptions;
+  const loadingSteps = propsLoadingSteps ?? state.loadingSteps;
+  const conversationHistory = propsConversationHistory ?? state.conversationHistory;
+  const statusBar = propsStatusBar ?? state.statusBar;
 
   const streamBuffer = streamState?.streamBuffer ?? state.streamBuffer;
   const isStreaming = streamState?.isStreaming ?? state.isStreaming;
@@ -100,6 +122,15 @@ function InnerApp({
     return undefined;
   }, [isStreaming, startTime]);
 
+  // Auto-flush queued input when streaming stops
+  useEffect(() => {
+    if (!isStreaming && state.queuedInput) {
+      const queued = state.queuedInput;
+      dispatch({ type: 'FLUSH_QUEUED_INPUT' });
+      void onInput?.(queued);
+    }
+  }, [isStreaming, state.queuedInput, onInput, dispatch]);
+
   // Current dialog type (top of stack)
   const currentDialog = viewStack.length > 0 ? viewStack[viewStack.length - 1] : null;
 
@@ -109,12 +140,18 @@ function InnerApp({
   const handleInputSubmit = useCallback(
     (value: string) => {
       if (value.trim()) {
-        void onInput?.(value);
-        setInputValue('');
-        dispatch({ type: 'CLEAR_INPUT_BUFFER' });
+        if (isStreaming) {
+          // Queue input to be sent after agent completes
+          dispatch({ type: 'QUEUE_INPUT', payload: { input: value } });
+          setInputValue('');
+        } else {
+          void onInput?.(value);
+          setInputValue('');
+          dispatch({ type: 'CLEAR_INPUT_BUFFER' });
+        }
       }
     },
-    [onInput, dispatch]
+    [isStreaming, onInput, dispatch]
   );
 
   /**
@@ -152,13 +189,22 @@ function InnerApp({
 
   /**
    * Handle recommendation action.
+   * TEL-001: Emit telemetry for recommendation acceptance/rejection.
    */
   const handleRecommendationAction = useCallback(
-    (_action: 'accept' | 'dismiss' | 'defer') => {
+    (action: 'accept' | 'dismiss' | 'defer') => {
+      // Find the current recommendation
+      const currentRecommendation = recommendations[0];
+      if (currentRecommendation) {
+        // Generate deterministic ID from recommendation content
+        const recommendationId = `${currentRecommendation.type}-${currentRecommendation.action.slice(0, 30).replace(/\s+/g, '-')}`;
+        onRecommendationAction?.(recommendationId, action);
+      }
+
       // Pop the dialog
       dispatch({ type: 'POP_DIALOG' });
     },
-    [dispatch]
+    [dispatch, recommendations, onRecommendationAction]
   );
 
   const handleQuestionSubmit = useCallback(
@@ -190,7 +236,7 @@ function InnerApp({
         if (currentDialog) return;
         if (showQuitDialog) return;
 
-        if (input === 'q') {
+        if (input.toLowerCase() === 'q') {
           setShowQuitDialog(true);
           return;
         }
@@ -229,10 +275,8 @@ function InnerApp({
     [dispatch]
   );
 
-  const { statusBar } = state;
-
   return (
-    <Box flexDirection="column" height="100%">
+    <Box flexDirection="column">
       {/* Header */}
       <Box borderStyle="single" borderColor="gray" paddingX={1} justifyContent="space-between">
         <Text bold color="cyan">
@@ -244,9 +288,9 @@ function InnerApp({
       {/* Main content area */}
       <Box flexDirection="column" flexGrow={1} padding={1}>
         {/* Loading Progress (during initial context loading) */}
-        {state.tuiState === 'loading' && state.loadingSteps.length > 0 && (
+        {tuiState === 'loading' && loadingSteps.length > 0 && (
           <Box marginBottom={1}>
-            <LoadingProgress steps={state.loadingSteps} title="Gathering context..." />
+            <LoadingProgress steps={loadingSteps} title="Gathering context..." />
           </Box>
         )}
 
@@ -265,64 +309,63 @@ function InnerApp({
         )}
 
         {/* Conversation History (when conversing or has history) */}
-        {state.conversationHistory.length > 0 && (
-          <ConversationHistory messages={state.conversationHistory} />
-        )}
+        {conversationHistory.length > 0 && <ConversationHistory messages={conversationHistory} />}
 
-        {/* Session Summary (when in welcome state with last session data) */}
-        {state.tuiState === 'welcome' && state.lastSession && (
-          <Box marginBottom={1}>
-            <SessionSummary
-              lastSession={state.lastSession}
-              gitSummary={null}
-              openRecommendations={statusBar.openRecommendations}
-            />
-          </Box>
-        )}
+        {/* Welcome screen with visual hierarchy */}
+        {tuiState === 'welcome' && (
+          <>
+            {/* Top Recommendation - HERO SECTION (most prominent) */}
+            {state.topRecommendation && (
+              <Box marginBottom={2}>
+                <TopRecommendation
+                  recommendation={state.topRecommendation}
+                  onApply={(id) => onMenuSelect?.(`apply-recommendation:${id}`)}
+                  onDismiss={(id) => onMenuSelect?.(`dismiss-recommendation:${id}`)}
+                  onDetails={(id) => onMenuSelect?.(`recommendation-details:${id}`)}
+                  disabled={isStreaming}
+                />
+              </Box>
+            )}
 
-        {/* Top Recommendation (when in welcome state with recommendation) */}
-        {state.tuiState === 'welcome' && state.topRecommendation && (
-          <Box marginBottom={1}>
-            <TopRecommendation
-              recommendation={state.topRecommendation}
-              onApply={(id) => onMenuSelect?.(`apply-recommendation:${id}`)}
-              onDismiss={(id) => onMenuSelect?.(`dismiss-recommendation:${id}`)}
-              onDetails={(id) => onMenuSelect?.(`recommendation-details:${id}`)}
-              disabled={isStreaming}
-            />
-          </Box>
-        )}
+            {/* Context Bar - compact inline (session + progress) */}
+            {(state.lastSession || state.progressStats) && (
+              <Box flexDirection="column" marginBottom={1}>
+                {state.lastSession && (
+                  <SessionSummary
+                    lastSession={state.lastSession}
+                    gitSummary={null}
+                    openRecommendations={statusBar.openRecommendations}
+                  />
+                )}
+                {state.progressStats && <ProgressStats stats={state.progressStats} />}
+              </Box>
+            )}
 
-        {/* Progress Stats (when in welcome state with sufficient data) */}
-        {state.tuiState === 'welcome' && state.progressStats && (
-          <Box marginBottom={1}>
-            <ProgressStats stats={state.progressStats} />
-          </Box>
-        )}
-
-        {/* Welcome Menu (when in welcome state with options) */}
-        {state.tuiState === 'welcome' && state.welcomeMenuOptions.length > 0 && (
-          <Box marginBottom={1}>
-            <ActionMenu
-              title="agentlint"
-              subtitle={formatMenuSubtitle({
-                isFirstRun: false,
-                daysSinceLastBaseline: null,
-                openRecommendationCount: statusBar.openRecommendations,
-                gitSummary: null,
-                incompleteSession: null,
-                projectPath: statusBar.projectPath,
-                modelName: statusBar.model,
-              })}
-              options={state.welcomeMenuOptions}
-              onSelect={(action) => {
-                if (onMenuSelect) {
-                  onMenuSelect(action);
-                }
-              }}
-              disabled={isStreaming}
-            />
-          </Box>
+            {/* Action Menu - simplified (reduced visual weight) */}
+            {welcomeMenuOptions.length > 0 && (
+              <Box marginBottom={1}>
+                <ActionMenu
+                  title="agentlint"
+                  subtitle={formatMenuSubtitle({
+                    isFirstRun: false,
+                    daysSinceLastBaseline: null,
+                    openRecommendationCount: statusBar.openRecommendations,
+                    gitSummary: null,
+                    incompleteSession: null,
+                    projectPath: statusBar.projectPath,
+                    modelName: statusBar.model,
+                  })}
+                  options={welcomeMenuOptions}
+                  onSelect={(action) => {
+                    if (onMenuSelect) {
+                      onMenuSelect(action);
+                    }
+                  }}
+                  disabled={isStreaming}
+                />
+              </Box>
+            )}
+          </>
         )}
 
         {/* Agent State Indicator (during analysis) */}
@@ -385,8 +428,14 @@ function InnerApp({
           value={inputValue}
           onChange={handleInputChange}
           onSubmit={handleInputSubmit}
-          disabled={isStreaming}
+          disabled={tuiState === 'welcome' && welcomeMenuOptions.length > 0}
           placeholder="Type your question or press q to quit..."
+          disabledPlaceholder={
+            tuiState === 'welcome' && welcomeMenuOptions.length > 0
+              ? 'Use number keys to select an option...'
+              : 'Agent is working, please wait...'
+          }
+          queuedInput={state.queuedInput}
         />
 
         {/* Permission Dialog */}
@@ -426,7 +475,21 @@ function InnerApp({
         {showQuitDialog && (
           <DialogOverlay title="Confirm Quit">
             <QuitDialog
-              onConfirm={() => void Promise.resolve(onExit?.()).finally(() => exit())}
+              onConfirm={() => {
+                // Wait for cleanup to complete before exiting
+                // onExit may be async (saves session, stops orchestrator)
+                const exitPromise = Promise.resolve(onExit?.());
+                void exitPromise
+                  .then(() => {
+                    exit();
+                    // Fallback: force exit if Ink's exit doesn't work
+                    setTimeout(() => process.exit(0), 100);
+                  })
+                  .catch(() => {
+                    exit();
+                    setTimeout(() => process.exit(1), 100);
+                  });
+              }}
               onCancel={() => setShowQuitDialog(false)}
             />
           </DialogOverlay>
@@ -449,11 +512,18 @@ export function App({
   pendingPermission,
   pendingQuestions,
   viewStack,
+  tuiState,
+  welcomeMenuOptions,
+  loadingSteps,
+  conversationHistory,
+  statusBar,
   onInput,
   onStart: _onStart,
   onExit,
+  onMenuSelect,
   onPermissionDecision,
   onQuestionAnswers,
+  onRecommendationAction,
 }: AppProps): React.ReactElement {
   const mergedInitialState = useMemo(() => {
     const defaultState = createInitialState();
@@ -470,8 +540,15 @@ export function App({
   if (pendingPermission !== undefined) innerProps.propsPendingPermission = pendingPermission;
   if (pendingQuestions !== undefined) innerProps.propsPendingQuestions = pendingQuestions;
   if (viewStack) innerProps.propsViewStack = viewStack;
+  if (tuiState) innerProps.propsTuiState = tuiState;
+  if (welcomeMenuOptions) innerProps.propsWelcomeMenuOptions = welcomeMenuOptions;
+  if (loadingSteps) innerProps.propsLoadingSteps = loadingSteps;
+  if (conversationHistory) innerProps.propsConversationHistory = conversationHistory;
+  if (statusBar) innerProps.propsStatusBar = statusBar;
   if (onPermissionDecision) innerProps.onPermissionDecision = onPermissionDecision;
   if (onQuestionAnswers) innerProps.onQuestionAnswers = onQuestionAnswers;
+  if (onMenuSelect) innerProps.onMenuSelect = onMenuSelect;
+  if (onRecommendationAction) innerProps.onRecommendationAction = onRecommendationAction;
 
   return (
     <AppProvider initialState={mergedInitialState}>

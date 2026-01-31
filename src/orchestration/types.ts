@@ -49,7 +49,8 @@ export type StreamChunkType =
   | 'checkpoint' // Checkpoint saved
   | 'error' // Error occurred
   | 'status' // Status update
-  | 'user_question'; // Agent requesting user input (human-in-the-loop)
+  | 'user_question' // Agent requesting user input (human-in-the-loop)
+  | 'question'; // Agent asking question
 
 // =============================================================================
 // Stream Chunk (T011)
@@ -88,57 +89,17 @@ export interface PermissionResult {
 
 /**
  * Telemetry client interface for orchestrator.
- * Imported from telemetry module to avoid circular dependencies.
+ * Uses shared types from telemetry module to avoid duplication.
  *
- * IMPORTANT: Keep in sync with ITelemetryClient in src/telemetry/index.ts
+ * This is a subset of ITelemetryClient focused on orchestrator needs:
+ * - Extended tool/LLM tracking with timing and hierarchy
+ * - Raw event recording for advanced use cases
+ * - Session event ID retrieval for trace hierarchy
  */
 export interface IOrchestratorTelemetryClient {
   isEnabled(): boolean;
-  trackToolEx?(
-    sessionId: string,
-    options: {
-      tool: string;
-      durationMs: number;
-      success: boolean;
-      startTime?: number;
-      endTime?: number;
-      parentEventId?: string;
-      /** Full tool input arguments (will be sanitized) */
-      toolInput?: Record<string, unknown>;
-      /** Tool output/result (truncated if large, will be sanitized) */
-      toolOutput?: unknown;
-      /** Error message if tool failed */
-      errorMessage?: string;
-    }
-  ): void;
-  trackLLMEx?(
-    sessionId: string,
-    options: {
-      model: string;
-      inputTokens: number;
-      outputTokens: number;
-      latencyMs?: number;
-      startTime?: number;
-      endTime?: number;
-      parentEventId?: string;
-      /** Model provider (e.g., 'anthropic') */
-      provider?: string;
-      /** Estimated cost in USD */
-      cost?: number;
-      /** Model temperature setting */
-      temperature?: number;
-      /** Max tokens setting */
-      maxTokens?: number;
-      /** Top-p sampling parameter */
-      topP?: number;
-      /** Stop reason from model response */
-      stopReason?: string;
-      /** Cache read tokens (prompt caching) */
-      cacheReadTokens?: number;
-      /** Cache creation tokens (prompt caching) */
-      cacheCreationTokens?: number;
-    }
-  ): void;
+  trackToolEx?(sessionId: string, options: import('../telemetry/types').TrackToolOptions): void;
+  trackLLMEx?(sessionId: string, options: import('../telemetry/types').TrackLLMOptions): void;
   record?(event: unknown): void;
   getSessionEventId?(sessionId: string): string | undefined;
 }
@@ -226,6 +187,14 @@ export interface OrchestratorConfig {
    * For subagents, this would be the parent's subagent event ID.
    */
   telemetryParentEventId?: string;
+
+  /**
+   * Span exporter for session span instrumentation (EP22 T040).
+   * When provided, the orchestrator exports session spans to the exporter.
+   * This enables tracing of complete session lifecycle including start/end times,
+   * status, and streaming duration.
+   */
+  spanExporter?: import('../observability/trace-context').SpanExporter;
 }
 
 /**
@@ -270,6 +239,27 @@ export interface SessionState {
   taskGoal: string;
   /** Project metadata */
   projectContext: ProjectContext;
+  /** Trace context for observability (EP22 T061) */
+  traceContext?: {
+    traceId: string;
+    spanId: string;
+    parentSpanId?: string;
+  };
+  /** Session-level metrics */
+  metrics?: {
+    toolCalls: number;
+    llmCalls: number;
+    tokensUsed: number;
+    elapsedMs: number;
+    /** TEL-004: Session outcome categorization */
+    outcome?: import('../sessions/types').SessionOutcomeType;
+    /** TEL-005: Context window utilization metrics */
+    contextWindowMetrics?: {
+      maxContextTokens: number;
+      peakUtilization: number;
+      compressionCount: number;
+    };
+  };
 }
 
 /**

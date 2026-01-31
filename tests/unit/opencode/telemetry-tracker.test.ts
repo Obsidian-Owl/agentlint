@@ -139,6 +139,7 @@ describe('TelemetryTracker', () => {
         cacheWriteTokens: 50,
         cost: 0.003,
         finishReason: 'end_turn',
+        providerID: 'anthropic',
       };
       tracker.onLLMUsage(data);
 
@@ -161,6 +162,7 @@ describe('TelemetryTracker', () => {
       const data: LLMUsageData = {
         inputTokens: 100,
         outputTokens: 50,
+        providerID: 'anthropic',
       };
       tracker.onLLMUsage(data);
 

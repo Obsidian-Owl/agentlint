@@ -19,6 +19,7 @@ import type { SessionTimeline } from '../types';
 import { extractSessionTimeline } from '../extraction/timeline';
 import { extractCompressionEvents } from '../extraction/compressions';
 import { parseSessionLine } from '../../tools/sessions/parser';
+import { resolveSessionIdentifier } from './session-resolver';
 
 // =============================================================================
 // Types
@@ -173,11 +174,11 @@ export async function getSessionTimeline(
  * Input schema for get_session_timeline tool.
  */
 const getSessionTimelineInputSchema = {
-  sessionId: z.string().describe('The session UUID to analyze'),
-  filePath: z
+  sessionIdentifier: z
     .string()
-    .optional()
-    .describe('Direct path to session JSONL file (alternative to sessionId lookup)'),
+    .describe(
+      'Session identifier: file path, session UUID (e.g., "session-abc123..."), or numeric ID'
+    ),
 };
 
 /**
@@ -290,16 +291,28 @@ Example signals interpretation:
 - hasCommitActivity → session produced code changes`,
   schema: getSessionTimelineInputSchema,
   handler: async (args: unknown) => {
-    const typedArgs = args as { filePath?: string; sessionId?: string; projectPath?: string };
+    const typedArgs = args as { sessionIdentifier?: string };
     try {
-      // For now, require direct file path
-      // TODO: Add session ID lookup via database
-      if (!typedArgs.filePath) {
+      if (!typedArgs.sessionIdentifier) {
         return {
           content: [
             {
               type: 'text' as const,
-              text: 'Error: filePath is required. Session ID lookup not yet implemented.',
+              text: 'Error: sessionIdentifier is required.',
+            },
+          ],
+          isError: true,
+        };
+      }
+
+      // Resolve session identifier to file path
+      const resolved = resolveSessionIdentifier(typedArgs.sessionIdentifier);
+      if (!resolved.success || !resolved.filePath) {
+        return {
+          content: [
+            {
+              type: 'text' as const,
+              text: `Error resolving session: ${resolved.error ?? 'Unknown error'}`,
             },
           ],
           isError: true,
@@ -307,7 +320,7 @@ Example signals interpretation:
       }
 
       const result = await getSessionTimeline({
-        filePath: typedArgs.filePath,
+        filePath: resolved.filePath,
         projectPath: 'unknown', // TODO: Extract from file path or database
       });
 

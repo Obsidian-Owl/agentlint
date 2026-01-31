@@ -32,6 +32,19 @@ export interface RetryConfig {
  */
 export type RetryCallback = (attempt: number, delay: number, error: Error) => void;
 
+/**
+ * Telemetry tracker interface for retry operations.
+ * Subset of TelemetryTracker to avoid circular dependencies.
+ */
+export interface RetryTelemetryTracker {
+  trackRetryAttempt(
+    operationType: string,
+    attemptNumber: number,
+    success: boolean,
+    retryTimeMs: number
+  ): void;
+}
+
 // =============================================================================
 // Constants
 // =============================================================================
@@ -184,6 +197,8 @@ function sleep(ms: number): Promise<void> {
  * @param fn - The async function to execute
  * @param config - Retry configuration (optional)
  * @param onRetry - Callback invoked before each retry (optional)
+ * @param operationType - Operation type for telemetry tracking (optional)
+ * @param telemetryTracker - Telemetry tracker instance (optional)
  * @returns The function result
  * @throws The last error if all retries are exhausted
  *
@@ -191,24 +206,38 @@ function sleep(ms: number): Promise<void> {
  * ```typescript
  * const result = await withRetry(
  *   () => fetch('https://api.example.com/data'),
- *   { maxRetries: 5 }
+ *   { maxRetries: 5 },
+ *   undefined,
+ *   'api_fetch',
+ *   telemetryTracker
  * );
  * ```
  */
 export async function withRetry<T>(
   fn: () => Promise<T>,
   config: Partial<RetryConfig> = {},
-  onRetry?: RetryCallback
+  onRetry?: RetryCallback,
+  operationType?: string,
+  telemetryTracker?: RetryTelemetryTracker
 ): Promise<T> {
   const fullConfig: RetryConfig = { ...DEFAULT_RETRY_CONFIG, ...config };
   const logger = getDefaultLogger().child(DEBUG_NAMESPACES.ORCHESTRATION);
 
   let lastError: Error | undefined;
   const startTime = Date.now();
+  let retryStartTime: number | undefined;
 
   for (let attempt = 0; attempt <= fullConfig.maxRetries; attempt++) {
     try {
-      return await fn();
+      const result = await fn();
+
+      // Track successful retry (if telemetry enabled and this was a retry)
+      if (telemetryTracker && operationType && attempt > 0 && retryStartTime !== undefined) {
+        const retryTimeMs = Date.now() - retryStartTime;
+        telemetryTracker.trackRetryAttempt(operationType, attempt + 1, true, retryTimeMs);
+      }
+
+      return result;
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
 
@@ -219,6 +248,12 @@ export async function withRetry<T>(
           attempt,
         });
         throw lastError;
+      }
+
+      // Track failed retry (if telemetry enabled and this was a retry, not the initial attempt)
+      if (telemetryTracker && operationType && attempt > 0 && retryStartTime !== undefined) {
+        const retryTimeMs = Date.now() - retryStartTime;
+        telemetryTracker.trackRetryAttempt(operationType, attempt + 1, false, retryTimeMs);
       }
 
       // Check if we have retries left
@@ -246,8 +281,10 @@ export async function withRetry<T>(
         onRetry(attempt + 1, delay, lastError);
       }
 
+      // Mark the start of retry timing (after the sleep)
       // Wait before retrying
       await sleep(delay);
+      retryStartTime = Date.now();
     }
   }
 

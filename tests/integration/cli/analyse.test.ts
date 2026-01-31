@@ -14,6 +14,33 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { $ } from 'bun';
 
+// Helper: Spawn CLI command and return stdout, stderr, exitCode
+async function runCli(
+  ...args: string[]
+): Promise<{ stdout: string; stderr: string; exitCode: number }> {
+  const proc = Bun.spawn(['bun', 'run', 'src/cli.ts', ...args], {
+    stdout: 'pipe',
+    stderr: 'pipe',
+  });
+  const [stdout, stderr, exitCode] = await Promise.all([
+    new Response(proc.stdout).text(),
+    new Response(proc.stderr).text(),
+    proc.exited,
+  ]);
+  return { stdout, stderr, exitCode };
+}
+
+// Helper: Create test CLAUDE.md file
+async function createTestConfig(dir: string, content = '# Test'): Promise<void> {
+  await writeFile(join(dir, 'CLAUDE.md'), content);
+}
+
+// Helper: Check if help text contains string
+async function helpContains(command: string, expected: string): Promise<boolean> {
+  const result = await $`bun run src/cli.ts ${command} --help`.text();
+  return result.toLowerCase().includes(expected.toLowerCase());
+}
+
 describe('analyse command integration', () => {
   let testDir: string;
 
@@ -27,47 +54,25 @@ describe('analyse command integration', () => {
 
   describe('command registration (FR-001)', () => {
     test('analyse command is available', async () => {
-      const result = await $`bun run src/cli.ts --help`.text();
-      expect(result).toContain('analyse');
+      expect(await helpContains('', 'analyse')).toBe(true);
     });
 
     test('analyse has help text', async () => {
-      const result = await $`bun run src/cli.ts analyse --help`.text();
-      expect(result.toLowerCase()).toContain('analyse');
+      expect(await helpContains('analyse', 'analyse')).toBe(true);
     });
 
     test('accepts directory argument', async () => {
-      await writeFile(join(testDir, 'CLAUDE.md'), '# Test');
-      // This might fail without API key, but should at least parse arguments
-      const proc = Bun.spawn(['bun', 'run', 'src/cli.ts', 'analyse', '-d', testDir, '--json'], {
-        stdout: 'pipe',
-        stderr: 'pipe',
-        env: { ...process.env, ANTHROPIC_API_KEY: '', OPENAI_API_KEY: '' },
-      });
-      await proc.exited;
-      // Command should be recognized even if it fails for other reasons
-      const stderr = await new Response(proc.stderr).text();
-      // Should not say "unknown command"
+      await createTestConfig(testDir);
+      const { stderr } = await runCli('analyse', '-d', testDir, '--json', '--dry-run');
       expect(stderr.toLowerCase()).not.toContain('unknown command');
     });
   });
 
   describe('--json output (FR-004)', () => {
     test('analyse --json outputs JSON structure', async () => {
-      await writeFile(join(testDir, 'CLAUDE.md'), '# Test Project');
+      await createTestConfig(testDir, '# Test Project');
+      const { stdout } = await runCli('analyse', '-d', testDir, '--json', '--dry-run');
 
-      // Run with mock/no-op mode (without actual API call)
-      const proc = Bun.spawn(
-        ['bun', 'run', 'src/cli.ts', 'analyse', '-d', testDir, '--json', '--dry-run'],
-        {
-          stdout: 'pipe',
-          stderr: 'pipe',
-        }
-      );
-      const stdout = await new Response(proc.stdout).text();
-      await proc.exited;
-
-      // If dry-run is supported, should output JSON
       if (stdout.trim().startsWith('{')) {
         expect(() => JSON.parse(stdout) as unknown).not.toThrow();
       }
@@ -76,141 +81,93 @@ describe('analyse command integration', () => {
 
   describe('--config-only flag (FR-015)', () => {
     test('--config-only is a valid option', async () => {
-      const result = await $`bun run src/cli.ts analyse --help`.text();
-      expect(result).toContain('config-only');
+      expect(await helpContains('analyse', 'config-only')).toBe(true);
     });
 
     test('accepts --config-only flag', async () => {
-      await writeFile(join(testDir, 'CLAUDE.md'), '# Test');
-
-      const proc = Bun.spawn(
-        ['bun', 'run', 'src/cli.ts', 'analyse', '-d', testDir, '--config-only', '--json'],
-        {
-          stdout: 'pipe',
-          stderr: 'pipe',
-          env: { ...process.env, ANTHROPIC_API_KEY: '', OPENAI_API_KEY: '' },
-        }
+      await createTestConfig(testDir);
+      const { stderr } = await runCli(
+        'analyse',
+        '-d',
+        testDir,
+        '--config-only',
+        '--json',
+        '--dry-run'
       );
-      await proc.exited;
-      const stderr = await new Response(proc.stderr).text();
-      // Should not complain about unknown option
       expect(stderr.toLowerCase()).not.toContain('unknown option');
     });
   });
 
   describe('--sessions-only flag (FR-015)', () => {
     test('--sessions-only is a valid option', async () => {
-      const result = await $`bun run src/cli.ts analyse --help`.text();
-      expect(result).toContain('sessions-only');
+      expect(await helpContains('analyse', 'sessions-only')).toBe(true);
     });
 
     test('accepts --sessions-only flag', async () => {
-      await writeFile(join(testDir, 'CLAUDE.md'), '# Test');
-
-      const proc = Bun.spawn(
-        ['bun', 'run', 'src/cli.ts', 'analyse', '-d', testDir, '--sessions-only', '--json'],
-        {
-          stdout: 'pipe',
-          stderr: 'pipe',
-          env: { ...process.env, ANTHROPIC_API_KEY: '', OPENAI_API_KEY: '' },
-        }
+      await createTestConfig(testDir);
+      const { stderr } = await runCli(
+        'analyse',
+        '-d',
+        testDir,
+        '--sessions-only',
+        '--json',
+        '--dry-run'
       );
-      await proc.exited;
-      const stderr = await new Response(proc.stderr).text();
       expect(stderr.toLowerCase()).not.toContain('unknown option');
     });
   });
 
   describe('--dry-run flag', () => {
     test('--dry-run option is available', async () => {
-      const result = await $`bun run src/cli.ts analyse --help`.text();
-      expect(result).toContain('dry-run');
+      expect(await helpContains('analyse', 'dry-run')).toBe(true);
     });
 
     test('dry-run does not require API key', async () => {
-      await writeFile(join(testDir, 'CLAUDE.md'), '# Test Project');
-
+      await createTestConfig(testDir, '# Test Project');
       const proc = Bun.spawn(['bun', 'run', 'src/cli.ts', 'analyse', '-d', testDir, '--dry-run'], {
         stdout: 'pipe',
         stderr: 'pipe',
         env: { ...process.env, ANTHROPIC_API_KEY: '', OPENAI_API_KEY: '' },
       });
       const exitCode = await proc.exited;
-      // Dry run should succeed without API key
       expect(exitCode).toBe(0);
     });
 
     test('dry-run outputs scan results', async () => {
-      await writeFile(join(testDir, 'CLAUDE.md'), '# Test Project');
-
+      await createTestConfig(testDir, '# Test Project');
       const result = await $`bun run src/cli.ts analyse -d ${testDir} --dry-run --plain`.text();
-      // Should show discovered config files
       expect(result).toContain('CLAUDE.md');
     });
   });
 
   describe('directory handling', () => {
     test('defaults to current directory', async () => {
-      const result = await $`bun run src/cli.ts analyse --help`.text();
-      // Help should mention default directory
-      expect(result.toLowerCase()).toContain('directory');
+      expect(await helpContains('analyse', 'directory')).toBe(true);
     });
 
     test('handles nonexistent directory', async () => {
-      const proc = Bun.spawn(['bun', 'run', 'src/cli.ts', 'analyse', '-d', '/nonexistent/path'], {
-        stdout: 'pipe',
-        stderr: 'pipe',
-      });
-      const exitCode = await proc.exited;
+      const { exitCode } = await runCli('analyse', '-d', '/nonexistent/path');
       expect(exitCode).not.toBe(0);
     });
 
     test('handles empty directory', async () => {
-      const proc = Bun.spawn(
-        ['bun', 'run', 'src/cli.ts', 'analyse', '-d', testDir, '--dry-run', '--plain'],
-        {
-          stdout: 'pipe',
-          stderr: 'pipe',
-        }
-      );
-      const stdout = await new Response(proc.stdout).text();
-      await proc.exited;
-      // Should indicate no configs found
+      const { stdout } = await runCli('analyse', '-d', testDir, '--dry-run', '--plain');
       expect(stdout.toLowerCase()).toContain('no');
     });
   });
 
   describe('output format flags', () => {
     test('--plain flag works', async () => {
-      await writeFile(join(testDir, 'CLAUDE.md'), '# Test');
-
-      const proc = Bun.spawn(
-        ['bun', 'run', 'src/cli.ts', 'analyse', '-d', testDir, '--dry-run', '--plain'],
-        {
-          stdout: 'pipe',
-          stderr: 'pipe',
-        }
-      );
-      const stdout = await new Response(proc.stdout).text();
-      await proc.exited;
-      // Plain text should not be JSON
+      await createTestConfig(testDir);
+      const { stdout } = await runCli('analyse', '-d', testDir, '--dry-run', '--plain');
       expect(stdout.trim().startsWith('{')).toBe(false);
     });
 
     test(
       '--json flag works',
       async () => {
-        await writeFile(join(testDir, 'CLAUDE.md'), '# Test');
-
-        const proc = Bun.spawn(
-          ['bun', 'run', 'src/cli.ts', 'analyse', '-d', testDir, '--dry-run', '--json'],
-          {
-            stdout: 'pipe',
-            stderr: 'pipe',
-          }
-        );
-        const stdout = await new Response(proc.stdout).text();
-        await proc.exited;
+        await createTestConfig(testDir);
+        const { stdout } = await runCli('analyse', '-d', testDir, '--dry-run', '--json');
         if (stdout.trim()) {
           expect(() => JSON.parse(stdout) as unknown).not.toThrow();
         }
@@ -221,74 +178,52 @@ describe('analyse command integration', () => {
 
   describe('--fail-on-findings (FR-016)', () => {
     test('--fail-on-findings option is available', async () => {
-      // fail-on-findings is a global option, so check main help
-      const result = await $`bun run src/cli.ts --help`.text();
-      expect(result).toContain('fail-on-findings');
+      expect(await helpContains('', 'fail-on-findings')).toBe(true);
     });
 
     test('exits 0 when no findings and --fail-on-findings', async () => {
-      await writeFile(join(testDir, 'CLAUDE.md'), '# Test Project');
-
-      const proc = Bun.spawn(
-        ['bun', 'run', 'src/cli.ts', 'analyse', '-d', testDir, '--dry-run', '--fail-on-findings'],
-        {
-          stdout: 'pipe',
-          stderr: 'pipe',
-        }
+      await createTestConfig(testDir, '# Test Project');
+      const { exitCode } = await runCli(
+        'analyse',
+        '-d',
+        testDir,
+        '--dry-run',
+        '--fail-on-findings'
       );
-      const exitCode = await proc.exited;
-      // Dry run with config present should succeed (no findings in dry-run)
       expect(exitCode).toBe(0);
     });
   });
 
   describe('error handling', () => {
     test('shows error for invalid options', async () => {
-      const proc = Bun.spawn(['bun', 'run', 'src/cli.ts', 'analyse', '--invalid-option-xyz'], {
-        stdout: 'pipe',
-        stderr: 'pipe',
-      });
-      const exitCode = await proc.exited;
+      const { exitCode } = await runCli('analyse', '--invalid-option-xyz');
       expect(exitCode).not.toBe(0);
     });
 
     test('shows usage on error', async () => {
-      const proc = Bun.spawn(['bun', 'run', 'src/cli.ts', 'analyse', '--invalid-option-xyz'], {
-        stdout: 'pipe',
-        stderr: 'pipe',
-      });
-      const stderr = await new Response(proc.stderr).text();
-      await proc.exited;
-      // Should show some error message
+      const { stderr } = await runCli('analyse', '--invalid-option-xyz');
       expect(stderr.length).toBeGreaterThan(0);
     });
   });
 
   describe('verbose mode (FR-017)', () => {
     test('--verbose flag is available', async () => {
-      // verbose is a global option, so check main help
-      const result = await $`bun run src/cli.ts --help`.text();
-      expect(result).toContain('verbose');
+      expect(await helpContains('', 'verbose')).toBe(true);
     });
 
     test('verbose shows more output', async () => {
-      await writeFile(join(testDir, 'CLAUDE.md'), '# Test');
+      await createTestConfig(testDir);
 
-      const normalProc = Bun.spawn(
-        ['bun', 'run', 'src/cli.ts', 'analyse', '-d', testDir, '--dry-run', '--plain'],
-        { stdout: 'pipe', stderr: 'pipe' }
+      const { stdout: normalOut } = await runCli('analyse', '-d', testDir, '--dry-run', '--plain');
+      const { stdout: verboseOut } = await runCli(
+        'analyse',
+        '-d',
+        testDir,
+        '--dry-run',
+        '--verbose',
+        '--plain'
       );
-      const normalOut = await new Response(normalProc.stdout).text();
-      await normalProc.exited;
 
-      const verboseProc = Bun.spawn(
-        ['bun', 'run', 'src/cli.ts', 'analyse', '-d', testDir, '--dry-run', '--verbose', '--plain'],
-        { stdout: 'pipe', stderr: 'pipe' }
-      );
-      const verboseOut = await new Response(verboseProc.stdout).text();
-      await verboseProc.exited;
-
-      // Verbose should have at least as much output
       expect(verboseOut.length).toBeGreaterThanOrEqual(normalOut.length);
     });
   });

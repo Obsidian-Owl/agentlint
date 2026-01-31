@@ -32,6 +32,7 @@ import type { InputFieldProps } from '../types';
  *   onSubmit={(v) => sendToAgent(v)}
  *   disabled={state.isStreaming}
  *   placeholder="Ask a question..."
+ *   disabledPlaceholder="Agent is working, please wait..."
  * />
  * ```
  */
@@ -41,6 +42,8 @@ export function InputField({
   onSubmit,
   disabled = false,
   placeholder = '',
+  disabledPlaceholder = 'Agent is working, please wait...',
+  queuedInput,
 }: InputFieldProps): React.ReactElement {
   useInput(
     (input, key) => {
@@ -90,15 +93,27 @@ export function InputField({
     { isActive: !disabled }
   );
 
-  const showPlaceholder = value.length === 0 && placeholder.length > 0;
+  const showPlaceholder = value.length === 0;
+  const displayPlaceholder = disabled ? disabledPlaceholder : placeholder;
 
   return (
-    <Box>
-      <Text color="green" bold>
-        {'\u276F '}
-      </Text>
-      {showPlaceholder ? <Text dimColor>{placeholder}</Text> : <Text>{value}</Text>}
-      {!disabled && <Text color="green">{'_'}</Text>}
+    <Box flexDirection="column">
+      {queuedInput && (
+        <Box marginBottom={0}>
+          <Text dimColor>[Queued: {queuedInput}]</Text>
+        </Box>
+      )}
+      <Box>
+        <Text color="green" bold>
+          {'\u276F '}
+        </Text>
+        {showPlaceholder && displayPlaceholder.length > 0 ? (
+          <Text dimColor>{displayPlaceholder}</Text>
+        ) : (
+          <Text>{value}</Text>
+        )}
+        {!disabled && <Text color="green">{'_'}</Text>}
+      </Box>
     </Box>
   );
 }

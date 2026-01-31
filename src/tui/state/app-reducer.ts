@@ -137,6 +137,18 @@ export const appReducer: AppReducer = (state: AppState, message: AppMessage): Ap
         inputBuffer: '',
       };
 
+    case 'QUEUE_INPUT':
+      return {
+        ...state,
+        queuedInput: message.payload.input,
+      };
+
+    case 'FLUSH_QUEUED_INPUT':
+      return {
+        ...state,
+        queuedInput: null,
+      };
+
     case 'ADD_EXPLORATION_STEP':
       return {
         ...state,

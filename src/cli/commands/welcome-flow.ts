@@ -12,11 +12,18 @@
 import type { ITuiRenderer, LoadingStep } from '../../tui/types';
 import type { LoadingStepId, WelcomeContext } from '../../tui/welcome/types';
 import { loadWelcomeContext } from '../../tui/welcome/context-loader';
-import { formatContextSummary, generateMenuOptions } from '../../tui/welcome/welcome-prompt';
+import {
+  formatContextSummary,
+  getWelcomeSystemPrompt,
+  getWelcomeUserPrompt,
+} from '../../tui/welcome/welcome-prompt';
+import { OpencodeOrchestrator } from '../../opencode/orchestrator.js';
+import { createToolRegistry } from '../../orchestration/tool-registry.js';
 
 export interface WelcomeFlowOptions {
   projectPath?: string;
   gitTimeout?: number;
+  useLlmGreeting?: boolean; // Opt-in: use LLM for greeting (default: false)
 }
 
 export interface WelcomeFlowResult {
@@ -65,10 +72,21 @@ export async function runWelcomeFlow(
     status: 'Ready',
   });
 
-  const welcomeMessage = formatContextSummary(context);
-  const menuOptions = generateMenuOptions(context);
+  let welcomeMessage: string;
 
-  tuiRenderer.setWelcomeMenu(menuOptions);
+  if (options.useLlmGreeting) {
+    try {
+      welcomeMessage = await generateLlmGreeting(context);
+    } catch {
+      // Fallback to static greeting on any error
+      welcomeMessage = formatContextSummary(context);
+    }
+  } else {
+    welcomeMessage = formatContextSummary(context);
+  }
+  // Menu options are now presented by the agent via AskUserQuestion tool
+  // Don't set menu - agent will present options via questions
+  // tuiRenderer.setWelcomeMenu(menuOptions);
   tuiRenderer.setTuiState('welcome');
   tuiRenderer.addConversationMessage({
     role: 'assistant',
@@ -77,4 +95,44 @@ export async function runWelcomeFlow(
   });
 
   return { context, welcomeMessage };
+}
+
+async function generateLlmGreeting(context: WelcomeContext): Promise<string> {
+  const toolRegistry = createToolRegistry();
+  const orchestrator = new OpencodeOrchestrator(
+    { cwd: context.projectPath ?? process.cwd() },
+    toolRegistry
+  );
+
+  const systemPrompt = getWelcomeSystemPrompt();
+  const userPrompt = getWelcomeUserPrompt(context);
+
+  let greeting = '';
+  let timedOut = false;
+
+  const timeoutId = setTimeout(() => {
+    timedOut = true;
+  }, 5000);
+
+  try {
+    // Pass system prompt separately to avoid it appearing in output
+    for await (const chunk of orchestrator.run(userPrompt, { systemPrompt })) {
+      if (timedOut) {
+        break;
+      }
+      if (chunk.type === 'text') {
+        greeting += chunk.content;
+      }
+    }
+
+    if (timedOut) {
+      throw new Error('Greeting timeout');
+    }
+
+    return greeting.trim() || formatContextSummary(context);
+  } finally {
+    clearTimeout(timeoutId);
+    // CRITICAL: Always dispose orchestrator to prevent port conflicts
+    orchestrator.dispose();
+  }
 }

@@ -20,6 +20,7 @@ import type { DebugConfig, LogLevel, LogEntry, IDebugLogger, INamespacedLogger }
 import { LOG_LEVEL_VALUES } from './types';
 import { isNamespaceEnabled, parseDebugEnv } from './namespaces';
 import { redact, redactObject, BUILTIN_REDACTION_PATTERNS } from './redaction';
+import { traceContextProvider } from '../observability/trace-context';
 
 // =============================================================================
 // Default Configuration
@@ -86,6 +87,23 @@ export const DEFAULT_DEBUG_CONFIG: DebugConfig = {
  */
 export class DebugLogger implements IDebugLogger {
   private config: DebugConfig;
+
+  /**
+   * Process-global flag indicating TUI is active.
+   * When true, console output is suppressed (file logging continues).
+   *
+   * NOTE: This is process-global state. Test isolation should use
+   * beforeEach/afterEach to reset: DebugLogger.setTuiActive(false)
+   */
+  private static tuiActive = false;
+
+  public static setTuiActive(active: boolean): void {
+    DebugLogger.tuiActive = active;
+  }
+
+  public static isTuiActive(): boolean {
+    return DebugLogger.tuiActive;
+  }
 
   constructor(config: Partial<DebugConfig> = {}) {
     // Merge with defaults and check environment
@@ -217,13 +235,27 @@ export class DebugLogger implements IDebugLogger {
       return;
     }
 
+    // Get trace context for correlation
+    const traceContext = traceContextProvider.getContext();
+
+    // Merge trace context into data field
+    let enrichedData = data;
+    if (traceContext) {
+      enrichedData = {
+        ...(data || {}),
+        trace_id: traceContext.traceId,
+        span_id: traceContext.spanId,
+        ...(traceContext.parentSpanId && { parent_span_id: traceContext.parentSpanId }),
+      };
+    }
+
     // Create log entry
     const entry: LogEntry = {
       level,
       namespace,
       timestamp: new Date().toISOString(),
       message: this.redactMessage(message),
-      ...(data !== undefined && { data: this.redactData(data) }),
+      ...(enrichedData !== undefined && { data: this.redactData(enrichedData) }),
     };
 
     // Output based on configuration
@@ -265,6 +297,11 @@ export class DebugLogger implements IDebugLogger {
   }
 
   private outputToConsole(entry: LogEntry, format: 'pretty' | 'json'): void {
+    // Suppress console output when TUI is active (log to file only)
+    if (DebugLogger.tuiActive) {
+      return;
+    }
+
     // Use stderr for debug output to avoid polluting stdout (AGE-663)
     if (format === 'json') {
       console.error(JSON.stringify(entry));

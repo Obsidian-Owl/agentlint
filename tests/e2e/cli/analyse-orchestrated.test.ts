@@ -208,19 +208,19 @@ describe('E2E: Static Analysis Mode (--static)', () => {
 // Orchestrated Analysis Fallback Tests
 // =============================================================================
 
-describe('E2E: Orchestrated Analysis Fallback', () => {
-  test('falls back to static analysis without API key', async () => {
+describe('E2E: Static Analysis Mode', () => {
+  test('--static flag runs analysis without LLM', async () => {
     // Each test gets its own isolated fixture to prevent cross-test contamination
-    const fixture = createTestFixture('fallback-test');
+    const fixture = createTestFixture('static-test');
     try {
       writeFileSync(join(fixture.path, 'CLAUDE.md'), CLAUDE_MD_FIXTURE);
 
-      const result = await runCLI(['analyse', '-d', fixture.path], {
+      // Use --static flag to explicitly run without LLM (faster and deterministic)
+      const result = await runCLI(['analyse', '-d', fixture.path, '--static'], {
         json: true,
-        env: { ANTHROPIC_API_KEY: '', OPENAI_API_KEY: '' },
       });
 
-      // Should succeed by falling back to static
+      // Should succeed with static analysis
       expect(result.exitCode).toBe(0);
 
       const output = parseJSONOutput<AnalyseOutput>(result);

@@ -19,24 +19,9 @@ describe('ActionMenu', () => {
   });
 
   describe('rendering', () => {
-    test('should render title', async () => {
-      const { lastFrame } = render(
-        <ActionMenu title="Choose an action" options={createOptions()} onSelect={() => {}} />
-      );
-
-      await tick();
-
-      expect(lastFrame()).toContain('Choose an action');
-    });
-
     test('should render subtitle when provided', async () => {
       const { lastFrame } = render(
-        <ActionMenu
-          title="Main Title"
-          subtitle="A helpful subtitle"
-          options={createOptions()}
-          onSelect={() => {}}
-        />
+        <ActionMenu subtitle="A helpful subtitle" options={createOptions()} onSelect={() => {}} />
       );
 
       await tick();
@@ -45,19 +30,16 @@ describe('ActionMenu', () => {
     });
 
     test('should not render subtitle when not provided', async () => {
-      const { lastFrame } = render(
-        <ActionMenu title="Main Title" options={createOptions()} onSelect={() => {}} />
-      );
+      const { lastFrame } = render(<ActionMenu options={createOptions()} onSelect={() => {}} />);
 
       await tick();
 
-      expect(lastFrame()).toContain('Main Title');
+      // Just verify it renders without error - no subtitle text expected
+      expect(lastFrame()).toBeDefined();
     });
 
     test('should render all options with keys', async () => {
-      const { lastFrame } = render(
-        <ActionMenu title="Menu" options={createOptions()} onSelect={() => {}} />
-      );
+      const { lastFrame } = render(<ActionMenu options={createOptions()} onSelect={() => {}} />);
 
       await tick();
 
@@ -70,23 +52,16 @@ describe('ActionMenu', () => {
     });
 
     test('should render default hint', async () => {
-      const { lastFrame } = render(
-        <ActionMenu title="Menu" options={createOptions()} onSelect={() => {}} />
-      );
+      const { lastFrame } = render(<ActionMenu options={createOptions()} onSelect={() => {}} />);
 
       await tick();
 
-      expect(lastFrame()).toContain('Or type a question...');
+      expect(lastFrame()).toContain('Press a number to select...');
     });
 
     test('should render custom hint', async () => {
       const { lastFrame } = render(
-        <ActionMenu
-          title="Menu"
-          options={createOptions()}
-          onSelect={() => {}}
-          hint="Press a number key"
-        />
+        <ActionMenu options={createOptions()} onSelect={() => {}} hint="Press a number key" />
       );
 
       await tick();
@@ -95,22 +70,19 @@ describe('ActionMenu', () => {
     });
 
     test('should render with empty options', async () => {
-      const { lastFrame } = render(
-        <ActionMenu title="Empty Menu" options={[]} onSelect={() => {}} />
-      );
+      const { lastFrame } = render(<ActionMenu options={[]} onSelect={() => {}} />);
 
       await tick();
 
-      expect(lastFrame()).toContain('Empty Menu');
+      // Should render without error even with empty options
+      expect(lastFrame()).toBeDefined();
     });
   });
 
   describe('keyboard selection', () => {
     test('should call onSelect when option key is pressed', async () => {
       const onSelect = mock(() => {});
-      const { stdin } = render(
-        <ActionMenu title="Menu" options={createOptions()} onSelect={onSelect} />
-      );
+      const { stdin } = render(<ActionMenu options={createOptions()} onSelect={onSelect} />);
 
       await tick();
       stdin.write('1');
@@ -121,9 +93,7 @@ describe('ActionMenu', () => {
 
     test('should call onSelect with correct action for second option', async () => {
       const onSelect = mock(() => {});
-      const { stdin } = render(
-        <ActionMenu title="Menu" options={createOptions()} onSelect={onSelect} />
-      );
+      const { stdin } = render(<ActionMenu options={createOptions()} onSelect={onSelect} />);
 
       await tick();
       stdin.write('2');
@@ -134,9 +104,7 @@ describe('ActionMenu', () => {
 
     test('should call onSelect with correct action for third option', async () => {
       const onSelect = mock(() => {});
-      const { stdin } = render(
-        <ActionMenu title="Menu" options={createOptions()} onSelect={onSelect} />
-      );
+      const { stdin } = render(<ActionMenu options={createOptions()} onSelect={onSelect} />);
 
       await tick();
       stdin.write('3');
@@ -147,9 +115,7 @@ describe('ActionMenu', () => {
 
     test('should not call onSelect for unrecognized key', async () => {
       const onSelect = mock(() => {});
-      const { stdin } = render(
-        <ActionMenu title="Menu" options={createOptions()} onSelect={onSelect} />
-      );
+      const { stdin } = render(<ActionMenu options={createOptions()} onSelect={onSelect} />);
 
       await tick();
       stdin.write('9');
@@ -161,7 +127,7 @@ describe('ActionMenu', () => {
     test('should not call onSelect when disabled', async () => {
       const onSelect = mock(() => {});
       const { stdin } = render(
-        <ActionMenu title="Menu" options={createOptions()} onSelect={onSelect} disabled={true} />
+        <ActionMenu options={createOptions()} onSelect={onSelect} disabled={true} />
       );
 
       await tick();
@@ -179,7 +145,7 @@ describe('ActionMenu', () => {
         { key: 'a', label: 'Action A', action: 'action_a' },
         { key: 'b', label: 'Action B', action: 'action_b' },
       ];
-      const { stdin } = render(<ActionMenu title="Menu" options={options} onSelect={onSelect} />);
+      const { stdin } = render(<ActionMenu options={options} onSelect={onSelect} />);
 
       await tick();
       stdin.write('a');

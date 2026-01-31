@@ -13,6 +13,11 @@
  */
 
 import { redact } from '../debug/redaction';
+import { isContentCaptureEnabled } from '../observability/content-capture';
+import type { SessionStartData } from './types';
+
+// Re-export SessionStartData for backward compatibility
+export type { SessionStartData };
 
 // =============================================================================
 // Event Types
@@ -39,16 +44,7 @@ export type TelemetryEventType =
 // Event Data Types (Type-Safe Per Event)
 // =============================================================================
 
-/**
- * Data for session.start event.
- */
-export interface SessionStartData {
-  command: 'analyse' | 'scan' | 'compare' | 'validate' | 'trace';
-  hasConfig: boolean;
-  projectType?: string;
-  /** Project/directory name for human-readable session naming */
-  directory?: string;
-}
+// SessionStartData is imported from ./types.ts (canonical location)
 
 /**
  * Data for session.end event.
@@ -234,6 +230,12 @@ export interface TelemetryEvent {
   sequence: number;
   /** Parent event ID for trace hierarchy */
   parentEventId?: string;
+  /** W3C trace ID for correlation */
+  traceId?: string;
+  /** Current span ID */
+  spanId?: string;
+  /** Parent span ID for hierarchy */
+  parentSpanId?: string;
   /** Event-specific data */
   data: Record<string, unknown>;
   /** Event metadata */
@@ -320,15 +322,48 @@ export const FORBIDDEN_FIELDS = [
 ] as const;
 
 /**
- * Deep clone an object, strip forbidden fields, and redact secret patterns.
+ * Content fields that require explicit opt-in via AGENTLINT_CAPTURE_CONTENT=true.
+ * These fields contain rich debugging data (prompts, tool args/results) that users
+ * must explicitly consent to sending.
+ *
+ * Per Constitution Principle I (Local-First), content capture is disabled by default.
+ *
+ * NOTE: errorStack is NOT in this list because error debugging is critical for alpha
+ * phase observability. Error stacks are always sent (but sanitized for secrets).
+ */
+export const CONTENT_CAPTURE_FIELDS = [
+  'promptContent',
+  'completionContent',
+  'systemInstructions',
+  'toolInputJson',
+  'toolOutputJson',
+  'callId',
+] as const;
+
+/**
+ * Deep clone an object, strip forbidden fields, filter content capture fields,
+ * and redact secret patterns.
+ *
+ * Privacy layers:
+ * 1. Strip forbidden fields (secrets like password, api_key)
+ * 2. Filter content capture fields when AGENTLINT_CAPTURE_CONTENT!=true (defense-in-depth)
+ * 3. Redact secret patterns in remaining string values
+ *
  * Uses the comprehensive redaction patterns from src/debug/redaction.ts.
  */
 export function sanitizeEventData(data: Record<string, unknown>): Record<string, unknown> {
   const sanitized: Record<string, unknown> = {};
+  const contentCaptureEnabled = isContentCaptureEnabled();
 
   for (const [key, value] of Object.entries(data)) {
     // Skip forbidden fields (secret-related field names)
     if (FORBIDDEN_FIELDS.some((f) => key.toLowerCase().includes(f))) {
+      continue;
+    }
+
+    // Filter content capture fields when disabled (defense-in-depth)
+    // TelemetryTracker should not send these, but client filters as safety net
+    if (!contentCaptureEnabled && CONTENT_CAPTURE_FIELDS.some((f) => key === f)) {
       continue;
     }
 

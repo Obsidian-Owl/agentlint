@@ -1,0 +1,419 @@
+/**
+ * EP22: Orchestrator Instrumentation
+ *
+ * Utilities for capturing LLM span attributes, cache tokens, hyperparameters,
+ * and analysis events (findings/recommendations).
+ *
+ * High-level instrumentation hooks for session, tool, and LLM span creation.
+ *
+ * Tasks: T025a, T025b, T025c, T025f, T025g, T039, T040
+ */
+
+import type { ActiveSpan, GenAIProvider } from '../types';
+import { GenAIAttributes, spanFactory } from '../span-factory';
+
+/** Cache token data from Anthropic responses */
+export interface CacheTokens {
+  cacheCreationTokens?: number;
+  cacheReadTokens?: number;
+}
+
+/** LLM request hyperparameters */
+export interface LLMRequestParams {
+  temperature?: number;
+  maxTokens?: number;
+  topP?: number;
+  topK?: number;
+  stopSequences?: string[];
+}
+
+/** LLM response details */
+export interface LLMResponseDetails {
+  responseId?: string;
+  actualModel?: string;
+  tokensPerSecond?: number;
+}
+
+/** Finding event data */
+export interface FindingEventData {
+  type: string;
+  severity: string;
+  finding_id: string;
+}
+
+/** Recommendation event data */
+export interface RecommendationEventData {
+  type: string;
+  finding_id: string;
+}
+
+/**
+ * Extract cache tokens from Anthropic response usage object.
+ * T025a: Capture cache_creation_input_tokens and cache_read_input_tokens
+ */
+export function extractCacheTokens(usage: unknown): CacheTokens {
+  const result: CacheTokens = {};
+
+  if (typeof usage !== 'object' || usage === null) {
+    return result;
+  }
+
+  const usageObj = usage as Record<string, unknown>;
+
+  // Anthropic format: cache_creation_input_tokens
+  if (typeof usageObj.cache_creation_input_tokens === 'number') {
+    result.cacheCreationTokens = usageObj.cache_creation_input_tokens;
+  }
+
+  // Anthropic format: cache_read_input_tokens
+  if (typeof usageObj.cache_read_input_tokens === 'number') {
+    result.cacheReadTokens = usageObj.cache_read_input_tokens;
+  }
+
+  return result;
+}
+
+/**
+ * Extract LLM request hyperparameters from SDK request object.
+ * T025b: Capture temperature, max_tokens, top_p, top_k, stop_sequences
+ */
+export function extractRequestParams(request: unknown): LLMRequestParams {
+  const result: LLMRequestParams = {};
+
+  if (typeof request !== 'object' || request === null) {
+    return result;
+  }
+
+  const reqObj = request as Record<string, unknown>;
+
+  if (typeof reqObj.temperature === 'number') {
+    result.temperature = reqObj.temperature;
+  }
+
+  if (typeof reqObj.max_tokens === 'number') {
+    result.maxTokens = reqObj.max_tokens;
+  }
+
+  if (typeof reqObj.top_p === 'number') {
+    result.topP = reqObj.top_p;
+  }
+
+  if (typeof reqObj.top_k === 'number') {
+    result.topK = reqObj.top_k;
+  }
+
+  // stop_sequences can be string[] or single string
+  if (Array.isArray(reqObj.stop_sequences)) {
+    result.stopSequences = reqObj.stop_sequences.filter((s): s is string => typeof s === 'string');
+  } else if (typeof reqObj.stop_sequences === 'string') {
+    result.stopSequences = [reqObj.stop_sequences];
+  }
+
+  // Also check 'stop' field (some SDKs use this)
+  if (Array.isArray(reqObj.stop)) {
+    result.stopSequences = reqObj.stop.filter((s): s is string => typeof s === 'string');
+  } else if (typeof reqObj.stop === 'string') {
+    result.stopSequences = [reqObj.stop];
+  }
+
+  return result;
+}
+
+/**
+ * Extract LLM response details from SDK response object.
+ * T025c: Extract response.id, response.model, calculate tokens_per_second
+ */
+export function extractResponseDetails(response: unknown, durationMs: number): LLMResponseDetails {
+  const result: LLMResponseDetails = {};
+
+  if (typeof response !== 'object' || response === null) {
+    return result;
+  }
+
+  const respObj = response as Record<string, unknown>;
+
+  // Extract response ID
+  if (typeof respObj.id === 'string') {
+    result.responseId = respObj.id;
+  }
+
+  // Extract actual model (may differ from requested)
+  if (typeof respObj.model === 'string') {
+    result.actualModel = respObj.model;
+  }
+
+  // Calculate tokens per second if we have usage data
+  if (typeof respObj.usage === 'object' && respObj.usage !== null && durationMs > 0) {
+    const usage = respObj.usage as Record<string, unknown>;
+    const outputTokens = typeof usage.output_tokens === 'number' ? usage.output_tokens : 0;
+
+    if (outputTokens > 0) {
+      result.tokensPerSecond = (outputTokens / durationMs) * 1000; // Convert to tokens/second
+    }
+  }
+
+  return result;
+}
+
+/**
+ * Emit a finding detection event on the active span.
+ * T025f: Add span event agentlint.finding.detected with type, severity, finding_id
+ */
+export function emitFindingEvent(span: ActiveSpan, finding: FindingEventData): void {
+  span.addEvent('agentlint.finding.detected', {
+    type: finding.type,
+    severity: finding.severity,
+    finding_id: finding.finding_id,
+  });
+}
+
+/**
+ * Emit a recommendation generation event on the active span.
+ * T025g: Add span event agentlint.recommendation.generated with type, finding_id
+ */
+export function emitRecommendationEvent(
+  span: ActiveSpan,
+  recommendation: RecommendationEventData
+): void {
+  span.addEvent('agentlint.recommendation.generated', {
+    type: recommendation.type,
+    finding_id: recommendation.finding_id,
+  });
+}
+
+/**
+ * Apply cache token attributes to an active span.
+ * Helper for T025a to set span attributes with semantic conventions.
+ */
+export function applyCacheTokens(span: ActiveSpan, cacheTokens: CacheTokens): void {
+  if (cacheTokens.cacheCreationTokens !== undefined) {
+    span.setAttribute('gen_ai.cache.creation_tokens', cacheTokens.cacheCreationTokens);
+  }
+  if (cacheTokens.cacheReadTokens !== undefined) {
+    span.setAttribute('gen_ai.cache.read_tokens', cacheTokens.cacheReadTokens);
+  }
+}
+
+/**
+ * Apply request hyperparameters to an active span.
+ * Helper for T025b to set span attributes with semantic conventions.
+ */
+export function applyRequestParams(span: ActiveSpan, params: LLMRequestParams): void {
+  if (params.temperature !== undefined) {
+    span.setAttribute(GenAIAttributes.REQUEST_TEMPERATURE, params.temperature);
+  }
+  if (params.maxTokens !== undefined) {
+    span.setAttribute(GenAIAttributes.REQUEST_MAX_TOKENS, params.maxTokens);
+  }
+  if (params.topP !== undefined) {
+    span.setAttribute('gen_ai.request.top_p', params.topP);
+  }
+  if (params.topK !== undefined) {
+    span.setAttribute('gen_ai.request.top_k', params.topK);
+  }
+  if (params.stopSequences && params.stopSequences.length > 0) {
+    // Store as JSON string to preserve array
+    span.setAttribute('gen_ai.request.stop_sequences', JSON.stringify(params.stopSequences));
+  }
+}
+
+/**
+ * Apply response details to an active span.
+ * Helper for T025c to set span attributes with semantic conventions.
+ */
+export function applyResponseDetails(span: ActiveSpan, details: LLMResponseDetails): void {
+  if (details.responseId !== undefined) {
+    span.setAttribute(GenAIAttributes.RESPONSE_ID, details.responseId);
+  }
+  if (details.actualModel !== undefined) {
+    span.setAttribute(GenAIAttributes.RESPONSE_MODEL, details.actualModel);
+  }
+  if (details.tokensPerSecond !== undefined) {
+    span.setAttribute('gen_ai.response.tokens_per_second', details.tokensPerSecond);
+  }
+}
+
+// =============================================================================
+// High-Level Instrumentation Hooks (T039)
+// =============================================================================
+
+/**
+ * Instrumentation hook options for session span creation.
+ */
+export interface InstrumentSessionOptions {
+  sessionId: string;
+  target: string;
+  provider?: GenAIProvider;
+  command?: string;
+}
+
+/**
+ * Instrumentation hook options for tool span creation.
+ */
+export interface InstrumentToolOptions {
+  toolName: string;
+  callId?: string;
+  input?: Record<string, unknown>;
+}
+
+/**
+ * Instrumentation hook options for LLM span creation.
+ */
+export interface InstrumentLLMOptions {
+  model: string;
+  provider?: GenAIProvider;
+  temperature?: number;
+  maxTokens?: number;
+  tokens?: {
+    input: number;
+    output: number;
+  };
+}
+
+/**
+ * Create a session span (root span for an agentlint session).
+ * T039: High-level hook that uses existing spanFactory and traceContextProvider.
+ *
+ * @param options - Session configuration
+ * @param fn - Function to run within the session span
+ * @returns Result of the function
+ *
+ * @example
+ * ```typescript
+ * await instrumentSession(
+ *   { sessionId: 'abc123', target: '/path/to/project' },
+ *   async (span) => {
+ *     // Session work here
+ *     span.addEvent('session.started');
+ *   }
+ * );
+ * ```
+ */
+export async function instrumentSession<T>(
+  options: InstrumentSessionOptions,
+  fn: (span: ActiveSpan) => T | Promise<T>
+): Promise<T> {
+  // Build span options with exactOptionalPropertyTypes compliance
+  const spanOptions: {
+    sessionId: string;
+    target?: string;
+    provider?: GenAIProvider;
+    command?: string;
+  } = {
+    sessionId: options.sessionId,
+  };
+
+  if (options.target !== undefined) {
+    spanOptions.target = options.target;
+  }
+  if (options.provider !== undefined) {
+    spanOptions.provider = options.provider;
+  }
+  if (options.command !== undefined) {
+    spanOptions.command = options.command;
+  }
+
+  return spanFactory.createSessionSpan(spanOptions, fn);
+}
+
+/**
+ * Create a tool span (child span for tool execution).
+ * T039: High-level hook that uses existing spanFactory and traceContextProvider.
+ *
+ * @param options - Tool configuration
+ * @param fn - Function to run within the tool span
+ * @returns Result of the function
+ *
+ * @example
+ * ```typescript
+ * await instrumentToolCall(
+ *   { toolName: 'read_file', input: { path: '/foo/bar.ts' } },
+ *   async (span) => {
+ *     const content = await readFile('/foo/bar.ts');
+ *     span.addEvent('file.read', { size: content.length });
+ *     return content;
+ *   }
+ * );
+ * ```
+ */
+export async function instrumentToolCall<T>(
+  options: InstrumentToolOptions,
+  fn: (span: ActiveSpan) => T | Promise<T>
+): Promise<T> {
+  // Build span options with exactOptionalPropertyTypes compliance
+  const spanOptions: {
+    toolName: string;
+    callId?: string;
+    input?: Record<string, unknown>;
+  } = {
+    toolName: options.toolName,
+  };
+
+  if (options.callId !== undefined) {
+    spanOptions.callId = options.callId;
+  }
+  if (options.input !== undefined) {
+    spanOptions.input = options.input;
+  }
+
+  return spanFactory.createToolSpan(spanOptions, fn);
+}
+
+/**
+ * Create an LLM span (child span for LLM API call).
+ * T039: High-level hook that uses existing spanFactory and traceContextProvider.
+ *
+ * @param options - LLM configuration
+ * @param fn - Function to run within the LLM span
+ * @returns Result of the function
+ *
+ * @example
+ * ```typescript
+ * await instrumentLLMCall(
+ *   {
+ *     model: 'claude-sonnet-4',
+ *     provider: 'anthropic',
+ *     tokens: { input: 1000, output: 500 }
+ *   },
+ *   async (span) => {
+ *     const response = await callLLM(prompt);
+ *     span.setAttribute('gen_ai.usage.input_tokens', 1000);
+ *     span.setAttribute('gen_ai.usage.output_tokens', 500);
+ *     return response;
+ *   }
+ * );
+ * ```
+ */
+export async function instrumentLLMCall<T>(
+  options: InstrumentLLMOptions,
+  fn: (span: ActiveSpan) => T | Promise<T>
+): Promise<T> {
+  // Build span options with exactOptionalPropertyTypes compliance
+  const spanOptions: {
+    model: string;
+    provider?: GenAIProvider;
+    temperature?: number;
+    maxTokens?: number;
+  } = {
+    model: options.model,
+  };
+
+  if (options.provider !== undefined) {
+    spanOptions.provider = options.provider;
+  }
+  if (options.temperature !== undefined) {
+    spanOptions.temperature = options.temperature;
+  }
+  if (options.maxTokens !== undefined) {
+    spanOptions.maxTokens = options.maxTokens;
+  }
+
+  return spanFactory.createLLMSpan(spanOptions, async (span) => {
+    // If tokens are provided upfront, add them as attributes
+    if (options.tokens) {
+      span.setAttribute(GenAIAttributes.USAGE_INPUT_TOKENS, options.tokens.input);
+      span.setAttribute(GenAIAttributes.USAGE_OUTPUT_TOKENS, options.tokens.output);
+    }
+    return fn(span);
+  });
+}

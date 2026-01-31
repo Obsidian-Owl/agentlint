@@ -1,0 +1,15 @@
+{
+  "created_at": "2026-01-28T23:52:29.141Z",
+  "trigger": "auto",
+  "active_modes": {
+    "ultrawork": {
+      "original_prompt": "/oh-my-claudecode:ultrawork I want a resilient solution that works for all users. How do we ensure we're not starting servers on existing ports?"
+    }
+  },
+  "todo_summary": {
+    "pending": 0,
+    "in_progress": 0,
+    "completed": 0
+  },
+  "wisdom_exported": false
+}
