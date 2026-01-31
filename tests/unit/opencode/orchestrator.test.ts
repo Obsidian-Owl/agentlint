@@ -85,6 +85,34 @@ function setupSuccessfulRun(internals: OrchestratorInternals): {
   return { stopMock };
 }
 
+function createMockSessionManager(
+  clearAllMock = mock(() => {})
+): OrchestratorInternals['sessionManager'] {
+  return {
+    startSession: () => Promise.resolve({ sessionId: 'ses-1' }),
+    clearSession: () => {},
+    clearAll: clearAllMock,
+  };
+}
+
+function createMockTelemetryClient(enabled = true) {
+  return {
+    isEnabled: () => enabled,
+    trackToolEx: mock(() => {}),
+    trackLLMEx: mock(() => {}),
+  };
+}
+
+function setupServerFailure(
+  internals: OrchestratorInternals,
+  error: Error
+): ReturnType<typeof mock> {
+  const stopMock = mock(() => {});
+  internals.server.start = () => Promise.reject(error);
+  internals.server.stop = stopMock;
+  return stopMock;
+}
+
 describe('OpencodeOrchestrator', () => {
   let registry: IToolRegistry;
 
@@ -97,8 +125,7 @@ describe('OpencodeOrchestrator', () => {
       const orchestrator = new OpencodeOrchestrator({}, registry);
       const internals = getInternals(orchestrator);
 
-      internals.server.start = () => Promise.reject(new TypeError('Cannot start server'));
-      internals.server.stop = mock(() => {});
+      setupServerFailure(internals, new TypeError('Cannot start server'));
 
       await expect(collectChunks(orchestrator.run('test task'))).rejects.toThrow(
         'Cannot start server'
@@ -110,9 +137,7 @@ describe('OpencodeOrchestrator', () => {
       const orchestrator = new OpencodeOrchestrator({}, registry);
       const internals = getInternals(orchestrator);
 
-      const stopMock = mock(() => {});
-      internals.server.start = () => Promise.reject(new TypeError('fail'));
-      internals.server.stop = stopMock;
+      const stopMock = setupServerFailure(internals, new TypeError('fail'));
 
       await expect(collectChunks(orchestrator.run('test'))).rejects.toThrow();
       // Server is NOT stopped in finally block - it persists for subsequent runs
@@ -123,7 +148,7 @@ describe('OpencodeOrchestrator', () => {
       const orchestrator = new OpencodeOrchestrator({}, registry);
       const internals = getInternals(orchestrator);
 
-      internals.server.start = () => Promise.reject(new TypeError('fail'));
+      setupServerFailure(internals, new TypeError('fail'));
       internals.server.stop = () => {
         throw new Error('stop failed');
       };
@@ -173,11 +198,7 @@ describe('OpencodeOrchestrator', () => {
 
   describe('telemetry', () => {
     it('should create TelemetryTracker when telemetry client is provided', () => {
-      const telemetryClient = {
-        isEnabled: () => true,
-        trackToolEx: mock(() => {}),
-        trackLLMEx: mock(() => {}),
-      };
+      const telemetryClient = createMockTelemetryClient();
 
       const orchestrator = new OpencodeOrchestrator(
         { telemetryClient, telemetrySessionId: 'ses-test' },
@@ -193,23 +214,14 @@ describe('OpencodeOrchestrator', () => {
     });
 
     it('should not create TelemetryTracker when telemetry client is disabled', () => {
-      const telemetryClient = {
-        isEnabled: () => false,
-        trackToolEx: mock(() => {}),
-        trackLLMEx: mock(() => {}),
-      };
+      const telemetryClient = createMockTelemetryClient(false);
 
       const orchestrator = new OpencodeOrchestrator({ telemetryClient }, registry);
       expect(getInternals(orchestrator).telemetryTracker).toBeNull();
     });
 
     it('should forward tool events to tracker during run', async () => {
-      const trackToolEx = mock(() => {});
-      const telemetryClient = {
-        isEnabled: () => true,
-        trackToolEx,
-        trackLLMEx: mock(() => {}),
-      };
+      const telemetryClient = createMockTelemetryClient();
 
       const orchestrator = new OpencodeOrchestrator(
         { telemetryClient, telemetrySessionId: 'ses-test' },
@@ -239,9 +251,9 @@ describe('OpencodeOrchestrator', () => {
       const chunks = await collectChunks(orchestrator.run('test'));
 
       expect(chunks.length).toBeGreaterThanOrEqual(2);
-      expect(trackToolEx).toHaveBeenCalledTimes(1);
+      expect(telemetryClient.trackToolEx).toHaveBeenCalledTimes(1);
 
-      const calls = trackToolEx.mock.calls as unknown[][];
+      const calls = telemetryClient.trackToolEx.mock.calls as unknown[][];
       expect(calls.length).toBeGreaterThan(0);
       const opts = calls[0]?.[1] as Record<string, unknown>;
       expect(opts.tool).toBe('test_tool');
@@ -291,12 +303,7 @@ describe('OpencodeOrchestrator', () => {
       const orchestrator = new OpencodeOrchestrator({}, registry);
       const internals = getInternals(orchestrator);
       const clearAllMock = mock(() => {});
-      // Initialize sessionManager since it starts as null
-      internals.sessionManager = {
-        startSession: () => Promise.resolve({ sessionId: 'ses-1' }),
-        clearSession: () => {},
-        clearAll: clearAllMock,
-      };
+      internals.sessionManager = createMockSessionManager(clearAllMock);
 
       await orchestrator.interrupt();
 
@@ -309,12 +316,7 @@ describe('OpencodeOrchestrator', () => {
       const orchestrator = new OpencodeOrchestrator({}, registry);
       const internals = getInternals(orchestrator);
       const clearAllMock = mock(() => {});
-      // Initialize sessionManager since it starts as null
-      internals.sessionManager = {
-        startSession: () => Promise.resolve({ sessionId: 'ses-1' }),
-        clearSession: () => {},
-        clearAll: clearAllMock,
-      };
+      internals.sessionManager = createMockSessionManager(clearAllMock);
       internals.server.isRunning = () => false;
 
       orchestrator.dispose();
@@ -326,12 +328,7 @@ describe('OpencodeOrchestrator', () => {
       const orchestrator = new OpencodeOrchestrator({}, registry);
       const internals = getInternals(orchestrator);
       const stopMock = mock(() => {});
-      // Initialize sessionManager since it starts as null
-      internals.sessionManager = {
-        startSession: () => Promise.resolve({ sessionId: 'ses-1' }),
-        clearSession: () => {},
-        clearAll: mock(() => {}),
-      };
+      internals.sessionManager = createMockSessionManager();
       internals.server.isRunning = () => true;
       internals.server.stop = stopMock;
 
@@ -344,12 +341,7 @@ describe('OpencodeOrchestrator', () => {
       const orchestrator = new OpencodeOrchestrator({}, registry);
       const internals = getInternals(orchestrator);
       const stopMock = mock(() => {});
-      // Initialize sessionManager since it starts as null
-      internals.sessionManager = {
-        startSession: () => Promise.resolve({ sessionId: 'ses-1' }),
-        clearSession: () => {},
-        clearAll: mock(() => {}),
-      };
+      internals.sessionManager = createMockSessionManager();
       internals.server.isRunning = () => false;
       internals.server.stop = stopMock;
 
@@ -361,12 +353,7 @@ describe('OpencodeOrchestrator', () => {
     it('should reset state', () => {
       const orchestrator = new OpencodeOrchestrator({}, registry);
       const internals = getInternals(orchestrator);
-      // Initialize sessionManager since it starts as null
-      internals.sessionManager = {
-        startSession: () => Promise.resolve({ sessionId: 'ses-1' }),
-        clearSession: () => {},
-        clearAll: mock(() => {}),
-      };
+      internals.sessionManager = createMockSessionManager();
       internals.server.isRunning = () => false;
       internals._isActive = true;
       internals._sessionState = { id: 'test' };
@@ -383,12 +370,7 @@ describe('OpencodeOrchestrator', () => {
       const orchestrator = new OpencodeOrchestrator({}, registry);
       const internals = getInternals(orchestrator);
       const clearAllMock = mock(() => {});
-      // Initialize sessionManager since it starts as null
-      internals.sessionManager = {
-        startSession: () => Promise.resolve({ sessionId: 'ses-1' }),
-        clearSession: () => {},
-        clearAll: clearAllMock,
-      };
+      internals.sessionManager = createMockSessionManager(clearAllMock);
       internals.server.isRunning = () => false;
 
       orchestrator.dispose();
@@ -401,12 +383,7 @@ describe('OpencodeOrchestrator', () => {
     it('should not throw if server.stop() fails', () => {
       const orchestrator = new OpencodeOrchestrator({}, registry);
       const internals = getInternals(orchestrator);
-      // Initialize sessionManager since it starts as null
-      internals.sessionManager = {
-        startSession: () => Promise.resolve({ sessionId: 'ses-1' }),
-        clearSession: () => {},
-        clearAll: mock(() => {}),
-      };
+      internals.sessionManager = createMockSessionManager();
       internals.server.isRunning = () => true;
       internals.server.stop = () => {
         throw new Error('stop failed');

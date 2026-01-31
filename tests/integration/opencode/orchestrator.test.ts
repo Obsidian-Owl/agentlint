@@ -50,10 +50,29 @@ async function collectChunks(gen: AsyncGenerator<StreamChunk>): Promise<StreamCh
   return chunks;
 }
 
+/** Create a StreamChunk with default values */
+function createChunk(
+  type: StreamChunk['type'],
+  content: string,
+  metadata?: Record<string, unknown>
+): StreamChunk {
+  return {
+    type,
+    level: 'normal' as const,
+    content,
+    timestamp: new Date().toISOString(),
+    ...(metadata && { metadata }),
+  };
+}
+
 /** Set up mocks for a successful run, initializing client and sessionManager since they start as null */
-function setupMocks(internals: OrchestratorInternals, sessionId = 'ses-1'): void {
+function setupMocks(
+  internals: OrchestratorInternals,
+  sessionId = 'ses-1',
+  options?: { stopMock?: ReturnType<typeof mock> }
+): void {
   internals.server.start = () => Promise.resolve();
-  internals.server.stop = () => {};
+  internals.server.stop = options?.stopMock || (() => {});
   internals.server.getUrl = () => 'http://127.0.0.1:50000';
   internals.server.getPort = () => 50000;
 
@@ -83,52 +102,21 @@ describe('OpencodeOrchestrator integration', () => {
     const internals = getInternals(orchestrator);
 
     const stopMock = mock(() => {});
-    internals.server.start = () => Promise.resolve();
-    internals.server.stop = stopMock;
-    internals.server.getUrl = () => 'http://127.0.0.1:50000';
-    internals.server.getPort = () => 50000;
-
-    // Initialize client and sessionManager since they start as null
-    internals.client = {
-      connect: () => Promise.resolve(),
-      prompt: () => Promise.resolve(''),
-      promptAsync: () => Promise.resolve(),
-      subscribe: async function* () {},
-      subscribeEager: () => Promise.resolve((async function* () {})()),
-    };
-    internals.sessionManager = {
-      startSession: () => Promise.resolve({ sessionId: 'ses-integ-1' }),
-      clearSession: () => {},
-      clearAll: () => {},
-    };
+    setupMocks(internals, 'ses-integ-1', { stopMock });
 
     internals.streamAdapter.adaptStream = async function* () {
+      yield createChunk('text', 'Analysis beginning');
       yield {
-        type: 'text' as const,
-        level: 'normal' as const,
-        content: 'Analysis beginning',
-        timestamp: new Date().toISOString(),
-      };
-      yield {
-        type: 'tool_start' as const,
+        ...createChunk('tool_start', 'Calling tool: discover_configs'),
         level: 'verbose' as const,
-        content: 'Calling tool: discover_configs',
-        timestamp: new Date().toISOString(),
         metadata: { name: 'discover_configs' },
       };
       yield {
-        type: 'tool_result' as const,
+        ...createChunk('tool_result', 'Tool completed: discover_configs'),
         level: 'verbose' as const,
-        content: 'Tool completed: discover_configs',
-        timestamp: new Date().toISOString(),
         metadata: { name: 'discover_configs', output: { configs: 3 } },
       };
-      yield {
-        type: 'text' as const,
-        level: 'normal' as const,
-        content: 'Analysis complete',
-        timestamp: new Date().toISOString(),
-      };
+      yield createChunk('text', 'Analysis complete');
     };
 
     expect(orchestrator.isActive).toBe(false);
@@ -166,16 +154,10 @@ describe('OpencodeOrchestrator integration', () => {
     const internals = getInternals(orchestrator);
 
     const stopMock = mock(() => {});
-    setupMocks(internals, 'ses-err-1');
-    internals.server.stop = stopMock;
+    setupMocks(internals, 'ses-err-1', { stopMock });
 
     internals.streamAdapter.adaptStream = async function* () {
-      yield {
-        type: 'text' as const,
-        level: 'normal' as const,
-        content: 'start',
-        timestamp: new Date().toISOString(),
-      };
+      yield createChunk('text', 'start');
       throw new Error('Stream interrupted');
     };
 
@@ -194,12 +176,7 @@ describe('OpencodeOrchestrator integration', () => {
     // Create a stream that yields one chunk then waits forever
     let resolveWait: (() => void) | undefined;
     internals.streamAdapter.adaptStream = async function* () {
-      yield {
-        type: 'text' as const,
-        level: 'normal' as const,
-        content: 'started',
-        timestamp: new Date().toISOString(),
-      };
+      yield createChunk('text', 'started');
       await new Promise<void>((resolve) => {
         resolveWait = resolve;
       });

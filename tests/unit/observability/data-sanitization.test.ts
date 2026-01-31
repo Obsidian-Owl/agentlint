@@ -5,6 +5,7 @@
 
 import { describe, it, expect } from 'bun:test';
 import type { ExportableSpan } from '../../../src/observability/exporters/local-exporter';
+import { sanitizeSpanForExport } from '../../../src/observability/exporters/otlp-exporter';
 
 describe('OTLP data sanitization', () => {
   // Helper to create a test span with sensitive attributes
@@ -23,83 +24,103 @@ describe('OTLP data sanitization', () => {
     };
   }
 
-  it('should redact gen_ai.prompt.user attributes', () => {
-    const { sanitizeSpanForExport } = require('../../../src/observability/exporters/otlp-exporter');
+  // Test data factories for common patterns
+  const sensitiveData = {
+    promptWithSecrets: 'Analyze this file: /Users/alice/secrets.txt with API key sk-secret',
+    systemPromptWithKey: 'You are a helpful assistant. Use API key: ghp_secret',
+    completionWithPassword: 'The file contains: password=secret123',
+    fileContentWithSecret: 'File contents with secret: sk-ant-123',
+    apiResponse: 'API response: {"api_key": "sk-live-xyz"}',
+    apiKey: 'sk-ant-api03xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx', // Realistic fake Anthropic key (no underscores)
+    tokenConfig: 'token=ghp-1234567890abcdefghijklmnopqrstuvwxyz', // Realistic fake GitHub token
+    eventPrompt: 'Use API key sk-ant-api03xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+    eventResult: 'File contents: password=secretpassword123',
+  };
 
+  const safeAttributes = {
+    'llm.model': 'claude-sonnet-4',
+    'llm.provider': 'anthropic',
+    'llm.usage.input_tokens': 150,
+    'llm.usage.output_tokens': 75,
+    'tool.name': 'analyze_config',
+    'session.id': 'abc-123',
+    'error.type': 'ValidationError',
+  };
+
+  // Helper to test sensitive attribute redaction
+  function testSensitiveRedaction(
+    attributeName: string,
+    sensitiveValue: string,
+    expectedRedaction: string,
+    safeAttributeName: string,
+    safeValue: string | number
+  ) {
     const span = createTestSpan({
-      'gen_ai.prompt.user': 'Analyze this file: /Users/alice/secrets.txt with API key sk-secret',
-      'llm.model': 'claude-sonnet-4',
+      [attributeName]: sensitiveValue,
+      [safeAttributeName]: safeValue,
     });
 
     const sanitized = sanitizeSpanForExport(span);
 
-    expect(sanitized.attributes['gen_ai.prompt.user']).toBe('[REDACTED:PROMPT]');
-    expect(sanitized.attributes['llm.model']).toBe('claude-sonnet-4'); // Not sensitive
+    expect(sanitized.attributes[attributeName]).toBe(expectedRedaction);
+    expect(sanitized.attributes[safeAttributeName]).toBe(safeValue);
+  }
+
+  it('should redact gen_ai.prompt.user attributes', () => {
+    testSensitiveRedaction(
+      'gen_ai.prompt.user',
+      sensitiveData.promptWithSecrets,
+      '[REDACTED:PROMPT]',
+      'llm.model',
+      'claude-sonnet-4'
+    );
   });
 
   it('should redact gen_ai.prompt.system attributes', () => {
-    const { sanitizeSpanForExport } = require('../../../src/observability/exporters/otlp-exporter');
-
-    const span = createTestSpan({
-      'gen_ai.prompt.system': 'You are a helpful assistant. Use API key: ghp_secret',
-      'llm.provider': 'anthropic',
-    });
-
-    const sanitized = sanitizeSpanForExport(span);
-
-    expect(sanitized.attributes['gen_ai.prompt.system']).toBe('[REDACTED:PROMPT]');
-    expect(sanitized.attributes['llm.provider']).toBe('anthropic');
+    testSensitiveRedaction(
+      'gen_ai.prompt.system',
+      sensitiveData.systemPromptWithKey,
+      '[REDACTED:PROMPT]',
+      'llm.provider',
+      'anthropic'
+    );
   });
 
   it('should redact gen_ai.completion attributes', () => {
-    const { sanitizeSpanForExport } = require('../../../src/observability/exporters/otlp-exporter');
-
-    const span = createTestSpan({
-      'gen_ai.completion': 'The file contains: password=secret123',
-      'llm.usage.input_tokens': 100,
-    });
-
-    const sanitized = sanitizeSpanForExport(span);
-
-    expect(sanitized.attributes['gen_ai.completion']).toBe('[REDACTED:COMPLETION]');
-    expect(sanitized.attributes['llm.usage.input_tokens']).toBe(100);
+    testSensitiveRedaction(
+      'gen_ai.completion',
+      sensitiveData.completionWithPassword,
+      '[REDACTED:COMPLETION]',
+      'llm.usage.input_tokens',
+      100
+    );
   });
 
   it('should redact tool.arguments.content attributes', () => {
-    const { sanitizeSpanForExport } = require('../../../src/observability/exporters/otlp-exporter');
-
-    const span = createTestSpan({
-      'tool.name': 'read_file',
-      'tool.arguments.content': 'File contents with secret: sk-ant-123',
-    });
-
-    const sanitized = sanitizeSpanForExport(span);
-
-    expect(sanitized.attributes['tool.name']).toBe('read_file');
-    expect(sanitized.attributes['tool.arguments.content']).toBe('[REDACTED:FILE_CONTENT]');
+    testSensitiveRedaction(
+      'tool.arguments.content',
+      sensitiveData.fileContentWithSecret,
+      '[REDACTED:FILE_CONTENT]',
+      'tool.name',
+      'read_file'
+    );
   });
 
   it('should redact tool.result attributes', () => {
-    const { sanitizeSpanForExport } = require('../../../src/observability/exporters/otlp-exporter');
-
-    const span = createTestSpan({
-      'tool.name': 'execute',
-      'tool.result': 'API response: {"api_key": "sk-live-xyz"}',
-    });
-
-    const sanitized = sanitizeSpanForExport(span);
-
-    expect(sanitized.attributes['tool.name']).toBe('execute');
-    expect(sanitized.attributes['tool.result']).toBe('[REDACTED:TOOL_OUTPUT]');
+    testSensitiveRedaction(
+      'tool.result',
+      sensitiveData.apiResponse,
+      '[REDACTED:TOOL_OUTPUT]',
+      'tool.name',
+      'execute'
+    );
   });
 
   it('should redact API keys in any attribute value', () => {
-    const { sanitizeSpanForExport } = require('../../../src/observability/exporters/otlp-exporter');
-
     const span = createTestSpan({
       'api.endpoint': 'https://api.example.com',
-      'api.key': 'sk-ant-FAKE_KEY_FOR_TESTING',
-      'custom.config': 'token=ghp_FAKE_TOKEN_FOR_TESTING',
+      'api.key': sensitiveData.apiKey,
+      'custom.config': sensitiveData.tokenConfig,
     });
 
     const sanitized = sanitizeSpanForExport(span);
@@ -111,17 +132,7 @@ describe('OTLP data sanitization', () => {
   });
 
   it('should preserve safe attributes unchanged', () => {
-    const { sanitizeSpanForExport } = require('../../../src/observability/exporters/otlp-exporter');
-
-    const span = createTestSpan({
-      'llm.model': 'claude-sonnet-4',
-      'llm.provider': 'anthropic',
-      'llm.usage.input_tokens': 150,
-      'llm.usage.output_tokens': 75,
-      'tool.name': 'analyze_config',
-      'session.id': 'abc-123',
-      'error.type': 'ValidationError',
-    });
+    const span = createTestSpan(safeAttributes);
 
     const sanitized = sanitizeSpanForExport(span);
 
@@ -129,8 +140,6 @@ describe('OTLP data sanitization', () => {
   });
 
   it('should redact sensitive data in span events', () => {
-    const { sanitizeSpanForExport } = require('../../../src/observability/exporters/otlp-exporter');
-
     const span: ExportableSpan = {
       ...createTestSpan({}),
       events: [
@@ -138,7 +147,7 @@ describe('OTLP data sanitization', () => {
           name: 'prompt.sent',
           timestamp: Date.now(),
           attributes: {
-            prompt: 'Use API key sk-ant-api03xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
+            prompt: sensitiveData.eventPrompt,
             model: 'claude-opus-4',
           },
         },
@@ -146,7 +155,7 @@ describe('OTLP data sanitization', () => {
           name: 'tool.completed',
           timestamp: Date.now(),
           attributes: {
-            result: 'File contents: password=secretpassword123',
+            result: sensitiveData.eventResult,
           },
         },
       ],

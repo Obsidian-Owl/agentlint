@@ -25,29 +25,33 @@ describe('Streaming Integration', () => {
     traceContextProvider.registerExporter(exporter);
   });
 
+  // Helper: Create text update events
+  const createTextEvents = (texts: string[]): OpencodeEvent[] =>
+    texts.map((text) => ({
+      type: 'message.part.updated',
+      properties: {
+        part: { id: 'part-1', text },
+      },
+    }));
+
+  // Helper: Run stream adaptation and collect chunks
+  const collectChunks = async (events: OpencodeEvent[]) => {
+    const chunks = [];
+    for await (const chunk of adapter.adaptStream(asyncIterable(events))) {
+      chunks.push(chunk);
+    }
+    return chunks;
+  };
+
+  // Helper: Find stream span from exports
+  const getStreamSpan = () => exportedSpans.filter((span) => span.name === 'stream')[0];
+
   describe('stream span creation', () => {
     it('should create stream span when in trace context', async () => {
-      const events: OpencodeEvent[] = [
-        {
-          type: 'message.part.updated',
-          properties: {
-            part: { id: 'part-1', text: 'Hello' },
-          },
-        },
-        {
-          type: 'message.part.updated',
-          properties: {
-            part: { id: 'part-1', text: 'Hello world' },
-          },
-        },
-      ];
+      const events = createTextEvents(['Hello', 'Hello world']);
 
       await traceContextProvider.run(async () => {
-        const chunks = [];
-        for await (const chunk of adapter.adaptStream(asyncIterable(events))) {
-          chunks.push(chunk);
-        }
-
+        const chunks = await collectChunks(events);
         expect(chunks).toHaveLength(2);
       });
 
@@ -57,20 +61,9 @@ describe('Streaming Integration', () => {
     });
 
     it('should not create span when outside trace context', async () => {
-      const events: OpencodeEvent[] = [
-        {
-          type: 'message.part.updated',
-          properties: {
-            part: { id: 'part-1', text: 'Hello' },
-          },
-        },
-      ];
+      const events = createTextEvents(['Hello']);
 
-      const chunks = [];
-      for await (const chunk of adapter.adaptStream(asyncIterable(events))) {
-        chunks.push(chunk);
-      }
-
+      const chunks = await collectChunks(events);
       expect(chunks).toHaveLength(1);
 
       // Should not have created any spans
@@ -80,34 +73,17 @@ describe('Streaming Integration', () => {
 
   describe('first_token latency', () => {
     it('should record first_token event with latency', async () => {
-      const events: OpencodeEvent[] = [
-        {
-          type: 'message.part.updated',
-          properties: {
-            part: { id: 'part-1', text: 'First token' },
-          },
-        },
-        {
-          type: 'message.part.updated',
-          properties: {
-            part: { id: 'part-1', text: 'First token second token' },
-          },
-        },
-      ];
+      const events = createTextEvents(['First token', 'First token second token']);
 
       await traceContextProvider.run(async () => {
-        const chunks = [];
-        for await (const chunk of adapter.adaptStream(asyncIterable(events))) {
-          chunks.push(chunk);
-        }
-
+        const chunks = await collectChunks(events);
         expect(chunks).toHaveLength(2);
       });
 
       const streamSpans = exportedSpans.filter((span) => span.name === 'stream');
       expect(streamSpans).toHaveLength(1);
 
-      const streamSpan = streamSpans[0];
+      const streamSpan = getStreamSpan();
       expect(streamSpan).toBeDefined();
 
       // Should have first_token event
@@ -123,40 +99,17 @@ describe('Streaming Integration', () => {
 
   describe('aggregate statistics', () => {
     it('should record chunk count as attribute not individual events', async () => {
-      const events: OpencodeEvent[] = [
-        {
-          type: 'message.part.updated',
-          properties: {
-            part: { id: 'part-1', text: 'One' },
-          },
-        },
-        {
-          type: 'message.part.updated',
-          properties: {
-            part: { id: 'part-1', text: 'One Two' },
-          },
-        },
-        {
-          type: 'message.part.updated',
-          properties: {
-            part: { id: 'part-1', text: 'One Two Three' },
-          },
-        },
-      ];
+      const events = createTextEvents(['One', 'One Two', 'One Two Three']);
 
       await traceContextProvider.run(async () => {
-        const chunks = [];
-        for await (const chunk of adapter.adaptStream(asyncIterable(events))) {
-          chunks.push(chunk);
-        }
-
+        const chunks = await collectChunks(events);
         expect(chunks).toHaveLength(3);
       });
 
       const streamSpans = exportedSpans.filter((span) => span.name === 'stream');
       expect(streamSpans).toHaveLength(1);
 
-      const streamSpan = streamSpans[0];
+      const streamSpan = getStreamSpan();
       expect(streamSpan).toBeDefined();
 
       // Should have chunk_count attribute
@@ -168,28 +121,17 @@ describe('Streaming Integration', () => {
     });
 
     it('should record stream duration on completion', async () => {
-      const events: OpencodeEvent[] = [
-        {
-          type: 'message.part.updated',
-          properties: {
-            part: { id: 'part-1', text: 'Hello' },
-          },
-        },
-      ];
+      const events = createTextEvents(['Hello']);
 
       await traceContextProvider.run(async () => {
-        const chunks = [];
-        for await (const chunk of adapter.adaptStream(asyncIterable(events))) {
-          chunks.push(chunk);
-        }
-
+        const chunks = await collectChunks(events);
         expect(chunks).toHaveLength(1);
       });
 
       const streamSpans = exportedSpans.filter((span) => span.name === 'stream');
       expect(streamSpans).toHaveLength(1);
 
-      const streamSpan = streamSpans[0];
+      const streamSpan = getStreamSpan();
       expect(streamSpan).toBeDefined();
 
       // Should have duration attribute (may be 0 since buffered)
@@ -204,26 +146,17 @@ describe('Streaming Integration', () => {
 
     it('should record only milestone events, not every chunk', async () => {
       // Simulate 100 chunks
-      const events: OpencodeEvent[] = Array.from({ length: 100 }, (_, i) => ({
-        type: 'message.part.updated',
-        properties: {
-          part: { id: 'part-1', text: `Token ${i + 1}` },
-        },
-      }));
+      const events = createTextEvents(Array.from({ length: 100 }, (_, i) => `Token ${i + 1}`));
 
       await traceContextProvider.run(async () => {
-        const chunks = [];
-        for await (const chunk of adapter.adaptStream(asyncIterable(events))) {
-          chunks.push(chunk);
-        }
-
+        const chunks = await collectChunks(events);
         expect(chunks).toHaveLength(100);
       });
 
       const streamSpans = exportedSpans.filter((span) => span.name === 'stream');
       expect(streamSpans).toHaveLength(1);
 
-      const streamSpan = streamSpans[0];
+      const streamSpan = getStreamSpan();
       expect(streamSpan).toBeDefined();
 
       // Should have aggregated chunk count
@@ -237,21 +170,10 @@ describe('Streaming Integration', () => {
 
   describe('span hierarchy', () => {
     it('should create stream span as child of session span', async () => {
-      const events: OpencodeEvent[] = [
-        {
-          type: 'message.part.updated',
-          properties: {
-            part: { id: 'part-1', text: 'Hello' },
-          },
-        },
-      ];
+      const events = createTextEvents(['Hello']);
 
       await traceContextProvider.run(async () => {
-        const chunks = [];
-        for await (const chunk of adapter.adaptStream(asyncIterable(events))) {
-          chunks.push(chunk);
-        }
-
+        const chunks = await collectChunks(events);
         expect(chunks).toHaveLength(1);
       });
 
@@ -260,7 +182,7 @@ describe('Streaming Integration', () => {
       expect(streamSpans).toHaveLength(1);
 
       // Stream span should have parent context
-      const streamSpan = streamSpans[0];
+      const streamSpan = getStreamSpan();
       expect(streamSpan?.traceId).toBeDefined();
       expect(streamSpan?.spanId).toBeDefined();
     });
