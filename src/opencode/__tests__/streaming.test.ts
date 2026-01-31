@@ -13,7 +13,11 @@ import { spanFactory } from '../../observability/span-factory';
 import { traceContextProvider } from '../../observability/trace-context';
 import type { ActiveSpan } from '../../observability/types';
 
-// Helper to convert array to async iterable
+// ========================================
+// Test Helpers
+// ========================================
+
+/** Helper to convert array to async iterable */
 // eslint-disable-next-line @typescript-eslint/require-await
 async function* toAsyncIterable<T>(items: T[]): AsyncGenerator<T> {
   for (const item of items) {
@@ -21,192 +25,189 @@ async function* toAsyncIterable<T>(items: T[]): AsyncGenerator<T> {
   }
 }
 
+/** Event builders for common test events */
+const createTextEvent = (partId: string, text: string): OpencodeEvent => ({
+  type: 'message.part.updated',
+  properties: {
+    part: { id: partId, type: 'text', text },
+  },
+});
+
+const createThinkingEvent = (partId: string, text: string): OpencodeEvent => ({
+  type: 'message.part.updated',
+  properties: {
+    part: { id: partId, type: 'thinking', text },
+  },
+});
+
+const createReasoningEvent = (partId: string, text: string): OpencodeEvent => ({
+  type: 'message.part.updated',
+  properties: {
+    part: { id: partId, type: 'reasoning', text },
+  },
+});
+
+const createStatusEvent = (status: string): OpencodeEvent => ({
+  type: 'status.updated',
+  properties: { status },
+});
+
+const createToolCallEvent = (name: string): OpencodeEvent => ({
+  type: 'tool.call.started',
+  properties: { name },
+});
+
+/** Mock span factory with captured events and attributes */
+interface MockSpanContext {
+  span: ActiveSpan;
+  events: Array<{ name: string; attributes?: Record<string, unknown> }>;
+  attributes: Record<string, string | number | boolean>;
+}
+
+function createMockSpan(): MockSpanContext {
+  const events: Array<{ name: string; attributes?: Record<string, unknown> }> = [];
+  const attributes: Record<string, string | number | boolean> = {};
+
+  const span: ActiveSpan = {
+    spanId: 'test-span-id',
+    name: 'test-span',
+    startTime: Date.now(),
+    attributes,
+    events: events as Array<{
+      name: string;
+      timestamp: number;
+      attributes?: Record<string, unknown>;
+    }>,
+    addEvent: mock((name: string, attrs?: Record<string, unknown>) => {
+      events.push(attrs === undefined ? { name } : { name, attributes: attrs });
+    }),
+    setAttribute: mock((key: string, value: string | number | boolean) => {
+      attributes[key] = value;
+    }),
+    end: mock(() => {
+      // noop
+    }),
+  };
+
+  return { span, events, attributes };
+}
+
+/** Create a mock createStreamSpan spy that uses the given span */
+// eslint-disable-next-line @typescript-eslint/explicit-function-return-type
+function mockCreateStreamSpan(mockSpanContext: MockSpanContext) {
+  const spy = mock(
+    async (_options: { streamId: string }, fn: (span: ActiveSpan) => Promise<void>) => {
+      await fn(mockSpanContext.span);
+    }
+  );
+  spanFactory.createStreamSpan = spy as typeof spanFactory.createStreamSpan;
+  return spy;
+}
+
+/** Run events through adapter and collect chunks */
+async function adaptAndCollectChunks(
+  adapter: StreamAdapter,
+  events: OpencodeEvent[]
+): Promise<unknown[]> {
+  const chunks = [];
+  for await (const chunk of adapter.adaptStream(toAsyncIterable(events))) {
+    chunks.push(chunk);
+  }
+  return chunks;
+}
+
+/** Run adapter in trace context */
+async function adaptInTraceContext(
+  adapter: StreamAdapter,
+  events: OpencodeEvent[]
+): Promise<unknown[]> {
+  return traceContextProvider.run(() => adaptAndCollectChunks(adapter, events));
+}
+
+/** Find event by name in span events */
+function findSpanEvent(
+  events: Array<{ name: string; attributes?: Record<string, unknown> }>,
+  name: string
+): { name: string; attributes?: Record<string, unknown> } | undefined {
+  return events.find((e) => e.name === name);
+}
+
+/** Filter events by name */
+function filterSpanEvents(
+  events: Array<{ name: string; attributes?: Record<string, unknown> }>,
+  name: string
+): Array<{ name: string; attributes?: Record<string, unknown> }> {
+  return events.filter((e) => e.name === name);
+}
+
 describe('Stream Span Instrumentation', () => {
   let adapter: StreamAdapter;
-  let mockSpan: ActiveSpan;
-  let spanEvents: Array<{ name: string; attributes?: Record<string, unknown> }>;
-  let spanAttributes: Record<string, string | number | boolean>;
+  let mockSpanContext: MockSpanContext;
 
   beforeEach(() => {
     adapter = new StreamAdapter();
-    spanEvents = [];
-    spanAttributes = {};
-
-    // Create mock span that captures events and attributes
-    mockSpan = {
-      spanId: 'test-span-id',
-      name: 'test-span',
-      startTime: Date.now(),
-      attributes: spanAttributes,
-      events: spanEvents as Array<{
-        name: string;
-        timestamp: number;
-        attributes?: Record<string, unknown>;
-      }>,
-      addEvent: mock((name: string, attributes?: Record<string, unknown>) => {
-        if (attributes === undefined) {
-          spanEvents.push({ name });
-        } else {
-          spanEvents.push({ name, attributes });
-        }
-      }),
-      setAttribute: mock((key: string, value: string | number | boolean) => {
-        spanAttributes[key] = value;
-      }),
-      end: mock(() => {
-        // noop
-      }),
-    };
+    mockSpanContext = createMockSpan();
   });
 
   describe('T040: Stream span created on stream start', () => {
     it('should create a stream span when streaming starts with trace context', async () => {
-      // Mock spanFactory.createStreamSpan
-      const createStreamSpanSpy = mock(
-        async (_options: { streamId: string }, fn: (span: ActiveSpan) => Promise<void>) => {
-          return fn(mockSpan);
-        }
-      );
-      spanFactory.createStreamSpan = createStreamSpanSpy as typeof spanFactory.createStreamSpan;
+      const createStreamSpanSpy = mockCreateStreamSpan(mockSpanContext);
+      const events = [createTextEvent('part-1', 'Hello')];
 
-      // Create trace context
-      await traceContextProvider.run(async () => {
-        // Create mock events
-        const events: OpencodeEvent[] = [
-          {
-            type: 'message.part.updated',
-            properties: {
-              part: { id: 'part-1', type: 'text' },
-              text: 'Hello',
-            },
-          },
-        ];
+      await adaptInTraceContext(adapter, events);
 
-        // Adapt stream
-        const chunks = [];
-        for await (const chunk of adapter.adaptStream(toAsyncIterable(events))) {
-          chunks.push(chunk);
-        }
+      expect(createStreamSpanSpy).toHaveBeenCalled();
 
-        // Verify span was created
-        expect(createStreamSpanSpy).toHaveBeenCalled();
-
-        // Verify span received stream ID
-        const calls = createStreamSpanSpy.mock.calls;
-        expect(calls.length).toBeGreaterThan(0);
-        const firstCall = calls[0];
-        expect(firstCall).toBeDefined();
-        if (firstCall) {
-          expect(firstCall[0]).toHaveProperty('streamId');
-          expect(typeof firstCall[0].streamId).toBe('string');
-        }
-      });
+      const calls = createStreamSpanSpy.mock.calls;
+      expect(calls.length).toBeGreaterThan(0);
+      const firstCall = calls[0];
+      expect(firstCall).toBeDefined();
+      if (firstCall) {
+        expect(firstCall[0]).toHaveProperty('streamId');
+        expect(typeof firstCall[0].streamId).toBe('string');
+      }
     });
 
     it('should include stream metadata in span attributes', async () => {
-      // Mock spanFactory.createStreamSpan
-      const createStreamSpanSpy = mock(
+      const spy = mock(
         async (options: { streamId: string }, fn: (span: ActiveSpan) => Promise<void>) => {
-          // Verify streamId is passed
           expect(options.streamId).toBeDefined();
           expect(typeof options.streamId).toBe('string');
-          return fn(mockSpan);
+          return fn(mockSpanContext.span);
         }
       );
-      spanFactory.createStreamSpan = createStreamSpanSpy as typeof spanFactory.createStreamSpan;
+      spanFactory.createStreamSpan = spy as typeof spanFactory.createStreamSpan;
 
-      await traceContextProvider.run(async () => {
-        const events: OpencodeEvent[] = [
-          {
-            type: 'message.part.updated',
-            properties: {
-              part: { id: 'part-1', type: 'text' },
-              text: 'test',
-            },
-          },
-        ];
+      const events = [createTextEvent('part-1', 'test')];
+      await adaptInTraceContext(adapter, events);
 
-        const chunks = [];
-        for await (const chunk of adapter.adaptStream(toAsyncIterable(events))) {
-          chunks.push(chunk);
-        }
-
-        expect(createStreamSpanSpy).toHaveBeenCalled();
-      });
+      expect(spy).toHaveBeenCalled();
     });
 
     it('should not create span when no trace context exists', async () => {
-      // Mock spanFactory.createStreamSpan
-      const createStreamSpanSpy = mock(
-        async (_options: { streamId: string }, fn: (span: ActiveSpan) => Promise<void>) => {
-          return fn(mockSpan);
-        }
-      );
-      spanFactory.createStreamSpan = createStreamSpanSpy as typeof spanFactory.createStreamSpan;
+      const createStreamSpanSpy = mockCreateStreamSpan(mockSpanContext);
+      const events = [createTextEvent('part-1', 'Hello')];
 
-      // Adapt stream WITHOUT trace context
-      const events: OpencodeEvent[] = [
-        {
-          type: 'message.part.updated',
-          properties: {
-            part: { id: 'part-1', type: 'text' },
-            text: 'Hello',
-          },
-        },
-      ];
+      // WITHOUT trace context
+      await adaptAndCollectChunks(adapter, events);
 
-      const chunks = [];
-      for await (const chunk of adapter.adaptStream(toAsyncIterable(events))) {
-        chunks.push(chunk);
-      }
-
-      // Verify span was NOT created (no trace context)
       expect(createStreamSpanSpy).not.toHaveBeenCalled();
     });
 
     it('should generate unique stream ID for each stream', async () => {
       const streamIds: string[] = [];
-
-      const createStreamSpanSpy = mock(
+      const spy = mock(
         async (options: { streamId: string }, fn: (span: ActiveSpan) => Promise<void>) => {
           streamIds.push(options.streamId);
-          return fn(mockSpan);
+          return fn(mockSpanContext.span);
         }
       );
-      spanFactory.createStreamSpan = createStreamSpanSpy as typeof spanFactory.createStreamSpan;
+      spanFactory.createStreamSpan = spy as typeof spanFactory.createStreamSpan;
 
       await traceContextProvider.run(async () => {
-        // First stream
-        const events1: OpencodeEvent[] = [
-          {
-            type: 'message.part.updated',
-            properties: {
-              part: { id: 'part-1', type: 'text' },
-              text: 'First',
-            },
-          },
-        ];
+        await adaptAndCollectChunks(adapter, [createTextEvent('part-1', 'First')]);
+        await adaptAndCollectChunks(adapter, [createTextEvent('part-2', 'Second')]);
 
-        for await (const _chunk of adapter.adaptStream(toAsyncIterable(events1))) {
-          // consume
-        }
-
-        // Second stream
-        const events2: OpencodeEvent[] = [
-          {
-            type: 'message.part.updated',
-            properties: {
-              part: { id: 'part-2', type: 'text' },
-              text: 'Second',
-            },
-          },
-        ];
-
-        for await (const _chunk of adapter.adaptStream(toAsyncIterable(events2))) {
-          // consume
-        }
-
-        // Verify two different stream IDs
         expect(streamIds.length).toBe(2);
         expect(streamIds[0]).not.toBe(streamIds[1]);
         expect(streamIds[0]).toMatch(/^stream-\d+-[a-z0-9]+$/);
@@ -217,385 +218,136 @@ describe('Stream Span Instrumentation', () => {
 
   describe('T041: first_token event recorded with timestamp', () => {
     it('should record first_token event when first text chunk is received', async () => {
-      let capturedSpan: ActiveSpan | null = null;
+      mockCreateStreamSpan(mockSpanContext);
+      const events = [createTextEvent('part-1', 'First token')];
 
-      const createStreamSpanSpy = mock(
-        async (_options: { streamId: string }, fn: (span: ActiveSpan) => Promise<void>) => {
-          capturedSpan = mockSpan;
-          return fn(mockSpan);
-        }
-      );
-      spanFactory.createStreamSpan = createStreamSpanSpy as typeof spanFactory.createStreamSpan;
+      await adaptInTraceContext(adapter, events);
 
-      await traceContextProvider.run(async () => {
-        const events: OpencodeEvent[] = [
-          {
-            type: 'message.part.updated',
-            properties: {
-              part: { id: 'part-1', type: 'text' },
-              text: 'First token',
-            },
-          },
-        ];
+      expect(mockSpanContext.events.length).toBeGreaterThan(0);
 
-        const chunks = [];
-        for await (const chunk of adapter.adaptStream(toAsyncIterable(events))) {
-          chunks.push(chunk);
-        }
-
-        // Verify span was created and first_token event was recorded
-        expect(capturedSpan).not.toBeNull();
-        // Verify events were added by checking the captured events array
-        expect(spanEvents.length).toBeGreaterThan(0);
-
-        // Find first_token event
-        const firstTokenEvent = spanEvents.find((e) => e.name === 'first_token');
-        expect(firstTokenEvent).toBeDefined();
-        expect(firstTokenEvent?.attributes).toHaveProperty('latency_ms');
-        expect(typeof firstTokenEvent?.attributes?.latency_ms).toBe('number');
-      });
+      const firstTokenEvent = findSpanEvent(mockSpanContext.events, 'first_token');
+      expect(firstTokenEvent).toBeDefined();
+      expect(firstTokenEvent?.attributes).toHaveProperty('latency_ms');
+      expect(typeof firstTokenEvent?.attributes?.latency_ms).toBe('number');
     });
 
     it('should include latency_ms in first_token event', async () => {
-      let capturedSpan: ActiveSpan | null = null;
+      mockCreateStreamSpan(mockSpanContext);
+      const startTime = Date.now();
 
-      const createStreamSpanSpy = mock(
-        async (_options: { streamId: string }, fn: (span: ActiveSpan) => Promise<void>) => {
-          capturedSpan = mockSpan;
-          return fn(mockSpan);
-        }
-      );
-      spanFactory.createStreamSpan = createStreamSpanSpy as typeof spanFactory.createStreamSpan;
+      const events = [createTextEvent('part-1', 'Hello world')];
+      await adaptInTraceContext(adapter, events);
 
-      await traceContextProvider.run(async () => {
-        const startTime = Date.now();
+      const endTime = Date.now();
 
-        const events: OpencodeEvent[] = [
-          {
-            type: 'message.part.updated',
-            properties: {
-              part: { id: 'part-1', type: 'text' },
-              text: 'Hello world',
-            },
-          },
-        ];
+      const firstTokenEvent = findSpanEvent(mockSpanContext.events, 'first_token');
+      expect(firstTokenEvent).toBeDefined();
 
-        const chunks = [];
-        for await (const chunk of adapter.adaptStream(toAsyncIterable(events))) {
-          chunks.push(chunk);
-        }
-
-        const endTime = Date.now();
-
-        expect(capturedSpan).not.toBeNull();
-
-        // Find first_token event
-        const firstTokenEvent = spanEvents.find((e) => e.name === 'first_token');
-        expect(firstTokenEvent).toBeDefined();
-
-        const latencyMs = firstTokenEvent?.attributes?.latency_ms as number;
-        expect(latencyMs).toBeGreaterThanOrEqual(0);
-        expect(latencyMs).toBeLessThanOrEqual(endTime - startTime);
-      });
+      const latencyMs = firstTokenEvent?.attributes?.latency_ms as number;
+      expect(latencyMs).toBeGreaterThanOrEqual(0);
+      expect(latencyMs).toBeLessThanOrEqual(endTime - startTime);
     });
 
     it('should record first_token only once even with multiple chunks', async () => {
-      let capturedSpan: ActiveSpan | null = null;
+      mockCreateStreamSpan(mockSpanContext);
 
-      const createStreamSpanSpy = mock(
-        async (_options: { streamId: string }, fn: (span: ActiveSpan) => Promise<void>) => {
-          capturedSpan = mockSpan;
-          return fn(mockSpan);
-        }
-      );
-      spanFactory.createStreamSpan = createStreamSpanSpy as typeof spanFactory.createStreamSpan;
+      const events = [
+        createTextEvent('part-1', 'First'),
+        createTextEvent('part-1', 'First Second'),
+        createTextEvent('part-1', 'First Second Third'),
+      ];
 
-      await traceContextProvider.run(async () => {
-        const events: OpencodeEvent[] = [
-          {
-            type: 'message.part.updated',
-            properties: {
-              part: { id: 'part-1', type: 'text' },
-              text: 'First',
-            },
-          },
-          {
-            type: 'message.part.updated',
-            properties: {
-              part: { id: 'part-1', type: 'text' },
-              text: 'First Second',
-            },
-          },
-          {
-            type: 'message.part.updated',
-            properties: {
-              part: { id: 'part-1', type: 'text' },
-              text: 'First Second Third',
-            },
-          },
-        ];
+      await adaptInTraceContext(adapter, events);
 
-        const chunks = [];
-        for await (const chunk of adapter.adaptStream(toAsyncIterable(events))) {
-          chunks.push(chunk);
-        }
-
-        expect(capturedSpan).not.toBeNull();
-
-        // Count first_token events (should be exactly 1)
-        const firstTokenEvents = spanEvents.filter((e) => e.name === 'first_token');
-        expect(firstTokenEvents.length).toBe(1);
-      });
+      const firstTokenEvents = filterSpanEvents(mockSpanContext.events, 'first_token');
+      expect(firstTokenEvents.length).toBe(1);
     });
 
     it('should not record first_token for non-text events', async () => {
-      let capturedSpan: ActiveSpan | null = null;
+      mockCreateStreamSpan(mockSpanContext);
 
-      const createStreamSpanSpy = mock(
-        async (_options: { streamId: string }, fn: (span: ActiveSpan) => Promise<void>) => {
-          capturedSpan = mockSpan;
-          return fn(mockSpan);
-        }
-      );
-      spanFactory.createStreamSpan = createStreamSpanSpy as typeof spanFactory.createStreamSpan;
+      const events = [createStatusEvent('running'), createToolCallEvent('read_file')];
 
-      await traceContextProvider.run(async () => {
-        const events: OpencodeEvent[] = [
-          {
-            type: 'status.updated',
-            properties: {
-              status: 'running',
-            },
-          },
-          {
-            type: 'tool.call.started',
-            properties: {
-              name: 'read_file',
-            },
-          },
-        ];
+      await adaptInTraceContext(adapter, events);
 
-        const chunks = [];
-        for await (const chunk of adapter.adaptStream(toAsyncIterable(events))) {
-          chunks.push(chunk);
-        }
-
-        expect(capturedSpan).not.toBeNull();
-
-        // Should NOT have first_token event (no text chunks)
-        const firstTokenEvents = spanEvents.filter((e) => e.name === 'first_token');
-        expect(firstTokenEvents.length).toBe(0);
-      });
+      const firstTokenEvents = filterSpanEvents(mockSpanContext.events, 'first_token');
+      expect(firstTokenEvents.length).toBe(0);
     });
 
     it('should record first_token attribute on span', async () => {
-      let capturedSpan: ActiveSpan | null = null;
-
-      const createStreamSpanSpy = mock(
-        async (_options: { streamId: string }, fn: (span: ActiveSpan) => Promise<void>) => {
-          capturedSpan = mockSpan;
-          return fn(mockSpan);
-        }
-      );
-      spanFactory.createStreamSpan = createStreamSpanSpy as typeof spanFactory.createStreamSpan;
+      mockCreateStreamSpan(mockSpanContext);
 
       await traceContextProvider.run(async () => {
-        const events: OpencodeEvent[] = [
-          {
-            type: 'message.part.updated',
-            properties: {
-              part: { id: 'part-1', type: 'text' },
-              text: 'Token',
-            },
-          },
-        ];
+        const events = [createTextEvent('part-1', 'Token')];
+        const chunks = await adaptAndCollectChunks(adapter, events);
 
-        const chunks = [];
-        for await (const chunk of adapter.adaptStream(toAsyncIterable(events))) {
-          chunks.push(chunk);
-        }
-
-        expect(capturedSpan).not.toBeNull();
-        // Verify attributes were set by checking the captured attributes object
-        expect(Object.keys(spanAttributes).length).toBeGreaterThan(0);
-
-        // Check for stream.first_token_ms attribute
-        expect(spanAttributes).toHaveProperty('agentlint.stream.first_token_ms');
-        expect(typeof spanAttributes['agentlint.stream.first_token_ms']).toBe('number');
+        expect(chunks.length).toBeGreaterThan(0);
+        expect(Object.keys(mockSpanContext.attributes).length).toBeGreaterThan(0);
+        // Use direct property access instead of toHaveProperty (Bun bug workaround)
+        expect('agentlint.stream.first_token_ms' in mockSpanContext.attributes).toBe(true);
+        expect(typeof mockSpanContext.attributes['agentlint.stream.first_token_ms']).toBe('number');
       });
     });
 
     it('should filter reasoning/thinking chunks before first_token detection', async () => {
-      let capturedSpan: ActiveSpan | null = null;
+      mockCreateStreamSpan(mockSpanContext);
 
-      const createStreamSpanSpy = mock(
-        async (_options: { streamId: string }, fn: (span: ActiveSpan) => Promise<void>) => {
-          capturedSpan = mockSpan;
-          return fn(mockSpan);
-        }
-      );
-      spanFactory.createStreamSpan = createStreamSpanSpy as typeof spanFactory.createStreamSpan;
+      const events = [
+        createThinkingEvent('thinking-1', 'Let me think...'),
+        createReasoningEvent('reasoning-1', 'Reasoning about this...'),
+        createTextEvent('text-1', 'Actual response'),
+      ];
 
-      await traceContextProvider.run(async () => {
-        const events: OpencodeEvent[] = [
-          // Thinking chunk (should be filtered, not trigger first_token)
-          {
-            type: 'message.part.updated',
-            properties: {
-              part: { id: 'thinking-1', type: 'thinking' },
-              text: 'Let me think...',
-            },
-          },
-          // Reasoning chunk (should be filtered, not trigger first_token)
-          {
-            type: 'message.part.updated',
-            properties: {
-              part: { id: 'reasoning-1', type: 'reasoning' },
-              text: 'Reasoning about this...',
-            },
-          },
-          // Actual text chunk (should trigger first_token)
-          {
-            type: 'message.part.updated',
-            properties: {
-              part: { id: 'text-1', type: 'text' },
-              text: 'Actual response',
-            },
-          },
-        ];
+      await adaptInTraceContext(adapter, events);
 
-        const chunks = [];
-        for await (const chunk of adapter.adaptStream(toAsyncIterable(events))) {
-          chunks.push(chunk);
-        }
-
-        expect(capturedSpan).not.toBeNull();
-
-        // Should have exactly 1 first_token event (for the text chunk)
-        const firstTokenEvents = spanEvents.filter((e) => e.name === 'first_token');
-        expect(firstTokenEvents.length).toBe(1);
-      });
+      const firstTokenEvents = filterSpanEvents(mockSpanContext.events, 'first_token');
+      expect(firstTokenEvents.length).toBe(1);
     });
   });
 
   describe('Stream completion metrics', () => {
     it('should record stream_complete event when stream ends', async () => {
-      let capturedSpan: ActiveSpan | null = null;
+      mockCreateStreamSpan(mockSpanContext);
+      const events = [createTextEvent('part-1', 'Hello')];
 
-      const createStreamSpanSpy = mock(
-        async (_options: { streamId: string }, fn: (span: ActiveSpan) => Promise<void>) => {
-          capturedSpan = mockSpan;
-          return fn(mockSpan);
-        }
-      );
-      spanFactory.createStreamSpan = createStreamSpanSpy as typeof spanFactory.createStreamSpan;
+      await adaptInTraceContext(adapter, events);
 
-      await traceContextProvider.run(async () => {
-        const events: OpencodeEvent[] = [
-          {
-            type: 'message.part.updated',
-            properties: {
-              part: { id: 'part-1', type: 'text' },
-              text: 'Hello',
-            },
-          },
-        ];
-
-        const chunks = [];
-        for await (const chunk of adapter.adaptStream(toAsyncIterable(events))) {
-          chunks.push(chunk);
-        }
-
-        expect(capturedSpan).not.toBeNull();
-
-        // Find stream_complete event
-        const completeEvent = spanEvents.find((e) => e.name === 'stream_complete');
-        expect(completeEvent).toBeDefined();
-      });
+      const completeEvent = findSpanEvent(mockSpanContext.events, 'stream_complete');
+      expect(completeEvent).toBeDefined();
     });
 
     it('should record chunk count in span attributes', async () => {
-      let capturedSpan: ActiveSpan | null = null;
-
-      const createStreamSpanSpy = mock(
-        async (_options: { streamId: string }, fn: (span: ActiveSpan) => Promise<void>) => {
-          capturedSpan = mockSpan;
-          return fn(mockSpan);
-        }
-      );
-      spanFactory.createStreamSpan = createStreamSpanSpy as typeof spanFactory.createStreamSpan;
+      mockCreateStreamSpan(mockSpanContext);
 
       await traceContextProvider.run(async () => {
-        const events: OpencodeEvent[] = [
-          {
-            type: 'message.part.updated',
-            properties: {
-              part: { id: 'part-1', type: 'text' },
-              text: 'A',
-            },
-          },
-          {
-            type: 'message.part.updated',
-            properties: {
-              part: { id: 'part-1', type: 'text' },
-              text: 'AB',
-            },
-          },
-          {
-            type: 'message.part.updated',
-            properties: {
-              part: { id: 'part-1', type: 'text' },
-              text: 'ABC',
-            },
-          },
+        const events = [
+          createTextEvent('part-1', 'A'),
+          createTextEvent('part-1', 'AB'),
+          createTextEvent('part-1', 'ABC'),
         ];
+        const chunks = await adaptAndCollectChunks(adapter, events);
 
-        const chunks = [];
-        for await (const chunk of adapter.adaptStream(toAsyncIterable(events))) {
-          chunks.push(chunk);
-        }
-
-        expect(capturedSpan).not.toBeNull();
-
-        // Check for chunk count attribute
-        expect(spanAttributes).toHaveProperty('agentlint.stream.chunk_count');
-        expect(spanAttributes['agentlint.stream.chunk_count']).toBe(3);
+        expect(chunks.length).toBe(3);
+        // Use direct property access instead of toHaveProperty (Bun bug workaround)
+        expect('agentlint.stream.chunk_count' in mockSpanContext.attributes).toBe(true);
+        expect(mockSpanContext.attributes['agentlint.stream.chunk_count']).toBe(3);
       });
     });
 
     it('should record stream duration in span attributes', async () => {
-      let capturedSpan: ActiveSpan | null = null;
-
-      const createStreamSpanSpy = mock(
-        async (_options: { streamId: string }, fn: (span: ActiveSpan) => Promise<void>) => {
-          capturedSpan = mockSpan;
-          return fn(mockSpan);
-        }
-      );
-      spanFactory.createStreamSpan = createStreamSpanSpy as typeof spanFactory.createStreamSpan;
+      mockCreateStreamSpan(mockSpanContext);
 
       await traceContextProvider.run(async () => {
-        const events: OpencodeEvent[] = [
-          {
-            type: 'message.part.updated',
-            properties: {
-              part: { id: 'part-1', type: 'text' },
-              text: 'Test',
-            },
-          },
-        ];
+        const events = [createTextEvent('part-1', 'Test')];
+        const chunks = await adaptAndCollectChunks(adapter, events);
 
-        const chunks = [];
-        for await (const chunk of adapter.adaptStream(toAsyncIterable(events))) {
-          chunks.push(chunk);
-        }
-
-        expect(capturedSpan).not.toBeNull();
-
-        // Check for duration attribute
-        expect(spanAttributes).toHaveProperty('agentlint.stream.duration_ms');
-        expect(typeof spanAttributes['agentlint.stream.duration_ms']).toBe('number');
-        expect(spanAttributes['agentlint.stream.duration_ms']).toBeGreaterThanOrEqual(0);
+        expect(chunks.length).toBeGreaterThan(0);
+        // Use direct property access instead of toHaveProperty (Bun bug workaround)
+        expect('agentlint.stream.duration_ms' in mockSpanContext.attributes).toBe(true);
+        expect(typeof mockSpanContext.attributes['agentlint.stream.duration_ms']).toBe('number');
+        expect(mockSpanContext.attributes['agentlint.stream.duration_ms']).toBeGreaterThanOrEqual(
+          0
+        );
       });
     });
   });

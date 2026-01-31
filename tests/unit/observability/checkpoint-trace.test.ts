@@ -8,6 +8,45 @@ import { CheckpointHandler, createCheckpointHandler } from '../../../src/orchest
 import { traceContextProvider } from '../../../src/observability/trace-context';
 import type { CheckpointEvent, SessionState } from '../../../src/orchestration/types';
 
+// ============================================================================
+// Test Helpers
+// ============================================================================
+
+/**
+ * Creates a minimal SessionState for testing.
+ * Allows overriding specific fields while providing sensible defaults.
+ */
+function createTestSessionState(overrides: Partial<SessionState> = {}): SessionState {
+  return {
+    id: 'test-session',
+    startedAt: new Date().toISOString(),
+    lastCheckpointAt: null,
+    phase: 'analyze',
+    findings: [],
+    toolResultCache: {},
+    checkpointSequence: 0,
+    taskGoal: 'test task',
+    projectContext: {
+      name: 'test-project',
+      path: '/test',
+      hasClaudeMd: false,
+      primaryLanguage: 'typescript',
+      agentType: 'claude-code',
+    },
+    metrics: {
+      toolCalls: 1,
+      llmCalls: 0,
+      tokensUsed: 0,
+      elapsedMs: 100,
+    },
+    ...overrides,
+  };
+}
+
+// ============================================================================
+// Tests
+// ============================================================================
+
 describe('Checkpoint Trace Context Integration', () => {
   let checkpointEvents: CheckpointEvent[];
   let handler: CheckpointHandler;
@@ -28,72 +67,25 @@ describe('Checkpoint Trace Context Integration', () => {
       expect(context?.traceId).toMatch(/^[0-9a-f]{32}$/);
       expect(context?.spanId).toMatch(/^[0-9a-f]{16}$/);
 
-      const state: SessionState = {
-        id: 'test-session',
-        startedAt: new Date().toISOString(),
-        lastCheckpointAt: null,
-        phase: 'analyze',
-        findings: [],
-        toolResultCache: {},
-        checkpointSequence: 0,
-        taskGoal: 'test task',
-        projectContext: {
-          name: 'test-project',
-          path: '/test',
-          hasClaudeMd: false,
-          primaryLanguage: 'typescript',
-          agentType: 'claude-code',
-        },
-        metrics: {
-          toolCalls: 1,
-          llmCalls: 0,
-          tokensUsed: 0,
-          elapsedMs: 100,
-        },
-      };
-
+      const state = createTestSessionState();
       handler.emit('tool_complete', state, { toolName: 'test_tool' });
 
       expect(checkpointEvents).toHaveLength(1);
       const checkpoint = checkpointEvents[0];
+      if (!checkpoint) throw new Error('Expected checkpoint to be defined');
 
-      expect(checkpoint).toBeDefined();
-      expect(checkpoint?.state.traceContext).toBeDefined();
-      expect(checkpoint?.state.traceContext?.traceId).toBe(context?.traceId);
-      expect(checkpoint?.state.traceContext?.spanId).toBe(context?.spanId);
+      expect(checkpoint.state.traceContext).toBeDefined();
+      expect(checkpoint.state.traceContext?.traceId).toBe(context?.traceId);
+      expect(checkpoint.state.traceContext?.spanId).toBe(context?.spanId);
     });
   });
 
   it('should handle checkpoints without active trace context', () => {
-    const state: SessionState = {
-      id: 'test-session',
-      startedAt: new Date().toISOString(),
-      lastCheckpointAt: null,
-      phase: 'analyze',
-      findings: [],
-      toolResultCache: {},
-      checkpointSequence: 0,
-      taskGoal: 'test task',
-      projectContext: {
-        name: 'test-project',
-        path: '/test',
-        hasClaudeMd: false,
-        primaryLanguage: 'typescript',
-        agentType: 'claude-code',
-      },
-      metrics: {
-        toolCalls: 1,
-        llmCalls: 0,
-        tokensUsed: 0,
-        elapsedMs: 100,
-      },
-    };
-
+    const state = createTestSessionState();
     handler.emit('tool_complete', state, { toolName: 'test_tool' });
 
     expect(checkpointEvents).toHaveLength(1);
     const checkpoint = checkpointEvents[0];
-
     expect(checkpoint).toBeDefined();
     // No trace context should be present if not running in trace
     expect(checkpoint?.state.traceContext).toBeUndefined();
@@ -105,35 +97,12 @@ describe('Checkpoint Trace Context Integration', () => {
         const context = traceContextProvider.getContext();
         expect(context?.parentSpanId).toBeDefined();
 
-        const state: SessionState = {
-          id: 'test-session',
-          startedAt: new Date().toISOString(),
-          lastCheckpointAt: null,
-          phase: 'analyze',
-          findings: [],
-          toolResultCache: {},
-          checkpointSequence: 0,
-          taskGoal: 'test task',
-          projectContext: {
-            name: 'test-project',
-            path: '/test',
-            hasClaudeMd: false,
-            primaryLanguage: 'typescript',
-            agentType: 'claude-code',
-          },
-          metrics: {
-            toolCalls: 1,
-            llmCalls: 0,
-            tokensUsed: 0,
-            elapsedMs: 100,
-          },
-        };
-
+        const state = createTestSessionState();
         handler.emit('tool_complete', state, { toolName: 'test_tool' });
 
         expect(checkpointEvents).toHaveLength(1);
         const checkpoint = checkpointEvents[0];
-
+        expect(checkpoint).toBeDefined();
         expect(checkpoint?.state.traceContext).toBeDefined();
         expect(checkpoint?.state.traceContext?.parentSpanId).toBe(context?.parentSpanId);
       });
@@ -143,30 +112,9 @@ describe('Checkpoint Trace Context Integration', () => {
   it('should preserve trace context through multiple checkpoints', async () => {
     await traceContextProvider.run(async () => {
       const context = traceContextProvider.getContext();
-
-      const state: SessionState = {
-        id: 'test-session',
-        startedAt: new Date().toISOString(),
-        lastCheckpointAt: null,
-        phase: 'analyze',
-        findings: [],
-        toolResultCache: {},
-        checkpointSequence: 0,
-        taskGoal: 'test task',
-        projectContext: {
-          name: 'test-project',
-          path: '/test',
-          hasClaudeMd: false,
-          primaryLanguage: 'typescript',
-          agentType: 'claude-code',
-        },
-        metrics: {
-          toolCalls: 0,
-          llmCalls: 0,
-          tokensUsed: 0,
-          elapsedMs: 0,
-        },
-      };
+      const state = createTestSessionState({
+        metrics: { toolCalls: 0, llmCalls: 0, tokensUsed: 0, elapsedMs: 0 },
+      });
 
       handler.emit('tool_complete', state, { toolName: 'tool_1' });
       handler.emit('tool_complete', state, { toolName: 'tool_2' });
@@ -183,66 +131,22 @@ describe('Checkpoint Trace Context Integration', () => {
 
   it('should validate trace ID format (32 hex chars)', async () => {
     await traceContextProvider.run(async () => {
-      const state: SessionState = {
-        id: 'test-session',
-        startedAt: new Date().toISOString(),
-        lastCheckpointAt: null,
-        phase: 'analyze',
-        findings: [],
-        toolResultCache: {},
-        checkpointSequence: 0,
-        taskGoal: 'test task',
-        projectContext: {
-          name: 'test-project',
-          path: '/test',
-          hasClaudeMd: false,
-          primaryLanguage: 'typescript',
-          agentType: 'claude-code',
-        },
-        metrics: {
-          toolCalls: 1,
-          llmCalls: 0,
-          tokensUsed: 0,
-          elapsedMs: 100,
-        },
-      };
-
+      const state = createTestSessionState();
       handler.emit('tool_complete', state);
 
       const checkpoint = checkpointEvents[0];
+      expect(checkpoint).toBeDefined();
       expect(checkpoint?.state.traceContext?.traceId).toMatch(/^[0-9a-f]{32}$/);
     });
   });
 
   it('should validate span ID format (16 hex chars)', async () => {
     await traceContextProvider.run(async () => {
-      const state: SessionState = {
-        id: 'test-session',
-        startedAt: new Date().toISOString(),
-        lastCheckpointAt: null,
-        phase: 'analyze',
-        findings: [],
-        toolResultCache: {},
-        checkpointSequence: 0,
-        taskGoal: 'test task',
-        projectContext: {
-          name: 'test-project',
-          path: '/test',
-          hasClaudeMd: false,
-          primaryLanguage: 'typescript',
-          agentType: 'claude-code',
-        },
-        metrics: {
-          toolCalls: 1,
-          llmCalls: 0,
-          tokensUsed: 0,
-          elapsedMs: 100,
-        },
-      };
-
+      const state = createTestSessionState();
       handler.emit('tool_complete', state);
 
       const checkpoint = checkpointEvents[0];
+      expect(checkpoint).toBeDefined();
       expect(checkpoint?.state.traceContext?.spanId).toMatch(/^[0-9a-f]{16}$/);
     });
   });

@@ -263,6 +263,98 @@ export class ConversationManager {
   }
 
   /**
+   * Add a message to conversation history, TUI, and session.
+   */
+  private addMessage(message: ConversationMessage): void {
+    this.conversationHistory.push(message);
+    this.tuiRenderer.addConversationMessage(message);
+
+    if (this.session) {
+      this.session = addMessageToSession(this.session, message);
+    }
+  }
+
+  /**
+   * Add an error message and return early (sets TUI to idle).
+   */
+  private addErrorAndReturn(errorPrefix: string, error: unknown): void {
+    const errorMessage = createAssistantMessage(
+      `${errorPrefix}: ${error instanceof Error ? error.message : String(error)}`
+    );
+    this.addMessage(errorMessage);
+    this.tuiRenderer.setTuiState('idle');
+  }
+
+  /**
+   * Add an informational message and return early (sets TUI to idle).
+   */
+  private addInfoAndReturn(content: string): void {
+    const message = createAssistantMessage(content);
+    this.addMessage(message);
+    this.tuiRenderer.setTuiState('idle');
+  }
+
+  /**
+   * Run orchestrator query with prompt and handle streaming response.
+   */
+  private async runOrchestratorQuery(userInput: string): Promise<void> {
+    const { systemPrompt, userPrompt } = buildFollowUpPrompt({
+      userInput,
+      conversationHistory: [],
+      welcomeContext: this.welcomeContext,
+      currentContext: this.currentContext,
+    });
+
+    let responseContent = '';
+
+    for await (const chunk of this.orchestrator.run(userPrompt, { systemPrompt })) {
+      this.tuiRenderer.renderChunk(chunk);
+
+      if (chunk.type === 'text') {
+        responseContent += chunk.content;
+      }
+    }
+
+    if (responseContent) {
+      const assistantMessage = createAssistantMessage(responseContent);
+      this.addMessage(assistantMessage);
+    }
+  }
+
+  /**
+   * Execute git diff command with error handling.
+   */
+  private getGitDiff(): string {
+    try {
+      return execSync('git diff --no-color', {
+        cwd: this.projectPath,
+        encoding: 'utf8',
+        maxBuffer: 10 * 1024 * 1024, // 10MB buffer
+      });
+    } catch (error) {
+      throw new Error(
+        `Failed to get git diff: ${error instanceof Error ? error.message : String(error)}\n\nMake sure you're in a git repository with uncommitted changes.`
+      );
+    }
+  }
+
+  /**
+   * Build metrics summary lines for recommendations.
+   */
+  private buildMetricsSummary(
+    metricType: string,
+    total: number,
+    implRate: number,
+    successRate: number
+  ): string[] {
+    return [
+      `### ${metricType} (${total})`,
+      `- Implementation rate: ${(implRate * 100).toFixed(1)}%`,
+      `- Success rate: ${(successRate * 100).toFixed(1)}%\n`,
+    ];
+  }
+
+  /**
    * Handle action from the welcome menu.
    * Transitions state and executes the appropriate analysis or workflow.
    *
@@ -279,44 +371,11 @@ export class ConversationManager {
 
     switch (action) {
       case 'full-analysis': {
-        // Build the full analysis prompt
-        const { systemPrompt, userPrompt } = buildFollowUpPrompt({
-          userInput: 'Run a full analysis of this project',
-          conversationHistory: [],
-          welcomeContext: this.welcomeContext,
-          currentContext: this.currentContext,
-        });
-
         try {
-          let responseContent = '';
-
-          for await (const chunk of this.orchestrator.run(userPrompt, { systemPrompt })) {
-            this.tuiRenderer.renderChunk(chunk);
-
-            if (chunk.type === 'text') {
-              responseContent += chunk.content;
-            }
-          }
-
-          if (responseContent) {
-            const assistantMessage = createAssistantMessage(responseContent);
-            this.conversationHistory.push(assistantMessage);
-            this.tuiRenderer.addConversationMessage(assistantMessage);
-
-            if (this.session) {
-              this.session = addMessageToSession(this.session, assistantMessage);
-            }
-          }
+          await this.runOrchestratorQuery('Run a full analysis of this project');
         } catch (error) {
-          const errorMessage = createAssistantMessage(
-            `Failed to run full analysis: ${error instanceof Error ? error.message : String(error)}`
-          );
-          this.conversationHistory.push(errorMessage);
-          this.tuiRenderer.addConversationMessage(errorMessage);
-
-          if (this.session) {
-            this.session = addMessageToSession(this.session, errorMessage);
-          }
+          this.addErrorAndReturn('Failed to run full analysis', error);
+          return;
         } finally {
           this.tuiRenderer.setTuiState('idle');
         }
@@ -325,78 +384,24 @@ export class ConversationManager {
 
       case 'analyze-diff': {
         try {
-          // Get git diff output
           let diffOutput: string;
           try {
-            diffOutput = execSync('git diff --no-color', {
-              cwd: this.projectPath,
-              encoding: 'utf8',
-              maxBuffer: 10 * 1024 * 1024, // 10MB buffer
-            });
+            diffOutput = this.getGitDiff();
           } catch (error) {
-            const errMessage = createAssistantMessage(
-              `Failed to get git diff: ${error instanceof Error ? error.message : String(error)}\n\nMake sure you're in a git repository with uncommitted changes.`
-            );
-            this.conversationHistory.push(errMessage);
-            this.tuiRenderer.addConversationMessage(errMessage);
-            if (this.session) {
-              this.session = addMessageToSession(this.session, errMessage);
-            }
-            this.tuiRenderer.setTuiState('idle');
-            break;
+            this.addErrorAndReturn('', error);
+            return;
           }
 
           if (!diffOutput.trim()) {
-            const message = createAssistantMessage(
-              'No uncommitted changes found in the working directory.'
-            );
-            this.conversationHistory.push(message);
-            this.tuiRenderer.addConversationMessage(message);
-            if (this.session) {
-              this.session = addMessageToSession(this.session, message);
-            }
-            this.tuiRenderer.setTuiState('idle');
-            break;
+            this.addInfoAndReturn('No uncommitted changes found in the working directory.');
+            return;
           }
 
-          // Build prompt with diff context
           const diffPrompt = `Analyze the following uncommitted changes:\n\n\`\`\`diff\n${diffOutput}\n\`\`\``;
-          const { systemPrompt, userPrompt } = buildFollowUpPrompt({
-            userInput: diffPrompt,
-            conversationHistory: [],
-            welcomeContext: this.welcomeContext,
-            currentContext: this.currentContext,
-          });
-
-          let responseContent = '';
-
-          for await (const chunk of this.orchestrator.run(userPrompt, { systemPrompt })) {
-            this.tuiRenderer.renderChunk(chunk);
-
-            if (chunk.type === 'text') {
-              responseContent += chunk.content;
-            }
-          }
-
-          if (responseContent) {
-            const assistantMessage = createAssistantMessage(responseContent);
-            this.conversationHistory.push(assistantMessage);
-            this.tuiRenderer.addConversationMessage(assistantMessage);
-
-            if (this.session) {
-              this.session = addMessageToSession(this.session, assistantMessage);
-            }
-          }
+          await this.runOrchestratorQuery(diffPrompt);
         } catch (error) {
-          const errorMessage = createAssistantMessage(
-            `Failed to analyze diff: ${error instanceof Error ? error.message : String(error)}`
-          );
-          this.conversationHistory.push(errorMessage);
-          this.tuiRenderer.addConversationMessage(errorMessage);
-
-          if (this.session) {
-            this.session = addMessageToSession(this.session, errorMessage);
-          }
+          this.addErrorAndReturn('Failed to analyze diff', error);
+          return;
         } finally {
           this.tuiRenderer.setTuiState('idle');
         }
@@ -408,22 +413,15 @@ export class ConversationManager {
           const dbPath = getDefaultOutcomeDbPath();
 
           if (!existsSync(dbPath)) {
-            const message = createAssistantMessage(
+            this.addInfoAndReturn(
               'No recommendation outcomes found. Recommendations will be stored after you receive them during analysis sessions.'
             );
-            this.conversationHistory.push(message);
-            this.tuiRenderer.addConversationMessage(message);
-            if (this.session) {
-              this.session = addMessageToSession(this.session, message);
-            }
-            this.tuiRenderer.setTuiState('idle');
-            break;
+            return;
           }
 
           const storage = createOutcomeStorage(dbPath);
           const metrics = storage.getMetrics();
 
-          // Build summary of recommendations
           const summaryLines: string[] = [
             '## Recommendation Outcomes Summary\n',
             `**Total recommendations**: ${metrics.all.totalRecommendations}`,
@@ -433,46 +431,43 @@ export class ConversationManager {
 
           if (metrics.symptomatic.totalRecommendations > 0) {
             summaryLines.push(
-              `### Symptomatic (${metrics.symptomatic.totalRecommendations})`,
-              `- Implementation rate: ${(metrics.symptomatic.implementationRate * 100).toFixed(1)}%`,
-              `- Success rate: ${(metrics.symptomatic.successRate * 100).toFixed(1)}%\n`
+              ...this.buildMetricsSummary(
+                'Symptomatic',
+                metrics.symptomatic.totalRecommendations,
+                metrics.symptomatic.implementationRate,
+                metrics.symptomatic.successRate
+              )
             );
           }
 
           if (metrics.preventive.totalRecommendations > 0) {
             summaryLines.push(
-              `### Preventive (${metrics.preventive.totalRecommendations})`,
-              `- Implementation rate: ${(metrics.preventive.implementationRate * 100).toFixed(1)}%`,
-              `- Success rate: ${(metrics.preventive.successRate * 100).toFixed(1)}%\n`
+              ...this.buildMetricsSummary(
+                'Preventive',
+                metrics.preventive.totalRecommendations,
+                metrics.preventive.implementationRate,
+                metrics.preventive.successRate
+              )
             );
           }
 
           if (metrics.systemic.totalRecommendations > 0) {
             summaryLines.push(
-              `### Systemic (${metrics.systemic.totalRecommendations})`,
-              `- Implementation rate: ${(metrics.systemic.implementationRate * 100).toFixed(1)}%`,
-              `- Success rate: ${(metrics.systemic.successRate * 100).toFixed(1)}%\n`
+              ...this.buildMetricsSummary(
+                'Systemic',
+                metrics.systemic.totalRecommendations,
+                metrics.systemic.implementationRate,
+                metrics.systemic.successRate
+              )
             );
           }
 
           const summary = summaryLines.join('\n');
           const message = createAssistantMessage(summary);
-          this.conversationHistory.push(message);
-          this.tuiRenderer.addConversationMessage(message);
-
-          if (this.session) {
-            this.session = addMessageToSession(this.session, message);
-          }
+          this.addMessage(message);
         } catch (error) {
-          const errorMessage = createAssistantMessage(
-            `Failed to retrieve recommendations: ${error instanceof Error ? error.message : String(error)}`
-          );
-          this.conversationHistory.push(errorMessage);
-          this.tuiRenderer.addConversationMessage(errorMessage);
-
-          if (this.session) {
-            this.session = addMessageToSession(this.session, errorMessage);
-          }
+          this.addErrorAndReturn('Failed to retrieve recommendations', error);
+          return;
         } finally {
           this.tuiRenderer.setTuiState('idle');
         }
@@ -484,19 +479,12 @@ export class ConversationManager {
           const incompleteSessions = await findIncomplete();
 
           if (incompleteSessions.length === 0) {
-            const message = createAssistantMessage(
+            this.addInfoAndReturn(
               'No incomplete sessions found. All previous sessions are complete or no sessions exist.'
             );
-            this.conversationHistory.push(message);
-            this.tuiRenderer.addConversationMessage(message);
-            if (this.session) {
-              this.session = addMessageToSession(this.session, message);
-            }
-            this.tuiRenderer.setTuiState('idle');
-            break;
+            return;
           }
 
-          // Build list of resumable sessions
           const sessionLines: string[] = ['## Resumable Sessions\n'];
           for (let i = 0; i < Math.min(incompleteSessions.length, 5); i++) {
             const info = incompleteSessions[i];
@@ -523,22 +511,10 @@ export class ConversationManager {
 
           const summary = sessionLines.join('\n');
           const message = createAssistantMessage(summary);
-          this.conversationHistory.push(message);
-          this.tuiRenderer.addConversationMessage(message);
-
-          if (this.session) {
-            this.session = addMessageToSession(this.session, message);
-          }
+          this.addMessage(message);
         } catch (error) {
-          const errorMessage = createAssistantMessage(
-            `Failed to retrieve sessions: ${error instanceof Error ? error.message : String(error)}`
-          );
-          this.conversationHistory.push(errorMessage);
-          this.tuiRenderer.addConversationMessage(errorMessage);
-
-          if (this.session) {
-            this.session = addMessageToSession(this.session, errorMessage);
-          }
+          this.addErrorAndReturn('Failed to retrieve sessions', error);
+          return;
         } finally {
           this.tuiRenderer.setTuiState('idle');
         }
@@ -547,13 +523,7 @@ export class ConversationManager {
 
       default: {
         const message = createAssistantMessage(`Unknown action: ${action}`);
-        this.conversationHistory.push(message);
-        this.tuiRenderer.addConversationMessage(message);
-
-        if (this.session) {
-          this.session = addMessageToSession(this.session, message);
-        }
-
+        this.addMessage(message);
         this.tuiRenderer.setTuiState('idle');
       }
     }
